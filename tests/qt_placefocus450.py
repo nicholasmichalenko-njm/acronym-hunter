@@ -103,8 +103,12 @@ b = w.setups_page.builder
 check("Outline has no Not placed yet list (Place has it)", not vis(b.unp_list) and not vis(b.unp_btn) and b.place_btn.text() == "Put in the section")
 M.items.append({"id": "x1", "text": "Volume I Technical shall not exceed 25 pages.", "file": "Section_L.pdf", "decision": ""})
 check("the solicitation's page limits", OM.limits(M).get(1) == 25)
-SD.setup_of(M)["outline_from"] = "prescribed"; SD.setup_of(M).pop("prescribed_marked", None)
+SD.setup_of(M).pop("outline_from", None); SD.setup_of(M).pop("prescribed_marked", None)
 w.outline_page.refresh(); app.processEvents()
+check("4.6.0: an outline started from the customer's headings still asks, once, whether the solicitation prescribes it",
+      bool(M.outline) and vis(w.outline_page.started) and not vis(w.outline_page.start))
+w.outline_page.answer("prescribed"); app.processEvents()
+check("... Yes keeps the answer and the question goes", SD.setup_of(M).get("outline_from") == "prescribed" and not vis(w.outline_page.started))
 import pagebudget as PB, compliance as C
 vol = next(o for o in M.outline if "Volume" in C.outline_label(o))
 check("a prescribed outline: the customer's sections, the volume's page limit", all(o.get("by") == "customer" for o in M.outline)

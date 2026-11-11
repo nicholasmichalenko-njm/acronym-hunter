@@ -111,9 +111,18 @@ def check_file(path):
     return problems
 
 
+def program_files():
+    """4.6.0: every .py file the program ships (top level, skqt, prodengine), besides the list above."""
+    import glob
+    got = set(FILES)
+    for pat in ("*.py", os.path.join("skqt", "*.py"), os.path.join("prodengine", "**", "*.py")):
+        got.update(os.path.relpath(p, ROOT).replace(os.sep, "/") for p in glob.glob(os.path.join(ROOT, pat), recursive=True))
+    return sorted(got)
+
+
 def main():
     bad = 0
-    for f in FILES:
+    for f in program_files():
         p = os.path.join(ROOT, f)
         if not os.path.isfile(p):
             continue

@@ -106,7 +106,7 @@ class PartImport(QDialog):
         sid = self.set_box.currentData()
         if sid and ids:
             PT.add_to_set(page.cfg(), page.lib, sid, ids)
-        diag.activity("parts_brought_in", pages=len(designs), quick=len(items))
+        diag.activity("parts_brought_in", pages=len(designs), items=len(items))
         said = [f"{len(designs)} page(s)" if designs else "", f"{len(items)} Quick Part(s)" if items else ""]
         page.host.toast(" and ".join(x for x in said if x) + " brought in." + (" Set what fills each page on the right." if designs else ""))
         self.kept = (designs, items)

@@ -381,7 +381,7 @@ class StylesPage(QWidget):
         if self.sid and st != "same":
             SL.add_to_set(self.lib, self.sid, [it["id"]])
         self.host.toast({"new": f"{name}: made", "variant": f"{name}: a new version", "same": f"{name}: the library has this look already"}[st])
-        diag.activity("style_made", state=st)
+        diag.activity("style_made")
         self.fill_sets(); self.fill_rows(); self.select(it["id"])
         return it
 

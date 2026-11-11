@@ -84,7 +84,7 @@ class ReviewViews(QWidget):
             self.pg.placer.gutter.update()
         except AttributeError:
             pass
-        diag.activity("review_view", view=key)
+        diag.activity("review_view")
         return key
 
     def current(self):

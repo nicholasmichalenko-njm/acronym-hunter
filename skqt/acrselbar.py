@@ -77,7 +77,7 @@ def build(op, host):
     kind = "decide" if getattr(op, "force_decide", False) else AG.bar_kind(items, s.results, A.ocr_cutoff())
     op.force_decide = False
     f = {"partial": partial_bar, "doubt": doubt_bar}.get(kind, decide_bar)(op, host, items)
-    diag.activity("acronym_page_bar", kind=f.kind)
+    diag.activity("acronym_page_bar")
     return f
 
 

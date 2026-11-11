@@ -82,7 +82,7 @@ class DraftsCheck(QDialog):
                 use.setdefault(t, {})[name] = n
             s.ws.set("acronym_volume_use", use)
             P.note(s.ws, f"{name} checked", to_fix=len([f for f in self.report["findings"] if f["kind"] != "unlisted"]))
-        diag.activity("acronym_drafts_checked", findings=len(self.report["findings"]))
+        diag.activity("acronym_drafts_checked", items=len(self.report["findings"]))
         self.where.setText(f"{os.path.basename(path)}: checked against the list. Fixes go into "
                            f"{os.path.basename(self.copy_path())} as tracked changes; the draft is not changed.")
         tab = self.report["table"]

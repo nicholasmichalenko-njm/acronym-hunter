@@ -48,7 +48,7 @@ def switch(page, i):
     page.bars.setCurrentIndex(i)
     if i == 0:
         page.onpage.fill()
-    diag.activity("acronym_tab", tab=TABS[i])
+    diag.activity("acronym_tab", n=i)
     return i
 
 

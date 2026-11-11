@@ -122,7 +122,7 @@ def toggle_piece(page, key, rows=None):
         on, _after = ST.toggle(rows, key, log=lambda i, m: M.log(i, m))
         follow(page, rows)
     M.pending = True
-    diag.activity("shred_toggled", n=len(rows), on=on)
+    diag.activity("shred_toggled", n=len(rows), added=1 if on else 0)
     who = rows[0]["id"] if len(rows) == 1 else f"{len(rows)} pieces"
     page.after(f"{who}: {names.get(key, key)} {'on' if on else 'off'}")
     return on

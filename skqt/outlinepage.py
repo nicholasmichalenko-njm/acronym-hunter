@@ -55,6 +55,16 @@ class OutlinePage(QWidget):
         m.addAction("Blank: type it", lambda: self.ours("blank"))
         row.addWidget(self.b_ours); row.addStretch(1)
         v.addWidget(self.start)
+        # 4.6.0: an outline the effort type started by itself (from Section L's headings) still asks, once
+        self.started = D.Card("Does the solicitation prescribe this outline?", "It started from the customer's headings. If the "
+                              "solicitation prescribes the response outline, its sections are marked as the customer's, with "
+                              "their page limits. If not, the headings stay as a start for our own.", key=True)
+        row2 = QHBoxLayout(); row2.setSpacing(D.SPACE["s"]); self.started.body.addLayout(row2)
+        self.b_yes = D.button("Yes, it prescribes it", "primary", lambda: self.answer("prescribed"),
+                              "The sections are marked as the customer's, with the solicitation's page limits")
+        self.b_no = D.button("No, we build our own", None, lambda: self.answer("ours"), "The headings stay as a start; change them freely")
+        row2.addWidget(self.b_yes); row2.addWidget(self.b_no); row2.addStretch(1)
+        v.addWidget(self.started)
         self.slot = QVBoxLayout(); v.addLayout(self.slot, 1)
         self.said = D.label("", "muted"); v.addWidget(self.said)
 
@@ -86,6 +96,7 @@ class OutlinePage(QWidget):
         texting = not b.text_panel.isHidden()
         asked = bool(self._setup().get("outline_from")) if M is not None else False
         self.start.setVisible(M is not None and not has and not texting and not asked)
+        self.started.setVisible(M is not None and has and not asked)          # 4.6.0
         b.setVisible(has or texting or asked)
         for x in (self.b_volume, self.b_elements, self.b_place):
             x.setEnabled(has)
@@ -137,7 +148,7 @@ class OutlinePage(QWidget):
             self.host.status("The solicitation names no outline that the rules can find: its headings are shown instead. "
                              "Edit them, then Apply.")
         self.refresh()
-        diag.activity("outline_start", how="prescribed")
+        diag.activity("outline_start_prescribed")
         return ok
 
     def ours(self, how):
@@ -155,8 +166,21 @@ class OutlinePage(QWidget):
         else:
             ok = b.blank()
         self.refresh()
-        diag.activity("outline_start", how=how)
+        diag.activity("outline_start_ours")
         return ok
+
+    def answer(self, how):
+        """4.6.0: the question for an outline already started from the customer's headings. Prescribed marks its
+        sections as the customer's (on refresh, outlinemarks); ours keeps them as a start. Nothing is rebuilt."""
+        if self.M() is None or how not in FROM:
+            return False
+        self._keep(how)
+        self.refresh()
+        if how == "prescribed":
+            diag.activity("outline_answered_prescribed")
+        else:
+            diag.activity("outline_answered_ours")
+        return True
 
     def from_factors(self):
         """Section M's factors and subfactors as the sections (Shred > Evaluation holds them)."""

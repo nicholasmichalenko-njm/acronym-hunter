@@ -710,7 +710,7 @@ class WorkbookPage(QDialog):
             self.host.status(f"The setup was not written: {e}. Close it in Word if it is open, or pick another template.")
             return None
         self.save_layout()
-        diag.activity("setup_from_workbook_made", paragraphs=len(self.paras))
+        diag.activity("setup_from_workbook_made", items=len(self.paras))
         self.host.toast(f"Made: {os.path.basename(out_path)}")
         self.host.status(f"The setup is in {out_path}. Its styles are set as on this page; the layout keeps them for next time.")
         return out_path

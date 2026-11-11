@@ -132,7 +132,7 @@ class ChangePart(QDialog):
             PT.add_to_set(self.page.cfg(), self.lib, sid, ["q:" + it["id"]])
         self.result_item = it
         self.page.after_change(it, st, what)
-        diag.activity("part_changed", how=what)
+        diag.activity("part_changed")
         self.accept()
         return it
 

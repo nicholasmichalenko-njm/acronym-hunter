@@ -112,7 +112,7 @@ class StyleImport(QDialog):
     def go(self):
         lib = self.page.lib
         c = SL.bring_in(lib, self.rows, self.path, set_of={r["name"]: r.get("set") for r in self.rows if r.get("set")})
-        diag.activity("styles_brought_in", new=c["new"], variant=c["variant"])
+        diag.activity("styles_brought_in", added=c["new"], items=c["variant"])
         self.page.host.toast(f"{c['new']} new style(s), {c['variant']} new version(s)"
                              + (f", {c['same']} you had already" if c["same"] else ""))
         self.result_counts = c

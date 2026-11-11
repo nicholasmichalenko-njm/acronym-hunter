@@ -215,7 +215,7 @@ class Placer:
         n = HS.take_offer(pg.M, off, how, place)
         self.off = None
         self.offer_row.setVisible(False)
-        diag.activity("review_map_offer", how=how, n=n)
+        diag.activity("review_map_offer", n=n)
         pg.after({"place": f"{off['num']} goes to {off['label']}: {n} more placed.",
                   "map": f"{off['num']} goes to {off['label']}: its other sentences are suggested there.",
                   "once": f"Just this one: {off['num']} stays unmapped."}[how])

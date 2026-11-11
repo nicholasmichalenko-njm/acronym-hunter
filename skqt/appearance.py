@@ -28,7 +28,7 @@ def set_look(page, key):
     key = key if key in dict(D.APPEARANCE) else "windows"
     save(appearance=key)
     dark = D.apply(QApplication.instance(), None if key == "windows" else key)
-    diag.activity("qt_appearance_set", look=key)
+    diag.activity("qt_appearance_set")
     page.look_note.setText(("Dark" if dark else "Light") + " now. A page you have open takes every color when you open it "
                            "again; restart Stationkeeper to see it everywhere at once.")
     return dark
