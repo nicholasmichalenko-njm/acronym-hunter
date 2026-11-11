@@ -87,7 +87,10 @@ def attach(page, did, it=None):
         if ok and not ST.has(it, "deliverable"):
             __import__("skqt.shredbar", fromlist=["x"]).capture_types(page, "deliverable", [it["id"]])
     if ok:
-        diag.activity("shred_deliverable_attached" if did else "shred_deliverable_taken_off")
+        if did:
+            diag.activity("shred_deliverable_attached")
+        else:
+            diag.activity("shred_deliverable_taken_off")
         page.host.status(f"{it['id']}: {msg}")
         page.show_card(page.selected())
         page.host.changed()

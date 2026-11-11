@@ -270,7 +270,7 @@ class CaptureCard(QFrame):
             if not got:
                 self.host.status("The card is empty: take or type at least one value.")
                 return None
-            diag.activity("capture_contact", card=1)
+            diag.activity("capture_contact_card")
             self.host.toast("Contact filed in Customer information")
         else:
             from . import captureview as CV
@@ -345,7 +345,7 @@ def open_card(page, kind, cid=None, ask=None):
         total = sum(sizes)
         page.right.setSizes([int(total * 0.45), int(total * 0.3), total - int(total * 0.45) - int(total * 0.3)])
     page.capture_card, page.capture_holder = card, holder
-    diag.activity("capture_card_opened", kind=kind)
+    diag.activity("capture_card_opened")
     return card
 
 
