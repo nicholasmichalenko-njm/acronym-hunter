@@ -220,7 +220,7 @@ class DraftStatusPage(QWidget):
             i = self.vols.index(got[0])
             self.v_table.setCurrentCell(i, 0)
             self.show_volume(i)
-        diag.activity("drafts_read", volumes=len(self.vols), read=len(got))
+        diag.activity("drafts_read", n=len(self.vols), files=len(got))
         return self.vols
 
     def fill_volumes(self, read=False):

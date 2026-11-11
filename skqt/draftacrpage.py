@@ -107,7 +107,7 @@ class DraftAcrPage(QWidget):
         except Exception:  # noqa: BLE001
             diag.swallowed()
         self.fill()
-        diag.activity("draft_acronyms_checked", volumes=got, added=added)
+        diag.activity("draft_acronyms_checked", n=got, added=added)
         return self.rows
 
     def fill(self):
