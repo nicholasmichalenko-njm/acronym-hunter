@@ -187,7 +187,7 @@ class SettingsPage(QWidget):
         return new
 
     SECTIONS = (("This effort", ("eff",)),
-                ("You", ("mode", "tz_card")),
+                ("You", ("mode", "look_card", "tz_card")),    # 4.4.0: Appearance had no section since 3.91.0
                 ("The team", ("authors", "process_card", "folders_card", "doctypes_card", "roles_card", "branding_card", "team_card")),
                 ("Review and responses", ("ri_card", "re_card", "un_card", "sg_card")),
                 ("Our data and backups", ("ourdata", "bk", "data")),

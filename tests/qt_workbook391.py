@@ -109,6 +109,11 @@ check("Use this structure brings the sections into the effort", n and n.get("req
 w.go("settings"); app.processEvents()
 sp = w.settings_page
 check("Settings has Appearance: Follow Windows, Light, Dark", [sp.look.itemData(i) for i in range(sp.look.count())] == ["windows", "light", "dark"])
+sp.section("You"); app.processEvents()
+check("... shown under Settings > You (4.4.0: it had no section)", sp.look_card.isVisibleTo(w) and sp.look.isVisibleTo(w))
+_placed = {k for _n, ks in sp.SECTIONS for k in ks} | {"db"}          # db: Team References holds the database (3.77.0)
+_lost = [k for k, x in vars(sp).items() if isinstance(x, D.Card) and k not in _placed]
+check("every Settings card sits in a section", not _lost, _lost)
 check("Dark is used now and kept on this PC", sp.set_look("dark") is True and D.is_dark() and (A.load_settings() or {}).get("appearance") == "dark")
 check("Light is used now", sp.set_look("light") is False and not D.is_dark())
 sp.set_look("windows")
