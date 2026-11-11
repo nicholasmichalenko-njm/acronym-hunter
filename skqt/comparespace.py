@@ -157,6 +157,10 @@ class CompareSpace(QWidget):
                              "in the Library get decisions and impact on Customer versions.", "muted"))
         wv.addWidget(self.files, 1)
         self.tabs.addTab(wrap, "Any two files")
+        from . import changecards as CC
+        if not CC.classic():                             # 4.6.0: Any two files is under Changes' More
+            self.tabs.tabBar().hide()
+            wv.insertWidget(0, D.button("Back to the customer's versions", "ghost", lambda: self.tabs.setCurrentIndex(0)), 0, Qt.AlignLeft)
         shown = customer_page.show                       # a pair opened from elsewhere (a new version, a rule) is a customer pair
 
         def show_pair(*a, **k):

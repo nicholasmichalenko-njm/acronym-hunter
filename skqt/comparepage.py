@@ -26,6 +26,7 @@ import comparemap as CM
 import docintake as DI
 import docversions as DV
 from . import design as D
+from . import changecards as CC
 from .comparebar import DecideBar
 from .compareview import CmpView, Gutter, _rgba
 from .splitlines import BarHost
@@ -105,6 +106,7 @@ class ComparePage(QWidget):
                       ("Esc", lambda: self.bar_host.close())):
             s = QShortcut(QKeySequence(k), self); s.setContext(Qt.WidgetWithChildrenShortcut); s.activated.connect(fn)
         self.copy_timer = QTimer(self); self.copy_timer.setInterval(3000); self.copy_timer.timeout.connect(self.retry_copy)
+        CC.install(self)                             # 4.6.0: a card per change, Next change (changecards)
 
     # ------------------------------------------------------------ the effort
     def M(self):
@@ -127,9 +129,11 @@ class ComparePage(QWidget):
             w.setVisible(bool(docs))
         if not docs:
             self.rows = []
+            CC.refreshed(self, docs)
             return
         want = self.sel if self.sel[0] in [d["id"] for d in docs] else (docs[0]["id"], None, None)
         self.open_pair(*want)
+        CC.refreshed(self, docs)
 
     def fill_versions(self):
         self.ver_menu.clear()
@@ -291,6 +295,7 @@ class ComparePage(QWidget):
         self.page_box.blockSignals(True); self.page_box.setMaximum(n); self.page_box.blockSignals(False)
         self.show_strip()
         self.draw()
+        CC.fill(self)
 
     def say_summary(self):
         d, va, vb = self.cur
@@ -599,8 +604,11 @@ class ComparePage(QWidget):
         self.place_bar()
         self.show_strip()
         self.gutter.update()
+        CC.select(self, i)
 
     def place_bar(self):
+        if CC.on(self):                              # 4.6.0: the card carries the choices
+            return self.bar_host.close()
         r = self.view.view_rect(self.i) if self.i is not None else None
         if r is None:
             r = QRect(8, 8, 10, 10)

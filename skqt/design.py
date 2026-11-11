@@ -125,6 +125,8 @@ QFrame[card="true"] {{ background: {t['surface']}; border: 1px solid {t['border'
 QFrame[card="true"] QLabel {{ background: transparent; }}
 QFrame#cardhead {{ background: transparent; border: none; border-bottom: 1px solid {t['border_soft']}; }}
 QFrame[card="true"][key="true"] {{ border: 1px solid {t['accent_line']}; }}
+QFrame#changecard[done="true"] {{ background: {t['surface2']}; }}
+QFrame#changecard[sel="true"] {{ border: 2px solid {t['accent']}; }}
 QFrame[card="true"][key="true"] QFrame#cardhead {{ background: {t['accent_tint']}; border-top-left-radius: {r['card']}px;
     border-top-right-radius: {r['card']}px; border-bottom: 1px solid {t['accent_line']}; }}
 QLabel[role="crumb"] {{ font-size: {TYPE['label']}pt; font-weight: 700; color: {t['muted']}; letter-spacing: 1px; }}

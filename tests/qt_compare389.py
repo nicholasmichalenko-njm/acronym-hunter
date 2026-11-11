@@ -6,6 +6,7 @@ line filters; the flags show in Review and Setup until the change is decided and
 next step; the bar holds five commands; Storyboards stays off the menu even with the pages set aside shown. Fictional
 content (Kestrel)."""
 import os, sys, tempfile, time
+os.environ["SK_CHANGES_CLASSIC"] = "1"     # 4.6.0: this test drives the page view (changecards)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
