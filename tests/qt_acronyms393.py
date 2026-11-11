@@ -65,7 +65,8 @@ for t in ("TT8C", "DC", "DC-RVM"):                                   # the pictu
     if t not in s.results:
         AM.add_manual(s, t, "Acronym", "", document=PKEY, to=("results",))
 ap.fill(); app.processEvents()
-check("two tabs: On the page and The list", [ap.tabs.tabText(i) for i in range(ap.tabs.count())] == ["On the page", "The list"]
+check("two tabs: On the page and The list (4.6.0: and Every term, the Acro List's table)", [ap.tabs.tabText(i) for i in range(ap.tabs.count())]
+      == ["On the page", "The list", "Every term"]
       and ap.head_w.isVisible())
 check("it opens on On the page while finds are left to decide", ap.tabs.currentIndex() == 0 and ap.tab_stack.currentWidget() is op)
 check("On the page has one main button, Page done, and at most five commands", ap.on_bar.main is ap.b_pagedone

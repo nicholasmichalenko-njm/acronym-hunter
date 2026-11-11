@@ -98,13 +98,13 @@ check("3.75.0: Fix a Copy is a tab of Check a Draft in the Team group, marked Be
       [k for k, _t in __import__("skqt.mainwin", fromlist=["TABS"]).TABS["audit"]] == ["audit", "applyword", "fixcopy"] and w.beta_pill.isVisibleTo(w))
 w.go("acrlist"); app.processEvents()
 check("3.16.0: a tab's page marks its menu item: the Acro List is Shred's, opened from Acros & Abs (4.1.0), and Production opens it",
-      w.stack.currentWidget() is w.acrlist_page and w.step_btns["assign"].isChecked() and w.page_title.text() == "Shred"
+      (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page) and w.step_btns["assign"].isChecked() and w.page_title.text() == "Shred"
       and "acrlist" not in w.stepper.chips and w.stepper.chips["acronyms"].nm.text() == "Acros & Abs"
       and not w.step_btns["assign"].property("offrole") and not w.beta_pill.isVisibleTo(w))
 w.stepper.chips["acronyms"].click(); app.processEvents()
 check("... clicking a tab opens its page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked())
 w.go("lists"); app.processEvents()
-check("3.37.0: Lists to Submit opens in the Acronym List", w.stack.currentWidget() is w.acrlist_page
+check("3.37.0: Lists to Submit opens in the Acronym List", (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page)
       and w.acrlist_page.views.currentWidget() is w.lists_page)
 r = RR.Record(w.ws.root); r.set_team([("A. Lee", "Volume lead"), ("J. Smith", "Proposal manager")]); r.save()
 MO.save(my_name="A. Lee"); w.refresh_access(); app.processEvents()

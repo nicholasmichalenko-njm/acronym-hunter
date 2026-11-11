@@ -105,7 +105,7 @@ check("Acros & Abs > The list: More opens the whole acro list and the lists to s
       bar.action("The whole acro list...") is not None and bar.action("Lists to submit, by volume") is not None
       and bar.action("Import a list...") is not None and bar.action("Acro list: the whole effort...") is not None)
 bar.action("The whole acro list...").trigger(); app.processEvents()
-check("... the whole list opens inside Acros & Abs", w.stack.currentWidget() is w.acrlist_page and w.step_btns["assign"].isChecked()
+check("... the whole list opens inside Acros & Abs", (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page) and w.step_btns["assign"].isChecked()
       and w.stepper.chips["acronyms"].styleSheet().count("2px solid") == 1 and "acrlist" not in w.stepper.chips)
 w.close()
 print(f"QT RULES 410 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

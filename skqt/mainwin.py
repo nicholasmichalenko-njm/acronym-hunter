@@ -324,6 +324,7 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
         self.notice_page = NoticePage(self); self.stack.addWidget(self.notice_page)
+        __import__("skqt.acrtabs", fromlist=["x"]).fold_list(self)       # 4.6.0: the Acro List is Acros & Abs > Every term
         cv.addWidget(self.stack, 1)
         self.next_bar = NextBar(self); cv.addWidget(self.next_bar)       # 3.96.0: every page in a step ends with its next step
         __import__("skqt.qadrawer", fromlist=["x"]).install(self)        # 4.1.0: the Q&A log as a drawer
@@ -1040,6 +1041,11 @@ class MainWindow(QMainWindow):
             return ok
         if step == "custqa":                         # 4.1.0: the Q&A log is a drawer beside Shred, Matrix & Outline, Drafts
             return __import__("skqt.qadrawer", fromlist=["x"]).go(self, RAIL_OF)
+        if step == "acrlist" and getattr(self, "acrlist_folded", False):   # 4.6.0: Acros & Abs > Every term
+            ok = self.go("acronyms")
+            if ok is not False:
+                __import__("skqt.acrtabs", fromlist=["x"]).show_every(self.acronym_page)
+            return ok
         if step == "lists":                          # 3.37.0: Lists to Submit lives in the Acronym List
             ok = self.go("acrlist")
             if ok is not False:

@@ -83,7 +83,7 @@ check("Change it opens where the values live now (3.69.0: Formatting Standards)"
 w.go("rules"); app.processEvents()
 row10 = [pg.t.item(i, 0).text() if pg.t.item(i, 0) else "" for i in range(pg.t.rowCount())].index("Rule 10")
 pg.t.cellWidget(row10, 4).click(); app.processEvents()
-check("Rule 10's values are on the Acronym List", w.stack.currentWidget() is w.acrlist_page)
+check("Rule 10's values are on the Acronym List", (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page))
 
 w.go("rules"); app.processEvents()
 pg.b_theirs.click(); app.processEvents()

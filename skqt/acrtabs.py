@@ -11,6 +11,7 @@ from . import design as D
 from .commandbar import CommandBar
 
 TABS = ("On the page", "The list")
+EVERY = "Every term"                      # 4.6.0: the Acro List's table, a tab of its own (fold_list)
 
 
 def install(page, v):
@@ -48,6 +49,8 @@ def switch(page, i):
     page.bars.setCurrentIndex(i)
     if i == 0:
         page.onpage.fill()
+    elif i == 2 and getattr(page, "every", None) is not None:
+        page.every.refresh()
     diag.activity("acronym_tab", n=i)
     return i
 
@@ -55,7 +58,7 @@ def switch(page, i):
 def after_fill(page):
     """After the list is filled: the tabs show once there is anything; the first time, the tab to start on."""
     s = page.session
-    has = bool(s and s.results) or page.worker is not None
+    has = bool(s and s.results) or page.worker is not None or bool(getattr(getattr(page, "every", None), "terms", None))
     page.head_w.setVisible(has)
     page.tab_stack.setVisible(has)
     if getattr(page, "tool", False):
@@ -69,6 +72,38 @@ def after_fill(page):
     if page.tabs.currentIndex() == 0 and has:
         page.onpage.fill()
     return page.tabs.currentIndex()
+
+
+def fold_list(w):
+    """4.6.0 (claude/stationkeeper-documents-changes-plan-4.6.md, step 7): the Acro List's table (every term in the effort's
+    list, imported ones too, and the lists to submit) is Acros & Abs' third tab, Every term; the Acro List page leaves
+    the menu. Its own bar comes with it. go("acrlist") and go("lists") open the tab."""
+    page, lp = w.acronym_page, w.acrlist_page
+    if getattr(page, "tool", False) or getattr(page, "every", None) is not None:
+        return False
+    w.stack.removeWidget(lp)
+    lp.setObjectName("")
+    if lp.layout() is not None:
+        lp.layout().setContentsMargins(0, 0, 0, 0)
+    page.every = lp
+    page.tabs.addTab(EVERY)
+    page.tab_stack.addWidget(lp)
+    page.bars.addWidget(QWidget())                        # its bar is inside the table's own page
+    w.acrlist_folded = True
+    return True
+
+
+def show_every(page):
+    """Open Every term (the whole list)."""
+    if getattr(page, "every", None) is None:
+        return False
+    page.tab_set = True
+    page.head_w.setVisible(True); page.tab_stack.setVisible(True)
+    if page.tabs.currentIndex() != 2:
+        page.tabs.setCurrentIndex(2)
+    else:
+        switch(page, 2)
+    return True
 
 
 def tool(page):
