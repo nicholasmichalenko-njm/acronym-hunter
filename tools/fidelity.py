@@ -5,7 +5,8 @@ For each fictional fixture PDF (test_samples/fidelity/<set>/Fnn_*.pdf) it makes 
 - tables: each table the fixture's Word file holds (fidelity_truth.json) found in the copy exactly: every row, every
   cell's text, and how many columns and rows each cell spans;
 - pages: the copy's page sizes and orientations against the PDF's;
-- the 4.12.0 way (tables from aligned text only), for the same tables, as the baseline.
+- the 4.12.0 way (tables from aligned text only), and Word's own conversion (word_reflow, made on the build PC), for the
+  same tables: the baselines.
 Pictures of the pages (the copy saved as PDF by Word, then compared) are scored on the build PC (tools/fidelity_pdfs.ps1).
 Run: python tools/fidelity.py [set folder] [--show]. Rules only (No AI); nothing leaves the PC."""
 import json, os, re, sys, tempfile, zipfile
@@ -98,8 +99,10 @@ def score(folder, show=False):
         doc = PS.read(pdf)
         sizes = sorted({(round(p["w"]), round(p["h"])) for p in doc["pages"]})
         pages_ok = set(docx_pages(out)) == set(sizes)
+        wr = os.path.join(FIX, "word_reflow", stem + ".docx")          # Word's own conversion, made on the build PC
+        word = sum(1 for w in want if w in docx_tables(wr)) if os.path.isfile(wr) else None
         rows.append({"fixture": stem, "tables": len(want), "exact": exact, "baseline": _baseline(pdf, want),
-                     "word_diffs": len(diffs), "pages_ok": pages_ok})
+                     "word_diffs": len(diffs), "pages_ok": pages_ok, "word": word})
         if show and (exact < len(want) or diffs):
             for w in want:
                 if w not in got:
@@ -112,13 +115,15 @@ def score(folder, show=False):
 
 
 def report(rows):
-    lines = [f"{'Fixture':24s} {'Tables':>6s} {'Exact':>6s} {'4.12.0':>6s} {'Word diffs':>10s} {'Pages':>6s}"]
+    wd = lambda v: "-" if v is None else str(v)                     # noqa: E731
+    lines = [f"{'Fixture':24s} {'Tables':>6s} {'Exact':>6s} {'4.12.0':>6s} {'Word':>5s} {'Word diffs':>10s} {'Pages':>6s}"]
     for r in rows:
-        lines.append(f"{r['fixture']:24s} {r['tables']:6d} {r['exact']:6d} {r['baseline']:6d} {r['word_diffs']:10d} "
-                     f"{'same' if r['pages_ok'] else 'DIFF':>6s}")
+        lines.append(f"{r['fixture']:24s} {r['tables']:6d} {r['exact']:6d} {r['baseline']:6d} {wd(r.get('word')):>5s} "
+                     f"{r['word_diffs']:10d} {'same' if r['pages_ok'] else 'DIFF':>6s}")
     t = sum(r["tables"] for r in rows)
+    ws = [r["word"] for r in rows if r.get("word") is not None]
     lines.append(f"{'Total':24s} {t:6d} {sum(r['exact'] for r in rows):6d} {sum(r['baseline'] for r in rows):6d} "
-                 f"{sum(r['word_diffs'] for r in rows):10d} {sum(r['pages_ok'] for r in rows):3d}/{len(rows)}")
+                 f"{(str(sum(ws)) if ws else '-'):>5s} {sum(r['word_diffs'] for r in rows):10d} {sum(r['pages_ok'] for r in rows):3d}/{len(rows)}")
     return "\n".join(lines)
 
 
