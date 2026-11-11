@@ -28,6 +28,7 @@ hiddenimports = [h for h in hiddenimports if not h.startswith(('onnxruntime.tran
 if not os.path.isfile('vendor/imgcore/imgcore.dll'):
     raise SystemExit('vendor\\imgcore\\imgcore.dll missing: build.ps1 compiles native\\imgcore.c first')
 binaries += [('vendor/imgcore/imgcore.dll', '.')]
+datas += [('effortdata/effort-data.schema.json', 'effortdata')]   # 4.9.0: the effort data's JSON Schema, app data (not a document)
 if US:
     # Tesseract engine + 3 training tools + their DLLs + Google's eng.traineddata, fetched by tools\fetch_tesseract.ps1
     if not os.path.isfile('vendor/tesseract/tesseract.exe'):
@@ -70,7 +71,7 @@ if TRAINING:
     hiddenimports += ['trainerkit']   # the Trainer's rules and Improve Reading: Stationkeeper Training only
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 hiddenimports += ['skqt.qadrawer', 'skqt.reshredbar', 'skqt.effortvaluesview', 'skqt.shredpick', 'skqt.rulesdates', 'reshred',
-                  'shredtypes', 'skqt.fixtext', 'matrixhistory', 'newversion', 'skqt.placemode', 'skqt.outlinepage', 'skqt.typechips', 'skqt.placepane', 'skqt.shredfocus']   # 4.1.0, 4.2.0: reached only through __import__ (tests/test_hidden_imports.py)
+                  'shredtypes', 'skqt.fixtext', 'matrixhistory', 'newversion', 'skqt.placemode', 'skqt.outlinepage', 'skqt.typechips', 'skqt.placepane', 'skqt.shredfocus', 'effortdata']   # 4.1.0, 4.2.0: reached only through __import__ (tests/test_hidden_imports.py)
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets'), ('assets/scanner_256.png', 'assets')]   # window/taskbar icons; the menu's Stationkeeper mark (2.88.0)
 if os.path.isdir('assets/brand'):              # 3.0.3: the company logos built into the program (logo_01.png...)
     datas += [('assets/brand', 'assets/brand')]

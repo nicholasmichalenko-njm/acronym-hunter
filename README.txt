@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EFFORT DATA FOR STATIONKEEPER MACROS (4.9.0)
+  - The app keeps a read-only snapshot of each effort's rules in the effort's folder, Stationkeeper Data, for the Word
+    macros (Stationkeeper Macros): manifest.json, rules\rules.json (styles allowed, table types, placeholders, banned
+    and avoided phrases, fonts, the acronyms in the list and the terms that are not, page limits, caption settings),
+    templates\effort.dotx (the effort's template, no macros) and dictionaries\effort.dic (the team's dictionaries and
+    the effort's acronyms, as Word writes dictionaries). Do not edit it: edit the effort here.
+  - It is published within seconds of a change and when an effort with no snapshot opens. Only the parts that changed
+    are written, each under a temporary name and then renamed, the manifest last, so the macros never read half a file.
+    The revision only goes up; rules.json carries the manifest's revision. The template is rebuilt whenever its
+    styles, table looks or Quick Parts change. The macros call a snapshot Aging after 24 hours and Stale after 72.
+  - Nothing is written outside the effort's folder. The rules follow a JSON Schema the app carries
+    (rules\effort-data.schema.json beside them).
+
 REDLINE (4.8.0)
   - A menu item of its own, below the six steps and with no number: redlining happens at any point (the draft RFP, Q&A,
     the final RFP's terms, amendments, a model contract). Authors redline in Word with Track Changes; there is no

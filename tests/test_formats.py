@@ -95,7 +95,8 @@ check("re-shred queue", json.load(open(rq.path, encoding="utf-8"))["format"] == 
 import redlinecopy as RCP                                                   # 4.8.0
 rcp = RCP.build(os.path.join(os.path.dirname(HERE), "test_samples", "rfp_walk", "Section_L_print.pdf"), os.path.join(tmp, "copy.docx"))
 check("redline copy", json.load(open(rcp["path"] + RCP.SIDE, encoding="utf-8"))["format"] == F.number("redline copy") == RCP.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 24, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy
+check("effort data", __import__("effortdata").SCHEMA_VERSION == F.number("effort data"))       # 4.9.0
+check("every kind is checked here", len(F.FORMATS) == 25, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

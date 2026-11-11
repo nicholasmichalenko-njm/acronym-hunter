@@ -357,7 +357,8 @@ class MainWindow(QMainWindow):
         self.rd_written = ""
         self.rd_timer = QTimer(self, interval=3000, timeout=lambda: (self.readable_tick(), self.watch_tick(),
                                                                   __import__("skqt.shredpick", fromlist=["x"]).auto_tick(self),
-                                                                  __import__("skqt.shredpick", fromlist=["x"]).auto_scan(self)))
+                                                                  __import__("skqt.shredpick", fromlist=["x"]).auto_scan(self),
+                                                                  __import__("effortdata").tick(self)))     # 4.9.0: the macros' data
         self.rd_timer.start()
         from .safety import Safety                 # 2.78.0: backups, recovery, where you were, the crash screen
         self.safety = Safety(self)

@@ -1,0 +1,273 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "stationkeeper.effort-data/rules/1.0",
+ "title": "Stationkeeper effort data: rules.json",
+ "type": "object",
+ "required": [
+  "schema_version",
+  "manifest_revision",
+  "settings"
+ ],
+ "properties": {
+  "schema_version": {
+   "type": "string",
+   "enum": [
+    "1.0"
+   ]
+  },
+  "manifest_revision": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "settings": {
+   "type": "object",
+   "properties": {
+    "StylePrefix": {
+     "type": "string"
+    },
+    "CaptionStyle": {
+     "type": "string"
+    },
+    "CaptionInFirstRow": {
+     "type": "boolean"
+    },
+    "KeepOnClear": {
+     "type": "string"
+    },
+    "CheckTablesForDirectFormatting": {
+     "type": "boolean"
+    },
+    "TableWidthPercent": {
+     "type": "integer"
+    },
+    "TableCaptionPosition": {
+     "type": "string",
+     "enum": [
+      "Above",
+      "Below"
+     ]
+    },
+    "FigureCaptionPosition": {
+     "type": "string",
+     "enum": [
+      "Above",
+      "Below"
+     ]
+    },
+    "TableLabel": {
+     "type": "string"
+    },
+    "FigureLabel": {
+     "type": "string"
+    },
+    "MaxKeepWithNextChain": {
+     "type": "integer"
+    },
+    "PageLimitTotal": {
+     "type": [
+      "integer",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "CaptionStyle",
+    "TableLabel",
+    "FigureLabel"
+   ]
+  },
+  "allowed_styles": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "style": {
+      "type": "string"
+     },
+     "required": {
+      "type": "boolean"
+     },
+     "notes": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "style"
+    ]
+   }
+  },
+  "table_types": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "table_style": {
+      "type": "string"
+     },
+     "header_row_repeats": {
+      "type": "boolean"
+     },
+     "rows_may_break_across_pages": {
+      "type": "boolean"
+     },
+     "width_percent": {
+      "type": "integer"
+     },
+     "header_row_style": {
+      "type": "string"
+     },
+     "body_style": {
+      "type": "string"
+     },
+     "notes_row_style": {
+      "type": "string"
+     },
+     "has_notes_row": {
+      "type": "boolean"
+     },
+     "cell_padding": {
+      "type": [
+       "number",
+       "null"
+      ]
+     }
+    },
+    "required": [
+     "type"
+    ]
+   }
+  },
+  "placeholders": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "text"
+    ]
+   }
+  },
+  "banned_phrases": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "phrase": {
+      "type": "string"
+     },
+     "replacement": {
+      "type": "string"
+     },
+     "rule_id": {
+      "type": "string"
+     },
+     "reason": {
+      "type": "string"
+     },
+     "match_case": {
+      "type": "boolean"
+     },
+     "whole_word": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "phrase"
+    ]
+   }
+  },
+  "fonts": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "font": {
+      "type": "string"
+     },
+     "allowed": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "font",
+     "allowed"
+    ]
+   }
+  },
+  "acronyms": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "acronym": {
+      "type": "string"
+     },
+     "definition": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "acronym",
+     "definition"
+    ]
+   }
+  },
+  "ignore": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "text"
+    ]
+   }
+  },
+  "style_map": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "from": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "from",
+     "to"
+    ]
+   }
+  },
+  "page_limits": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "heading": {
+      "type": "string"
+     },
+     "max_pages": {
+      "type": "integer"
+     }
+    },
+    "required": [
+     "heading",
+     "max_pages"
+    ]
+   }
+  }
+ }
+}
