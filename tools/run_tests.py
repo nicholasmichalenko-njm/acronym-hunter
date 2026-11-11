@@ -47,7 +47,9 @@ def run_one(name, env=None):
     """(ok, why, output). why is "" when ok."""
     start = time.time()
     try:
-        p = subprocess.run([sys.executable, os.path.join(TESTS, name + ".py")], cwd=ROOT, stdout=subprocess.PIPE,
+        # 4.7.1: -X faulthandler prints the Python stack when a test crashes (an access violation printed nothing)
+        p = subprocess.run([sys.executable, "-X", "faulthandler", os.path.join(TESTS, name + ".py")], cwd=ROOT,
+                           stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT, timeout=LIMIT_S, env=env)
         out = p.stdout.decode("utf-8", "replace")
         code = p.returncode
