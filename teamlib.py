@@ -172,7 +172,8 @@ def read_book(config_dir, settings=None, removed_answer=None, force=False):
         PRL.save(config_dir, data)
         FR.save(config_dir, res["recipes"])
         import listsbook as LB                              # 4.7.1: the list sheets into each list's own file
-        for sheet in LB.apply(config_dir, book):
+        lists_read = LB.apply(config_dir, book)
+        for sheet in lists_read:
             res["changed"].append((sheet, ""))
     finally:
         _reading = False
@@ -299,6 +300,75 @@ def sync_content(config_dir, settings=None):
     if out["in"] or out["out"] or out["both"]:
         diag.activity("team_content_synced", n=len(out["in"]) + len(out["out"]) + len(out["both"]))
     return out
+
+
+# ------------------------------------------------------------------ the suggestion rules' counts (4.10.0)
+SCORES = "Suggestion scores"                            # Lists\Suggestion scores\<PC>.json: each PC writes only its own
+SCORES_FORMAT = 1                                       # formats.py "suggestion scores"
+
+
+def _read_json(p, default):
+    try:
+        with open(p, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def _write_json(p, d):
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d, f, indent=1, sort_keys=True)
+    os.replace(tmp, p)
+
+
+def _add(into, more):
+    for ph, (k, n) in (more or {}).items():
+        t = into.setdefault(ph, [0, 0])
+        t[0] += int(k or 0); t[1] += int(n or 0)
+    return into
+
+
+def sync_scores(config_dir, ws=None, settings=None):
+    """How often each team suggestion rule was kept and not right, summed over every effort on every PC that shares
+    the team library: this PC's efforts in the config folder, this PC's sum in Lists, Suggestion scores, <PC>.json, and
+    the sum of every PC's file for the workbook. Returns {phrase: [kept, not right]}."""
+    import platform
+    import re as _re
+    import suggestrules as SR
+    lp = os.path.join(config_dir, "suggestion_scores.json")
+    loc = (_read_json(lp, {}) or {}).get("efforts") or {}
+    if ws is not None and getattr(ws, "root", ""):
+        t = SR.tally(ws)
+        if loc.get(ws.root) != t:
+            loc[ws.root] = t
+            _write_json(lp, {"format": SCORES_FORMAT, "efforts": loc})
+    mine = {}
+    for t in loc.values():
+        _add(mine, t)
+    d = os.path.join(folder(config_dir, settings), LISTS, SCORES)
+    pc = (_re.sub(r"[^A-Za-z0-9_-]+", "_", platform.node()) or "this-PC") + ".json"
+    have = (_read_json(os.path.join(d, pc), None) or {}).get("scores")
+    if have != mine and (mine or have is not None):
+        try:
+            _write_json(os.path.join(d, pc), {"format": SCORES_FORMAT, "scores": mine})
+        except OSError:
+            diag.swallowed()
+    sums = {}
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if f.lower().endswith(".json"):
+            _add(sums, (_read_json(os.path.join(d, f), {}) or {}).get("scores"))
+    st = state(config_dir)
+    if st.get("score_sums", {}) != sums:
+        st["score_sums"] = sums
+        st["dirty"] = True                                   # the workbook's counts follow
+        _save_state(config_dir, st)
+    return sums
+
+
+def score_sums(config_dir):
+    return state(config_dir).get("score_sums") or {}
 
 
 # ------------------------------------------------------------------ the large lists (4.7.1)

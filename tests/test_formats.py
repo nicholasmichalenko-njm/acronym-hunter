@@ -96,7 +96,15 @@ import redlinecopy as RCP                                                   # 4.
 rcp = RCP.build(os.path.join(os.path.dirname(HERE), "test_samples", "rfp_walk", "Section_L_print.pdf"), os.path.join(tmp, "copy.docx"))
 check("redline copy", json.load(open(rcp["path"] + RCP.SIDE, encoding="utf-8"))["format"] == F.number("redline copy") == RCP.FORMAT)
 check("effort data", __import__("effortdata").SCHEMA_VERSION == F.number("effort data"))       # 4.9.0
-check("every kind is checked here", len(F.FORMATS) == 25, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy
+import suggestrules as SRL                                                   # 4.10.0: the suggestion rules' counts
+class _W:
+    root = os.path.join(tmp, "effort-scores")
+    def get(self, k): return {"suggestions": {"s1": {"cat": "L", "rule": "is limited to", "state": "accepted"}}}.get(k)
+TLB.sync_scores(cfg, _W(), {"team_library": os.path.join(tmp, "teamlib")})
+check("suggestion scores", json.load(open(os.path.join(cfg, "suggestion_scores.json")))["format"] == F.number("suggestion scores") == TLB.SCORES_FORMAT
+      and all(json.load(open(os.path.join(d, f)))["format"] == F.number("suggestion scores")
+              for d, _ds, fs in os.walk(os.path.join(tmp, "teamlib")) for f in fs if f.endswith(".json")))
+check("every kind is checked here", len(F.FORMATS) == 26, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

@@ -99,11 +99,52 @@ def _doctypes_save(cfg, rows):
     return len(types)
 
 
+def _rules_load(cfg):
+    import suggestrules as SR
+    import teamlib as T
+    sums = T.score_sums(cfg)
+    out = []
+    for r in SR.team_rules(cfg):
+        k, n = sums.get(SR.norm(r["phrase"]), [0, 0])
+        out.append({"Phrase": r["phrase"], "Suggests": SR.CAT_NAME.get(r.get("cat"), r.get("cat", "")), "Why": r.get("why", ""),
+                    "Status": "Retired" if r.get("retired") else "Approved", "Added by": r.get("who", ""),
+                    "Added": r.get("added", ""), "Times kept": k, "Times not right": n})
+    return out
+
+
+def _rules_save(cfg, rows):
+    import suggestrules as SR
+    by_word = {v.casefold(): k for k, v in SR.CAT_NAME.items()} | {k.casefold(): k for k in SR.CAT_NAME}
+    old = {SR.norm(r["phrase"]): r for r in SR.team_rules(cfg)}
+    rules = []
+    for r in rows:
+        ph = " ".join(str(r.get("Phrase") or "").split())
+        cat = by_word.get(" ".join(str(r.get("Suggests") or "").split()).casefold())
+        if len(ph) < 3 or not cat:
+            continue
+        x = dict(old.get(SR.norm(ph)) or {"who": str(r.get("Added by") or "the team library"), "added": str(r.get("Added") or "")})
+        x.update(phrase=ph, cat=cat, why=str(r.get("Why") or "").strip())
+        if str(r.get("Status") or "").strip().casefold() == "retired":
+            x["retired"] = True
+        else:
+            x.pop("retired", None)
+        rules.append(x)
+    if rules == SR.team_rules(cfg):
+        return False                                   # the sheet differs only in what the app leaves out or fills in
+    SR.save_team(cfg, rules)
+    return len(rules)
+
+
+# 4.10.0: Suggestion rules (the shred's phrase rules, one growing team list); the counts are the app's, read only
+READ_ONLY = {"Suggestion rules": ("Times kept", "Times not right")}
+
 SHEETS = {"Phrases": (("Phrase", "Level", "Use instead", "Why"), _phrases_load, _phrases_save),
           "Authors": (("Name", "Efforts", "Added", "Source"), _authors_load, _authors_save),
           "Compliance words": (("Word",), _cwords_load, _cwords_save),
           "Piece types": (("Key", "Name", "Shortcut", "Color", "Shown"), _types_load, _types_save),
-          "Document types": (("Name", "Initial", "Numbered", "Builds the matrix", "Words that find it"), _doctypes_load, _doctypes_save)}
+          "Document types": (("Name", "Initial", "Numbered", "Builds the matrix", "Words that find it"), _doctypes_load, _doctypes_save),
+          "Suggestion rules": (("Phrase", "Suggests", "Why", "Status", "Added by", "Added", "Times kept", "Times not right"),
+                               _rules_load, _rules_save)}
 
 
 def load_all(config_dir):
@@ -129,8 +170,8 @@ def apply(config_dir, book):
         if rows is None:
             continue
         try:
-            if _norm(rows, cols) != _norm(load(config_dir), cols):
-                save(config_dir, rows)
+            edit = [c for c in cols if c not in READ_ONLY.get(sheet, ())]
+            if _norm(rows, edit) != _norm(load(config_dir), edit) and save(config_dir, rows) is not False:
                 saved.append(sheet)
         except Exception:  # noqa: BLE001
             diag.swallowed()

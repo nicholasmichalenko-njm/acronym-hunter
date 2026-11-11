@@ -43,7 +43,7 @@ SETTINGS = "Settings"
 FIELDS = "Fields"
 COLUMNS = "Columns"
 ABOUT = "About"
-FORMAT = 1                                   # formats.py "Company Standards workbook"
+FORMAT = 2                                   # formats.py "Company Standards workbook" (2: 4.10.0, Volume, Theme, Suggestion rules)
 FIELD_COLS = (("Field code(s)", "codes"), ("Text between", "between"), ("What it does", "note"), ("Where it goes", "where"),
               ("Use case", "use_case"), ("Bookmark it needs", "bookmark"), ("What the bookmark spans", "spans"),
               ("Style it reads", "style"), ("Depends on", "depends"), ("Sample result", "sample"))

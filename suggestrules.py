@@ -41,6 +41,11 @@ def _save(path, rules):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump({"format": 1, "rules": rules}, f, indent=1, ensure_ascii=False)
     os.replace(tmp, path)
+    try:                                               # 4.10.0: the team library's Suggestion rules sheet follows
+        import teamlib
+        teamlib.mark_dirty_file(path)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def team_path(config_dir):
@@ -56,8 +61,31 @@ def effort_rules(ws):
 
 
 def all_rules(config_dir, ws):
-    """Effort rules first (they win over the team's), then the team's."""
-    return [dict(r, scope="effort") for r in effort_rules(ws)] + [dict(r, scope="team") for r in team_rules(config_dir)]
+    """Effort rules first (they win over the team's), then the team's. A rule marked Retired in the team library's
+    Suggestion rules sheet is kept there and not used (4.10.0)."""
+    return [dict(r, scope="effort") for r in effort_rules(ws)] + \
+        [dict(r, scope="team") for r in team_rules(config_dir) if not r.get("retired")]
+
+
+def save_team(config_dir, rules):
+    """4.10.0: the team's rules as the Suggestion rules sheet says (teamlib reads it)."""
+    _save(team_path(config_dir), rules)
+
+
+def tally(ws):
+    """4.10.0: {rule phrase, as compared: [times kept, times not right]} for this effort: a suggestion a person took (or
+    decided the same way) is kept; one they said was not right, or decided otherwise, is not right."""
+    out = {}
+    for rec in store(ws).values():
+        ph = norm(rec.get("rule"))
+        if not ph or not rec.get("cat"):
+            continue
+        k = out.setdefault(ph, [0, 0])
+        if rec.get("state") == "accepted":
+            k[0] += 1
+        elif rec.get("state") in ("rejected", "changed"):
+            k[1] += 1
+    return out
 
 
 def add_rule(config_dir, ws, phrase, cat, scope="team", why="", who=None):

@@ -3644,6 +3644,8 @@ class AssignPage(QWidget):
             cat = SR.category(it, rec)
             if rec.get("cat") and cat and not SR.agrees(rec["cat"], cat) and rec.get("state") in ("shown", "accepted"):
                 rec["state"] = "changed"; dirty = True
+            elif rec.get("cat") and cat and SR.agrees(rec["cat"], cat) and rec.get("state") == "shown":
+                rec["state"] = "accepted"; dirty = True          # 4.10.0: decided the way it said: the rule was right
             if rec.get("unchecked"):
                 rec["unchecked"] = False; dirty = True
         if dirty:
@@ -3684,7 +3686,7 @@ class AssignPage(QWidget):
             for k, t in SR.CATS:
                 cb.addItem(t, k)
             cb.setCurrentIndex(max(0, cb.findData(cur if cur in SR.CAT_NAME else "L"))); f.addRow("Such sentences are", cb)
-            sc = QComboBox(); sc.addItem("The team (every effort on this PC; a team pack shares it)", "team")
+            sc = QComboBox(); sc.addItem("The team (every effort; the team library shares it with every PC)", "team")
             sc.addItem("This effort only", "effort"); f.addRow("For", sc)
             bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Make the rule")
             bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); f.addRow(bb)

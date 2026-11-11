@@ -27,6 +27,10 @@ def tick(w, ask=True):
     import teamlib as T
     said = []
     try:
+        try:                                            # 4.10.0: the suggestion rules' counts, before the workbook is written
+            T.sync_scores(w.config_dir, w.ws)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         res = T.tick(w.config_dir)
         said += res.get("said") or []
         if ask and res.get("question"):

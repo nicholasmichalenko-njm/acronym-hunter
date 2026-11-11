@@ -52,6 +52,7 @@ def add(page, rows):
         why = ((page.sg.get(rows[-1]["id"]) or {}).get("why") or "")
         page.sug_label = page.add(D.label(f"Suggested: {types.get(sug, {}).get('name', sug)}" + (f", {why}" if why else "")
                                           + ". Enter takes it.", "muted"))
+    rule_row(page, rows, sug)
     row = QHBoxLayout(); row.setSpacing(D.SPACE["xs"])
     cap = D.button("Capture", None, None, "Contact, objective, key point, graphic need and the effort's own captures")
     m = QMenu(cap); m.aboutToShow.connect(lambda: fill_capture(page, m)); cap.setMenu(m)
@@ -62,6 +63,32 @@ def add(page, rows):
     row.addStretch(1)
     page.body_add_layout(row)
     return page.type_chips
+
+
+def rule_row(page, rows, sug):
+    """4.10.0 (morning answer 15): Not right beside a suggestion (this one piece only; the rule stays), and Make it a team
+    rule... on a sorted piece, so the team's list of phrases grows from the shred."""
+    import suggestrules as SR
+    page.not_right_btn = page.team_rule_btn = None
+    if len(rows) != 1 or page.cx is not None:
+        return None
+    it = rows[-1]
+    rec = (getattr(page, "sg", None) or {}).get(it.get("id")) or {}
+    cat = SR.category(it, rec)
+    if not sug and cat not in ("L", "M", "SOW", "I", "req", "ctx", "cust", "ignore"):
+        return None
+    row = QHBoxLayout(); row.setSpacing(D.SPACE["xs"])
+    if sug:
+        page.not_right_btn = D.button("Not right", "ghost", lambda: page.reject_suggestion([it]),
+                                      "This suggestion is wrong for this piece only; the rule stays for the rest")
+        row.addWidget(page.not_right_btn)
+    if cat:
+        page.team_rule_btn = D.button("Make it a team rule...", "ghost", lambda: page.make_rule(it),
+                                      "Every piece holding a phrase like this one gets this suggestion, in every effort")
+        row.addWidget(page.team_rule_btn)
+    row.addStretch(1)
+    page.body_add_layout(row)
+    return row
 
 
 def fill_capture(page, m):

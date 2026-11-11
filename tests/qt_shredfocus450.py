@@ -86,9 +86,15 @@ check("... no authors, no sections, no decision line on Shred", pg.authors is No
 sug = getattr(pg, "sug_label", None)
 check("the suggestion shows dashed on its chip and says why", sug is not None and "Enter takes it" in sug.text()
       and "dashed" in pg.type_chips["instruction"].styleSheet(), sug.text() if sug else None)
+check("4.10.0: Not right sits beside the suggestion", pg.not_right_btn is not None and pg.not_right_btn.isVisibleTo(pg))
 SF.enter(pg); app.processEvents()
 it = by("Integrated Master Schedule")
 check("Enter takes the suggestion", it.get("decision") == "Keep" and it.get("lm") == "L", (it.get("decision"), it.get("lm")))
+import suggestrules as SR
+check("4.10.0: a sorted piece offers Make it a team rule...", pg.team_rule_btn is not None and pg.not_right_btn is None)
+pg.make_rule(it, answer=("the Integrated Master Schedule", "L", "team")); app.processEvents()
+check("... which adds the phrase to the team's list", any(r["phrase"] == "the Integrated Master Schedule" and r["cat"] == "L"
+                                                          for r in SR.team_rules(w.config_dir)), SR.team_rules(w.config_dir))
 t = by("Text shall be no smaller")
 pg.select(t["id"]); app.processEvents()
 pg.type_chips["requirement"].click(); app.processEvents()

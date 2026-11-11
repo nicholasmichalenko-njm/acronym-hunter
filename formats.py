@@ -29,8 +29,12 @@ FORMATS = {
     "section designs": ("sectiondesigns -> section_designs/index.json in the config folder", "format", 1),   # 3.87.0
     "piece types": ("shredtypes.save -> piece_types.json in the config folder", "format", 1),   # 4.1.0
     "Company Standards workbook": ("standardsbook.write -> Company Standards.xlsx in the team library, and an effort's "
-                                   "Effort Formatting.xlsx; the About sheet", "Format", 1),   # 4.7.0
+                                   "Effort Formatting.xlsx; the About sheet", "Format", 2),   # 4.7.0; 2 in 4.10.0: an effort's
+    # workbook has a Volume column (a Format 1 workbook has none: every row is every volume) and the team's has the Theme
+    # and Suggestion rules sheets (a Format 1 workbook has neither: nothing to read)
     "team library state": ("teamlib -> team_library_state.json in the config folder", "format", 1),   # 4.7.0
+    "suggestion scores": ("teamlib.sync_scores -> suggestion_scores.json in the config folder and Lists, Suggestion "
+                          "scores, <PC>.json in the team library", "format", 1),   # 4.10.0
     "redline copy": ("redlinecopy.build -> <copy>.skredline.json beside the Word copy in the Redlines folder", "format", 1),   # 4.8.0
     "effort data": ("effortdata.publish -> Stationkeeper Data\\manifest.json in the effort's folder (Stationkeeper Macros reads it)",
                     "schema_version", "1.0"),   # 4.9.0: contract stationkeeper.effort-data
