@@ -177,8 +177,8 @@ class VerifyPage(QWidget):
         sb.addWidget(D.label("A correction also goes to the training file, so the reader learns this font.", "muted"))
         sv.addWidget(self.scan_box)
         split.addWidget(side); split.setSizes([900, 320])
-        self.empty = D.EmptyState("No customer documents yet", "Add the RFP files in Library (Customer documents). Verify shows "
-                                  "each page so every block gets a role before Review.", "Go to Library", lambda: self.host.go("library"))
+        self.empty = D.EmptyState("No customer documents yet", "Add the RFP files in Documents. Verify shows "
+                                  "each page so every block gets a role before Review.", "Go to Documents", lambda: self.host.go("library"))
         v.addWidget(self.empty)
         # ---- the bar beside the selection
         self.rolebar = QFrame(); self.rolebar.setObjectName("cardhead")

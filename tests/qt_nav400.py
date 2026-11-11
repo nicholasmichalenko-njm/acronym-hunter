@@ -86,7 +86,7 @@ check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth
 # the bar
 w.rail_go("assign"); app.processEvents()
 check("the bar at the bottom: what is left and the next step", w.next_bar.isVisibleTo(w) and w.next_bar.left.text().startswith("On this step:")
-      and w.next_bar.btn.text().startswith("Next: Matrix & Outline"))
+      and w.next_bar.btn.text().startswith("Next: Matrix && Outline"))      # 4.4.0: && draws one &, not an underscore
 w.next_bar.go(); app.processEvents()
 check("... its button opens the next step", w.stack.currentWidget() is w.matrix_page and w.step_btns["matrix"].isChecked())
 w.rail_go("finalcheck"); app.processEvents()

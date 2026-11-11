@@ -328,7 +328,7 @@ class NextBar(QFrame):
             return None
         self.left.setText("On this step: " + b["left"])
         self.target = b["go"]
-        self.btn.setText(b["button"] + "  →"); self.btn.setVisible(bool(b["button"])); self.when.setVisible(bool(b["button"]))
+        self.btn.setText(b["button"].replace("&", "&&") + "  →"); self.btn.setVisible(bool(b["button"])); self.when.setVisible(bool(b["button"]))
         self.setVisible(True)
         return b
 

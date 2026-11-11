@@ -438,9 +438,9 @@ class RequirementsPage(QWidget):
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.facts = D.label("", "title"); top.addWidget(self.facts, 1)
-        self.hidden = QCheckBox("Show items marked Not a requirement"); self.hidden.toggled.connect(lambda _on: self.refresh())
+        self.hidden = QCheckBox("Show the ones set aside"); self.hidden.toggled.connect(lambda _on: self.refresh())
         top.addWidget(self.hidden)
-        top.addWidget(D.button("Add a requirement...", None, lambda: self.add()))
+        top.addWidget(D.button("Add a rule...", None, lambda: self.add()))
         top.addWidget(D.button("Export...", None, lambda: self.export()))
         split = QSplitter(Qt.Horizontal)
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Rule", "Now", "Changed by", "Source"])     # 2.85.0
@@ -459,7 +459,7 @@ class RequirementsPage(QWidget):
         if r["to_review"]:
             return ("Removed: review" if r["removed"] else "Changed: review"), "warn"
         if r["hidden"]:
-            return "Not a requirement", "faint"
+            return "Set aside", "faint"
         if r["removed"]:
             return "No longer in the documents", "faint"
         if r["confirmed"]:
@@ -511,7 +511,7 @@ class RequirementsPage(QWidget):
                 st, tone = self.state(r)
                 lc = None if r["manual"] else self.last_change(r)
                 by = ("Typed in" if r["manual"] else (f"{lc[2]}" + (" (decide in Compare)" if r["to_review"] else "")) if lc
-                      else ("Not a requirement" if r["hidden"] else r.get("version") or "Original"))
+                      else ("Set aside" if r["hidden"] else r.get("version") or "Original"))
                 it = QTreeWidgetItem([r["subject"], "" if lc else r["value"], by, "" if r["manual"] else f"{r['doc']}, {r['version']}"])
                 it.setForeground(2, D.color("warn" if r["to_review"] else tone)); it.setData(0, Qt.UserRole, r["key"])
                 g.addChild(it)
@@ -628,7 +628,7 @@ class RequirementsPage(QWidget):
         if not r["manual"]:
             row.addWidget(D.button("Confirm", None, lambda: self.act("confirm", k)))
             row.addWidget(D.button("Edit...", None, lambda: self.edit(k)))
-            row.addWidget(D.button("Show again" if r["hidden"] else "Not a requirement", "ghost", lambda: self.act("hide", k, not r["hidden"])))
+            row.addWidget(D.button("Show again" if r["hidden"] else "Set it aside", "ghost", lambda: self.act("hide", k, not r["hidden"])))
         else:
             row.addWidget(D.button("Remove", "danger", lambda: self.act("remove", k)))
         w = QWidget(); w.setLayout(row)

@@ -94,8 +94,8 @@ class ComparePage(QWidget):
         split.setSizes([900, 44, 420]); split.setStretchFactor(0, 1); split.setStretchFactor(1, 0); split.setStretchFactor(2, 0)
         for sb in (self.view.verticalScrollBar(), self.tree.verticalScrollBar()):
             sb.valueChanged.connect(lambda _v: self.gutter.update())
-        self.empty = D.EmptyState("No new versions to compare yet", "Add the amendment or the new version in Library (Customer "
-                                  "documents). Compare shows what changed on its pages, beside our response.", "Go to Library",
+        self.empty = D.EmptyState("No new versions to compare yet", "Add the amendment or the new version in Documents. "
+                                  "Changes shows what changed on its pages, beside our response.", "Go to Documents",
                                   lambda: self.host.go("library"))
         v.addWidget(self.empty); self.empty.hide()
         self.decide_panel = DecideBar(self)

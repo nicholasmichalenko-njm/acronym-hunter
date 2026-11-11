@@ -83,9 +83,9 @@ TOPICS = [
   "formatting) with the document that set each rule and what changed it; and every piece the shred said is a Rule or a Date.",
   "You plan the submission, or a new version changes a rule.",
   ["Read the rules. Each shows its source document and section.",
-   "Press Add a requirement... for a rule you found yourself.",
+   "Press Add a rule... for a rule you found yourself.",
    "Use the new due date takes a changed due date into the effort."],
-  ["Capture > Submission and Capture > Formatting in Review fill this page from the customer's words."]),
+  ["Rule and Date in Shred fill this page from the customer's words."]),
  ("deliverables", "Effort", "Deliverables",
   "Every deliverable of the effort on one board: volumes, forms, plans and CDRLs, with owner, status, pages against "
   "the limit and what is missing.",

@@ -62,7 +62,7 @@ check("... then the acros and abs left to decide", n["go"] == "acronyms" and n["
 f2 = dict(f2, acronyms=0)
 sts = NS.steps(f2)
 n = NS.next_step(sts, f2)
-check("... then the requirements left to place", n["go"] == "assign" and n["title"] == "Place the 26 requirements left"
+check("... then the requirements left to place (4.4.0: on Place)", n["go"] == "place" and n["title"] == "Place the 26 requirements left"
       and sts[2]["state"] == "now" and sts[2]["badge"] == "26 to place")
 
 
@@ -83,7 +83,7 @@ check("... then run the Final Check", n["go"] == "finalcheck" and n["title"] == 
 f4 = dict(f3, check={"at": "2026-12-01", "ok": True})
 check("every step done: the next step says so", NS.next_step(NS.steps(f4), f4)["title"] == "Every step is done")
 check("Shred with nothing read in", NS.steps(facts(docs=1))[1]["summary"] == "Nothing shredded yet."
-      and NS.next_step(NS.steps(facts(docs=1)), facts(docs=1))["go"] == "read")
+      and NS.next_step(NS.steps(facts(docs=1)), facts(docs=1))["go"] == "assign")         # 4.4.0: adding extracts it; Shred opens
 b = NS.bar("matrix", NS.steps(f))
 check("the bar at the bottom: what is left on this step and the next step's button",
       b["left"].startswith("274 of 300") and b["button"] == "Next: Setup, make the setup from the outline" and b["go"] == "setups")

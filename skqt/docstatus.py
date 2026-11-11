@@ -119,7 +119,7 @@ def status(page, d, st=None):
         out.append(("Changes from its last version", ("Not reviewed yet" if not opened else f"{left} to review" if left else "Reviewed"),
                     WARN if (not opened or left) else OK))
     role = lib.role_of(d)
-    out.append(("Feeds the matrix", "Yes: Shred extracts it when you pick it" if role == "matrix" else "No", OK if role == "matrix" else NONE))
+    out.append(("Feeds the matrix", "Yes (Place decides what goes in)" if role == "matrix" else "No", OK if role == "matrix" else NONE))
     try:
         import ctxdocs as CX
         nt = len(CX.Store(page.host.ws.root).load().of_doc(d["id"]))

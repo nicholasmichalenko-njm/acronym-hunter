@@ -10,7 +10,7 @@ import os
 import diag
 
 TAIL = " (not extracted yet)"
-HINT = "Pick a customer document above. Stationkeeper extracts it and opens it here to shred."
+HINT = "Each customer document is extracted when it is added. Pick one above to see its pages."
 
 
 def _lib(host):

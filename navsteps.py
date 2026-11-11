@@ -187,16 +187,16 @@ def next_step(sts, f):
     if k == "assign":
         r = f.get("reqs")
         if not r:
-            return {"key": k, "go": "read", "title": "Pick a customer document to shred", "button": "Open Shred", "then": then,
-                    "why": "Shred extracts it at once and opens it, ready to say what each piece is."}
+            return {"key": k, "go": "assign", "title": "Shred the customer's documents", "button": "Open Shred", "then": then,
+                    "why": "Each document is extracted when it is added: say what each piece is."}
         if r["undecided"]:
             return {"key": k, "go": "assign", "title": f"Shred the {_plural(r['undecided'], 'piece')} left", "button": "Open Shred",
                     "then": then, "why": "What each piece of the customer's text is and asks of you."}
         return {"key": k, "go": "acronyms", "title": f"Decide the {_acros(f['acronyms'] or 0)} left", "button": "Open Acros & Abs",
                 "then": then, "why": "Each acronym, abbreviation, unit or symbol on the customer's pages: in the list with its definition, or not one."}
     if k == "matrix":
-        return {"key": k, "go": "assign", "title": f"Place the {_plural(now.get('unplaced', 0), 'requirement')} left",
-                "button": "Open Shred", "then": then, "why": "Each requirement in its section of the response structure."}
+        return {"key": k, "go": "place", "title": f"Place the {_plural(now.get('unplaced', 0), 'requirement')} left",
+                "button": "Open Place", "then": then, "why": "Each requirement in its section of the response structure."}
     if k == "setups":
         return {"key": k, "go": "setups", "title": "Make the setup from the outline", "button": "Open Setup", "then": then,
                 "why": "Who writes what, when and how long, and the setup in Word for the authors."}
