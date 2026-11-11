@@ -135,6 +135,8 @@ import subprocess
 import imgops as IO   # 3.47.0: picture steps in NumPy, Pillow and our own imgcore (OpenCV only in the legacy edition)
 import pypdfium2 as pdfium        # Google PDFium (BSD-3 / Apache-2.0): PDF text, pictures, page images
 import pypdfium2.raw as _pdfium_raw
+import pdflock as _PL
+_PL.install()                      # 4.5.0: one PDFium call at a time (the extraction runs beside the page on screen)
 import openpyxl
 import numpy as np
 from rapidfuzz import process, fuzz
