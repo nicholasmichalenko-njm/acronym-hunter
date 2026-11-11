@@ -1,6 +1,13 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REDLINE TABLES (4.11.0)
+  - Redline's Word copy makes real Word tables. A PDF keeps no tables, only text placed on the page: rows whose pieces
+    line up in columns become a table, its column widths from where the columns sit, and a cell that wrapped onto a
+    second line stays in its cell. A list or numbered headings with a gap after the marker stay paragraphs.
+  - Check compares the table's words cell by cell, as the copy holds them, and says how many tables it made: look at
+    each beside the PDF (a merged cell or a cell with no text can come out differently).
+
 THE MORNING'S ANSWERS (4.10.0)
   - Suggestion rules: the shred's phrase rules are one growing team list, the Suggestion rules sheet of Company
     Standards.xlsx (the phrase, what it suggests, why, Approved or Retired). Times kept and Times not right count every
@@ -48,8 +55,7 @@ REDLINE (4.8.0)
     above it), the original text, our text, Inserted, Deleted or Replaced, the author, the date and the comment on it.
     Export to Excel or Word.
   - Documents: the panel says when a redline copy was made, and a PDF's right-click offers Prepare a redline copy.
-  - Limits: a table in the PDF comes out as one paragraph per row (check tables by eye); a scanned page is only as good
-    as its reading.
+  - Limits: a scanned page is only as good as its reading.
 
 THE TEAM'S LISTS AS FILES (4.7.1)
   - The small lists are sheets of Company Standards.xlsx: Phrases (banned and avoided, with what to use instead and

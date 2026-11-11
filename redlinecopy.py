@@ -7,13 +7,16 @@ headings forced on or off, headings split off their text):
   stays typed text, never Word's list numbering;
 - the lines of a paragraph are joined, across page breaks too; a word broken by a hyphen at a line end is joined;
 - running headers, footers, page numbers and the lines set aside are left out;
-- a list item ((a), 1., a bullet) keeps its marker as text and is indented.
+- a list item ((a), 1., a bullet) keeps its marker as text and is indented;
+- a table (rows of text whose pieces line up in columns) becomes a Word table, its widths from where the columns start
+  (4.11.0, redlinetables).
 It uses Word's built-in Normal and Heading styles. A sidecar <copy>.skredline.json keeps the source PDF's SHA-256, the
 date, the source's name, the copy's paragraphs and the lines set aside, for the checks (redlinecheck). Rules only (No
 AI); nothing leaves the PC."""
 import datetime, hashlib, json, os, re
 
 import pagesent as PS
+import redlinetables as RT
 
 FORMAT = 1                                   # formats.py "redline copy"
 SIDE = ".skredline.json"
@@ -70,7 +73,9 @@ def plan(pdf, name=None):
     else:
         skip = (auto - set(force)) | set(extra)
         set_aside = set(extra)
-    paras = PS.paragraphs(doc, skip, force)
+    tables = RT.find(doc, skip)                     # 4.11.0: tables become Word tables
+    in_tables = {x for t in tables for x in t["lines"]}
+    paras = PS.paragraphs(doc, skip | in_tables, force)
     out = []
     for p in paras:
         texts = [doc["pages"][pi]["lines"][li]["text"] for pi, li in p["lines"]]
@@ -83,6 +88,13 @@ def plan(pdf, name=None):
             out.append({"kind": "list", "level": 0, "text": text, "page": p["page"]})
         else:
             out.append({"kind": "text", "level": 0, "text": text, "page": p["page"]})
+        out[-1]["at"] = p["lines"][0] if p["lines"] else (p["page"] - 1, 0)
+    for t in tables:
+        out.append({"kind": "table", "level": 0, "text": RT.text_of(t), "page": t["page"] + 1, "rows": t["rows"],
+                    "widths": t["widths"], "at": t["lines"][0]})
+    out.sort(key=lambda p: tuple(p.get("at") or (0, 0)))
+    for p in out:
+        p.pop("at", None)
     aside = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(set_aside)
              if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
     return out, aside
@@ -106,6 +118,12 @@ def build(pdf, out, name=None):
             d.heading(p["text"], p["level"])
         elif p["kind"] == "list":
             d.rich([(p["text"], {})], indent=360)
+        elif p["kind"] == "table":
+            n = max(len(r) for r in p["rows"])
+            tw = 9360                                   # 6.5 inches across, shared as the columns are on the page
+            ws = [int(tw * w / sum(p["widths"])) for w in p["widths"]][:n]
+            rows = [list(r) + [""] * (n - len(r)) for r in p["rows"]]
+            d.table(rows[0], rows[1:], ws)
         else:
             d.para(p["text"])
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
@@ -116,7 +134,7 @@ def build(pdf, out, name=None):
     with open(out + SIDE, "w", encoding="utf-8") as f:
         json.dump(side, f, indent=1, ensure_ascii=False)
     return {"path": out, "paragraphs": len(paras), "headings": sum(1 for p in paras if p["kind"] == "heading"),
-            "set_aside": len(aside)}
+            "tables": sum(1 for p in paras if p["kind"] == "table"), "set_aside": len(aside)}
 
 
 def sidecar(copy):

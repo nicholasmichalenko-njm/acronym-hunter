@@ -48,7 +48,7 @@ def read(path):
                 a, b = m.start(), m.end()
                 if not t[a:b].strip():
                     continue
-                boxes, sizes, bold = [], [], 0
+                boxes, sizes, bold, xs = [], [], 0, []
                 for k in range(a, b):
                     if t[k].isspace():
                         continue
@@ -58,19 +58,38 @@ def read(path):
                         continue
                     if r > l:
                         boxes.append((l, h - tt, r, h - bo))
+                        xs.append((k, l, r))
                     sizes.append(R.FPDFText_GetFontSize(tp.raw, k))
                     bold += R.FPDFText_GetFontWeight(tp.raw, k) >= 600
                 if not boxes:
                     continue
                 box = (min(x[0] for x in boxes), min(x[1] for x in boxes), max(x[2] for x in boxes), max(x[3] for x in boxes))
-                lines.append({"a": a, "b": b, "text": t[a:b], "box": box,
-                              "size": statistics.median(sizes) if sizes else 0, "bold": bold > len(sizes) / 2})
+                size = statistics.median(sizes) if sizes else 0
+                lines.append({"a": a, "b": b, "text": t[a:b], "box": box, "size": size, "bold": bold > len(sizes) / 2,
+                              "segs": segments(t, xs, size)})
             pages.append({"w": w, "h": h, "text": t, "lines": lines})
             tp.close()
             page.close()
     finally:
         pdf.close()
     return {"pages": pages}
+
+
+def segments(t, xs, size):
+    """4.11.0: a line's pieces split where the gap between two letters is wide (a table's columns, a tab):
+    [(left, right, text)]. xs: [(char index, left, right)] of the line's letters in order."""
+    gap = max(6.0, 1.1 * (size or 10))
+    out, start, prev = [], None, None
+    for k, l, r in xs:
+        if start is None:
+            start = (k, l)
+        elif l - prev[2] > gap:
+            out.append((start[1], prev[2], " ".join(t[start[0]:prev[0] + 1].split())))
+            start = (k, l)
+        prev = (k, l, r)
+    if start is not None:
+        out.append((start[1], prev[2], " ".join(t[start[0]:prev[0] + 1].split())))
+    return [x for x in out if x[2]]
 
 
 HEAD_BAND, FOOT_BAND = 0.09, 0.91                 # the page's top and bottom margins (a 1-inch margin on Letter)

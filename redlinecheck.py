@@ -13,6 +13,7 @@ import difflib, re
 
 import pagesent as PS
 import redlinecopy as RC
+import redlinetables as RT
 
 _W = re.compile(r"\S+")
 
@@ -55,15 +56,20 @@ def pdf_words(pdf, name=None):
     extra, force = PS.decided(pdf, name)
     auto = set(doc.get("skip") or ())
     skip = auto - set(force)                               # the set-asides stay in: they are listed apart below
-    paras = PS.paragraphs(doc, skip, force)
-    plist = []
     aside = set(extra)
+    tables = RT.find(doc, skip | aside)                    # 4.11.0: a table's words row by row, cell by cell, as the copy
+    in_tables = {x for t in tables for x in t["lines"]}
+    paras = PS.paragraphs(doc, skip | in_tables, force)
+    plist = []
     for p in paras:
         kept = [(pi, li) for pi, li in p["lines"] if (pi, li) not in aside]
         if not kept:
             continue
-        plist.append({"kind": p["kind"], "page": p["page"],
+        plist.append({"kind": p["kind"], "page": p["page"], "at": kept[0],
                       "text": RC.join_lines([doc["pages"][pi]["lines"][li]["text"] for pi, li in kept])})
+    for t in tables:
+        plist.append({"kind": "table", "page": t["page"] + 1, "at": t["lines"][0], "text": RT.text_of(t)})
+    plist.sort(key=lambda p: tuple(p["at"]))
     gone = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(aside)
             if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
     return plist, gone
@@ -106,7 +112,7 @@ def faithful(pdf, copy, name=None):
     cp = [p for p in docx_paragraphs(copy) if p["text"].strip()]
     b, wb = _index(cp)
     diffs = _diff(a, b, lambda i: wa[i] if i < len(wa) else (0, ""), lambda j: wb[j] if j < len(wb) else (0, ""))
-    tables = sum(1 for p in src if re.search(r"\S\s{3,}\S", p["text"]) or "\t" in p["text"])
+    tables = sum(1 for p in src if p.get("kind") == "table")
     return {"differences": diffs, "set_aside": gone, "tables": tables, "words": (len(a), len(b))}
 
 

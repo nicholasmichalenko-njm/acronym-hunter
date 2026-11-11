@@ -129,7 +129,8 @@ class PreparePage(QWidget):
         except PermissionError:
             self.host.status("The copy is open in Word: close it, then make it again.")
             return None
-        self.host.toast(f"Word copy made: {res['paragraphs']} paragraphs, {res['headings']} headings")
+        self.host.toast(f"Word copy made: {res['paragraphs']} paragraphs, {res['headings']} headings"
+                        + (f", {res['tables']} table(s)" if res.get("tables") else ""))
         diag.activity("redline_copy_made", n=res["paragraphs"])
         self.refresh()
         return out
@@ -206,7 +207,8 @@ class CheckPage(QWidget):
         n = len(res["differences"])
         self.say.setText((f"{n} difference(s) between the copy and its PDF." if n else "The copy holds every word of its PDF, in order.")
                          + (f" {len(res['set_aside'])} line(s) set aside on purpose in Fix text." if res["set_aside"] else "")
-                         + (" Check any table by eye: a table's cells come out as one paragraph per row." if res["tables"] else ""))
+                         + (f" {res['tables']} table(s) were made as Word tables from where the PDF's columns sit: look at "
+                            "each beside the PDF (a cell that wrapped, a merged cell)." if res["tables"] else ""))
         diag.activity("redline_copy_checked", n=n)
         return res
 
