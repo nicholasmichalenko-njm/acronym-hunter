@@ -143,6 +143,7 @@ def build(pdf, out, name=None, layout=None):
     doc = PS.doc_of(pdf)
     d.font = RL.body_font(pdf)                      # 4.13.0: the PDF's own body font and size
     d.half_points = int(round(2 * PS._body_size(doc))) or 22
+    d.ppr_default = '<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'   # 4.15.0: Word's own otherwise adds space
     gi = 0                                          # 4.13.0: each run of pages keeps its size, orientation and margins
     for p in paras:
         while gi + 1 < len(pages) and p.get("page", 1) > pages[gi]["pages"][1]:
