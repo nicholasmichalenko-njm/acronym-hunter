@@ -51,7 +51,7 @@ def wait(cond, secs=60):
 
 
 check("4.1.0: Shred's tabs start Requirements (no Extract); Text check and Changes are Documents'", [k for k, _t in TABS["assign"]][:1] == ["assign"]
-      and [k for k, _t in TABS["library"]][1:2] == ["compare"])
+      and "compare" in [k for k, _t in TABS["library"]][1:3])   # 4.6.0: Customer, Ours, Changes
 w.open_effort("Kestrel")
 w.go("docs"); app.processEvents()
 w.docs_page.add([P1], choices=[{}])
