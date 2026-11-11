@@ -47,6 +47,9 @@ class DeliverableView(QWidget):
         self.title = D.label("", "title"); top.addWidget(self.title, 1)
         self.kind_pill = D.Pill("", "accent"); top.addWidget(self.kind_pill)
         self.state_pill = D.Pill("", "ok"); top.addWidget(self.state_pill)
+        self.delete_btn = D.button("Delete this deliverable...", "ghost", lambda: page.remove(self.did),
+                                   "Delete it, with its parts, attachments, dates and discussion (Undo puts it back)")
+        top.addWidget(self.delete_btn)                                  # 4.12.0
         self.tabs = QTabWidget(); v.addWidget(self.tabs, 1)
         self.panes = {}
         from PySide6.QtWidgets import QScrollArea, QFrame
@@ -268,6 +271,7 @@ class DeliverableView(QWidget):
 
     # ------------------------------------------------------------ Requirements
     def _requirements(self, lay, d):
+        self._solicitation(lay, d)                                      # 4.12.0: the pieces Shred attached
         c = next((x for x in self.page.cards if x["id"] == d["id"]), None) or {}
         rr = c.get("req_rows") or []
         if not d.get("volume"):
@@ -279,6 +283,21 @@ class DeliverableView(QWidget):
                                 [(x["id"], x["section"], x["owner"] or "no author", x["text"]) for x in rr], stretch=3)
         self.req_table.cellDoubleClicked.connect(lambda r, _c, rr=rr: self.page.open_requirement(rr[r]["id"]))
         lay.addWidget(self.req_table)
+
+    def _solicitation(self, lay, d):
+        ps = d.get("pieces") or []
+        lay.addWidget(D.SectionTitle("From the solicitation"))
+        if not ps:
+            lay.addWidget(D.label("No pieces yet. On Shred, a piece typed Deliverable picks this deliverable under Which deliverable.",
+                                  "muted"))
+            self.piece_table = None
+            return
+        lay.addWidget(D.label(f"{len(ps)} piece(s) of the customer's documents describe it. Double-click one to open it in Shred.",
+                              "muted"))
+        self.piece_table = _table(["ID", "Document", "Page", "The customer's words"],
+                                  [(p.get("sid", ""), p.get("doc", ""), p.get("page", ""), p.get("text", "")) for p in ps], stretch=3)
+        self.piece_table.cellDoubleClicked.connect(lambda r, _c, ps=ps: self.page.open_requirement(ps[r]["sid"]))
+        lay.addWidget(self.piece_table)
 
     # ------------------------------------------------------------ Attachments and files
     def _attachments(self, lay, d):

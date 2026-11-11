@@ -28,6 +28,8 @@ def install(page):
     top.insertWidget(1, page.order_mode)
     top.insertWidget(top.count() - 1, D.button("Format groups...", None, lambda: page.groups_window()))
     page.arrange_box = arrange_list(page); av.addWidget(page.arrange_box, 1); page.arrange_box.hide()
+    from . import delivdelete as DD                                  # 4.12.0: delete, with Undo
+    DD.install(page)
 
 
 def arrange_list(page):

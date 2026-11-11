@@ -60,6 +60,18 @@ def run():
     rec2 = ER.Record(d)
     assert CC.values(rec2.contact(cid), "phone")[0]["value"] == "(555) 010-3199"
     json.dumps(rec2.data)
+    # set_card files the card exactly (the card shows every value); take_out_piece takes what a piece gave
+    card = CC.card_of(rec2.contact(cid))
+    card["phone"].append({"label": "Fax", "value": "(555) 010-3177", "source": {"sid": "L.9.9", "page": "44"}})
+    card["title"] = "Contracting Officer"
+    assert CC.set_card(rec2, cid, card) and not CC.set_card(rec2, cid, card)
+    c = rec2.contact(cid)
+    assert [v["label"] for v in CC.values(c, "phone")] == ["Fax", "Fax"] and c["title"] == "Contracting Officer"
+    assert CC.take_out_piece(rec2, cid, "L.9.9") == "changed"
+    assert [v["value"] for v in CC.values(rec2.contact(cid), "phone")] == ["(555) 010-3199"]
+    assert CC.take_out_piece(rec2, cid, "nothing") == ""
+    lone = CC.save_card(rec2, {"phone": [{"label": "Main", "value": "(555) 010-4000", "source": {"sid": "C.2"}}]})
+    assert CC.take_out_piece(rec2, lone, "C.2") == "removed" and rec2.contact(lone) is None
     print("test_contacts412: all checks passed")
 
 

@@ -62,6 +62,7 @@ def add(page, rows):
     row.addWidget(page.ask_btn)
     row.addStretch(1)
     page.body_add_layout(row)
+    __import__("skqt.piececaptures", fromlist=["x"]).add(page, rows)        # 4.12.0: its deliverable, what it gave
     return page.type_chips
 
 

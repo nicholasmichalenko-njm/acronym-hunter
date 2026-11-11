@@ -68,6 +68,8 @@ def apply(page, mode):
         page.shred_main.setVisible(mode == "shred" and bool(page.file) and page.cx is None)
         page.more_acts["Take every suggestion"].setVisible(mode == "shred")
         page.more_acts["Captured list"].setVisible(mode == "shred")
+        if mode != "shred":
+            __import__("skqt.capturecard", fromlist=["x"]).closing(page)       # 4.12.0: the card is Shred's
         if mode == "shred":
             suggest_on(page)
         elif page.sg_on:                                             # Place places: the type suggestions stay in Shred

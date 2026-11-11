@@ -177,3 +177,66 @@ def summary(c):
         if vs:
             bits.append(vs[0]["value"] + (f" (+{len(vs) - 1})" if len(vs) > 1 else ""))
     return " · ".join(bits) or "a contact"
+
+
+def set_card(rec, cid, card, who=None):
+    """File the card over a contact already filed, exactly as the card shows it (the person saw every value and chose):
+    singles as typed or taken, lists in the card's order. Returns True when anything changed."""
+    c = rec.contact(cid)
+    if c is None:
+        return False
+    _lists(c)
+    before = (dict((f, c.get(f)) for f in SINGLE), {f: list(c["multi"][f]) for f in MULTI})
+    for f in SINGLE:
+        c[f] = _clean(card.get(f))
+        srcs = [s for s in (_src(x) for x in (card.get("sources") or {}).get(f, [])) if s]
+        if srcs:
+            c["field_sources"][f] = srcs
+        elif not c[f]:
+            c["field_sources"].pop(f, None)
+    for f in MULTI:
+        out, seen = [], set()
+        for v in card.get(f) or []:
+            val = _clean(v.get("value"))
+            if val and _key(val) not in seen:
+                seen.add(_key(val))
+                out.append({"label": label_of(v.get("label")), "value": val, "source": _src(v.get("source"))})
+        c["multi"][f] = out
+    _mirror(c)
+    after = (dict((f, c.get(f)) for f in SINGLE), {f: c["multi"][f] for f in MULTI})
+    if after == before:
+        return False
+    rec.log("customer", f"Contact updated: {c['name'] or c['email'] or 'a contact'}", who=who)
+    rec.save()
+    return True
+
+
+def take_out_piece(rec, cid, sid, who=None):
+    """Take out what a piece gave a contact: its list values, and a single whose only source it is. A contact left
+    with nothing is removed. Returns 'removed', 'changed' or ''."""
+    c = rec.contact(cid)
+    if c is None or not sid:
+        return ""
+    _lists(c)
+    hit = False
+    for f in MULTI:
+        keep = [v for v in c["multi"][f] if (v.get("source") or {}).get("sid") != sid]
+        hit |= len(keep) < len(c["multi"][f])
+        c["multi"][f] = keep
+    for f in SINGLE:
+        srcs = c["field_sources"].get(f) or []
+        if srcs and all(s.get("sid") == sid for s in srcs):
+            c[f] = ""
+            c["field_sources"].pop(f, None)
+            hit = True
+    c["sources"] = [s for s in c.get("sources", []) if s.get("sid") != sid]
+    _mirror(c)
+    if not hit:
+        return ""
+    if not any(c.get(k) for k in rec.CONTACT_FIELDS) and not c.get("other"):
+        rec.remove_contact(cid)
+        rec.log("customer", "Contact removed (its piece was taken out)", who=who, save=True)
+        return "removed"
+    rec.log("customer", f"Contact updated: {c['name'] or c['email'] or 'a contact'} (a piece taken out)", who=who)
+    rec.save()
+    return "changed"

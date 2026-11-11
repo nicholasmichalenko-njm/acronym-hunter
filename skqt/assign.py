@@ -887,6 +887,7 @@ class AssignPage(QWidget):
         """The review changed (opened, read): fill the file list and the structure."""
         import suggestrules as SR
         import topics as TP                                                    # 3.28.0
+        __import__("skqt.capturecard", fromlist=["x"]).closing(self)          # 4.12.0: a card open is for the effort before
         if self.R is None:                    # 3.34.1: an effort with no matrix yet shows nothing of the last effort's
             self.forget()
         rfi = TP.is_rfi(self.host.ws)
@@ -2308,6 +2309,12 @@ class AssignPage(QWidget):
         text, src = self.capture_source()
         if not text:
             return self.host.status("Select a sentence first (drag across words inside it to pick just those).")
+        if answer is None and getattr(self, "focus", None) == "shred" and self.cx is None:     # 4.12.0: on the pane
+            from . import capturecard as CCARD, piececaptures as PC
+            if kind in CCARD.KINDS:
+                return CCARD.open_card(self, kind) and None
+            if kind == "deliverable":
+                return PC.pick_deliverable(self) and None
         if kind == "contact":
             if answer is None:
                 d = CV.ContactDialog(self, text, RR.Record(self.host.ws.root).contacts())

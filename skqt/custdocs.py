@@ -1040,7 +1040,7 @@ class DeliverablesPage(QWidget):
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); lv.addLayout(row)
         row.addWidget(D.button("Edit...", None, lambda: self.edit(self.current())))
         row.addWidget(D.button("Done for this stage", None, lambda: self.mark_stage()))
-        row.addWidget(D.button("Remove", "danger", lambda: self.remove()))
+        row.addWidget(D.button("Delete...", "danger", lambda: self.remove(), "Delete this deliverable (Undo puts it back)"))
         row.addStretch(1)
         v.addWidget(self.list_box, 1)
         self.list_box.hide()
@@ -1225,14 +1225,10 @@ class DeliverablesPage(QWidget):
         self.refresh()
         return ok
 
-    def remove(self, did=None):
-        import deliverables as DL
+    def remove(self, did=None, answer=None):
         did = did or self.current()
-        if not did:
-            return False
-        ok = DL.remove(self.ctx.rec, did)
-        self.refresh()
-        return ok
+        from . import delivdelete as DD                              # 4.12.0: it asks first; Undo puts it back
+        return DD.delete(self, did, answer) if did else False
 
     def export(self, path=None):
         import deliverables as DL

@@ -60,6 +60,15 @@ class Card(QFrame):
             return
         super().mouseDoubleClickEvent(e)
 
+    on_menu = None                                                    # 4.12.0: right-click: Open, Delete...
+
+    def contextMenuEvent(self, e):
+        if self.on_menu is not None:
+            self.on_menu(self.c["id"], e.globalPos())
+            e.accept()
+            return
+        super().contextMenuEvent(e)
+
     def mouseReleaseEvent(self, e):
         if e.button() == Qt.LeftButton:
             from PySide6.QtCore import QTimer
@@ -87,6 +96,7 @@ class Board(QWidget):
         for c in cards:
             w = Card(c, self.page.pick, current == c["id"])
             w.on_open = getattr(self.page, "open_deliverable", None)
+            w.on_menu = getattr(self.page, "card_menu", None)
             self.cards[c["id"]] = w
             self.flow.addWidget(w)
         self.updateGeometry()
