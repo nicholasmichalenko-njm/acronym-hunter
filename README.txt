@@ -1,6 +1,29 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENTS AND CHANGES, AS DESIGNED (4.6.0)
+  - Documents has two tabs for the documents themselves: Customer (what the customer issued: their documents, the
+    bidders library, Q&A) and Ours (our documents, graphics, categories of our own), then Changes and Data calls.
+  - Each has Find, More (Add a folder..., Watched folders..., New folder..., the Library folder) and one main button,
+    Add documents.... The table: Document (with how many versions), Type, Governing version, and three progress marks:
+    Text (pages checked), Shred (where its shred stands) and Terms (acros and abs found, and to decide).
+  - The panel says what has been done, lists the versions once and offers one next thing. Initial and type, More about
+    this document and See where its text went are on the row's right-click.
+  - Changes shows a card per change: where it is, the old and new wording inline, what it touches in our response, and
+    No impact, Re-shred and Ask a question on the card (the rest under its More). A decided card turns pale, with Undo.
+    The new versions are listed on the left with how many are left. The main button is Next change; Open in Word as
+    tracked changes sits beside it. The footer says how many passages wait in Shred, with a link to them. The page view
+    and Any two files are under More. The Changes tab says how many changes are left.
+  - The menu shows what is left on every step, not only the one at hand: 4 to re-shred, 38 to place, to make, to read
+    back, the due date.
+  - Acros & Abs scans the customer's documents as soon as they are in and extracted, in the background, and again when
+    a new one arrives. The Acro List's table is now Acros & Abs > Every term.
+  - Outline asks once whether the solicitation prescribes an outline that started from the customer's headings.
+  - Rules & Dates is in three groups (Structure and page limits, Format, Submission and dates), each rule says what uses
+    it (Used by), and Add a rule... is the main button.
+  - Steadier: reading PDFs is one call at a time, so the background extraction and the page on screen never collide; a
+    hidden Word that did not quit after a PDF copy is ended (only that one).
+
 SHRED AND PLACE, AS DESIGNED (4.5.0)
   - Shred has one job: say what each piece is. Click a piece; its pane shows What it is: Requirement, Instruction, Rule,
     Date, Evaluation, Deliverable, Information and Not applicable, as chips with their keys. A click or a key puts a type

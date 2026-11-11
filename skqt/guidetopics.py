@@ -155,8 +155,8 @@ TOPICS = [
  ("library", "Effort Library", "Library",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
-  ["Press Add files... or Add a folder... Stationkeeper suggests the type, its initial (R, A1, TO1) and whether it is "
-   "a new version of a document you have.",
+  ["Press Add documents... (Customer or Ours; Add a folder... is under More). Stationkeeper suggests the type, its "
+   "initial (R, A1, TO1) and whether it is a new version of a document you have.",
    "Watched folders... checks the customer folder and any folder you add for new, changed and missing files. New files "
    "show at the top of the Library: Add to the Library... or Ignore. The same words are never added twice.",
    "The Review column says where each document stands: Not read yet, Needs reviewing (how many sentences are decided), "
@@ -309,12 +309,12 @@ TOPICS = [
    "Press Export the crosswalk... for a review or the proposal manager."],
   ["The crosswalk fills in from your L, M and SOW decisions in Review."]),
  ("compare", "Effort Library", "Compare",
-  "Two versions side by side. Customer versions: what a new version of a customer document changed, what it touches in "
-  "your review, and a decision on every change. Any two files: our drafts or any files, sentence by sentence, with the "
+  "A card per change a new version of a customer document made: the old and new wording, what it touches in our response, "
+  "and No impact, Re-shred or Ask a question on the card. Any two files (under More): our drafts or any files, with the "
   "redline in Word.",
   "An amendment or new version arrives; or you need to know what changed between two drafts.",
-  ["Customer versions: pick the document and the old and new versions. Decide each change: update the requirement, Not "
-   "ours, or a question for the customer. Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes.",
+  ["Pick the new version on the left. Decide each card; Next change goes to the next one to decide, Open in Word as "
+   "tracked changes shows both versions in Word. Export: Redline (Word)..., Change list (Excel)..., Author briefs....",
    "Any two files: Choose... the earlier and the later file (Word, PDF, PowerPoint or Excel), then Compare. Only changes "
    "hides the sentences that stayed the same. Redline (Word)... exports the changes marked; Tracked changes (Word)... "
    "saves a Word file where each change is a tracked change to accept or reject. Two Word files are compared by Word "
