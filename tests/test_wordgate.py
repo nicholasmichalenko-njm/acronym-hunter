@@ -45,5 +45,11 @@ if WG.available():                                     # the build PC: Word's ow
     print(WG.text(res))
     check("Word checks a real template: every Quick Part goes in with its styles and fields", res.get("ok") and len(res["entries"]) == 2
           and all(e["ok"] for e in res["entries"]) and not res["field_errors"], res)
+    import themebook as TB                              # 4.10.0: a theme filled in from the workbook's Theme sheet
+    std2 = PRL.for_effort(tempfile.mkdtemp()); std2["variables"].update(volume_name="Volume I", solicitation="FA8810", company="Acme")
+    std2["theme"], _p, _c = TB.apply(std2, [{"Name": "Accent 1", "Value": "1F3864"}, {"Name": "Body font", "Value": "Arial"}])
+    tj2 = PT.make(std2, os.path.join(tmp, "out2"))
+    res2 = WG.gate(tj2.copy)
+    check("Word opens a template whose theme came from the Theme sheet (the base theme, edited)", res2.get("ok"), res2)
 print(f"WORD GATE {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

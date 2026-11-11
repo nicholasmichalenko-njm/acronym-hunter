@@ -327,6 +327,14 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     for r in sheets[FIELDS]:
         ws.append([to_cell(r.get(h)) for h in header])
     _dress(ws, header, head, fill, get_column_letter)
+    if volumes is None:                                         # 4.10.0: the theme's colors and fonts (the team's book)
+        import themebook as TB
+        ws = wb.create_sheet(TB.SHEET)
+        ws.append(list(TB.COLS))
+        for r in TB.rows(company):
+            ws.append([r[c] for c in TB.COLS])
+        _dress(ws, list(TB.COLS), head, fill, get_column_letter, freeze="B2")
+        ws.column_dimensions["C"].width = 48
     for sheet, (cols, rows) in (lists or {}).items():          # 4.7.1: the team's small lists (listsbook)
         ws = wb.create_sheet(sheet)
         own = [h for h in (own_cols or {}).get(sheet) or [] if h not in cols]
@@ -526,6 +534,14 @@ def apply(company, recipes, book, user=None, removed_answer=None):
                 res["changed"].append((SETTINGS, n))
         c["variables"] = var
     c["book_meta"] = meta_all
+    th = book["sheets"].get("Theme")
+    if th is not None:                                          # 4.10.0: the theme's colors and fonts
+        import themebook as TB
+        t, probs, names = TB.apply(c, th)
+        res["problems"] += probs
+        if t is not None:
+            c["theme"] = t
+            res["changed"] += [(TB.SHEET, n) for n in names]
     new_recipes = recipes
     fr = book["sheets"].get(FIELDS)
     if fr is not None:
