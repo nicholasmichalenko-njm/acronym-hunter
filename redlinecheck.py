@@ -57,7 +57,8 @@ def pdf_words(pdf, name=None):
     auto = set(doc.get("skip") or ())
     skip = auto - set(force)                               # the set-asides stay in: they are listed apart below
     aside = set(extra)
-    tables = RT.find(doc, skip | aside)                    # 4.11.0: a table's words row by row, cell by cell, as the copy
+    import redlinelayout as RL
+    tables = RL.tables(pdf, doc, skip | aside)             # 4.11.0: a table's words row by row, cell by cell, as the copy
     in_tables = {x for t in tables for x in t["lines"]}
     paras = PS.paragraphs(doc, skip | in_tables, force)
     plist = []
@@ -68,7 +69,7 @@ def pdf_words(pdf, name=None):
         plist.append({"kind": p["kind"], "page": p["page"], "at": kept[0],
                       "text": RC.join_lines([doc["pages"][pi]["lines"][li]["text"] for pi, li in kept])})
     for t in tables:
-        plist.append({"kind": "table", "page": t["page"] + 1, "at": t["lines"][0], "text": RT.text_of(t)})
+        plist.append({"kind": "table", "page": t["page"] + 1, "at": t["lines"][0], "text": RL.text_of(t["grid"])})
     plist.sort(key=lambda p: tuple(p["at"]))
     gone = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(aside)
             if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]

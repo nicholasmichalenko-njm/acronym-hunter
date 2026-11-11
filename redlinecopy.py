@@ -73,7 +73,8 @@ def plan(pdf, name=None):
     else:
         skip = (auto - set(force)) | set(extra)
         set_aside = set(extra)
-    tables = RT.find(doc, skip)                     # 4.11.0: tables become Word tables
+    import redlinelayout as RL
+    tables = RL.tables(pdf, doc, skip)             # 4.11.0: tables become Word tables; 4.13.0: from their borders first
     in_tables = {x for t in tables for x in t["lines"]}
     paras = PS.paragraphs(doc, skip | in_tables, force)
     out = []
@@ -90,14 +91,15 @@ def plan(pdf, name=None):
             out.append({"kind": "text", "level": 0, "text": text, "page": p["page"]})
         out[-1]["at"] = p["lines"][0] if p["lines"] else (p["page"] - 1, 0)
     for t in tables:
-        out.append({"kind": "table", "level": 0, "text": RT.text_of(t), "page": t["page"] + 1, "rows": t["rows"],
-                    "widths": t["widths"], "at": t["lines"][0]})
+        out.append({"kind": "table", "level": 0, "text": RL.text_of(t["grid"]), "page": t["page"] + 1, "grid": t["grid"],
+                    "at": t["lines"][0]})
     out.sort(key=lambda p: tuple(p.get("at") or (0, 0)))
     for p in out:
         p.pop("at", None)
     aside = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(set_aside)
              if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
-    return out, aside
+    keep = {(pi, li) for pi, p in enumerate(doc["pages"]) for li in range(len(p["lines"])) if (pi, li) not in skip}
+    return out, aside, RL.setup(doc, keep)
 
 
 def copy_name(pdf, when=None):
@@ -109,23 +111,26 @@ def build(pdf, out, name=None):
     """Write the clean copy to out (a .docx) and its sidecar. Returns {"path", "paragraphs", "headings", "set_aside"}.
     Raises ValueError for a PDF with no typed text (a scanned page): read it with OCR first (Fix text)."""
     import docxw
-    paras, aside = plan(pdf, name)
+    import redlinedocx as RD
+    paras, aside, pages = plan(pdf, name)
     if not paras:
         raise ValueError("The PDF has no typed text the copy could be made from.")
     d = docxw.Doc()
+    gi = 0                                          # 4.13.0: each run of pages keeps its size, orientation and margins
     for p in paras:
+        while gi + 1 < len(pages) and p.get("page", 1) > pages[gi]["pages"][1]:
+            RD.section(d, pages[gi])
+            gi += 1
         if p["kind"] == "heading":
             d.heading(p["text"], p["level"])
         elif p["kind"] == "list":
             d.rich([(p["text"], {})], indent=360)
         elif p["kind"] == "table":
-            n = max(len(r) for r in p["rows"])
-            tw = 9360                                   # 6.5 inches across, shared as the columns are on the page
-            ws = [int(tw * w / sum(p["widths"])) for w in p["widths"]][:n]
-            rows = [list(r) + [""] * (n - len(r)) for r in p["rows"]]
-            d.table(rows[0], rows[1:], ws)
+            RD.table(d, p["grid"], RD.room(pages[gi]) if pages else 9360)
         else:
             d.para(p["text"])
+    if pages:
+        d.final_sect = RD.final(pages[gi])
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     d.save(out)
     side = {"format": FORMAT, "source": os.path.basename(pdf), "source_sha256": _sha(pdf),

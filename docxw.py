@@ -53,6 +53,7 @@ class Doc:
         self.landscape = False   # 2.98.0: wide pages (the customer Q&A table)
         self.styles = {}         # 3.24.0: {kind: style id}: written on a template, a kind takes its style, not colors
         self.skip = set()        # 3.33.0: kinds the content map leaves out of the file
+        self.final_sect = None   # 4.13.0: the last section's own sectPr (Redline's copy: the PDF's page size and margins)
 
     def _kind(self, kind):
         """3.33.0: the content map row a kind follows: a capture ("cap:win_theme") takes the capture row unless it has its own."""
@@ -139,6 +140,8 @@ class Doc:
         size = '<w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>' if self.landscape else '<w:pgSz w:w="12240" w:h="15840"/>'
         sect = (f'<w:sectPr>{hf}{size}<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" '
                 'w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>')
+        if self.final_sect:
+            sect = self.final_sect
         body = "".join(self.body)
         if "SKSectionMark" in body:                    # 3.30.1: Word sections of their own: each mark becomes a break
             land = sect.replace('<w:pgSz w:w="12240" w:h="15840"/>', '<w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>')
