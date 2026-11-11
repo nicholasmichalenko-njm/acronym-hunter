@@ -68,12 +68,14 @@ def table_xml(grid, room=9360):
                     covered[(r2, col)] = cs
             if c.get("fill"):
                 pr += f'<w:shd w:val="clear" w:color="auto" w:fill="{_x(c["fill"])}"/>'
+            if c.get("rot"):
+                pr += '<w:textDirection w:val="btLr"/>'          # 4.14.0: turned text, read bottom to top
             bold = bool(c.get("bold"))
             inner = ""
             if c.get("nested"):                       # a table in the cell, then the paragraph Word ends a cell with
                 inner = table_xml(c["nested"], max(720, w - 2 * int(round(grid.get("pad", 5.4) * TW)))) + "<w:p/>"
-            own = (f'<w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>{_run(c.get("text", ""), bold)}</w:p>'
-                   if c.get("text") or not inner else "")
+            own = "".join(f'<w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>{_run(t, bold)}</w:p>'
+                          for t in (c.get("text") or "").split("\n")) if c.get("text") or not inner else ""   # 4.14.0: each paragraph
             cells.append(f'<w:tc><w:tcPr>{pr}</w:tcPr>{own}{inner}</w:tc>')
             col += cs
         trpr = ""

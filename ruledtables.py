@@ -127,8 +127,24 @@ def _cell_text(ws):
             rows[-1][1] = max(rows[-1][1], w["box"][3])
         else:
             rows.append([w["box"][1], w["box"][3], [w]])
+    import re
     import redlinecopy as RC
-    return RC.join_lines([" ".join(x["text"] for x in sorted(r[2], key=lambda w: w["box"][0])) for r in rows])
+    paras, cur, prev = [], [], None                # 4.14.0: a cell's paragraphs, kept apart by a new line (\n)
+    for r in rows:
+        text = " ".join(x["text"] for x in sorted(r[2], key=lambda w: w["box"][0]))
+        height = max(1.0, r[1] - r[0])
+        new = prev is not None and (MARK.match(text) is not None or r[0] - prev[1] > 0.6 * height)
+        if new and cur:
+            paras.append(RC.join_lines(cur))
+            cur = []
+        cur.append(text)
+        prev = r
+    if cur:
+        paras.append(RC.join_lines(cur))
+    return "\n".join(p for p in paras if p)
+
+
+MARK = __import__("re").compile(r"^(\u2022|\u25aa|\u25e6|\u2756|\u27a2|\u2713|[-*o]|\(?[0-9]{1,3}[.)]|\(?[a-zA-Z][.)]|\([ivx]{1,4}\))\s")
 
 
 def _grid(xs, ys, hs, vs, need_v=True):
@@ -178,7 +194,7 @@ def _table(xs, ys, cells, ws, fills, borders):
             ov = max(0, min(cr, fr) - max(cl, fl)) * max(0, min(cb, fb) - max(ct, ft))
             if ov >= 0.8 * (cr - cl) * (cb - ct) and col.upper() not in ("FFFFFF",):
                 fill = col
-        rows[r0].append({"text": text, "cs": cs, "rs": rs, "fill": fill, "c": c0,
+        rows[r0].append({"text": text, "cs": cs, "rs": rs, "fill": fill, "c": c0, "rot": bool(mine) and all(w.get("rot") for w in mine),
                          "bold": bool(mine) and all(w.get("bold") for w in mine)})
     for row in rows:
         row.sort(key=lambda c: c["c"])

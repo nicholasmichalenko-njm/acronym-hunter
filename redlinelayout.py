@@ -20,7 +20,7 @@ def _inside(box, ln):
 
 
 def _clean(t, kind):
-    rows = [[{k: c.get(k) for k in ("text", "cs", "rs", "fill", "bold") } | ({"nested": _clean(c["nested"], "tags")} if c.get("nested") else {})
+    rows = [[{k: c.get(k) for k in ("text", "cs", "rs", "fill", "bold", "rot") } | ({"nested": _clean(c["nested"], "tags")} if c.get("nested") else {})
              for c in row] for row in t["rows"] if row]
     return {"rows": rows, "widths": t["widths"], "heights": t.get("heights") or [], "header": t["header"], "pad": t.get("pad", 5.4),
             "borders": t["borders"], "source": kind}
@@ -139,7 +139,7 @@ def text_of(grid):
     for row in grid["rows"]:
         for c in row:
             if c.get("text"):
-                out.append(c["text"])
+                out.append(" ".join(c["text"].split()))   # a cell's paragraphs (kept apart by \n) read one after another
             if c.get("nested"):
                 out.append(text_of(c["nested"]))
     return " ".join(x for x in out if x)
