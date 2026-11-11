@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QFileDialog, QHBoxL
 import diag
 import mywork as MW
 from . import design as D
+from . import progress as PR
 
 GO = {"topic": "meetings", "task": "home", "question": "home", "graphic": "home", "custqa": "custqa", "deliverable": "deliverables", "requirements": "assign",
       "datacall": "datacalls", "draft": "drafts"}                    # 3.46.0
@@ -92,6 +93,7 @@ class MyWorkPage(QWidget):
             got = MW.collect(self.host.efforts, p, names=names)
             self.show(got)
             return got
+        PR.let_go(self.loader)                                 # 4.12.0: the one before may still be returning
         self.loader = Loader(self.host.efforts, p, names)
         self.loader.done.connect(self.show)
         self.loader.start()

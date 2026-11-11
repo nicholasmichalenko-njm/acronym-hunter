@@ -608,7 +608,8 @@ class BuilderPage(QWidget):
                 diag.swallowed()
                 res = ex
             return done(res)
-        from .progress import JobWorker
+        from .progress import JobWorker, let_go
+        let_go(getattr(self, "_exact_worker", None))           # 4.12.0: the one before may still be returning
         self._exact_worker = JobWorker(job)
         self._exact_worker.done.connect(done)
         self._exact_worker.start()

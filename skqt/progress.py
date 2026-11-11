@@ -244,3 +244,17 @@ class JobWorker(QThread):
             diag.swallowed()
             res = ex
         self.done.emit(res)
+
+
+_KEEP = []
+
+
+def let_go(w):
+    """4.12.0: drop a worker thread safely. Its last signal (done, finished_ok...) reaches the window while its run() is
+    still returning; dropping the only reference then destroys a QThread that still runs, and Windows ends the app
+    with an access violation (rare, under load: the Acronym Finder test crash, 4.10.0 and 4.11.0). The worker is kept
+    until its thread has finished. Returns None, so: self.worker = let_go(self.worker)."""
+    if w is not None and w.isRunning():
+        _KEEP.append(w)
+        w.finished.connect(lambda w=w: _KEEP.remove(w) if w in _KEEP else None)
+    return None

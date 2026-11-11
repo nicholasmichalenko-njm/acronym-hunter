@@ -16,6 +16,7 @@ import diag
 import corrections as CO
 import studio as ST
 from . import design as D
+from . import progress as PR
 
 FILTERS = ["All lines", "Taught (not rejected)", "Rejected", "Test set (set aside)", "From packs", "Saved on this PC"]
 STEPS = (("gather", "1 Gather"), ("review", "2 Review"), ("train", "3 Train"), ("measure", "4 Measure"), ("build", "5 Build the pack"))
@@ -510,7 +511,7 @@ class TrainingWindow(QMainWindow):
 
     def _trained(self, r, err):
         import tess_train
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         self.btn_teach.setEnabled(True); self.btn_teach.setText("Teach and Apply")
         self.bar.setRange(0, 100); self.bar.setValue(100 if r else 0)
         self._result = r if r is not None else {"error": err}

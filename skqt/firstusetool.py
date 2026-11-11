@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QFileDialog, QHBoxL
 
 import diag
 from . import design as D
+from . import progress as PR
 
 FOLDER = "firstuse_tool"
 RULES = (("volume", "Restarts in each file"), ("section", "Restarts in each section of each file"), ("submission", "Runs across all the files"))
@@ -180,7 +181,7 @@ class FirstUseWindow(QMainWindow):
         return self.report
 
     def done(self, report):
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         self.b_check.setEnabled(True)
         self.report = report
         if report is None:
@@ -197,7 +198,7 @@ class FirstUseWindow(QMainWindow):
         self.fill()
 
     def failed(self, why):
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         self.b_check.setEnabled(True)
         self.summary.setText("Stopped." if why == "cancelled" else f"The files could not be checked ({why}).")
 

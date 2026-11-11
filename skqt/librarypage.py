@@ -20,6 +20,7 @@ import effortfolders as EF
 import docintake as DI
 import docversions as DV
 from . import design as D
+from . import progress as PR
 from .doctypeui import type_box
 from .adaptive import FlowLayout
 from .progress import JobWorker, TaskPanel
@@ -1041,7 +1042,7 @@ class LibraryPage(QWidget):
         return self.worker
 
     def _planned(self, res):
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         if isinstance(res, DI.Spill):                   # 2.97.0: marked above CUI: stop, nothing copied
             self.lock(False)
             from .sensgate import spill_stop
@@ -1096,7 +1097,7 @@ class LibraryPage(QWidget):
         self.worker.start()
 
     def _added(self, made, lines):
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         self.lock(False)
         self._log_lines(lines)
         if isinstance(made, Exception):

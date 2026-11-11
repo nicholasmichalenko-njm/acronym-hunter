@@ -24,6 +24,7 @@ import diag
 import verifyroles as VR
 import verifystate as VS
 from . import design as D
+from . import progress as PR
 from .adaptive import FlowLayout
 from .splitlines import BarHost
 
@@ -250,6 +251,9 @@ class VerifyPage(QWidget):
         return ""
 
     def copy_done(self, path, got):
+        for t in self.threads:                                  # 4.12.0: kept until its run() has returned
+            if t.path == path:
+                PR.let_go(t)
         self.threads = [t for t in self.threads if t.path != path]
         if got.startswith("!") or not got:
             self.failed[path] = got[1:] or "no page copy could be made"

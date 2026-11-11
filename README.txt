@@ -17,6 +17,8 @@ CAPTURE CARDS AND DELIVERABLES (4.12.0)
   - Delete a deliverable: Delete this deliverable... on its page, a board card's right-click, or Delete... in the List
     view. It asks first (Cancel is the default) and says what goes with it. Undo (Ctrl+Z on the Deliverables page)
     puts it back with everything it held, until Stationkeeper closes; the effort record keeps a copy either way.
+  - Fixed: a rare close of the app with no message just as a background job finished (Full Text, Read, adding
+    documents and four other places let go of the job's thread a moment too early when the PC was busy).
 
 REDLINE TABLES (4.11.0)
   - Redline's Word copy makes real Word tables. A PDF keeps no tables, only text placed on the page: rows whose pieces

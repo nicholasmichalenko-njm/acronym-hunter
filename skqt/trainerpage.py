@@ -14,6 +14,7 @@ import app_gui as eng
 import diag
 import corrections as CO
 from . import design as D
+from . import progress as PR
 
 CHOICES = ("Skip", "Save as text", "Not text")
 OPEN_FILTER = ("Documents and images (*.pdf *.pptx *.docx *.xlsx *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp *.gif *.svg "
@@ -256,7 +257,7 @@ class TrainerPage(QWidget):
         self.draw_boxes()
 
     def show_lines(self, lines, one, err):
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         if err:
             self.status.setText(f"The reader could not read the box: {err}")
             return

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QMainWind
 
 import diag
 from . import design as D
+from . import progress as PR
 
 _OPEN = []
 
@@ -141,7 +142,7 @@ class FullTextWindow(QMainWindow):
         self.box.appendPlainText(t)
 
     def _done(self, msg):
-        self.worker = None
+        self.worker = PR.let_go(self.worker)                    # 4.12.0: its run() is still returning
         self.prog.setValue(1000)
         self.stat.setText(msg)
         self.b_go.setEnabled(True); self.b_stop.setEnabled(False)

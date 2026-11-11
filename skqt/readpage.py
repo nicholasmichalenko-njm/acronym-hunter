@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
                                QLineEdit, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem,
                                QAbstractItemView, QVBoxLayout, QWidget)
 from . import design as D
+from . import progress as PR
 from .doctypeui import follow, type_box
 from .progress import TaskPanel
 import diag
@@ -538,7 +539,7 @@ class ReadPage(QWidget):
         return self.worker
 
     def read_done(self, res):
-        self.worker = None; self._busy = False
+        self.worker = PR.let_go(self.worker); self._busy = False
         try:
             self._finish(res)
         except Exception as ex:                     # 2.82.0: an error after reading is shown, never silent

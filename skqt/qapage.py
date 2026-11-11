@@ -13,6 +13,7 @@ import app_gui as A
 import volcheck as V
 import qacheck as VU                 # 3.14.0: was the classic window's volcheck_ui
 from . import design as D
+from . import progress as PR
 from .adaptive import FlowLayout
 
 LEVEL_TONE = {V.BAD: "crit", V.WARN: "warn", V.INFO: "accent", V.OK: "ok"}
@@ -214,7 +215,7 @@ class QAPage(QWidget):
     def _end(self):
         if self.worker is not None:
             self.worker.wait(2000)
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         self.b_check.setEnabled(True); self.b_cancel.hide(); self.progress.setText("")
         self.fill_volumes()
 

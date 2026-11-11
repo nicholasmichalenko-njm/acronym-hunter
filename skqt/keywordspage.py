@@ -10,6 +10,7 @@ import diag
 import effortfolders as EF
 import effort as E
 from . import design as D
+from . import progress as PR
 
 COLS = ["Keyword", "Category", "Status", "Source", "Why", "Added by", "Date"]
 TONE = {"Keep": "ok", "Proposed": "accent", "Reject": "faint"}
@@ -197,7 +198,7 @@ class KeywordsPage(QWidget):
     def suggested(self, items):
         if self.worker is not None:
             self.worker.wait(2000)
-            self.worker = None
+            self.worker = PR.let_go(self.worker)
         self.b_suggest.setEnabled(True)
         self.sugg_all = list(items or [])
         import keywords as KW

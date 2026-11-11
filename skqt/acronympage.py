@@ -13,6 +13,7 @@ import app_gui as A
 import acrsession as S
 import scanprogress as SP
 from . import design as D
+from . import progress as PR
 from .adaptive import FlowLayout
 from . import acrextras as AX                                       # 3.51.0
 
@@ -611,7 +612,7 @@ class AcronymPage(QWidget):
     def _end(self):
         if self.worker is not None:
             self.worker.wait(2000)
-        self.worker = None
+        self.worker = PR.let_go(self.worker)
         self.scan_tick.stop(); self.scanbar.hide(); self.scan_prog = None
         for b in (self.b_files, self.b_folder, self.b_lib, self.b_paste, self.b_cust):
             b.setEnabled(True)
