@@ -19,6 +19,7 @@ def apply(w, step):
         g = getattr(getattr(pg, "placer", None), "gutter", None)
         if g is not None:
             g.setVisible(on and VIEW_OF.get(step) == "structure")
+        __import__("skqt.shredfocus", fromlist=["x"]).apply(pg, "place" if on else "shred")   # 4.5.0
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return on

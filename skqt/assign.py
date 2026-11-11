@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout
                                QGraphicsView, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
                                QScrollArea, QSplitter, QStyle, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
                                QCheckBox)
+from . import shredfocus as SF
 import diag
 import effortrec as R_
 import pagemarks as PM
@@ -520,6 +521,7 @@ class AssignPage(QWidget):
         v.setContentsMargins(6, 6, 6, 6)
         from .adaptive import FlowLayout
         bar = FlowLayout(spacing=6); v.addLayout(bar)         # 3.15.1: the tools wrap onto a second row when narrow
+        self.top_bar = bar                                    # 4.5.0: shredfocus adds More and the main button
         bar.addWidget(QLabel("Document:"))
         self.files = QComboBox(); self.files.setMinimumWidth(240); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
@@ -567,6 +569,7 @@ class AssignPage(QWidget):
         self.changes_btn.setVisible(False)
         bar.addWidget(self.changes_btn)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
+        self.fit_btn = fit
         self.note = D.label("", "muted"); v.addWidget(self.note)
         self.task_slot = QVBoxLayout(); v.addLayout(self.task_slot)     # 4.1.0: the extract's progress (shredpick)
         __import__("skqt.reshredbar", fromlist=["x"]).install(self, bar)    # 4.1.0: N to re-shred (Documents > Changes)
@@ -723,9 +726,11 @@ class AssignPage(QWidget):
         self.volume = QComboBox(); self.volume.setMinimumWidth(120)
         self.volume.activated.connect(lambda _i: self.pick_volume(self.volume.currentData()))
         vrow.addWidget(self.volume, 1)
-        vrow.addWidget(D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure"))
-        vrow.addWidget(D.button("Rename", None, lambda: self.rename_volume(), "Rename the volume you are working in (its "  # 3.28.1
-                                "number stays; everything in it follows)"))
+        self.vol_add_btn = D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure")
+        vrow.addWidget(self.vol_add_btn)
+        self.vol_ren_btn = D.button("Rename", None, lambda: self.rename_volume(), "Rename the volume you are working in (its "  # 3.28.1
+                                    "number stays; everything in it follows)")
+        vrow.addWidget(self.vol_ren_btn)
         self.vol_style = QComboBox(); self.vol_style.setToolTip("How the volumes are numbered: I, II, III; 1, 2, 3; or A, B, C")
         for k, t in O.VOLUME_STYLES:
             self.vol_style.addItem(t, k)
@@ -745,6 +750,7 @@ class AssignPage(QWidget):
                                             else self.rename_section(i.data(0, Qt.UserRole)))
         sv.addWidget(self.tree)
         srow = FlowLayout(spacing=4); srw = QWidget(); srw.setLayout(srow); sv.addWidget(srw)   # 3.20.3: wraps
+        self.outline_rows = [srw]                                # 4.5.0: building the outline is Outline's (shredfocus)
         for text, fn, tip in (("+ Heading", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section"),
                               ("+ Subheading", lambda: self.new_section(sub=True), "A section under the target, one level down"),
                               ("From sentence", lambda: self.section_from_sentence(), "A section under the target, named with the selected sentence"),
@@ -773,6 +779,7 @@ class AssignPage(QWidget):
         self.parts_btn.setVisible(False)           # 3.75.0: Parts is on the section's right-click
         srow.addStretch(1)
         row = FlowLayout(spacing=4); rww = QWidget(); rww.setLayout(row); sv.addWidget(rww)
+        self.outline_rows.append(rww)
         for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it, or right-click it)"),
                               ("Pages...", lambda: self.section_pages(self.target),                       # 3.18.2
                                "The target's page length: the RFP's limit or the team's guideline (or double-click Pages)"),
@@ -851,10 +858,11 @@ class AssignPage(QWidget):
         for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split),
                         ("Shift+S", lambda: self.do_extract()),
                         ("B", lambda: self.more_btn.showMenu() if self.cx is None else None),
-                        ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
+                        ("F", lambda: self.do_for_req()),
+                        ("N", lambda: self.do_record("note") if self.cx is not None else SF.next_open(self)),   # 4.5.0
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
-                        ("Return", lambda: self.accept_suggestions(rows=self.selected())),
+                        ("Return", lambda: SF.enter(self)),                 # 4.5.0: Place it on Place
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):
             QShortcut(QKeySequence(key), self.view, activated=fn)
@@ -863,6 +871,7 @@ class AssignPage(QWidget):
             QShortcut(QKeySequence(str(i + 1)), self.view, activated=lambda n=i: self.tag_topic(n) if self.sort_on else None)
         QShortcut(QKeySequence("Ctrl+T"), self.view, activated=lambda: self.toggle_sort())
         self.apply_items()                                       # 3.29.0: decisions and captures from Settings
+        SF.install(self)                                         # 4.5.0: Shred and Place, as designed
         self.show_card([])
 
     # ------------------------------------------------------------ the review
@@ -2575,7 +2584,7 @@ class AssignPage(QWidget):
         """3.29.0: the bar stays in its place whenever a document is open, so the page never jumps: two or more sentences
         fill it in (how many, the tally, one action for all); fewer leave it waiting."""
         on = self.cx is None and self.R is not None and len(rows) > 1
-        self.bulk.setVisible(self.R is not None)
+        self.bulk.setVisible(self.R is not None and not getattr(self, "focus", None))   # 4.5.0: the chips act on the selection
         for wdg in (self.bulk_dec, self.bulk_sec, self.bulk_own, self.bulk_clear):
             wdg.setEnabled(on)
         if not on:
@@ -2652,22 +2661,29 @@ class AssignPage(QWidget):
         if dcolor:
             k.setStyleSheet(f"color:#FFFFFF;background:{dcolor};border-radius:8px;padding:2px 8px;font-weight:600;")
         th.addWidget(k)
+        F = getattr(self, "focus", None)                               # 4.5.0: Shred and Place, as designed (shredfocus)
+        k.setVisible(not F)
         if len(rows) > 1:
-            th.addWidget(D.label(f"and {len(rows) - 1} more selected", "muted", wrap=False))
+            th.addWidget(D.label(f"{len(rows)} selected" if F else f"and {len(rows) - 1} more selected", "muted", wrap=False))
         th.addStretch(1)
         idl = D.label(it["id"], "mono", wrap=False); th.addWidget(idl)
         self.add(top)
         self.kind_label = k
         t = self.add(D.label(it.get("text", ""), "reading"))
         t.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        if len(rows) == 1:                                              # 3.29.0: what was decided and captured, first
+        if F == "shred":
+            __import__("skqt.typechips", fromlist=["x"]).add(self, rows)
+        elif F == "place":
+            __import__("skqt.placepane", fromlist=["x"]).add(self, rows)
+        if len(rows) == 1 and not F:                                    # 3.29.0: what was decided and captured, first
             try:
                 self.decided_box(it)
             except Exception:
                 diag.swallowed()
         self.sg_box = None
         try:
-            self.suggestion_card(it, rows)                  # 3.18.0
+            if not F:                                       # 4.5.0: the chip shows the suggestion, dashed
+                self.suggestion_card(it, rows)              # 3.18.0
         except Exception:
             diag.swallowed()
         if len(rows) == 1 and self.R is not None:            # 2.93.0: splitting, said where you are looking
@@ -2725,7 +2741,7 @@ class AssignPage(QWidget):
         idl2 = (f"Document {ident.get('initial')} ({ident.get('type', '')})" if ident.get("initial") else "")
         self.ident_label = self.add(D.label(idl2, "muted"))
         self.ident_label.setVisible(bool(idl2))
-        if d == "Keep":                                                 # 2.68.0: L or M, and the reference it makes
+        if d == "Keep" and not F:                                       # 2.68.0: L or M, and the reference it makes
             lmw = QWidget(); lh = QHBoxLayout(lmw); lh.setContentsMargins(0, 0, 0, 0); lh.setSpacing(D.SPACE["s"])
             cur_lm = it.get("lm", "")
             sug, why = SD.lm_why(M, it)
@@ -2748,9 +2764,10 @@ class AssignPage(QWidget):
                     vh.addWidget(D.Pill(vname, "accent"))
                 vh.addStretch(1)
                 self.vol_badges = self.add(vw)
-        self.head("Decision")
         self.chips = []
-        if d in ("Keep", "Context", "Customer"):                       # 3.18.2: every decided sentence can go in the structure
+        if not F:
+            self.head("Decision")
+        if not F and d in ("Keep", "Context", "Customer"):             # 3.18.2: every decided sentence can go in the structure
             secs = SD.item_sections(M, it)
             tone = {"Keep": "req", "Context": "ctx", "Customer": "cust"}[d]
             if d != "Keep" and (secs or self.R.labels()):
@@ -2769,7 +2786,7 @@ class AssignPage(QWidget):
             self.section_box = cb
         if d == "Keep":
             pass
-        elif d == "Context":
+        elif d == "Context" and not F:
             for i in C.cf_ids(it.get("context_for", "")):
                 x = self.R.item(i)
                 self.chips.append(self.add(Chip(f"{i}   {x.get('map', '') if x else ''}", "ctx",
@@ -2781,23 +2798,25 @@ class AssignPage(QWidget):
                     cb.addItem(f"{x['id']}  {x.get('map', '')}: {x['text'][:50]}", x["id"])
             cb.activated.connect(lambda i, cb=cb: self.act(self.R.link, it, cb.itemData(i)) if i > 0 else None)
             self.add(cb)
-        self.head("Author(s)")
-        on = d in ("Keep", "Context")
-        can = [r for r in rows if r.get("decision") in ("Keep", "Context")]     # 3.15.1: the selection's own count
-        from .people import NamesField                  # 2.77.0: authors come from the author list only
-        ed = self.add(NamesField(self.host, SD.split_names((can[0] if can else it).get("owner", "")), empty="(the section's lead)",
-                                 title="Authors" if len(rows) == 1 else f"Authors for {len(can)} sentences",
-                                 on_change=lambda names, rows=rows: self.set_authors(rows, ", ".join(names))))
-        ed.setEnabled(bool(can))
-        self.authors = ed
-        if not can:                                     # 3.15.1: say why, instead of a grey button
-            self.add(D.label("Authors go on requirements and context. Decide the sentence first (L, E or R makes it a "
-                             "requirement; C makes it context), then choose one or more authors.", "muted"))
-        elif len(can) < len(rows):
-            self.add(D.label(f"Authors go on the {len(can)} requirement and context sentence(s) of the {len(rows)} selected.", "muted"))
-        lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
-        if on and not it.get("owner"):
-            self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
+        self.authors = None
+        if not F:                                                       # 4.5.0: authors are Setup's
+            self.head("Author(s)")
+            on = d in ("Keep", "Context")
+            can = [r for r in rows if r.get("decision") in ("Keep", "Context")]     # 3.15.1: the selection's own count
+            from .people import NamesField                  # 2.77.0: authors come from the author list only
+            ed = self.add(NamesField(self.host, SD.split_names((can[0] if can else it).get("owner", "")), empty="(the section's lead)",
+                                     title="Authors" if len(rows) == 1 else f"Authors for {len(can)} sentences",
+                                     on_change=lambda names, rows=rows: self.set_authors(rows, ", ".join(names))))
+            ed.setEnabled(bool(can))
+            self.authors = ed
+            if not can:                                     # 3.15.1: say why, instead of a grey button
+                self.add(D.label("Authors go on requirements and context. Decide the sentence first (L, E or R makes it a "
+                                 "requirement; C makes it context), then choose one or more authors.", "muted"))
+            elif len(can) < len(rows):
+                self.add(D.label(f"Authors go on the {len(can)} requirement and context sentence(s) of the {len(rows)} selected.", "muted"))
+            lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
+            if on and not it.get("owner"):
+                self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
         if len(rows) == 1 and self.host.ws is not None:                 # 3.20.0: open meeting topics that point here
             try:
                 import meetings as MT
@@ -2832,8 +2851,9 @@ class AssignPage(QWidget):
                 self.gfx_labels.append(self.add(D.label(f"GRAPHIC  {g['concept']}  \u00b7  {g.get('status', '')}"
                                                         + (f"  \u00b7  {g['section']}" if g.get("section") else ""))))
             wr = QHBoxLayout(); wr.setSpacing(D.SPACE["xs"])
-            wr.addWidget(D.button("+ Task...", None, lambda _=False, i=it["id"]: self.add_work("task", i), "A task about this sentence, with an owner and a due date"))
-            wr.addWidget(D.button("+ Ask the team...", None, lambda _=False, i=it["id"]: self.add_work("question", i), "A question for the team about this sentence"))
+            if not F:                                   # 4.5.0: + Task is on the right-click; Ask a question by the chips
+                wr.addWidget(D.button("+ Task...", None, lambda _=False, i=it["id"]: self.add_work("task", i), "A task about this sentence, with an owner and a due date"))
+                wr.addWidget(D.button("+ Ask the team...", None, lambda _=False, i=it["id"]: self.add_work("question", i), "A question for the team about this sentence"))
             wr.addStretch(1)
             self.body_add_layout(wr)
         ids, how = self.R.related(it)
