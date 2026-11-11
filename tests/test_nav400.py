@@ -51,7 +51,8 @@ check("files in and checked: done", by["library"]["state"] == "done" and by["lib
 check("Shred now: pieces and acros left", by["assign"]["state"] == "now" and by["assign"]["badge"] == "12 to shred"
       and "400 of 412 pieces sorted" in by["assign"]["summary"] and "14 acros and abs to decide" in by["assign"]["summary"], by["assign"])
 check("... how far along", 0.9 < by["assign"]["progress"] < 1.0, by["assign"]["progress"])
-check("Matrix & Outline next: requirements to place; Submit its due date", by["matrix"]["state"] == "next" and by["matrix"]["badge"] == "next"
+check("Matrix & Outline next: requirements to place (4.6.0: its count, not 'next'); Submit its due date", by["matrix"]["state"] == "next"
+      and by["matrix"]["badge"] == "26 to place"
       and "274 of 300 requirements placed" in by["matrix"]["summary"] and by["finalcheck"]["badge"] == "Dec 4")
 n = NS.next_step(sts, f)
 check("... Your next step: the pieces left to shred", n["go"] == "assign" and "12 pieces" in n["title"] and n["button"] == "Open Shred")
@@ -91,6 +92,15 @@ check("... Submit is the last step: no next button", NS.bar("finalcheck", NS.ste
 check("... a step done says so", NS.bar("library", NS.steps(f))["left"] == "This step is done.")
 check("a short date for the menu", NS.short_date(datetime.date(2026, 12, 4)) == "Dec 4")
 check("no effort: nothing to read", NS.facts(None)["docs"] == 0)
+# 4.6.0: every step says what is left, not only the step at hand
+f2 = facts(docs=9, reqs=dict(reqs, undecided=0, placed=300), compare=0, items=412, sections=14, acronyms=0, acr_total=40,
+           due_date=datetime.date(2026, 12, 4), due="Dec 4, 2:00 PM", days=25, reshred=4)
+by = {s["key"]: s for s in NS.steps(f2)}
+check("4.6.0: Shred says how many passages wait to be shredded again", by["assign"]["badge"] == "4 to re-shred", by["assign"])
+check("4.6.0: Setup says it is to make while the structure has sections", by["setups"]["badge"] == "to make", by["setups"])
+f3 = dict(f2, reshred=0, made=True)
+by = {s["key"]: s for s in NS.steps(f3)}
+check("4.6.0: Drafts says to read back once the setup is made", by["drafts"]["badge"] == "to read back" and by["finalcheck"]["badge"] == "Dec 4", by["drafts"])
 
 print(f"NAV 400 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

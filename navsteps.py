@@ -32,7 +32,7 @@ def facts(ws, effort_path="", M=None, acronyms_left=None, today=None, drafts_on=
     today = today or datetime.date.today()
     f = {"today": today, "docs": 0, "to_check": 0, "reqs": None, "compare": 0, "sections": 0, "made": False,
          "acronyms": acronyms_left, "drafts_read": False, "check": None, "due_date": None, "days": None, "due": "",
-         "items": 0, "drafts_on": drafts_on, "acr_total": 0}
+         "items": 0, "drafts_on": drafts_on, "acr_total": 0, "reshred": 0}
     if ws is None:
         return f
     import diag
@@ -56,6 +56,11 @@ def facts(ws, effort_path="", M=None, acronyms_left=None, today=None, drafts_on=
     try:
         import changereview as CHR
         f["compare"] = sum(n for _a, _b, n in CHR.Review(ws.root).load().undecided())
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    try:                                                   # 4.6.0: the passages Changes sent back to Shred
+        import reshred as RS
+        f["reshred"] = len(RS.Queue(ws.root).load().open_items())
     except Exception:  # noqa: BLE001
         diag.swallowed()
     if M is not None:
@@ -115,8 +120,11 @@ def steps(f):
         bits = [f"{r['decided']} of {_plural(r['sentences'], 'piece')} sorted"]
         if acr:
             bits.append(f"{_acros(acr)} to decide")
-        out.append({"key": "assign", "done": not und and not acr, "progress": 1.0 if not und and not acr else r["decided"] / total,
-                    "badge": f"{und} to shred" if und else (f"{acr} acros" if acr else ""), "summary": ". ".join(bits) + ".",
+        rs = f.get("reshred") or 0                           # 4.6.0: passages Changes sent back keep Shred open
+        out.append({"key": "assign", "done": not und and not acr and not rs,
+                    "progress": 1.0 if not und and not acr and not rs else r["decided"] / total,
+                    "badge": f"{und} to shred" if und else (f"{f.get('reshred')} to re-shred" if f.get("reshred") else
+                                                            f"{acr} acros" if acr else ""), "summary": ". ".join(bits) + ".",
                     "left": und})
     else:
         out.append({"key": "assign", "done": False, "progress": 0.0, "badge": "", "left": 0,
@@ -133,10 +141,11 @@ def steps(f):
     # 4 Setup
     secs = f["sections"]
     out.append({"key": "setups", "done": bool(f["made"]), "progress": 1.0 if f["made"] else 0.4 if secs else 0.0,
-                "badge": "", "summary": ("Made. Make it again after changes." if f["made"] else
+                "badge": "to make" if secs and not f["made"] else "", "summary": ("Made. Make it again after changes." if f["made"] else
                                          f"{_plural(secs, 'section')} in the structure. Not made yet." if secs else "No structure yet.")})
     # 5 Drafts
-    out.append({"key": "drafts", "done": bool(f["drafts_read"]), "progress": 1.0 if f["drafts_read"] else 0.0, "badge": "",
+    out.append({"key": "drafts", "done": bool(f["drafts_read"]), "progress": 1.0 if f["drafts_read"] else 0.0,
+                "badge": "to read back" if f["made"] and not f["drafts_read"] else "",
                 "summary": "Drafts read back." if f["drafts_read"] else "No drafts read back yet."})
     # 6 Submit
     ck = f["check"]
@@ -157,8 +166,8 @@ def steps(f):
             s["state"] = "later"
         if s["state"] == "done":
             s["badge"] = "done"
-        elif s["state"] == "next" and s["key"] not in ("finalcheck",):
-            s["badge"] = "next"
+        elif s["state"] == "next" and s["key"] not in ("finalcheck",) and not s["badge"]:
+            s["badge"] = "next"                              # 4.6.0: a count or a date says more than "next"
     return out
 
 
