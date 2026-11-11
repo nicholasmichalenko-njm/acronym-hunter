@@ -83,7 +83,7 @@ def table_xml(grid, room=9360):
             trpr += "<w:tblHeader/>"
         hs = grid.get("heights") or []
         if ri < len(hs) and hs[ri] > 0:
-            trpr += f'<w:trHeight w:val="{int(hs[ri] * TW)}" w:hRule="atLeast"/>'
+            trpr += f'<w:trHeight w:val="{int(max(1.0, hs[ri] - 0.5) * TW)}" w:hRule="atLeast"/>'   # Word adds the border'
         xml.append("<w:tr>" + (f"<w:trPr>{trpr}</w:trPr>" if trpr else "") + "".join(cells) + "</w:tr>")
     gridx = "".join(f'<w:gridCol w:w="{w}"/>' for w in tw)
     pad = int(round(max(0.0, min(14.0, grid.get("pad", 5.4))) * TW))     # the space before a cell's text, as on the page
