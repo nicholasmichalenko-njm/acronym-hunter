@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DRAFTS BY VOLUME (4.4.0)
+  - Drafts' tabs: Status, Acronyms, Edit.
+  - Status > Volume folders...: each volume of the outline gets a folder, usually its SharePoint library synced to
+    this PC. A volume's draft is the newest Word file in its folder (Word's ~$ lock files are skipped).
+  - Read the drafts reads every volume's draft by the outline's headings. The table shows each volume's file, when it
+    was saved, its sections not started, under way and over budget, and requirements removed. Click a volume for its
+    sections, the requirements removed or moved, and the styles brought in. Each read is kept in the effort record.
+    Nothing in a draft changes. Read another file... reads a Word file that is not in a volume's folder.
+  - Acronyms checks each volume's draft against the effort's acronym list: used before it is spelled out, spelled out
+    again, not in the list, and the volume's Acronyms table. Fix in a copy... works through one volume's findings into
+    a copy as tracked changes. A term not in the list goes back to Shred > Acros & Abs marked From our drafts: <volume>,
+    and is listed here until it is decided there. In our drafts on Acros & Abs opens this tab.
+
 MATRIX & OUTLINE (4.3.0)
   - Step 3's tabs: Outline, Place, Matrix, L to M, Coverage. Shred says what each piece is; Matrix & Outline says what
     goes in the matrix and where.

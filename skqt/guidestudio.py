@@ -138,10 +138,10 @@ PATH = ("path", "Effort", "The effort's path",
   "Whenever you are not sure what to do next.",
   ["Documents: the customer's package, complete, current and readable. Click a document to see what has been done to it and "
    "its next thing; Changes shows what a new version changed; Text check reads every page right.",
-   "Shred: what every piece of the customer's text is (Requirements, Rules & Dates, Evaluation, Acros & Abs; picking a document "
-   "extracts it). See it as shows Our structure, List, Sort, L to M or Coverage. The Q&A button opens the Q&A log beside the page.",
+   "Shred: what every piece of the customer's text is (Requirements, Rules & Dates, Evaluation, Acros & Abs; adding a document "
+   "extracts it). See it as shows Page, List or Sort. The Q&A button opens the Q&A log beside the page.",
    "Matrix & Outline: what we answer and where (Outline, Place, the Matrix, L to M, Coverage). Setup: who writes what, when and how long, and the "
-   "setup in Word. Drafts: the team writes in Word; the app reads the drafts back. Submit: the last checks.",
+   "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acronyms). Submit: the last checks.",
    "The Dashboard is the map: one card per step, Your next step with one button, and this week's dates.",
    "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",
    "The effort switcher at the top of the menu holds another effort, All Efforts and Your Tools. Ctrl+K goes to any page or "
