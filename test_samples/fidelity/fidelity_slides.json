@@ -1,0 +1,66 @@
+{
+ "S01_deck_16x9": [
+  [
+   "Kestrel Ground Segment",
+   "Industry Day briefing"
+  ],
+  [
+   "Approach",
+   "Reuse the Kestrel telemetry chain",
+   "Two ground sites",
+   "Site A primary",
+   "Site B backup",
+   "Phased integration"
+  ],
+  [
+   "Sites",
+   "Site A: primary operations",
+   "Site B: backup and test"
+  ],
+  [
+   "Schedule",
+   "Kestrel milestones",
+   "Design",
+   "Build",
+   "Test",
+   "Month 4",
+   "Month 9",
+   "Month 12"
+  ],
+  [
+   "Throughput"
+  ]
+ ],
+ "S02_deck_4x3": [
+  [
+   "Kestrel Ground Segment",
+   "Industry Day briefing"
+  ],
+  [
+   "Approach",
+   "Reuse the Kestrel telemetry chain",
+   "Two ground sites",
+   "Site A primary",
+   "Site B backup",
+   "Phased integration"
+  ],
+  [
+   "Sites",
+   "Site A: primary operations",
+   "Site B: backup and test"
+  ],
+  [
+   "Schedule",
+   "Kestrel milestones",
+   "Design",
+   "Build",
+   "Test",
+   "Month 4",
+   "Month 9",
+   "Month 12"
+  ],
+  [
+   "Throughput"
+  ]
+ ]
+}

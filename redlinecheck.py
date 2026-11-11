@@ -107,8 +107,14 @@ def docx_paragraphs(path, reject=False):
 
 
 def faithful(pdf, copy, name=None):
-    """{"differences": [...], "set_aside": [(page, text)], "tables": n, "words": (pdf, copy)}."""
-    src, gone = pdf_words(pdf, name)
+    """{"differences": [...], "set_aside": [(page, text)], "tables": n, "words": (pdf, copy)}. A slide copy (4.15.0) is
+    checked against the slides' words read the way the copy holds them."""
+    side = RC.sidecar(copy) or {}
+    if side.get("layout") == "slides":
+        import redlineslides as SL
+        _s, src, gone = SL.plan(pdf, name)
+    else:
+        src, gone = pdf_words(pdf, name)
     a, wa = _index(src)
     cp = [p for p in docx_paragraphs(copy) if p["text"].strip()]
     b, wb = _index(cp)

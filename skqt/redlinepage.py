@@ -74,6 +74,10 @@ class PreparePage(QWidget):
         self.bar.primary("Make the Word copy", lambda: self.make(), "A clean Word copy of the selected PDF: real headings, the "
                          "customer's numbers as typed, paragraphs joined, no running headers or page numbers")
         self.bar.more("Another PDF...", lambda: self.make(other=True), "A PDF that is not in Documents, such as a model contract")
+        self.bar.more("Make it as slides", lambda: self.make(layout="slides"), "One Word page a slide: the slide's pictures "
+                      "behind, each box of text where it sits (a deck saved as PDF is made this way on its own)")
+        self.bar.more("Make it as a document", lambda: self.make(layout="document"), "Running text, headings and tables, even "
+                      "for a PDF that looks like slides")
         self.bar.more("Open the Redlines folder", lambda: _open(folder(self.host)))
         top.addWidget(self.bar)
         v.addWidget(D.label("Fix text in Shred first if the page needs it: the copy uses the text as fixed there.", "muted"))
@@ -106,8 +110,9 @@ class PreparePage(QWidget):
         self.refresh(select=doc_id)
         return any(d == doc_id for d, _n, _p in self.rows)
 
-    def make(self, other=False, pdf=None):
-        """Make the copy of the selected PDF (or another one). Returns the copy's path, or None."""
+    def make(self, other=False, pdf=None, layout=None):
+        """Make the copy of the selected PDF (or another one). Returns the copy's path, or None. layout (4.15.0):
+        "slides" or "document"; left out, the PDF says which."""
         import redlinecopy as RC
         if pdf is None and other:
             pdf, _f = QFileDialog.getOpenFileName(self, "A PDF to make a Word copy of", "", "PDF (*.pdf)")
@@ -122,14 +127,15 @@ class PreparePage(QWidget):
         f = folder(self.host) or os.path.dirname(pdf)
         out = os.path.join(f, RC.copy_name(pdf))
         try:
-            res = RC.build(pdf, out)
+            res = RC.build(pdf, out, layout=layout)
         except ValueError as e:
             self.host.status(str(e) + " Read its pages in Shred first.")
             return None
         except PermissionError:
             self.host.status("The copy is open in Word: close it, then make it again.")
             return None
-        self.host.toast(f"Word copy made: {res['paragraphs']} paragraphs, {res['headings']} headings"
+        self.host.toast(f"Word copy made: {res['slides']} slide(s), {res['paragraphs']} paragraphs" if res.get("slides") else
+                        f"Word copy made: {res['paragraphs']} paragraphs, {res['headings']} headings"
                         + (f", {res['tables']} table(s)" if res.get("tables") else ""))
         diag.activity("redline_copy_made", n=res["paragraphs"])
         self.refresh()

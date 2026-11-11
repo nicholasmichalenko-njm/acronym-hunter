@@ -118,9 +118,21 @@ def copy_name(pdf, when=None):
     return f"{stem} - redline copy - {(when or datetime.date.today()).isoformat()}.docx"
 
 
-def build(pdf, out, name=None):
+def layout_of(pdf):
+    """4.15.0: "slides" for a deck saved as PDF (redlineslides.is_slides), else "document"."""
+    import redlineslides as SL
+    try:
+        return "slides" if SL.is_slides(pdf) else "document"
+    except Exception:  # noqa: BLE001  a PDF that cannot be looked at is laid out as a document
+        return "document"
+
+
+def build(pdf, out, name=None, layout=None):
     """Write the clean copy to out (a .docx) and its sidecar. Returns {"path", "paragraphs", "headings", "set_aside"}.
     Raises ValueError for a PDF with no typed text (a scanned page): read it with OCR first (Fix text)."""
+    if (layout or layout_of(pdf)) == "slides":       # 4.15.0: one Word page a slide, its picture behind, text in frames
+        import redlineslides as SL
+        return SL.build(pdf, out, name, FORMAT)
     import docxw
     import redlinedocx as RD
     import redlinelayout as RL
@@ -154,7 +166,7 @@ def build(pdf, out, name=None):
         d.final_sect = RD.final(pages[gi])
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     d.save(out)
-    side = {"format": FORMAT, "source": os.path.basename(pdf), "source_sha256": _sha(pdf),
+    side = {"format": FORMAT, "layout": "document", "source": os.path.basename(pdf), "source_sha256": _sha(pdf),
             "made": datetime.datetime.now().isoformat(timespec="seconds"), "paragraphs": paras,
             "set_aside": [list(x) for x in aside]}
     with open(out + SIDE, "w", encoding="utf-8") as f:

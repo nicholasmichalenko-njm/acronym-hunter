@@ -306,6 +306,69 @@ def fixtures():
     return out
 
 
+def decks():
+    """S01 (16:9) and S02 (4:3): a title slide, three bullet levels, two columns, a table with merged cells, a chart
+    and a picture. Truth: each slide's words in reading order (the title first, then top to bottom, left to right)."""
+    from pptx import Presentation
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE
+    from pptx.util import Emu
+    from PIL import Image, ImageDraw
+    pic = os.path.join(OUT, "_kestrel_antenna.png")
+    im = Image.new("RGB", (480, 320), (220, 232, 242))
+    dr = ImageDraw.Draw(im)
+    dr.ellipse((150, 60, 330, 240), outline=(31, 56, 100), width=8)
+    dr.line((240, 150, 240, 300), fill=(31, 56, 100), width=8)
+    im.save(pic)
+    out = {}
+    for stem, (w, h) in (("S01_deck_16x9", (12192000, 6858000)), ("S02_deck_4x3", (9144000, 6858000))):
+        prs = Presentation()
+        prs.slide_width, prs.slide_height = Emu(w), Emu(h)
+        L = prs.slide_layouts
+        s = prs.slides.add_slide(L[0])
+        s.shapes.title.text = "Kestrel Ground Segment"
+        s.placeholders[1].text = "Industry Day briefing"
+        slides = [["Kestrel Ground Segment", "Industry Day briefing"]]
+        s = prs.slides.add_slide(L[1])
+        s.shapes.title.text = "Approach"
+        tf = s.placeholders[1].text_frame
+        items = [("Reuse the Kestrel telemetry chain", 0), ("Two ground sites", 1), ("Site A primary", 2),
+                 ("Site B backup", 2), ("Phased integration", 0)]
+        tf.text = items[0][0]
+        for text, lvl in items[1:]:
+            p = tf.add_paragraph(); p.text = text; p.level = lvl
+        slides.append(["Approach"] + [t for t, _l in items])
+        s = prs.slides.add_slide(L[3])
+        s.shapes.title.text = "Sites"
+        s.placeholders[1].text = "Site A: primary operations"
+        s.placeholders[2].text = "Site B: backup and test"
+        slides.append(["Sites", "Site A: primary operations", "Site B: backup and test"])
+        s = prs.slides.add_slide(L[5])
+        s.shapes.title.text = "Schedule"
+        rows, cols = 3, 3
+        tb = s.shapes.add_table(rows, cols, Emu(int(w * 0.1)), Emu(int(h * 0.3)), Emu(int(w * 0.8)), Emu(int(h * 0.4))).table
+        tb.cell(0, 0).merge(tb.cell(0, 2))
+        tb.cell(0, 0).text = "Kestrel milestones"
+        for c, t in enumerate(("Design", "Build", "Test")):
+            tb.cell(1, c).text = t
+        for c, t in enumerate(("Month 4", "Month 9", "Month 12")):
+            tb.cell(2, c).text = t
+        slides.append(["Schedule", "Kestrel milestones", "Design", "Build", "Test", "Month 4", "Month 9", "Month 12"])
+        s = prs.slides.add_slide(L[5])
+        s.shapes.title.text = "Throughput"
+        cd = CategoryChartData(); cd.categories = ["Q1", "Q2", "Q3"]; cd.add_series("Passes", (12, 18, 24))
+        s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Emu(int(w * 0.1)), Emu(int(h * 0.25)), Emu(int(w * 0.5)),
+                           Emu(int(h * 0.6)), cd)
+        s.shapes.add_picture(pic, Emu(int(w * 0.65)), Emu(int(h * 0.3)), Emu(int(w * 0.3)))
+        slides.append(["Throughput"])
+        path = os.path.join(OUT, stem + ".pptx")
+        prs.save(path)
+        print("wrote", path)
+        out[stem] = slides
+    os.remove(pic)
+    return out
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     truth = {}
@@ -319,6 +382,8 @@ def main():
         print("wrote", path)
     with open(os.path.join(OUT, "fidelity_truth.json"), "w", encoding="utf-8") as f:
         json.dump(truth, f, indent=1)
+    with open(os.path.join(OUT, "fidelity_slides.json"), "w", encoding="utf-8") as f:
+        json.dump(decks(), f, indent=1)
     return truth
 
 
