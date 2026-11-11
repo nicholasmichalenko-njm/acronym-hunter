@@ -19,8 +19,7 @@ def rows(host):
     seen = set()
     if M is not None:
         for it in M.items:
-            t = it.get(ST.FIELD) or ""
-            if t in out:
+            for t in [x for x in ST._keys(it.get(ST.FIELD)) if x in out]:                # 4.5.0: a piece can be both
                 out[t].append({"key": "p:" + str(it.get("id", "")), "id": str(it.get("id", "")), "text": it.get("text", ""),
                                "file": it.get("file", ""), "where": _where(it), "how": "Shred"})
                 seen.add(str(it.get("id", "")))
@@ -91,7 +90,7 @@ def show(page, key):
 def _type(page, r):
     M = page.host.review.M if page.host.review is not None else None
     it = next((x for x in (M.items if M is not None else []) if str(x.get("id", "")) == r["id"]), None)
-    return (it or {}).get(ST.FIELD, "")
+    return ST.type_of(it or {}) if it else ""
 
 
 def open_piece(host, iid):

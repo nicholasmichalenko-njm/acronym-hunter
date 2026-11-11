@@ -93,7 +93,8 @@ pg.do_undo(); app.processEvents()
 check("Undo puts the type back with the decision, in one step", by("single contract")["piece"] == "information"
       and by("single contract")["decision"] == "Customer")
 it = key("12-point", Qt.Key_R)
-check("a Rule made a Requirement: the type follows the decision", it["decision"] == "Keep" and it["piece"] == "requirement")
+check("a Rule made a Requirement too (4.5.0: types combine): a requirement that is also a rule", it["decision"] == "Keep"
+      and it["piece"] == "rule;requirement")
 import skqt.shredbar as SB
 undecided = by("Oral presentations")
 SB.capture_types(pg, "keydate", [undecided["id"]])
@@ -105,7 +106,7 @@ w.review.M.save(); app.processEvents()
 M2 = C.Matrix(OUT); M2.load()
 got = {x["text"][:20]: x.get("piece") for x in M2.items if x.get("piece")}
 check("the types are saved in the workbook's Piece column", sorted(got.values()) ==
-      sorted(["instruction", "date", "deliverable", "evaluation", "information", "requirement", "date"]), got)
+      sorted(["instruction", "date", "deliverable", "evaluation", "information", "rule;requirement", "date"]), got)
 w.close()
 print(f"QT SHRED 410 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

@@ -63,7 +63,7 @@ w.go("read"); app.processEvents()
 check("go('read') lands on Shred", w.stack.currentWidget() is pg)
 items = [pg.files.itemText(i) for i in range(pg.files.count()) if pg.files.itemText(i)]
 check("the document list names the customer documents not extracted yet", items == ["Section L" + SP.TAIL, "Second document" + SP.TAIL], items)
-check("... nothing is picked until you pick; the page says how", pg.files.currentIndex() == -1 and "Pick a customer document" in pg.note.text(),
+check("... nothing is picked until you pick; the page says how", pg.files.currentIndex() == -1 and "Pick one above" in pg.note.text(),
       (pg.files.currentIndex(), pg.note.text()))
 pg.files.setCurrentText("Section L" + SP.TAIL); app.processEvents()
 check("picking it extracts it at once, with no question", w.read_page.running() and not asked, asked)

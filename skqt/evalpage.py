@@ -83,8 +83,8 @@ class EvalPage(QWidget):
         self.m_ids = [it["id"] for it in ms]
         self.mtab.setRowCount(len(ms))
         for i, it in enumerate(ms):
-            t = ST.type_of(it)
-            for j, val in enumerate((it["id"], it.get("text", ""), tnames.get(t, "not sorted yet"))):
+            ts = ST.types_of(it)                                                     # 4.5.0: every type it has
+            for j, val in enumerate((it["id"], it.get("text", ""), ", ".join(tnames.get(t, t) for t in ts) or "not sorted yet")):
                 self.mtab.setItem(i, j, QTableWidgetItem(val))
 
     def current(self):

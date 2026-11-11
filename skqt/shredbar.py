@@ -68,3 +68,61 @@ def capture_types(page, kind, sids):
         page.R.M.pending = True
     return n
 
+
+
+# ------------------------------------------------------------------ 4.5.0: type chips that toggle; several types a piece
+KEY_OF_CODE = {"C": "requirement", "L": "instruction", "M": "evaluation", "rule": "rule", "date": "date",
+               "deliv": "deliverable", "cust": "information", "ignore": "not_applicable"}
+ANSWERED = ("requirement", "instruction", "evaluation", "deliverable")
+
+
+def follow(page, rows):
+    """The review's decision follows the piece's types (one Undo step with the toggle): Not applicable is Ignore; any
+    answered type is a requirement (L from Instruction, M from Evaluation, else SOW); only Rule, Date or Information is
+    the customer's; no type is not decided. Placing stays Place's: a new requirement has no section here."""
+    R = page.R
+    na, keep, cust, none = [], {}, [], []
+    for it in rows:
+        ks = ST._keys(it.get(ST.FIELD))
+        if "not_applicable" in ks:
+            na.append(it)
+        elif any(k in ANSWERED for k in ks):
+            lm = "L" if "instruction" in ks else "M" if "evaluation" in ks else "C"
+            keep.setdefault(lm, []).append(it)
+        elif ks:
+            cust.append(it)
+        else:
+            none.append(it)
+    if na:
+        R.ignore([it for it in na if it.get("decision") != "Drop"])
+    for lm, its in keep.items():
+        new = [it for it in its if it.get("decision") != "Keep"]
+        if new:
+            R.req(new, "")
+        R.set_lm([it for it in its if (it.get("lm") or "") != lm], lm)
+    if cust:
+        R.customer([it for it in cust if it.get("decision") != "Customer"])
+    if none:
+        R.clear([it for it in none if it.get("decision")])
+
+
+def toggle_piece(page, key, rows=None):
+    """A type chip or its key: on for every selected piece, or off when all of them have it. Returns True (on), False
+    (off) or None (nothing selected)."""
+    if page.cx is not None:
+        page.host.status("The types are for the documents being shredded.")
+        return None
+    rows = rows if rows is not None else page.selected()
+    if not rows or page.R is None:
+        return None
+    M = page.R.M
+    names = {k: v["name"] for k, v in ST.load(page.host.config_dir).items()}
+    with page.R.group():
+        page.R.snap(f"{names.get(key, key)}")
+        on, _after = ST.toggle(rows, key, log=lambda i, m: M.log(i, m))
+        follow(page, rows)
+    M.pending = True
+    diag.activity("shred_toggled", n=len(rows), on=on)
+    who = rows[0]["id"] if len(rows) == 1 else f"{len(rows)} pieces"
+    page.after(f"{who}: {names.get(key, key)} {'on' if on else 'off'}")
+    return on

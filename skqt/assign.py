@@ -45,6 +45,11 @@ EX_BUILTIN_CAPTURES = ("contact", "submit", "format", "acronym", "question", "ke
                        "detail", "hot", "graphic")          # 3.29.0: captures filed by _do_capture
 
 
+def _first_piece(it):
+    """4.5.0: a piece can have several types ("requirement;date"); the page colors it by the first."""
+    return (str(it.get("piece") or "").split(";") or [""])[0]
+
+
 def RI_decisions(cfg, et, show_all=False):
     import reviewitems as RI
     return RI.decisions_for(cfg, et, show_all)
@@ -1371,7 +1376,7 @@ class AssignPage(QWidget):
                 dec = "Heading"
             rec = self.sg.get(iid) if self.sg_on else None          # 3.18.0: a suggestion still waiting shows on the page
             box.sg = rec["cat"] if rec and rec.get("cat") and rec.get("state") == "shown" and not dec else ""
-            box.lm = (it.get("lm") or "" if dec == "Keep" else it.get("piece") if it.get("piece") in D.PAGE_PIECE else "")   # 4.1.0
+            box.lm = (it.get("lm") or "" if dec == "Keep" else _first_piece(it) if _first_piece(it) in D.PAGE_PIECE else "")   # 4.1.0
             kinds = self.marks.get(iid) or []
             box.mark = bool(kinds)
             box.style(dec if dec in D.PAGE_DEC else "", iid == self.cur)
@@ -1631,11 +1636,11 @@ class AssignPage(QWidget):
             return "RFP heading", ""
         if d == "Keep":                                  # 4.1.0: the piece type's name (Instruction, Evaluation, Deliverable...)
             lm = it.get("lm") or ""
-            x = dd.get("deliv") if it.get("piece") == "deliverable" and dd.get("deliv") else dd.get(lm)
+            x = dd.get("deliv") if _first_piece(it) == "deliverable" and dd.get("deliv") else dd.get(lm)
             return (x["name"], x["color"]) if x else ("Requirement, not designated", "#4D7C0F")
         code = {"Context": "ctx", "Customer": "cust", "Drop": "ignore"}.get(d)
-        if d == "Customer" and it.get("piece") in ("rule", "date") and it["piece"] in dd:     # 4.1.0: a Rule or a Date
-            code = it["piece"]
+        if d == "Customer" and _first_piece(it) in ("rule", "date") and _first_piece(it) in dd:     # 4.1.0: a Rule or a Date
+            code = _first_piece(it)
         if code and code in dd:
             return dd[code]["name"], dd[code]["color"]
         return "Not decided yet", ""
@@ -1979,10 +1984,12 @@ class AssignPage(QWidget):
 
     def _dec_fn(self, code):
         from . import shredbar as SB                       # 4.1.0: each decision keeps the piece's type (shredtypes)
-        if code in SB.NEW_CODES:
-            return lambda: SB.do_piece(self, code)
-        act = {"L": lambda: self.do_lm("L"), "M": lambda: self.do_lm("M"), "C": lambda: self.do_sow(), "I": lambda: self.do_lm("I"),
-               "ctx": self.do_ctx, "cust": self.do_customer, "ignore": self.do_clear}[code]
+        if code in SB.KEY_OF_CODE:                         # 4.5.0: a type toggles, and a piece can have several
+            old = (lambda: SB.do_piece(self, code)) if code in SB.NEW_CODES else (
+                lambda: SB.decide(self, code, {"L": lambda: self.do_lm("L"), "M": lambda: self.do_lm("M"), "C": lambda: self.do_sow(),
+                                               "cust": self.do_customer, "ignore": self.do_clear}[code]))
+            return lambda: SB.toggle_piece(self, SB.KEY_OF_CODE[code]) if self.cx is None else old()
+        act = {"I": lambda: self.do_lm("I"), "ctx": self.do_ctx}[code]
         return lambda: SB.decide(self, code, act)
 
     def _cap_fn(self, key):

@@ -215,4 +215,4 @@ def m_items(M):
         return []
     import shredtypes as ST
     return [it for it in M.items if it.get("header") != "Yes" and it.get("decision") != "Drop"
-            and (it.get("type") == "Evaluation" or ST.type_of(it) == "evaluation")]
+            and (it.get("type") == "Evaluation" or ST.has(it, "evaluation"))]

@@ -107,10 +107,51 @@ def from_review(it, captures=()):
     return ""
 
 
+SEP = ";"                                             # 4.5.0: several types on one piece, "requirement;date"
+ALONE = "not_applicable"                              # Not applicable clears the others; any other type clears it
+
+
+def _keys(v):
+    return [k for k in dict.fromkeys(x.strip() for x in str(v or "").split(SEP)) if k in KEYS]
+
+
+def types_of(it, captures=()):
+    """4.5.0: every type the piece has, in the order set; else the one the review gave it; else [] (not sorted yet)."""
+    got = _keys(it.get(FIELD))
+    if got:
+        return got
+    t = from_review(it, captures)
+    return [t] if t else []
+
+
+def has(it, key, captures=()):
+    return key in types_of(it, captures)
+
+
 def type_of(it, captures=()):
-    """The piece's type: the one set in the shred, else the one the review gave it, else "" (not sorted yet)."""
-    t = it.get(FIELD) or ""
-    return t if t in KEYS else from_review(it, captures)
+    """The piece's first type: the one set in the shred, else the one the review gave it, else "" (not sorted yet)."""
+    got = types_of(it, captures)
+    return got[0] if got else ""
+
+
+def tabs_of(it, captures=()):
+    """Every Shred tab the piece's types reach (an unsorted piece is on Requirements, where pieces start)."""
+    return list(dict.fromkeys(tab_of(t) for t in types_of(it, captures))) or ["requirements"]
+
+
+def placed_any(keys):
+    """Place offers the piece when any of its types is one Place takes."""
+    return any(placed(k) for k in keys)
+
+
+def combine(keys, key, on):
+    """The set after putting key on or taking it off: Not applicable stands alone."""
+    keys = [k for k in keys if k in KEYS]
+    if not on:
+        return [k for k in keys if k != key]
+    if key == ALONE:
+        return [ALONE]
+    return [k for k in keys if k != ALONE and k != key] + [key]
 
 
 def tab_of(key):
@@ -126,33 +167,57 @@ def placed(key):
 
 
 def counts(items, captures_of=lambda it: ()):
-    """{tab: {"total", "unsorted"}} and {type: n} for a set of pieces."""
+    """{tab: {"total", "unsorted"}} and {type: n} for a set of pieces. 4.5.0: a piece counts once in each tab its types
+    reach, and once for each of its types."""
     by_tab = {k: {"total": 0, "unsorted": 0} for k, _n in TABS}
     by_type = {k: 0 for k in KEYS}
     for it in items:
-        t = type_of(it, captures_of(it))
-        tab = tab_of(t)
-        by_tab[tab]["total"] += 1
-        if t:
+        ts = types_of(it, captures_of(it))
+        if not ts:
+            by_tab["requirements"]["total"] += 1
+            by_tab["requirements"]["unsorted"] += 1
+            continue
+        for tab in dict.fromkeys(tab_of(t) for t in ts):
+            by_tab[tab]["total"] += 1
+        for t in ts:
             by_type[t] += 1
-        else:
-            by_tab[tab]["unsorted"] += 1
     return by_tab, by_type
 
 
 def set_type(items, key, log=None):
-    """Say what the pieces are. Returns how many changed. The review's own decision is left for Place (4.2.0) except
-    Not applicable, which takes a piece out of the answer as Ignore did."""
+    """Say what the pieces are (one type, replacing the rest). Returns how many changed."""
     if key not in KEYS and key != "":
         raise ValueError(key)
+    return set_types(items, [key] if key else [], log)
+
+
+def set_types(items, keys, log=None):
+    """4.5.0: the pieces have exactly these types ([] is not sorted). Returns how many changed."""
+    keys = [k for k in dict.fromkeys(keys) if k in KEYS]
+    if ALONE in keys:
+        keys = [ALONE]
+    val = SEP.join(keys)
     n = 0
     for it in items:
-        if (it.get(FIELD) or "") != key:
-            it[FIELD] = key
+        if (it.get(FIELD) or "") != val:
+            it[FIELD] = val
             n += 1
             if log is not None:
-                log(it.get("id", ""), f"shred: {key or 'not sorted'}")
+                log(it.get("id", ""), f"shred: {', '.join(keys) or 'not sorted'}")
     return n
+
+
+def toggle(items, key, captures_of=lambda it: (), log=None):
+    """4.5.0: put the type on every piece, or take it off when every piece has it already. Returns (on, {id: keys})."""
+    if key not in KEYS:
+        raise ValueError(key)
+    on = not all(has(it, key, captures_of(it)) for it in items)
+    after = {}
+    for it in items:
+        keys = combine(types_of(it, captures_of(it)), key, on)
+        set_types([it], keys, log)
+        after[it.get("id", "")] = keys
+    return on, after
 
 
 def merged(types):
