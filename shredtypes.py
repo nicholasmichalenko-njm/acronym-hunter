@@ -80,6 +80,7 @@ def save(config_dir, types):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump({"format": FORMAT, "types": diff}, f, indent=1)
     os.replace(tmp, p)
+    _team_dirty(p)
     return diff
 
 
@@ -223,3 +224,12 @@ def toggle(items, key, captures_of=lambda it: (), log=None):
 def merged(types):
     """A deep copy, for a settings dialog to edit."""
     return copy.deepcopy(types)
+
+
+def _team_dirty(path):
+    """4.7.1: the team library's workbook follows a list saved here."""
+    try:
+        import teamlib
+        teamlib.mark_dirty_file(path)
+    except Exception:  # noqa: BLE001
+        pass

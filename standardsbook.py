@@ -255,7 +255,7 @@ def book_rows(company, recipes=None):
     return sheets, cols
 
 
-def write(path, company, recipes=None, own_cols=None):
+def write(path, company, recipes=None, own_cols=None, lists=None):
     """Write the workbook (to a .tmp, then in place). own_cols: {sheet: [column names people added]}, kept. Raises
     PermissionError when Excel has it open; the caller waits and says so."""
     import openpyxl
@@ -299,6 +299,13 @@ def write(path, company, recipes=None, own_cols=None):
     for r in sheets[FIELDS]:
         ws.append([to_cell(r.get(h)) for h in header])
     _dress(ws, header, head, fill, get_column_letter)
+    for sheet, (cols, rows) in (lists or {}).items():          # 4.7.1: the team's small lists (listsbook)
+        ws = wb.create_sheet(sheet)
+        own = [h for h in (own_cols or {}).get(sheet) or [] if h not in cols]
+        ws.append(list(cols) + own)
+        for r in rows:
+            ws.append([to_cell(r.get(c)) for c in cols] + [to_cell((r.get("_own") or {}).get(h)) for h in own])
+        _dress(ws, list(cols) + own, head, fill, get_column_letter, freeze="B2")
     ws = wb.create_sheet(ABOUT)
     for row in (("What", "Value"), ("Format", FORMAT), ("Made by", "Stationkeeper"),
                 ("How to use it", "Edit values here or in the app; the app reads what changed and writes what it changes. "

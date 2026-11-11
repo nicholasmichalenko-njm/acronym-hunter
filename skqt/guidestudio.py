@@ -167,5 +167,7 @@ TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
    "are asked once whether to take it off every row.",
    "Each effort's own workbook sits beside its acronym list: a blank cell means the Company Standards (Default) value. "
    "Effort Formatting > Open this effort's workbook.",
-   "Field recipes show what a field gives on a sample page while you type it (a caption reads Table 2-2)."],
+   "Field recipes show what a field gives on a sample page while you type it (a caption reads Table 2-2).",
+   "The lists: Phrases, Authors, Compliance words, Piece types and Document types are sheets of the workbook; the master "
+   "acronym list is Lists\\Acronyms.csv and each dictionary a Word .dic file in Lists\\Dictionaries (4.7.1)."],
   ["A copy from another PC (Company Standards-PCNAME.xlsx) is reported, never read. Nothing is deleted."])

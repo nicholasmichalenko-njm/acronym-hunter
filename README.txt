@@ -1,6 +1,14 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE TEAM'S LISTS AS FILES (4.7.1)
+  - The small lists are sheets of Company Standards.xlsx: Phrases (banned and avoided, with what to use instead and
+    why), Authors (and the efforts each writes for, or Every effort), Compliance words, Piece types (names, keys,
+    colors, shown) and Document types (each with its initial). Change them in Excel or in the app; each side follows.
+  - The large lists are files of their own in the team library's Lists folder: Acronyms.csv is the master acronym list
+    (the same file as Stationkeeper Data\acronym_database.csv), and each custom dictionary is a Word dictionary,
+    Lists\Dictionaries\<name>.dic, which Word can use as it is. A word added in either place reaches the other.
+
 THE TEAM LIBRARY AS FILES (4.7.0)
   - The global standards are now called the Company Standards (Default), everywhere.
   - Their values live in one Excel workbook, Company Standards.xlsx, in the team library (Stationkeeper Data\Team library

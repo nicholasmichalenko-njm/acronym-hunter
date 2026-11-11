@@ -88,6 +88,14 @@ def _sha(p):
     return h.hexdigest()
 
 
+def mark_dirty_file(path):
+    """A list saved in the config folder (banned_words.csv, author_list.json...): the workbook follows."""
+    try:
+        return mark_dirty(os.path.dirname(os.path.abspath(path)))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def mark_dirty(config_dir):
     """The app changed the standards or the recipes: the workbook is written on the next tick. Not while reading it."""
     if _reading:
@@ -109,7 +117,8 @@ def write_book(config_dir, settings=None):
     data = PRL.load(config_dir)
     SB.stamp_since(data["company"], st.get("rows") or {})        # Changed: the app, on the rows it changed
     try:
-        SB.write(p, data["company"], FR.load(config_dir), st.get("own_cols") or {})
+        import listsbook as LB                              # 4.7.1: the small lists as sheets
+        SB.write(p, data["company"], FR.load(config_dir), st.get("own_cols") or {}, LB.load_all(config_dir))
     except PermissionError:
         st["dirty"], st["waiting"] = True, time.strftime("%Y-%m-%d %H:%M")
         _save_state(config_dir, st)
@@ -162,6 +171,9 @@ def read_book(config_dir, settings=None, removed_answer=None, force=False):
         data["company"] = res["company"]
         PRL.save(config_dir, data)
         FR.save(config_dir, res["recipes"])
+        import listsbook as LB                              # 4.7.1: the list sheets into each list's own file
+        for sheet in LB.apply(config_dir, book):
+            res["changed"].append((sheet, ""))
     finally:
         _reading = False
     st.update(book=now, sha=sha, problems=[], own_cols=res["own_cols"], read=time.strftime("%Y-%m-%d %H:%M"),
@@ -230,6 +242,64 @@ def sync_content(config_dir, settings=None):
     return out
 
 
+# ------------------------------------------------------------------ the large lists (4.7.1)
+LISTS = "Lists"
+
+
+def _mirror(a, b, key, last, out):
+    """One file kept the same in two places by the content rules (changed on one side: copied; both: the newer)."""
+    sa = _sha(a) if os.path.isfile(a) else None
+    sb = _sha(b) if os.path.isfile(b) else None
+    was = last.get(key)
+    try:
+        if sa and not sb:
+            os.makedirs(os.path.dirname(b), exist_ok=True); shutil.copy2(a, b); out["out"].append(key); last[key] = sa
+        elif sb and not sa:
+            os.makedirs(os.path.dirname(a), exist_ok=True); shutil.copy2(b, a); out["in"].append(key); last[key] = sb
+        elif sa and sa == sb:
+            last[key] = sa
+        elif sa and sb and sb != was and sa == was:
+            shutil.copy2(b, a); out["in"].append(key); last[key] = sb
+        elif sa and sb and sa != was and sb == was:
+            shutil.copy2(a, b); out["out"].append(key); last[key] = sa
+        elif sa and sb:
+            newer, older = (a, b) if os.path.getmtime(a) >= os.path.getmtime(b) else (b, a)
+            shutil.copy2(newer, older); out["both"].append(key); last[key] = _sha(newer)
+    except OSError:
+        diag.swallowed()
+
+
+def sync_lists(config_dir, settings=None):
+    """The master acronym list (Lists\\Acronyms.csv, the same file as Stationkeeper Data\\acronym_database.csv) and each
+    custom dictionary as Lists\\Dictionaries\\<name>.dic, both ways. Returns {"in", "out", "both", "dics"}."""
+    import listsbook as LB
+    base = os.path.join(folder(config_dir, settings), LISTS)
+    st = state(config_dir)
+    last = st.setdefault("content", {})
+    out = {"in": [], "out": [], "both": [], "dics": []}
+    data_dir = os.path.dirname(os.path.abspath(config_dir))
+    _mirror(os.path.join(data_dir, "acronym_database.csv"), os.path.join(base, "Acronyms.csv"), "Lists/Acronyms.csv", last, out)
+    dd = os.path.join(base, "Dictionaries")
+    js = os.path.join(config_dir, "custom_dictionaries.json")
+    jsha = _sha(js) if os.path.isfile(js) else ""
+    dstate = st.setdefault("dics", {})
+    files = {f: _sha(os.path.join(dd, f)) for f in (os.listdir(dd) if os.path.isdir(dd) else []) if f.lower().endswith(".dic")}
+    global _reading
+    if files and files != dstate.get("files"):                       # someone changed a .dic: the dictionaries follow
+        _reading = True
+        try:
+            out["dics"] = LB.read_dic_files(config_dir, dd)
+        finally:
+            _reading = False
+        jsha = _sha(js) if os.path.isfile(js) else ""
+    elif jsha and jsha != dstate.get("json"):                       # the app changed a dictionary: the files follow
+        LB.dic_files(config_dir, dd)
+    files = {f: _sha(os.path.join(dd, f)) for f in (os.listdir(dd) if os.path.isdir(dd) else []) if f.lower().endswith(".dic")}
+    dstate.update(json=jsha, files=files)
+    _save_state(config_dir, st)
+    return out
+
+
 # ------------------------------------------------------------------ the tick
 def tick(config_dir, settings=None):
     """On opening and every few minutes: the first run writes the files (nothing deleted); after that, what the app
@@ -253,6 +323,9 @@ def tick(config_dir, settings=None):
             if res.get("conflicts"):
                 said.append("A copy of the workbook from another PC is in the team library: " + ", ".join(res["conflicts"])
                             + ". It was not read; keep the one you want.")
+        ls = sync_lists(config_dir, settings)                   # 4.7.1
+        if ls["in"] or ls["dics"]:
+            said.append("Read from the team library's lists: " + ", ".join([os.path.basename(x) for x in ls["in"]] + ls["dics"]) + ".")
         c = sync_content(config_dir, settings)
         if c["in"]:
             said.append(f"{len(c['in'])} Word file(s) changed in the team library were brought in.")

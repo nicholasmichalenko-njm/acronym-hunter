@@ -85,6 +85,7 @@ class AuthorList:
             json.dump({"format": FORMAT, "people": self.people, "history": self.history[-100:]}, f, indent=1, ensure_ascii=False)
         os.replace(tmp, self.path)
         self.exists = True
+        _team_dirty(self.path)
 
     def _log(self, what, added=0, kept=0):
         self.history.append({"at": datetime.datetime.now().isoformat(timespec="seconds"), "what": what, "added": added, "kept": kept})
@@ -284,3 +285,12 @@ def seed(lst, efforts):
     lst._log("started from the efforts' teams", added=len(found))
     lst.save()
     return len(found)
+
+
+def _team_dirty(path):
+    """4.7.1: the team library's workbook follows a list saved here."""
+    try:
+        import teamlib
+        teamlib.mark_dirty_file(path)
+    except Exception:  # noqa: BLE001
+        pass

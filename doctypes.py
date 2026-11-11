@@ -99,6 +99,7 @@ def save(config_dir, types, renamed=None):
     with open(p + ".tmp", "w", encoding="utf-8") as f:
         json.dump({"types": out}, f, indent=1, ensure_ascii=False)
     os.replace(p + ".tmp", p)
+    _team_dirty(p)
     apply(config_dir)
     return load(config_dir)
 
@@ -109,3 +110,12 @@ def apply(config_dir):
     T = load(config_dir)["types"]
     DV.set_types(T)
     return T
+
+
+def _team_dirty(path):
+    """4.7.1: the team library's workbook follows a list saved here."""
+    try:
+        import teamlib
+        teamlib.mark_dirty_file(path)
+    except Exception:  # noqa: BLE001
+        pass

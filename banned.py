@@ -98,6 +98,7 @@ def save(items):
         for it in sorted(rows, key=lambda x: x["Phrase"].casefold()):
             w.writerow(it)
     os.replace(p + ".tmp", p)
+    _team_dirty(p)
     return len(rows)
 
 
@@ -188,3 +189,12 @@ def find(chunks, items=None, kind_of=None, skip_kinds=("notes",)):
                 out.append({"phrase": it["Phrase"], "found": m.group(0), "level": it["Level"], "use": it.get("Use instead", ""),
                             "why": it.get("Why", ""), "loc": loc, "kind": kind, "sentence": _sentence(text, m.start(), m.end())})
     return out
+
+
+def _team_dirty(path):
+    """4.7.1: the team library's workbook follows a list saved here."""
+    try:
+        import teamlib
+        teamlib.mark_dirty_file(path)
+    except Exception:  # noqa: BLE001
+        pass

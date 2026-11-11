@@ -71,6 +71,7 @@ def save(cfg, config_dir=None):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(_clean(cfg), f, indent=1)
     os.replace(tmp, p)
+    _team_dirty(p)
 
 
 def pattern(words):
@@ -176,3 +177,12 @@ def tk_font_options(cfg, family, size):
     mods = (["bold"] if st["bold"] else []) + (["italic"] if st["italic"] else []) + (["underline"] if st["underline"] else [])
     return (family, size, " ".join(mods) or "normal"), ("#" + st["color"]) if st["color"] else None, \
         ("#" + st["highlight"]) if st["highlight"] else None
+
+
+def _team_dirty(path):
+    """4.7.1: the team library's workbook follows a list saved here."""
+    try:
+        import teamlib
+        teamlib.mark_dirty_file(path)
+    except Exception:  # noqa: BLE001
+        pass
