@@ -20,7 +20,8 @@ if __name__ == "__main__":   # the Trainer window does "import app_gui": reuse t
     sys.modules.setdefault("app_gui", sys.modules[__name__])
 
 SANDBOX_DIR = os.path.join(BASE_DIR, "_local_sandbox")
-SANDBOX_TEMP = os.path.join(SANDBOX_DIR, os.environ.get("SK_SANDBOX_TEMP", "temp"))   # 2.59.0: the Qt edition has its own
+SANDBOX_TEMP = os.path.join(SANDBOX_DIR, os.environ.get("SK_SANDBOX_TEMP", "temp")   # 2.59.0: the Qt edition has its own
+                            + (f"_{os.environ['SK_TEST_WORKER']}" if os.environ.get("SK_TEST_WORKER") else ""))   # 4.5.0: one per test worker
 try:
     for d in (SANDBOX_DIR, SANDBOX_TEMP):
         os.makedirs(d, exist_ok=True)
