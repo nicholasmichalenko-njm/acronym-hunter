@@ -94,6 +94,10 @@ check("Documents' tabs: Customer, Ours, Changes, Data calls", [t for _k, t in __
 check("Customer's header: Find, More, Add documents... (the main button)", lp.bar.main.text() == "Add documents..."
       and not lp.b_folder.isVisibleTo(w) and "Add a folder..." in lp.bar.labels() and "Watched folders..." in lp.bar.labels()
       and not lp.tree.isVisibleTo(w), lp.bar.labels())
+__import__("skqt.navrail", fromlist=["x"]).refresh_steps(w, force=True); w.show_tabs("library")
+ti = w._tab_keys.index("compare")
+check("Changes' tab says how many changes are left to decide", w.page_tabs.tabText(ti).startswith("Changes (")
+      and w.page_tabs.tabText(ti).endswith(")"), w.page_tabs.tabText(ti))
 hdr = [lp.table.horizontalHeaderItem(c).text() for c in range(lp.table.columnCount())]
 check("the columns: Document, Type, Governing version, Text, Shred, Terms", hdr == DF.COLUMNS, hdr)
 names = {lp.table.item(r, 0).text(): r for r in range(lp.table.rowCount())}

@@ -55,7 +55,16 @@ def facts(ws, effort_path="", M=None, acronyms_left=None, today=None, drafts_on=
         diag.swallowed()
     try:
         import changereview as CHR
-        f["compare"] = sum(n for _a, _b, n in CHR.Review(ws.root).load().undecided())
+        rv = CHR.Review(ws.root).load()
+        f["compare"] = sum(n for _a, _b, n in rv.undecided())
+        import docversions as DV                     # 4.6.0: a new version not opened yet counts its changes too
+        lib = DV.Library(ws.p("documents")).load()
+        for d in lib.docs:
+            vs = d.get("versions") or []
+            for k in range(1, len(vs)):
+                if not vs[k].get("reviewed") and CHR.pair_key(vs[k - 1], vs[k]) not in rv.pairs:
+                    c = DV.summary(DV.compare(lib.text(vs[k - 1]), lib.text(vs[k])))
+                    f["compare"] += c["changed"] + c["added"] + c["removed"]
     except Exception:  # noqa: BLE001
         diag.swallowed()
     try:                                                   # 4.6.0: the passages Changes sent back to Shred

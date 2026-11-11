@@ -1130,7 +1130,8 @@ class MainWindow(QMainWindow):
                 self.page_tabs.removeTab(0)
             self._tab_keys = []
             for k, label in tabs or []:
-                self.page_tabs.addTab(label); self._tab_keys.append(k)
+                n = (getattr(self, "path_facts", None) or {}).get("compare") if k == "compare" else 0   # 4.6.0: Changes (3)
+                self.page_tabs.addTab(f"{label} ({n})" if n else label); self._tab_keys.append(k)
             if tabs:
                 self.page_tabs.setCurrentIndex(self._tab_keys.index(step))
         finally:
