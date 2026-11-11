@@ -446,7 +446,9 @@ class LibraryPage(QWidget):
                 nodes[path] = it
         self.tree.expandToDepth(0)
         und, miss = lib.undecided(), self.missing()
-        self.p_docs.setText(f"{len(lib.all)} documents")
+        n_docs = len([d for d in lib.all if __import__("skqt.docfocus", fromlist=["x"]).side_of(d) == self.doc_side]) \
+            if getattr(self, "focus", False) else len(lib.all)                 # 4.6.0: this tab's documents
+        self.p_docs.setText(f"{n_docs} document" + ("" if n_docs == 1 else "s"))
         self.p_und.setText(f"{len(und)} role(s) to confirm" if und else "every role confirmed"); self.p_und.set_tone("warn" if und else "ok")
         self.p_miss.setText(f"{len(miss)} original(s) not here" if miss else "every original here"); self.p_miss.set_tone("warn" if miss else "ok")
         self.p_und.setVisible(bool(und)); self.p_miss.setVisible(bool(miss))
@@ -649,7 +651,7 @@ class LibraryPage(QWidget):
         self.d_taken.setText(f"{nt} sentence(s) taken from it" if nt else "")
         self.d_taken.setVisible(bool(nt))
         self.show_review(d)
-        self.b_ident.setVisible(d.get("category", "customer") == "customer")
+        self.b_ident.setVisible(d.get("category", "customer") == "customer" and not getattr(self, "focus", False))   # 4.6.0: right-click
         self.d_versions.clear()
         for i, ver in enumerate(reversed(d["versions"])):
             here = lib.has_original(ver)

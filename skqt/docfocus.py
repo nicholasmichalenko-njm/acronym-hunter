@@ -65,8 +65,11 @@ def install(page, side="customer"):
     t.setColumnCount(len(COLUMNS))
     t.setHorizontalHeaderLabels(COLUMNS)
     from PySide6.QtWidgets import QHeaderView
-    t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-    for c, w in enumerate((260, 120, 170, 110, 150, 120)):
+    hh = t.horizontalHeader()
+    hh.setStretchLastSection(False)
+    for c in range(len(COLUMNS)):
+        hh.setSectionResizeMode(c, QHeaderView.Stretch if c == 0 else QHeaderView.Interactive)
+    for c, w in enumerate((260, 110, 200, 100, 130, 110)):
         if c:
             t.setColumnWidth(c, w)
     # the panel: Versions once, one next thing; the rest on the right-click

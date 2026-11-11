@@ -136,7 +136,8 @@ check("the new versions on the left, with how many are left", cp.cards.versions.
 hit = next(i for i in ch if "40 pages" in rows[i]["new"])
 card = cp.cards.boxes[hit]
 btns = [b.text() for b in card.findChildren(__import__("PySide6.QtWidgets", fromlist=["QPushButton"]).QPushButton)]
-check("a card: the wording inline and No impact, Re-shred, Ask a question, More", btns[:4] == ["No impact", "Re-shred", "Ask a question", "More"], btns)
+check("a card: the wording inline and No impact, Re-shred, Ask a question, More; a suggestion from More leads the row",
+      btns[-4:] == ["No impact", "Re-shred", "Ask a question", "More"] and btns[0] == "Update our wording", btns)
 dec = cp.cards.decide(hit, "reshred"); app.processEvents()
 check("Re-shred on the card: into Shred's queue, and the next change to decide is selected", dec and len(RS.Queue(w.ws.root).load().open_items()) == 1
       and cp.i != hit and not cp.decided(cp.i), cp.i)

@@ -296,6 +296,9 @@ class Card(QFrame):
                                       + f"  ·  {x.get('who', '')} {x.get('when', '')[:10]}", "muted"))
                 row.addWidget(D.button("Undo", "ghost", lambda _=False, did=x["id"]: cards.undo(did)))
         else:
+            if s and s.get("kind") in dict(MORE):                 # the suggestion is one of More's: it leads the row
+                row.addWidget(D.button(dict(MORE)[s["kind"]], "primary", lambda _=False, k=s["kind"]: cards.decide(i, k),
+                                       "The suggestion (Enter takes it on the selected card)"))
             for kind, text, tip in MAIN:
                 b = D.button(text, "primary" if s and s.get("kind") == kind else None,
                              lambda _=False, k=kind: cards.decide(i, k), tip)
