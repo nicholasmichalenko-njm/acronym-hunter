@@ -145,3 +145,22 @@ def flag(page, it):
         return lab
     page.flag_label = None
     return None
+
+
+def off(page):
+    """The page as it was before 4.5.0: every control on the screen and the keys deciding as they did (R places in the
+    target, C is Support). Kept for the older tests of the machinery under the screen; mainwin's next visit to Shred or
+    Place applies the focus again."""
+    page.focus = None
+    for name in LEAVE + ("bulk", "topic_bar", "decide_area", "vol_add_btn", "vol_ren_btn", "vol_style"):
+        x = getattr(page, name, None)
+        if x is not None:
+            x.setVisible(True)
+    for x in getattr(page, "outline_rows", []):
+        x.setVisible(True)
+    page.sg_strip.setVisible(page.sg_on)
+    page.note.setVisible(True)
+    page.shred_main.setVisible(False)
+    page.focus_more.setVisible(False)
+    page.show_card(page.selected())
+    return None

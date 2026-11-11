@@ -61,6 +61,7 @@ check("no running header in the review", not any("FA8811-26-R-0099" in it["text"
                                                   for it in M.items), len(M.items))
 pg = w.assign_page
 app.processEvents()
+__import__("skqt.shredfocus", fromlist=["x"]).off(pg)       # 4.5.0: the machinery under the focused screen
 pg.files.setCurrentText("Section_L_print.pdf"); app.processEvents()
 check("Page view: every sentence of the page is a box", len(pg.view.boxes) >= 40 and pg.pdf.endswith("Section_L_print.pdf"), len(pg.view.boxes))
 by = lambda s: next(it for it in M.items if it["text"].startswith(s))

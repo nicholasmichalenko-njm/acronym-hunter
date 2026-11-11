@@ -1997,7 +1997,7 @@ class AssignPage(QWidget):
             old = (lambda: SB.do_piece(self, code)) if code in SB.NEW_CODES else (
                 lambda: SB.decide(self, code, {"L": lambda: self.do_lm("L"), "M": lambda: self.do_lm("M"), "C": lambda: self.do_sow(),
                                                "cust": self.do_customer, "ignore": self.do_clear}[code]))
-            return lambda: SB.toggle_piece(self, SB.KEY_OF_CODE[code]) if self.cx is None else old()
+            return lambda: SB.toggle_piece(self, SB.KEY_OF_CODE[code]) if self.cx is None and getattr(self, "focus", None) else old()
         act = {"I": lambda: self.do_lm("I"), "ctx": self.do_ctx}[code]
         return lambda: SB.decide(self, code, act)
 

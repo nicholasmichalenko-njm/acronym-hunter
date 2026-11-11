@@ -119,6 +119,7 @@ M.save()
 w.ws.set("compliance_path", M.path)
 w.open_effort("Effort A")
 pg = w.assign_page
+__import__("skqt.shredfocus", fromlist=["x"]).off(pg)       # 4.5.0: the machinery under the focused screen
 it = next(x for x in w.review.M.items if "thermal" in x["text"])
 w.review.req([it], "1.1 Technical Approach"); pg.load(); pg.select(it["id"]); app.processEvents()
 names_a = w.people()
