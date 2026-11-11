@@ -13,6 +13,7 @@ DRAFTS BY VOLUME (4.4.0)
     again, not in the list, and the volume's Acronyms table. Fix in a copy... works through one volume's findings into
     a copy as tracked changes. A term not in the list goes back to Shred > Acros & Abs marked From our drafts: <volume>,
     and is listed here until it is decided there. In our drafts on Acros & Abs opens this tab.
+  - Settings > You now shows Appearance: Follow Windows, Light or Dark (it was missing from the Settings list).
 
 MATRIX & OUTLINE (4.3.0)
   - Step 3's tabs: Outline, Place, Matrix, L to M, Coverage. Shred says what each piece is; Matrix & Outline says what
