@@ -1,6 +1,26 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SHRED AND PLACE, AS DESIGNED (4.5.0)
+  - Shred has one job: say what each piece is. Click a piece; its pane shows What it is: Requirement, Instruction, Rule,
+    Date, Evaluation, Deliverable, Information and Not applicable, as chips with their keys. A click or a key puts a type
+    on; again takes it off. A piece can be several things (a requirement that is also a date shows on Requirements and
+    on Rules & Dates); Not applicable clears the rest.
+  - The suggestion shows dashed on its chip, with why; Enter takes it.
+  - Capture is one menu in the pane (contact, objective, key point, graphic need, your own); Ask a question files a
+    customer question citing the piece. Rule and Date now do what Submission, Formatting and Key date did.
+  - The main button is Mark this document shredded (it opens the next one). More holds Fix text, Take every suggestion,
+    Add missed text, Next document, Fit width, Pan and the Captured list. N goes to the next piece not sorted.
+  - Gone from Shred: the bar of decisions and captures at the bottom, the selection bar (Decide all, section, author),
+    the topic bar (Sort mode and Topics are on See it as > Sort), Support (Information covers it), authors (Setup's)
+    and tasks (a piece's right-click).
+  - Place, L to M and Coverage show none of Shred's controls. On Place the pane says where the piece goes and why:
+    Place it (Enter), Another section..., Leave it out of the matrix..., and how many are not placed yet (N for the next).
+    Placing has one home: Outline no longer lists what is not placed.
+  - A piece a new version changed shows Changed by <version> on its pane; a new one shows New in <version>.
+  - Fix text's Suspects lists the lines set aside as running headers or footers, in case one was the customer's text.
+  - A prescribed outline is marked as the customer's, and each volume takes its page limit from the solicitation.
+
 DRAFTS BY VOLUME (4.4.0)
   - Drafts' tabs: Status, Acronyms, Edit.
   - Status > Volume folders...: each volume of the outline gets a folder, usually its SharePoint library synced to

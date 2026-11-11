@@ -203,38 +203,38 @@ TOPICS = [
    "Export the matrix...: a draft compliance matrix in Excel, one row per requirement.",
    "File to an effort...: reads the file into that effort's Review, where each requirement gets its decision."],
   ["The same reader as Review; nothing is kept until you file it to an effort."]),
- ("assign", "Shred", "Review",
-  "The customer's document as it looks, every sentence boxed. You decide each sentence, place it in your response, "
-  "and capture what it holds. This is where an effort's review happens.",
-  "From the first read until every sentence is decided, and again when a new version arrives.",
-  ["Click a sentence. Press L (Instructions), E (M, Evaluation) or R (SOW, Work) to make it a requirement in the "
-   "target section; C for context that supports the last requirement; G for the customer's own sentence; X to clear.",
-   "Drag across words to pick just those words, inside one sentence or across several (3.28.1: whatever was selected "
-   "before). Make a sentence (Shift+S) makes them a sentence of their own; picked across sentences, they become one sentence, "
-   "split from where they were. Rename (by the Volume box) renames the volume you work in; the box beside it numbers "
-   "the volumes I, II, III; 1, 2, 3; or A, B, C. "
-   "Split (S) splits at a clicked word, or asks exactly where. Capture files them: a contact, submission or "
-   "formatting rule, acronym, key date or customer question. More captures... adds evaluation factors, page limits, "
-   "deliverables, effort details and hot buttons.",
-   "Captures (3.29.0: bins are captures now): one bar. Objective (O), Key point (K) and every capture put the picked words "
-   "in it, verbatim with where they sit; Ctrl+click sentences far apart for one excerpt. A sentence keeps one decision "
-   "and can be captured any number of times; its card lists them. More... (B) holds the rest, + Capture... (your own, "
-   "Alt+1 to Alt+9) and Captures of this effort. Captured list (its own button) shows everything captured.",
-   "Settings > Review: decisions and captures sets every decision's and capture's name, key, color and showing, which "
-   "decisions each effort type hides (an RFI shows Interest instead of L, M and SOW), and the team's own captures.",
-   "Topics (3.28.0): the bar over the page. + Topic, or Topics > from the RFP's headings. Sort mode (Ctrl+T): keys 1 to 9 "
-   "put the selected sentences in the first nine topics (again takes it off); a sentence keeps its one decision. Show one "
-   "topic dims the rest and says how many of its sentences are decided, open and in a section. Map a topic to sections "
-   "(Topics of this effort...) and its requirements go there when you decide them; Make a section for each topic lays "
-   "out an RFI response.",
-   "RFI efforts open in Sort mode: I marks a Customer interest (in place of L and M), and Suggest marks the sentences that "
-   "say what the Government wants to learn.",
-   "On a sentence's card, To the Wall of Truth puts an objective or key point on the effort's Wall of Truth.",
-   "Graphic need (P) tags a concept that needs a graphic, from the sentence or the words you picked; it lists on the Effort Dashboard.",
-   "Several sentences at once: Ctrl+click, drag a box, Select undecided, or Ctrl+A. The bar above the page shows how many, "
-   "with Decide all, Put all in section and Author for all.",
-   "+ Task... and + Ask the team... put work and questions on the sentence.",
-   "When a document is done, press Mark reviewed, then Next document.",
+ ("assign", "Shred", "Shred",
+  "The customer's document as it looks, every piece boxed. Say what each piece is (4.5.0: one job here; placing is "
+  "Matrix & Outline > Place). Every customer document is extracted when it is added.",
+  "From the first read until every piece is sorted, and again when a new version arrives.",
+  ["Click a piece. The pane shows What it is: Requirement (R), Instruction (L), Rule (U), Date (D), Evaluation (E), "
+   "Deliverable (V), Information (G) and Not applicable (X), as chips. A click or a key puts a type on; again takes it off.",
+   "A piece can be several things: a requirement that is also a date shows on Requirements and on Rules & Dates. "
+   "Not applicable clears the rest. The review's decision follows: any answered type makes it a requirement (L from "
+   "Instruction, M from Evaluation); only Rule, Date or Information makes it the customer's; none leaves it undecided.",
+   "The suggestion shows dashed on its chip, with why. Enter takes it; More > Take every suggestion takes them all.",
+   "Capture (a menu in the pane) files the picked words: a contact, an objective (O), a key point (K), a graphic need "
+   "(P), the effort's own captures. Rule and Date cover submission and formatting rules and key dates; Acros & Abs holds "
+   "the acronyms; Ask a question puts a customer question, citing the piece, in the Q&A log.",
+   "Drag across words to pick just those words. Make a sentence (Shift+S) makes them a piece of their own; Split (S) "
+   "splits at a clicked word; Combine (J) joins the selected pieces. Fix text (F2, in More) has the rest.",
+   "Several pieces at once: Ctrl+click, drag a box, or Ctrl+A; a chip then acts on all of them. Esc clears the selection.",
+   "N goes to the next piece not sorted in this document.",
+   "A piece a new version changed shows Changed by <version> on its pane until it is shredded again; a new one shows "
+   "New in <version>.",
+   "When a document is done, press Mark this document shredded: it is marked and the next one opens.",
+   "More: Fix text, Take every suggestion, Add missed text (drag a box around text the reader missed), Next document, "
+   "Fit width (Ctrl+0), Pan (H, or hold Space and drag) and the Captured list.",
+   "Settings > Review: decisions and captures sets every type's and capture's name, key, color and showing.",
+   "Topics and Sort mode are on See it as > Sort.",
+   "On Place (Matrix & Outline), the pane says where the piece goes and why: Place it (Enter), Another section..., "
+   "Leave it out of the matrix... Rules, dates and information stay in Shred; an evaluation piece links through L to M.",
+   "Captured words stay verbatim with where they sit; Ctrl+click pieces far apart for one excerpt.",
+   "To the Wall of Truth (a capture's card) puts an objective or key point on the effort's Wall of Truth.",
+   "A graphic need lists on the Effort Dashboard.",
+   "The colors on the page: each type its own; a captured piece has a pink outline and what was captured in the margin.",
+   "Undo (the frame's) puts a type and its decision back in one step.",
+   "The pane scrolls on its own; the page keeps its place.",
    "Parts (3.19.0) adds a cover, a title page, front matter items, appendices and a back cover to the volume, each in its "
    "place, and moves a section to another part. Each part shows the rules it follows from Production Standards; Part rules "
    "and page limits... sets which parts count toward the page limit.",
