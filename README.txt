@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE MORNING'S ANSWERS (4.10.0)
+  - Suggestion rules: the shred's phrase rules are one growing team list, the Suggestion rules sheet of Company
+    Standards.xlsx (the phrase, what it suggests, why, Approved or Retired). Times kept and Times not right count every
+    effort on every PC that shares the team library. On Shred, Not right beside a suggestion dismisses it for that piece
+    only; Make it a team rule... on a sorted piece adds its phrase to the list. A Retired rule stays listed, unused.
+  - Theme: the workbook's Theme sheet holds Word's twelve theme colors and the headings and body fonts. A standard with
+    no theme starts from the Office colors and fonts when you fill the sheet in.
+  - An effort's workbook has a Volume column: blank means every volume; a volume kind's name means that volume only.
+  - Settings > Team library: Read it now reads what changed without waiting for the two-minute check.
+  - The library's Word files carry plain names in the team library (Cover.docx, Cover (2).docx); Library files
+    index.csv beside them says which file the app keeps for each.
+  - Effort data for the macros: the first snapshot builds on its own thread (no pause when an effort opens), and the
+    manifest's CUI flag follows the effort's marking (Not CUI and Proprietary say false; any other marking, or none,
+    says true).
+
 EFFORT DATA FOR STATIONKEEPER MACROS (4.9.0)
   - The app keeps a read-only snapshot of each effort's rules in the effort's folder, Stationkeeper Data, for the Word
     macros (Stationkeeper Macros): manifest.json, rules\rules.json (styles allowed, table types, placeholders, banned
