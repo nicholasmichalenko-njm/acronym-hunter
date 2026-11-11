@@ -48,6 +48,8 @@ def auto_tick(host):
     changed and documents wait, extract them all in the background (no page change, no question). Returns the worker."""
     if host.ws is None or not auto_on() or host.read_page.running():
         return None
+    if getattr(getattr(host, "acronym_page", None), "worker", None) is not None:
+        return None                                       # 4.6.0: one reader at a time (the acronym scan runs)
     try:
         idx = os.path.join(host.ws.p("documents"), "index.json")
         st = (host.ws.root, os.path.getmtime(idx) if os.path.isfile(idx) else 0,
@@ -62,6 +64,38 @@ def auto_tick(host):
         if new:
             import newversion as NV
             return NV.extract(host, new[0][1])
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return None
+
+
+def auto_scan(host):
+    """4.6.0 (steps decision 10; the UI audit, E): the customer's documents are scanned for acros and abs as soon as they
+    are in and extracted, on the same timer as extraction, so Acros & Abs never says "not scanned" with documents in.
+    Waits while an extraction or a scan runs; scans again only when the set of documents changed. Returns the worker."""
+    if host.ws is None or not auto_on() or host.read_page.running():
+        return None
+    try:
+        ap = getattr(host, "acronym_page", None)
+        if ap is None or ap.worker is not None or getattr(ap, "tool", False):
+            return None
+        if ap.session is None:
+            ap.load()
+        if ap.session is None:
+            return None
+        paths = ap.customer_paths()
+        key = (host.ws.root, tuple(sorted(paths)))
+        if not paths or key == getattr(host, "_acr_seen", None):
+            return None
+        host._acr_seen = key
+        last = sorted((ap.session.last_scan or {}).get("paths") or [])
+        if last and set(paths) <= set(last):
+            return None                                   # every document here was in the last scan
+        if pending(host):
+            host._acr_seen = None                         # extraction first; the scan follows on a later tick
+            return None
+        diag.activity("acronyms_auto_scan", files=len(paths))
+        return ap.scan(paths)
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return None
