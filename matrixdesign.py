@@ -585,7 +585,8 @@ def rows(M, design, ctx=None):
     pos0 = {it.get("id"): i for i, it in enumerate(M.items)}
     roles = design["roles"]
     # 2.56.0: a sentence in several sections is a row in each of them (one row per section)
-    keep = SD.expand(M, [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles])
+    keep = SD.expand(M, [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles
+                         and not it.get("left_out")])           # 4.3.0: left out on Place: on its own sheet
     ctxs = SD.expand(M, [it for it in M.items if it.get("decision") == "Context" and "Context" in roles])
     pos = {id(it): (pos0.get(it.get("id"), 0), 1 if it.get("_also") else 0) for it in keep + ctxs}
     keep_ids = {it["id"] for it in keep}
@@ -662,7 +663,7 @@ def outline_rows(M, design, ctx=None):
     pos = {it.get("id"): i for i, it in enumerate(M.items)}
     secmap = {}
     for it in M.items:
-        if it.get("decision") in ("Keep", "Context") and it.get("decision") in roles:
+        if it.get("decision") in ("Keep", "Context") and it.get("decision") in roles and not it.get("left_out"):
             for lab in SD.item_sections(M, it):
                 secmap.setdefault(lab, []).append(it)
     labels = [C.outline_label(o) for o in M.outline]
@@ -677,7 +678,8 @@ def outline_rows(M, design, ctx=None):
         Ms = [x for x in its if _side(M, x, inh) == "M" or x.get("lm_both")]     # 3.90.0: a workbook's L and M sentence
         out.append({"_kind": "item", "map": lab, "id": "", "decision": "", "_level": int(o.get("level", 1) or 1),
                     "_L": Ls, "_M": Ms, "_parent": lab in parents})
-    loose = [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles and not SD.item_sections(M, it)]
+    loose = [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles and not SD.item_sections(M, it)
+             and not it.get("left_out")]
     if loose:                                     # requirements in no item yet are never left out of the matrix
         loose.sort(key=lambda x: pos.get(x.get("id"), 0))
         out.append({"_kind": "item", "map": "", "id": "", "decision": "", "_level": 1, "_unplaced": True,
@@ -690,6 +692,11 @@ def outline_rows(M, design, ctx=None):
 
 
 UNPLACED = "Not in the outline yet"
+
+
+def left_out_rows(M):
+    """4.3.0: [(piece, reason)] left out of the matrix on Place."""
+    return [(it, it["left_out"]) for it in M.items if it.get("left_out")]
 
 
 def customer_rows(M):
@@ -756,6 +763,21 @@ def export(M, path, design, effort_name="", when=None, ctx=None):
                 cell.alignment = Alignment(vertical="top", wrap_text=True)
         for col, w in zip("ABCD", (16, 80, 28, 20)):
             cs.column_dimensions[col].width = w
+    outs = [(it, why) for it, why in left_out_rows(M)]
+    if outs:                                      # 4.3.0: left out of the matrix on Place, each with its reason
+        ls = wb.create_sheet("Left out")
+        ls.append(["Requirements left out of the matrix on Matrix & Outline > Place, each with its reason."])
+        ls["A1"].font = Font(italic=True, color="475569")
+        ls.append(["ID", "Requirement", "Reason", "Source document"])
+        for cell in ls[2]:
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor="64748B")
+        for it, why in outs:
+            ls.append([it.get("id", ""), it.get("text", ""), why, it.get("file", "")])
+            for cell in ls[ls.max_row]:
+                cell.alignment = Alignment(vertical="top", wrap_text=True)
+        for col, w in zip("ABCD", (14, 80, 36, 28)):
+            ls.column_dimensions[col].width = w
     ab = wb.create_sheet("About")
     c = M.counts()
     for r in (["Effort", effort_name or M.name], ["Built", f"{when:%Y-%m-%d %H:%M}"],
@@ -770,7 +792,7 @@ def export(M, path, design, effort_name="", when=None, ctx=None):
     tmp = path + ".tmp"
     wb.save(tmp)
     os.replace(tmp, path)
-    return {"path": path, "rows": len(data), "customer": len(cust)}
+    return {"path": path, "rows": len(data), "customer": len(cust), "left_out": len(outs)}
 
 
 def _sheet_name(v, taken):

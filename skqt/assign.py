@@ -1659,6 +1659,8 @@ class AssignPage(QWidget):
             b = self.keys.get(key)
             if b is not None:
                 m.addAction(text, b.click).setEnabled(b.isEnabled())
+        from . import leaveoutview as LOV                  # 4.3.0: Leave out of the matrix, on Place
+        LOV.add_actions(self, m, rows)
         m.addSeparator()
         decided = [it for it in rows if it.get("decision")]
         if len(rows) == 1:

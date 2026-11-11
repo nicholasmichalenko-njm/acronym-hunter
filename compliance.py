@@ -1142,8 +1142,8 @@ def suggest_map(item, outline, stats=None):
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
            "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read", "Place", "Lead place", "L/M",
-           "Area", "Piece"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16, 6, 16, 14]
+           "Area", "Piece", "Left out"]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16, 6, 16, 14, 30]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
@@ -1154,7 +1154,8 @@ FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": 
          "Place": "place", "Lead place": "lead_place",    # 2.57.0: where the sentence is on its page ("1:117-218;2:0-30")
          "L/M": "lm",                                     # 2.68.0: Instructions (L) or Evaluation (M), Shipley
          "Area": "area",                                  # 3.19.0: the area text was added from ("2:72,140,540,168")
-         "Piece": "piece"}                                # 4.1.0: what the shred says the piece is (shredtypes)
+         "Piece": "piece",                                # 4.1.0: what the shred says the piece is (shredtypes)
+         "Left out": "left_out"}                          # 4.3.0: left out of the matrix on Place, with its reason (leaveout)
 
 
 class Locked(Exception):

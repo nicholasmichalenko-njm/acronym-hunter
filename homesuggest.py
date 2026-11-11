@@ -179,5 +179,7 @@ def crossref_rows(M):
 def left(M):
     """What Review still has: sentences not decided, and requirements decided but placed nowhere."""
     undecided = [it["id"] for it in M.items if it.get("type") != "Heading" and not it.get("decision")]
-    unplaced = [it["id"] for it in M.items if it.get("decision") in REQ and not it.get("map")]
+    import shredtypes as ST                  # 4.3.0: Place asks for requirements, instructions and deliverables; an
+    unplaced = [it["id"] for it in M.items if it.get("decision") in REQ and not it.get("map")     # evaluation piece links
+                and not it.get("left_out") and ST.type_of(it) != "evaluation"]                   # through L to M instead
     return {"undecided": undecided, "unplaced": unplaced}

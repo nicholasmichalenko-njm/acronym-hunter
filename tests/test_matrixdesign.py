@@ -88,7 +88,7 @@ def run():
     M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule")
     out = os.path.join(tempfile.mkdtemp(), "x", "Kestrel_Compliance_Matrix.xlsx")
     res = MD.export(M, out, d, "Kestrel")
-    assert res == {"path": out, "rows": 2, "customer": 1}, res
+    assert res == {"path": out, "rows": 2, "customer": 1, "left_out": 0}, res      # 4.3.0: left out on Place
     from openpyxl import load_workbook
     wb = load_workbook(out)
     ws = wb["Compliance Matrix"]
