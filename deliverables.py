@@ -125,13 +125,98 @@ def update(rec, did, who=None, **fields):
 
 
 def remove(rec, did, who=None):
+    """4.12.0: the deliverable leaves the board whole into deliverables_removed (restore puts it back); the pieces
+    attached to it go with it and come back with it."""
     d = get(rec, did)
     if d is None:
         return False
+    import effortrec as ER
+    kept = dict(d, removed=_now(), removed_by=ER._who(who), board_place=items(rec).index(d))
     items(rec).remove(d)
-    rec.log("deliverable", f"Deliverable removed: {d['name']}", who=who)
+    rec.data.setdefault("deliverables_removed", []).append(kept)
+    rec.log("deliverable", f"Deliverable removed: {d['name']}", ref={"deliverable": did}, who=who)
     rec.save()
     return True
+
+
+def removed(rec):
+    return list(rec.data.get("deliverables_removed", []))
+
+
+def restore(rec, did, who=None):
+    """Put a removed deliverable back where it was on the board, with everything it held."""
+    gone = rec.data.get("deliverables_removed", [])
+    d = next((x for x in reversed(gone) if x["id"] == did), None)
+    if d is None or get(rec, did) is not None:
+        return False
+    gone.remove(d)
+    at = d.pop("board_place", None)
+    d.pop("removed", None); d.pop("removed_by", None)
+    lst = items(rec)
+    lst.insert(at if isinstance(at, int) and 0 <= at <= len(lst) else len(lst), d)
+    rec.log("deliverable", f"Deliverable put back: {d['name']}", ref={"deliverable": did}, who=who)
+    rec.save()
+    return True
+
+
+def what_goes(d):
+    """The words for the delete confirmation: what the deliverable holds."""
+    bits = []
+    for k, one in (("parts", "part"), ("attachments", "attachment"), ("dates", "date"), ("discussion", "discussion note"),
+                   ("pieces", "piece of the solicitation")):
+        n = len(d.get(k) or [])
+        if n:
+            bits.append(f"{n} {one}{'' if n == 1 else 's'}")
+    if d.get("stages_done"):
+        bits.append("its done marks")
+    if d.get("notes"):
+        bits.append("its notes")
+    return bits
+
+
+# ------------------------------------------------------------------ 4.12.0 pieces of the solicitation
+def attach_piece(rec, did, piece, who=None):
+    """Attach a piece of the customer's text (Shred) to a deliverable. piece: {sid, doc, page, loc, text}. A piece sits on
+    one deliverable at a time: attaching it moves it. Returns True when it changed."""
+    d = get(rec, did)
+    sid = _clean((piece or {}).get("sid"))
+    if d is None or not sid:
+        return False
+    if any(p.get("sid") == sid for p in d.get("pieces", [])):
+        return False
+    detach(rec, sid, save=False, who=who)
+    p = {k: _clean(piece.get(k))[:600 if k == "text" else 200] for k in ("sid", "doc", "page", "loc", "text") if piece.get(k)}
+    import effortrec as ER
+    p.update(at=_now(), by=ER._who(who))
+    d.setdefault("pieces", []).append(p)
+    rec.log("deliverable", f"{d['name']}: a piece of the solicitation attached ({sid})", ref={"deliverable": did}, who=who)
+    rec.save()
+    return True
+
+
+def detach(rec, sid, save=True, who=None):
+    """Take a piece off the deliverable it is attached to."""
+    hit = False
+    for d in items(rec):
+        n = len(d.get("pieces", []))
+        if n:
+            d["pieces"] = [p for p in d["pieces"] if p.get("sid") != sid]
+            if len(d["pieces"]) < n:
+                hit = True
+                rec.log("deliverable", f"{d['name']}: piece {sid} taken off", ref={"deliverable": d["id"]}, who=who)
+    if hit and save:
+        rec.save()
+    return hit
+
+
+def of_piece(rec, sid):
+    """The deliverable a piece is attached to, or None."""
+    return next((d for d in items(rec) if any(p.get("sid") == sid for p in d.get("pieces", []))), None)
+
+
+def pieces_of(rec, did):
+    d = get(rec, did)
+    return list(d.get("pieces", [])) if d else []
 
 
 def mark_stage(rec, did, done=True, who=None):
