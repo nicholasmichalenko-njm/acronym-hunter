@@ -105,7 +105,7 @@ def exceptions(x):
     x = re.sub(r'(<w:r><w:t xml:space="preserve">Each page shall be numbered)', lambda m: (
         f'<w:del w:id="93" {A}><w:r><w:delText xml:space="preserve">Each page shall be numbered and shall include the '
         'solicitation number in the header.</w:delText></w:r></w:del><w:r><w:t xml:space="preserve">'), x, count=1)
-    x = re.sub(r'(<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t xml:space="preserve">L.3 )', lambda m: (
+    x = re.sub(r'(<w:p><w:pPr><w:pStyle w:val="Heading2"/>(?:(?!</w:p>).)*?<w:t xml:space="preserve">L.3 )', lambda m: (   # 4.13.0: placed, as set
         f'<w:p><w:ins w:id="94" {A}><w:r><w:t xml:space="preserve">Our addition before L.3.</w:t></w:r></w:ins></w:p>' + m.group(1)), x, count=1)
     return x
 
