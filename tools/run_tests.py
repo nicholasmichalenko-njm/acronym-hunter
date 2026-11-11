@@ -10,15 +10,22 @@ RETRY_ONCE (timing-sensitive) gets one second run on its own; the log says when 
     venv\\Scripts\\python.exe tools\\run_tests.py              every test (used by buildrel before anything is built)
     venv\\Scripts\\python.exe tools\\run_tests.py qt_kickoff   only the named tests
 
+4.5.0: SK_TEST_WORKERS=N (N > 1) runs N tests at a time, each worker with its own data folder (SK_DATA_DIR), so tests
+cannot share settings or efforts. The tests in SERIAL (Word, timings, this runner) run after them, one at a time. A test
+that fails while others run gets one run on its own; the log names it ("PASSED ONLY WHEN RUN ALONE"), and a test that
+fails twice fails the gate. The output keeps the tests' order.
+
 Prints each test's output (as the build log always had), then one totals line:
     TESTS_DONE <n> passed, <m> failed
 and exits 1 when anything failed, so the build stops there. No network; standard library only."""
-import os, re, subprocess, sys, time
+import os, re, shutil, subprocess, sys, tempfile, threading, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.environ.get("SK_TESTS_DIR") or os.path.join(ROOT, "tests")   # another folder only for this runner's own test
 LIMIT_S = int(os.environ.get("SK_TEST_LIMIT_S", "900"))
 RETRY_ONCE = {"qt_speed"}                 # timings vary with what else the PC is doing
+SERIAL = {"qt_speed", "test_wordgate", "test_office_pdf", "test_prodoffice", "test_run_tests", "test_setuptemplate",
+          "test_prodtemplate", "qt_prodfix", "test_prodfix"}     # Word, timings and the runner itself: one at a time
 FAIL_LINE = re.compile(r"\bFAIL\b")       # "QT X FAIL (27/28)", "FAIL  a check"; not "FAILED" in a message being tested
 SKIP_LINE = re.compile(r"^\s*SKIP\b")        # a test that leaves a check out says "SKIP: why" (not the app's own Skip choices)
 
@@ -34,12 +41,12 @@ def discover(only=None):
     return names
 
 
-def run_one(name):
+def run_one(name, env=None):
     """(ok, why, output). why is "" when ok."""
     start = time.time()
     try:
         p = subprocess.run([sys.executable, os.path.join(TESTS, name + ".py")], cwd=ROOT, stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT, timeout=LIMIT_S)
+                           stderr=subprocess.STDOUT, timeout=LIMIT_S, env=env)
         out = p.stdout.decode("utf-8", "replace")
         code = p.returncode
     except subprocess.TimeoutExpired as e:
@@ -54,15 +61,67 @@ def run_one(name):
     return True, f"{secs:.0f} s", out
 
 
+def workers():
+    try:
+        return max(1, int(os.environ.get("SK_TEST_WORKERS", "1")))
+    except ValueError:
+        return 1
+
+
+def run_parallel(names, n):
+    """Runs names n at a time and returns {name: (ok, why, out, started)}. Each worker keeps its own data folder."""
+    base = tempfile.mkdtemp(prefix="sk_workers_")
+    queue, lock, done = list(names), threading.Lock(), {}
+
+    def work(i):
+        env = dict(os.environ, SK_DATA_DIR=os.path.join(base, f"w{i}"))
+        env.pop("SK_TEST_WORKERS", None)
+        while True:
+            with lock:
+                if not queue:
+                    return
+                name = queue.pop(0)
+            started = time.strftime('%H:%M:%S')
+            ok, why, out = run_one(name, env)
+            with lock:
+                done[name] = (ok, why, out, started)
+                print(f"TRAN {name} {'ok' if ok else 'failed'} ({len(done)}/{len(names)})", flush=True)
+
+    ts = [threading.Thread(target=work, args=(i,), daemon=True) for i in range(n)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    shutil.rmtree(base, ignore_errors=True)
+    return done
+
+
 def main(argv):
     names = discover(argv[1:] or None)
     if not names:
         print("TESTS_DONE 0 passed, 0 failed (no tests found)")
         return 1
-    failed, retried, skipped = [], [], []
+    failed, retried, skipped, alone = [], [], [], []
+    n = workers()
+    pre = {}
+    if n > 1:
+        par = [x for x in names if x not in SERIAL]
+        print(f"WORKERS {n} ({len(par)} tests at {n} at a time, then {len(names) - len(par)} one at a time)", flush=True)
+        pre = run_parallel(par, n)
+        names = par + [x for x in names if x in SERIAL]
     for name in names:
-        print(f"TSTART {name} {time.strftime('%H:%M:%S')}", flush=True)
-        ok, why, out = run_one(name)
+        if name in pre:
+            ok, why, out, started = pre[name]
+            print(f"TSTART {name} {started}", flush=True)
+            if not ok:
+                print(out.rstrip())
+                print(f"ALONE {name} (failed while others ran: {why})", flush=True)
+                ok, why, out = run_one(name)
+                if ok:
+                    alone.append(name)
+        else:
+            print(f"TSTART {name} {time.strftime('%H:%M:%S')}", flush=True)
+            ok, why, out = run_one(name)
         if not ok and name in RETRY_ONCE:
             print(out.rstrip())
             print(f"RETRY {name} (failed first: {why})", flush=True)
@@ -78,6 +137,8 @@ def main(argv):
     print()
     if retried:
         print("PASSED ONLY ON A SECOND RUN: " + ", ".join(retried))
+    if alone:
+        print("PASSED ONLY WHEN RUN ALONE: " + ", ".join(alone))
     if skipped:
         print("LEFT A CHECK OUT (SKIP lines; run them on the PC with Word): " + ", ".join(skipped))
     for name, why in failed:

@@ -57,6 +57,23 @@ code, out = gate({"qt_speed.py": flaky})
 check("the timing test gets one second run and the log says so", code == 0 and "PASSED ONLY ON A SECOND RUN: qt_speed" in out,
       out[-400:])
 
+# 4.5.0: several at a time, each with its own data folder; the output keeps the order; a contention failure runs alone
+shared = ("import os, sys\nd = os.environ.get('SK_DATA_DIR', '')\nprint('dir ' + os.path.basename(d))\n"
+          "sys.exit(0 if d else 4)\n")
+alone_body = ("import os, sys\nif os.environ.get('SK_DATA_DIR'):\n    print('busy'); sys.exit(2)\nprint('alone ok')\n")
+os.environ["SK_TEST_WORKERS"] = "3"
+code, out = gate({"test_p1.py": shared, "test_p2.py": shared, "test_p3.py": shared, "qt_p4.py": shared,
+                  "test_alone.py": alone_body, "test_run_tests.py": "print('serial')\n"})
+del os.environ["SK_TEST_WORKERS"]
+check("workers: a passing set exits 0 and says how many at a time", code == 0 and "WORKERS 3" in out, out[-500:])
+check("workers: each test has a data folder of its worker's", out.count("dir w") == 4, out[-500:])
+check("workers: the output keeps the tests' order", out.find("TSTART test_alone") < out.find("TSTART test_p1") < out.find("TSTART qt_p4")
+      < out.find("TSTART test_run_tests"), out[-500:])
+check("workers: a test that fails among others passes alone and the log names it",
+      "PASSED ONLY WHEN RUN ALONE: test_alone" in out and "TESTS_DONE 6 passed, 0 failed" in out, out[-500:])
+code, out = gate({"test_p1.py": shared, "test_bad.py": "import sys; sys.exit(5)\n"})
+check("without workers nothing changes (no data folder of its own)", code == 1 and "WORKERS" not in out and "FAILED: test_p1: exit 4" in out, out[-500:])
+
 code, out = gate({"test_a.py": GOOD, "test_c.py": GOOD}, "test_c")
 check("named tests run alone", "TSTART test_c" in out and "TSTART test_a" not in out, out[-300:])
 
