@@ -49,9 +49,9 @@ dic = open(os.path.join(base, "dictionaries", "effort.dic"), "rb").read()
 check("the dictionary: UTF-16 LE with a BOM, the team's words and the effort's acronyms", dic.startswith(b"\xff\xfe")
       and set(CD.read_dic(os.path.join(base, "dictionaries", "effort.dic"))) == {"Kestrel", "IMS"})
 import zipfile
-zt = zipfile.ZipFile(os.path.join(base, "templates", "effort.dotx"))
-check("the template is a .dotx with no macros", "word/document.xml" in zt.namelist() and not any("vbaProject" in n for n in zt.namelist())
-      and "template.main+xml" in zt.read("[Content_Types].xml").decode())
+with zipfile.ZipFile(os.path.join(base, "templates", "effort.dotx")) as zt:      # closed: Windows cannot replace an open file
+    check("the template is a .dotx with no macros", "word/document.xml" in zt.namelist() and not any("vbaProject" in n for n in zt.namelist())
+          and "template.main+xml" in zt.read("[Content_Types].xml").decode())
 schema = json.load(open(ED.schema_path(), encoding="utf-8"))
 check("rules.json follows the schema shipped with the app (and a copy sits beside it)", not MS.errors(rules, schema)
       and os.path.isfile(os.path.join(base, "rules", ED.SCHEMA_FILE)), MS.errors(rules, schema)[:3])
@@ -92,5 +92,22 @@ mt = json.load(open(os.path.join(base, "manifest.json"), encoding="utf-8"))
 check("the manifest is written last, after every part", order and order[-1] == "manifest.json" and "rules.json" in order, order)
 check("a reader during a publish meets only whole files: each part is written under .tmp and renamed",
       all(not f.endswith(".tmp") for s in seen for f in s))
+def held(tmp_, target, tries=5):                             # Word has effort.dotx open as a document's template
+    if target.endswith("effort.dotx"):
+        raise PermissionError(13, "in use", target)
+    return real(tmp_, target, tries)
+ED._replace = held
+d = PRL.load(cfg); d["company"]["style_defs"] = {"Body Text": {"type": "paragraph", "font": "Arial", "size": 12}}; PRL.save(cfg, d)
+B.save(B.load() + [{"Phrase": "best of breed", "Level": "Avoid", "Use instead": "", "Why": "Jargon"}])
+r6 = ED.publish(cfg, ws, LIST, "Kestrel", "4.9.0")
+ED._replace = real
+r7 = json.load(open(os.path.join(base, "rules", "rules.json"), encoding="utf-8"))
+m7 = json.load(open(os.path.join(base, "manifest.json"), encoding="utf-8")); t7 = next(p_ for p_ in m7["parts"] if p_["key"] == "template")
+check("the template held open by Word: the rules still go out, the template waits and the manifest keeps the old one",
+      r6 and r6["pending"] == ["template"] and "rules" in r6["written"] and any(b["phrase"] == "best of breed" for b in r7["banned_phrases"])
+      and t7["sha256"] == hashlib.sha256(open(os.path.join(base, "templates", "effort.dotx"), "rb").read()).hexdigest()
+      and not os.path.exists(os.path.join(base, "templates", "effort.dotx.tmp")), r6)
+r8 = ED.publish(cfg, ws, LIST, "Kestrel", "4.9.0")
+check("... and the next try writes the template", r8 and "template" in r8["written"] and not r8["pending"], r8)
 print(f"EFFORTDATA 490 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

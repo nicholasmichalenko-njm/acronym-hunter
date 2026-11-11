@@ -11,6 +11,8 @@ EFFORT DATA FOR STATIONKEEPER MACROS (4.9.0)
     are written, each under a temporary name and then renamed, the manifest last, so the macros never read half a file.
     The revision only goes up; rules.json carries the manifest's revision. The template is rebuilt whenever its
     styles, table looks or Quick Parts change. The macros call a snapshot Aging after 24 hours and Stale after 72.
+  - While Word has the effort's template open (a document attached to it), the rules and the dictionary still go out
+    and the template is written on a later try, a minute apart; the manifest keeps the one Word has.
   - Nothing is written outside the effort's folder. The rules follow a JSON Schema the app carries
     (rules\effort-data.schema.json beside them).
 

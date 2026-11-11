@@ -201,6 +201,12 @@ def _replace(tmp, target, tries=5):
     return True
 
 
+def _read(path):
+    """The file's bytes, the handle closed at once (Windows will not replace a file that is open)."""
+    with open(path, "rb") as f:
+        return f.read()
+
+
 def _write(path, data):
     """Write bytes under <name>.tmp beside the target, flushed and closed, then rename."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -247,21 +253,30 @@ def publish(config_dir, ws, effort_path, effort_name, app_version="", force=Fals
     if have and not force and not any(changed.values()):
         return None
     rev = max(int(st.get("revision") or 0), int((man or {}).get("revision") or 0)) + 1
-    written, parts = [], []
+    written, parts, pending = [], [], []
     if changed["template"] or force or not os.path.isfile(os.path.join(base, "templates", "effort.dotx")):
         tmp_out = os.path.join(base, "templates", "effort.dotx.building")
         os.makedirs(os.path.dirname(tmp_out), exist_ok=True)
         if build_template(std, tmp_out):
-            data = open(tmp_out, "rb").read()
+            with open(tmp_out, "rb") as f:
+                data = f.read()
             os.remove(tmp_out)
-            _write(os.path.join(base, "templates", "effort.dotx"), data)
-            parts_state["template"] = {"hash": thash, "part_revision": rev}
-            written.append("template")
+            try:
+                _write(os.path.join(base, "templates", "effort.dotx"), data)
+                parts_state["template"] = {"hash": thash, "part_revision": rev}
+                written.append("template")
+            except PermissionError:                    # Word has it open as a document's template: the rest goes now,
+                diag.swallowed()                       # the template on a later try (the manifest keeps the old one)
+                pending.append("template")
+                try:
+                    os.remove(os.path.join(base, "templates", "effort.dotx.tmp"))
+                except OSError:
+                    pass
     if words and (changed["dictionary"] or force or not os.path.isfile(os.path.join(base, "dictionaries", "effort.dic"))):
         p = os.path.join(base, "dictionaries", "effort.dic")
         os.makedirs(os.path.dirname(p), exist_ok=True)
         CD.write_dic(p + ".building", words)
-        data = open(p + ".building", "rb").read()
+        data = _read(p + ".building")
         os.remove(p + ".building")
         _write(p, data)
         parts_state["dictionary"] = {"hash": dhash, "part_revision": rev}
@@ -274,7 +289,7 @@ def publish(config_dir, ws, effort_path, effort_name, app_version="", force=Fals
     try:
         sp = schema_path()
         if os.path.isfile(sp):
-            _write(os.path.join(base, "rules", SCHEMA_FILE), open(sp, "rb").read())
+            _write(os.path.join(base, "rules", SCHEMA_FILE), _read(sp))
     except OSError:
         diag.swallowed()
     if not os.path.isfile(os.path.join(base, "README.txt")):
@@ -283,7 +298,7 @@ def publish(config_dir, ws, effort_path, effort_name, app_version="", force=Fals
     for key, rel, fmt in (("template", "templates/effort.dotx", "dotx"), ("dictionary", "dictionaries/effort.dic", "dic-utf16")):
         p = os.path.join(base, *rel.split("/"))
         if key in parts_state and os.path.isfile(p):
-            parts.append(_part(key, rel, fmt, open(p, "rb").read(), int(parts_state[key].get("part_revision") or rev)))
+            parts.append(_part(key, rel, fmt, _read(p), int(parts_state[key].get("part_revision") or rev)))
     info = info or {}
     manifest = {"contract": CONTRACT, "schema_version": SCHEMA_VERSION, "min_reader_version": "1.0",
                 "effort": {"id": effort_id(ws), "name": effort_name, "solicitation": info.get("solicitation", ""),
@@ -296,7 +311,7 @@ def publish(config_dir, ws, effort_path, effort_name, app_version="", force=Fals
     st.update(revision=rev, parts=parts_state, published=manifest["published_utc"])
     ws.set("effort_data", st)
     diag.activity("effort_data_published", n=len(written))
-    return {"revision": rev, "written": written}
+    return {"revision": rev, "written": written, "pending": pending}
 
 
 def _inputs_stamp(w):
@@ -324,12 +339,17 @@ def tick(w):
         return None
     try:
         stamp = _inputs_stamp(w)                               # cheap: only when something it reads changed
-        if stamp == getattr(w, "_effdata_stamp", None):
+        retry = getattr(w, "_effdata_retry", 0) and time.time() >= w._effdata_retry
+        if stamp == getattr(w, "_effdata_stamp", None) and not retry:
             return None
-        w._effdata_stamp = stamp
+        w._effdata_stamp, w._effdata_retry = stamp, 0
         info = (getattr(w, "efforts", None) or {}).get(w.effort_name) or {}
-        return publish(w.config_dir, w.ws, w.effort_path, w.effort_name, getattr(w, "version", ""),
-                       info={"solicitation": info.get("solicitation", ""), "cui": True})
+        res = publish(w.config_dir, w.ws, w.effort_path, w.effort_name, getattr(w, "version", ""),
+                      info={"solicitation": info.get("solicitation", ""), "cui": True})
+        if res and res.get("pending"):
+            w._effdata_retry = time.time() + 60                # 4.9.0: the template again in a minute
+        return res
     except Exception:  # noqa: BLE001
         diag.swallowed()
+        w._effdata_retry = time.time() + 60
         return None
