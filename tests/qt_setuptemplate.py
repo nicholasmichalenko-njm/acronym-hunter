@@ -6,6 +6,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["AH_TEST"] = "1"
+os.environ["SK_SHRED_CLASSIC"] = "1"           # 4.5.0: tests the machinery under the focused Shred screen
 os.environ["SK_SANDBOX_TEMP"] = "temp_qt"
 import app_gui as A
 import compliance as C, effort as E, setupdoc as SD, workspace as W, office_pdf as OP

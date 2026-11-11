@@ -38,12 +38,20 @@ def install(page):
     page.focus_more.setMenu(m)
     bar.addWidget(page.focus_more)
     bar.addWidget(page.shred_main)
+    import os
+    if os.environ.get("SK_SHRED_CLASSIC"):
+        page.focus = None
+        page.shred_main.setVisible(False); page.focus_more.setVisible(False)
     from PySide6.QtGui import QKeySequence, QShortcut
     QShortcut(QKeySequence("Ctrl+0"), page.view, activated=lambda: page.view.fit())
 
 
 def apply(page, mode):
-    """Show what the mode needs (and only that). Returns the mode."""
+    """Show what the mode needs (and only that). Returns the mode. SK_SHRED_CLASSIC (the older tests of the machinery
+    under the screen) keeps the page as it was before 4.5.0."""
+    import os
+    if os.environ.get("SK_SHRED_CLASSIC"):
+        return off(page)
     page.focus = mode
     try:
         for name in LEAVE:
