@@ -3,11 +3,27 @@
 # then Word's own conversion of each tagged PDF back to Word (word_reflow\F*.docx), the baseline the copy must beat.
 # One hidden Word; it changes no Word or Windows settings. Usage:
 #   powershell -ExecutionPolicy Bypass -File tools\fidelity_pdfs.ps1 [-Root <repo>] [-NoReflow]
-param([string]$Root = (Split-Path $PSScriptRoot -Parent), [switch]$NoReflow)
+param([string]$Root = (Split-Path $PSScriptRoot -Parent), [switch]$NoReflow, [switch]$Decks)
 $ErrorActionPreference = 'Stop'
 $fx = Join-Path $Root 'test_samples\fidelity'
 $tagged = Join-Path $fx 'pdf_word_tagged'; $plain = Join-Path $fx 'pdf_word_untagged'; $reflow = Join-Path $fx 'word_reflow'
 foreach ($d in $tagged, $plain, $reflow) { New-Item -ItemType Directory -Force $d | Out-Null }
+if ($Decks) {                                       # 4.15.0: the fictional decks saved as PDF by PowerPoint
+    $ppt = Join-Path $fx 'pdf_ppt'; New-Item -ItemType Directory -Force $ppt | Out-Null
+    $pp = New-Object -ComObject PowerPoint.Application
+    try {
+        foreach ($f in Get-ChildItem $fx -Filter 'S*.pptx') {
+            $pres = $pp.Presentations.Open($f.FullName, -1, 0, 0)      # read-only, no window
+            $pres.SaveAs((Join-Path $ppt ($f.BaseName + '.pdf')), 32)
+            $pres.Close()
+            Write-Output "DECK $($f.BaseName)"
+        }
+    } finally {
+        $pp.Quit(); [void][Runtime.InteropServices.Marshal]::ReleaseComObject($pp)
+    }
+    Write-Output 'FIDELITY_DECKS_DONE'
+    exit 0
+}
 $word = New-Object -ComObject Word.Application      # the first PDF takes most of a minute (Word reads the printer)
 Start-Sleep -Milliseconds 400
 $word.Visible = $false

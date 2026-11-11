@@ -112,6 +112,10 @@ def score(folder, show=False, keep=None):
                 print(f"  {stem} got  {json.dumps(g)[:300]}")
             for d in diffs[:3]:
                 print(f"  {stem} {d['kind']}: {d['was']!r} -> {d['now']!r} (page {d['page']})")
+    if keep:                                           # 4.15.0: the decks too, for the page pictures
+        for f in sorted(os.listdir(folder)):
+            if f.startswith("S") and f.lower().endswith(".pdf"):
+                RC.build(os.path.join(folder, f), os.path.join(tmp, f[:-4] + " - copy.docx"))
     return rows
 
 
