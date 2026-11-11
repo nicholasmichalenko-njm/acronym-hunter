@@ -59,7 +59,7 @@ check("... and the preview shows it", "Lead with the second site." in sp.prev.te
 sp.f_lead.setText("R. Diaz"); sp.f_lead.editingFinished.emit(); spin()
 check("Lead saves as the box is left", SM.people(M, LAB)[0] == "R. Diaz")
 
-w.go("assign"); spin()
+w.go("place"); spin()                                         # 4.3.0: the target and its panel are Place's
 ap = w.assign_page
 ap.set_target(None); spin()
 check("Review: no target, no section panel", not ap.section_panel.isVisibleTo(w))
