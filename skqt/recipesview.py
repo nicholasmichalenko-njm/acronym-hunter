@@ -42,6 +42,10 @@ class RecipesView(QWidget):
         self.e_codes.setPlaceholderText('One field per line, as Word shows it with Alt+F9, without the braces. For example:\nSTYLEREF 1 \\s\nSEQ Table \\* ARABIC \\s 1')
         f.addRow("Field code(s)", self.e_codes)
         self.e_between = QLineEdit(); self.e_between.setPlaceholderText("The text between the fields (a caption's hyphen)"); f.addRow("Between", self.e_between)
+        self.preview = D.label("", None); self.preview.setToolTip("What Word would show on a sample page: page 3 of 12, under "
+                                                                   "Heading 1 \"2 Technical Approach\", after one table and two figures")
+        f.addRow("It shows", self.preview)                   # 4.7.0: worked out while you type (fieldpreview)
+        self.e_codes.textChanged.connect(self.show_preview); self.e_between.textChanged.connect(lambda _t: self.show_preview())
         self.e_bm = QLineEdit(); self.e_bm.setPlaceholderText("For example Response"); f.addRow("Bookmark it needs", self.e_bm)
         self.e_spans = QLineEdit(); self.e_spans.setPlaceholderText("What the bookmark must hold"); f.addRow("The bookmark spans", self.e_spans)
         self.e_style = QLineEdit(); f.addRow("Style it reads", self.e_style)
@@ -101,6 +105,19 @@ class RecipesView(QWidget):
         self.e_style.setText(r.get("style", "")); self.e_note.setText(r.get("note", ""))
         eff = next((x for x in self.rows if x["id"] == rid), None)
         self.own_lab.setText(f"{self.host.effort_name} uses its own code: " + "  then  ".join(eff["codes"]) if eff and eff.get("effort_own") else "")
+
+    def show_preview(self):
+        """4.7.0: the sample result of the codes typed, or what the rules cannot work out."""
+        import fieldpreview as FP
+        codes = [c for c in self.e_codes.toPlainText().splitlines() if c.strip()]
+        if not codes:
+            self.preview.setText("")
+            return ""
+        text, known = FP.recipe(codes, self.e_between.text(), label=FP.label_of(codes))
+        shown = text if known else (text.replace(FP.OTHER, "").strip() + ("  " if text.replace(FP.OTHER, "").strip() else "")
+                                    + "(Word shows this one: Check in Word updates it in a real copy)")
+        self.preview.setText(shown)
+        return shown
 
     def values(self):
         return {"name": self.e_name.text(), "where": self.e_where.currentText(), "codes": self.e_codes.toPlainText().splitlines(),

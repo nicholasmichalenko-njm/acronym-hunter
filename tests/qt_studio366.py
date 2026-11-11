@@ -83,6 +83,10 @@ i = next(n for n, r in enumerate(found) if r["status"] == "no recipe")
 new = rv.from_found(i)
 check("Make a recipe from it", next(r for r in FR.load(w.config_dir) if r["id"] == new)["codes"] == ["SEQ Exhibit \\* ARABIC"]
       and next(r for r in FR.load(w.config_dir) if r["id"] == new)["where"] == "Caption")
+rv.e_codes.setPlainText("STYLEREF 1 \\s\nSEQ Table \\* ARABIC \\s 1"); rv.e_between.setText("-")
+check("4.7.0: It shows the sample result while the code is typed", rv.preview.text() == "Table 2-2", rv.preview.text())
+rv.e_codes.setPlainText("HYPERLINK x")
+check("... and says when Word shows it", "Word shows this one" in rv.preview.text(), rv.preview.text())
 rv.table.selectRow([r["id"] for r in rv.rows].index(new)); rv.remove()
 check("Remove a recipe", not any(r["id"] == new for r in FR.load(w.config_dir)))
 

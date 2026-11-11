@@ -240,6 +240,13 @@ def book_rows(company, recipes=None):
         for lab, key in FIELD_COLS:
             v = r.get(key)
             row[lab] = " | ".join(v) if isinstance(v, list) else (v or "")
+        if not row.get("Sample result") and r.get("codes"):              # worked out on the sample page (fieldpreview)
+            try:
+                import fieldpreview as FP
+                txt, known = FP.recipe(r["codes"], r.get("between", ""), label=FP.label_of(r["codes"]))
+                row["Sample result"] = txt if known else ""
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
         row.update(x.get("own") or {})
         fr.append(row)
     sheets[FIELDS] = fr
