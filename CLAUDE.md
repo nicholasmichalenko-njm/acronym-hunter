@@ -42,7 +42,8 @@ templates, and checks. One person builds it, with Claude. Keep this file under t
   `skqt/prodstdpage.py`, `skqt/homepage.py`, `compliance.py`, `skqt/custdocs.py`.
 
 ## How a release runs
-1. One worktree and branch per release (`/home/claude/ahNNNN`, `dev-X.Y.Z`). No more than two releases in flight.
+1. One worktree and branch per release (`/home/claude/ahNNNN`, `dev-X.Y.Z`). No more than two releases in flight, or three
+   when each builds on the one before (2026-11-11).
 2. Commit at each finished step. Run the suite:
    `QT_QPA_PLATFORM=offscreen AH_TEST=1 python tools/run_tests.py` (one test: add its name).
 3. Merge `origin/main` before the PC build. On the PC: notes in `_local_sandbox\notes_X.Y.Z.md`,
