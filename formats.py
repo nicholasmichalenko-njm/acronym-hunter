@@ -28,6 +28,9 @@ FORMATS = {
     "scan readings": ("ocrpdf.save_readings -> <page copy>.readings.json beside the copy", "format", 1),   # 3.84.0
     "section designs": ("sectiondesigns -> section_designs/index.json in the config folder", "format", 1),   # 3.87.0
     "piece types": ("shredtypes.save -> piece_types.json in the config folder", "format", 1),   # 4.1.0
+    "Company Standards workbook": ("standardsbook.write -> Company Standards.xlsx in the team library, and an effort's "
+                                   "Effort Formatting.xlsx; the About sheet", "Format", 1),   # 4.7.0
+    "team library state": ("teamlib -> team_library_state.json in the config folder", "format", 1),   # 4.7.0
     "re-shred queue": ("reshred.Queue.save -> changes/reshred.json in the effort's working folder", "format", 1),   # 4.1.0
 }
 

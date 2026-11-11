@@ -1,6 +1,6 @@
 """Effort Formatting (3.36.0): this effort's formatting on top of the Company Standards (Default), on a page of its own under
 Effort. The values efforts change most are up front (body, table and caption fonts and sizes, headings, paper and
-margins, header and footer), each with the global value beside it, what the RFP says with Use it, Reset, and Make it
+margins, header and footer), each with the Company Standards (Default) value beside it, what the RFP says with Use it, Reset, and Make it
 global. Changes apply to every volume of the effort or to one. Every setting opens the full Production Standards
 editor on this effort's layer. Nothing here changes the Company Standards (Default) except Make it global. Rules only."""
 from PySide6.QtCore import Qt
@@ -67,7 +67,7 @@ class EffortFormatPage(QWidget):
         inner = QWidget(); sc.setWidget(inner)
         iv = QVBoxLayout(inner); iv.setContentsMargins(0, 0, 0, 0); iv.setSpacing(D.SPACE["m"])
         vals = D.Card("The values efforts change most", "The global value is in grey. Set this effort's own; Reset takes "
-                      "it back to the global value. Where the RFP has a rule, it shows beside the value, in red when the value breaks it.")
+                      "it back to the Company Standards (Default) value. Where the RFP has a rule, it shows beside the value, in red when the value breaks it.")
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(D.SPACE["m"]); self.grid.setVerticalSpacing(D.SPACE["xs"])
         for c, h in enumerate(("", "Global value", "This effort", "The RFP says", "", "")):
             if h:
@@ -84,8 +84,10 @@ class EffortFormatPage(QWidget):
         self.grid.setColumnStretch(3, 1)
         vals.body.addLayout(self.grid)
         iv.addWidget(vals)
-        ch = D.Card("Changed for this effort", "Everything this effort sets at this scope, with the global value.",
-                    actions=[D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the global value"),
+        ch = D.Card("Changed for this effort", "Everything this effort sets at this scope, with the Company Standards (Default) value.",
+                    actions=[D.button("Open this effort's workbook", None, lambda: self.open_book(),     # 4.7.0
+                                      "This effort's changes as a workbook beside its list: edit it in Excel; a blank cell means the default"),
+                             D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the Company Standards (Default) value"),
                              D.button("Undo the last Make it global", "ghost", lambda: self.undo_keep(),
                                       "Put the Company Standards (Default) back as they were before the last Make it global")])
         self.changes = QLabel(""); self.changes.setTextFormat(Qt.RichText); self.changes.setWordWrap(True); ch.add(self.changes)
@@ -144,7 +146,7 @@ class EffortFormatPage(QWidget):
             self.grid.addWidget(ed, r, 2)
         rfp = D.label("", "muted"); rfp.setWordWrap(True); rfp.setMinimumWidth(160); self.grid.addWidget(rfp, r, 3)
         use = D.button("Use it", "ghost", lambda _=False, k=key: self.use_rfp(k), "This effort takes the RFP's value")
-        reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the global value")
+        reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the Company Standards (Default) value")
         box = QHBoxLayout(); box.setSpacing(D.SPACE["xs"]); box.addWidget(use); box.addWidget(reset)
         wbox = QWidget(); wbox.setLayout(box); self.grid.addWidget(wbox, r, 4)
         keep = QToolButton(); keep.setText("Make it global"); keep.setPopupMode(QToolButton.InstantPopup)
@@ -242,6 +244,17 @@ class EffortFormatPage(QWidget):
 
     def reset(self, key):
         return self.edited(key, None)
+
+    def open_book(self):
+        """4.7.0: this effort's formatting workbook (written now if it is not there yet)."""
+        import teamlib as T
+        h = self.host
+        if h.ws is None or not getattr(h, "effort_path", ""):
+            return None
+        p = T.effort_book_path(h.effort_path, h.effort_name)
+        if not __import__("os").path.isfile(p) or (h.ws.get("effort_book") or {}).get("dirty"):
+            T.write_effort_book(h.ws, h.effort_path, h.effort_name)
+        return __import__("skqt.teamlibview", fromlist=["x"])._open(p)
 
     def reset_all(self):
         if self.host.ws is None:

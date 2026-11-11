@@ -65,6 +65,7 @@ def state(config_dir):
 
 def _save_state(config_dir, st):
     os.makedirs(config_dir, exist_ok=True)
+    st["format"] = 1                                     # formats.py "team library state"
     p = _state_path(config_dir)
     with open(p + ".tmp", "w", encoding="utf-8") as f:
         json.dump(st, f, indent=1)

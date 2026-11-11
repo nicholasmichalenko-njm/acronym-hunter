@@ -4,7 +4,7 @@ the ignore list names them. A tracked one fails the build before anything is pub
 import os, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BAD_EXT = (".skdata", ".skteam", ".sklib", ".skknow", ".sktrain")
-BAD_NAMES = ("custom_dictionaries.json", "production_standards.json", "team_bins.json", "banned_words.csv", "author_list.json",
+BAD_NAMES = ("custom_dictionaries.json", "production_standards.json", "Company Standards.xlsx", "team_library_state.json", "team_bins.json", "banned_words.csv", "author_list.json",
              "wall_of_truth.json", "suggestion_rules.json", "acronym_database.csv")
 BAD_DIRS = ("production_parts/", "template_library/", "data_backups/", "team_backups/", "knowledge_backups/")
 ALLOWED = ("base/",                       # the generic starter data shipped with the program

@@ -41,6 +41,8 @@ SHEETS = (("Styles", ("style_defs",), "map", None), ("Table looks", ("row_types"
 SETTINGS = "Settings"
 FIELDS = "Fields"
 COLUMNS = "Columns"
+ABOUT = "About"
+FORMAT = 1                                   # formats.py "Company Standards workbook"
 FIELD_COLS = (("Field code(s)", "codes"), ("Text between", "between"), ("What it does", "note"), ("Where it goes", "where"),
               ("Use case", "use_case"), ("Bookmark it needs", "bookmark"), ("What the bookmark spans", "spans"),
               ("Style it reads", "style"), ("Depends on", "depends"), ("Sample result", "sample"))
@@ -297,6 +299,12 @@ def write(path, company, recipes=None, own_cols=None):
     for r in sheets[FIELDS]:
         ws.append([to_cell(r.get(h)) for h in header])
     _dress(ws, header, head, fill, get_column_letter)
+    ws = wb.create_sheet(ABOUT)
+    for row in (("What", "Value"), ("Format", FORMAT), ("Made by", "Stationkeeper"),
+                ("How to use it", "Edit values here or in the app; the app reads what changed and writes what it changes. "
+                 "A blank cell in an effort's workbook means the Company Standards (Default) value. Only Approved rows "
+                 "reach templates and the macros. Columns you add are kept and never reach Word.")):
+        ws.append(list(row))
     ws = wb.create_sheet(COLUMNS)
     for row in colsheet:
         ws.append(list(row))

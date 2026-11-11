@@ -131,6 +131,9 @@ class StylesPage(QWidget):
         self.bar.more("New set...", lambda: self.new_set())
         self.bar.more("Rename this set...", lambda: self.rename_set())
         self.bar.more("Take this set away", lambda: self.remove_set())
+        self.bar.more_sep()                                   # 4.7.0: the values as a workbook, edited in Excel or here
+        self.bar.more("Open the Company Standards workbook", lambda: __import__("skqt.teamlibview", fromlist=["x"])._open(
+            __import__("teamlib").book_path(self.host.config_dir)), "Company Standards.xlsx in the team library, in Excel")
         top.addWidget(self.bar)
         v.addLayout(top)
         body = QHBoxLayout(); body.setSpacing(D.SPACE["l"])
