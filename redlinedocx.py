@@ -27,6 +27,8 @@ def _borders(kind):
 
 def table(d, grid, room=9360):
     """Append the table to d.body. room: twips between the margins."""
+    if d.body and d.body[-1].endswith("</w:tbl>"):
+        d.body.append("<w:p/>")                       # Word keeps two tables apart with a paragraph
     widths = [max(1.0, w) for w in grid["widths"]] or [1.0]
     tw = [int(round(w * TW)) for w in widths]
     if sum(tw) > room:
@@ -73,9 +75,10 @@ def table(d, grid, room=9360):
             trpr += f'<w:trHeight w:val="{int(hs[ri] * TW)}" w:hRule="atLeast"/>'
         xml.append("<w:tr>" + (f"<w:trPr>{trpr}</w:trPr>" if trpr else "") + "".join(cells) + "</w:tr>")
     gridx = "".join(f'<w:gridCol w:w="{w}"/>' for w in tw)
+    pad = int(round(max(0.0, min(14.0, grid.get("pad", 5.4))) * TW))     # the space before a cell's text, as on the page
     d.body.append(f'<w:tbl><w:tblPr><w:tblW w:w="{sum(tw)}" w:type="dxa"/>{_borders(grid.get("borders", "all"))}'
-                  '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="72" w:type="dxa"/><w:right w:w="72" w:type="dxa"/>'
-                  f'</w:tblCellMar></w:tblPr><w:tblGrid>{gridx}</w:tblGrid>' + "".join(xml) + "</w:tbl><w:p/>")
+                  f'<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="{pad}" w:type="dxa"/><w:right w:w="{pad}" w:type="dxa"/>'
+                  f'</w:tblCellMar></w:tblPr><w:tblGrid>{gridx}</w:tblGrid>' + "".join(xml) + "</w:tbl>")
 
 
 def _sect(g):
@@ -100,9 +103,43 @@ def room(g):
     return int((g["w"] - g["margins"][1] - g["margins"][3]) * TW)
 
 
-def heading(d, text, level, size=None, bold=True):
-    """A heading in Word's Heading N style, its run at the size and weight the PDF set it in."""
+def _ppr(geo, keep_next=False):
+    """Paragraph properties from where the paragraph sits: space above, line to line, indents, alignment, a new page."""
+    if not geo:
+        return ""
+    out = "<w:keepNext/>" if keep_next else ""
+    if geo.get("break"):
+        out += "<w:pageBreakBefore/>"
+    line = f' w:line="{int(round(geo["pitch"] * TW))}" w:lineRule="exact"' if geo.get("pitch") else ""
+    out += f'<w:spacing w:before="{int(round(geo.get("before", 0) * TW))}" w:after="0"{line}/>'
+    left, first = int(round(geo.get("left", 0) * TW)), int(round(geo.get("first", 0) * TW))
+    if left or first:
+        out += f'<w:ind w:left="{left}"' + (f' w:firstLine="{first}"' if first > 0 else f' w:hanging="{-first}"' if first < 0 else "") + "/>"
+    if geo.get("align") in ("center", "right", "both"):
+        out += f'<w:jc w:val="{geo["align"]}"/>'
+    return out
+
+
+def heading(d, text, level, size=None, bold=True, geo=None, color=""):
+    """A heading in Word's Heading N style, its run at the size, weight and color the PDF set it in, placed as on the page."""
     level = max(1, min(9, int(level)))
-    rpr = ("<w:b/>" if bold else "<w:b w:val=\"0\"/>") + (f'<w:sz w:val="{int(round(size * 2))}"/>' if size else "")
-    d.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/></w:pPr><w:r><w:rPr>{rpr}</w:rPr>'
+    rpr = ("<w:b/>" if bold else "<w:b w:val=\"0\"/>") + (f'<w:color w:val="{_x(color)}"/>' if color else "") \
+        + (f'<w:sz w:val="{int(round(size * 2))}"/>' if size else "")
+    d.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/>{_ppr(geo, True)}</w:pPr><w:r><w:rPr>{rpr}</w:rPr>'
                   f'<w:t xml:space="preserve">{_x(text)}</w:t></w:r></w:p>')
+
+
+def para(d, text, geo):
+    d.body.append(f'<w:p><w:pPr>{_ppr(geo)}</w:pPr><w:r><w:t xml:space="preserve">{_x(text)}</w:t></w:r></w:p>')
+
+
+def spacer(d, geo):
+    """The space above a table (a table holds no space of its own): an empty line exactly that tall; a new PDF page
+    starts a new page."""
+    if not geo:
+        return
+    h = geo.get("before", 0)
+    brk = "<w:pageBreakBefore/>" if geo.get("break") else ""
+    if h >= 2 or brk:
+        d.body.append(f'<w:p><w:pPr>{brk}<w:spacing w:before="0" w:after="0" w:line="{max(20, int(round(h * TW)))}" '
+                      'w:lineRule="exact"/></w:pPr></w:p>')

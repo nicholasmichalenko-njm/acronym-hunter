@@ -166,11 +166,12 @@ def _table(xs, ys, cells, ws, fills, borders):
     l, t, r, b = xs[0], ys[0], xs[-1], ys[-1]
     inside = [w for w in ws if l <= (w["box"][0] + w["box"][2]) / 2 <= r and t <= (w["box"][1] + w["box"][3]) / 2 <= b]
     rows = [[] for _ in range(len(ys) - 1)]
-    filled = 0
+    filled, placed = 0, []
     for r0, c0, rs, cs in cells:
         cl, cr, ct, cb = xs[c0], xs[c0 + cs], ys[r0], ys[r0 + rs]
         mine = [w for w in inside if cl <= (w["box"][0] + w["box"][2]) / 2 <= cr and ct <= (w["box"][1] + w["box"][3]) / 2 <= cb]
         text = _cell_text(mine) if mine else ""
+        placed.append((c0, [w for w in mine if not w.get("rot")]))
         filled += bool(text)
         fill = ""
         for fl, ft, fr, fb, col in fills:
@@ -183,7 +184,9 @@ def _table(xs, ys, cells, ws, fills, borders):
         row.sort(key=lambda c: c["c"])
     head = 1 if rows and rows[0] and (all(c["bold"] or not c["text"] for c in rows[0]) and any(c["text"] for c in rows[0])
                                       or all(c["fill"] for c in rows[0])) and len(rows) > 1 else 0
-    return {"box": (l, t, r, b), "widths": [xs[k + 1] - xs[k] for k in range(len(xs) - 1)],
+    pads = sorted(min(w["box"][0] for w in m) - xs[c0] for c0, m in placed if m)
+    pad = pads[len(pads) // 2] if pads else 5.4
+    return {"box": (l, t, r, b), "widths": [xs[k + 1] - xs[k] for k in range(len(xs) - 1)], "pad": pad,
             "heights": [ys[k + 1] - ys[k] for k in range(len(ys) - 1)], "rows": rows, "header": head, "borders": borders,
             "words": [w["i"] for w in inside], "filled": filled}
 

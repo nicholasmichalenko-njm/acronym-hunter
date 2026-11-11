@@ -85,23 +85,32 @@ def plan(pdf, name=None):
             continue
         if p["kind"] == "heading":
             first = doc["pages"][p["lines"][0][0]]["lines"][p["lines"][0][1]]
-            out.append({"kind": "heading", "level": depth(text), "text": text, "page": p["page"],
-                        "size": round(first.get("size") or 0, 1), "bold": bool(first.get("bold"))})   # 4.13.0: as set
+            bold, color = RL.line_style(pdf, p["lines"][0][0], first.get("a", 0))
+            out.append({"kind": "heading", "level": depth(text), "text": text, "page": p["page"],      # 4.13.0: as set
+                        "size": round(first.get("size") or 0, 1), "bold": bold or bool(first.get("bold")), "color": color})
         elif PS._LIST.match(text):
             out.append({"kind": "list", "level": 0, "text": text, "page": p["page"]})
         else:
             out.append({"kind": "text", "level": 0, "text": text, "page": p["page"]})
         out[-1]["at"] = p["lines"][0] if p["lines"] else (p["page"] - 1, 0)
+        out[-1]["_lines"] = list(p["lines"])
     for t in tables:
+        box = t.get("box")
+        if box is None:
+            bx = [doc["pages"][pi]["lines"][li]["box"] for pi, li in t["lines"] if pi == t["page"]]
+            box = (min(b[0] for b in bx), min(b[1] for b in bx), max(b[2] for b in bx), max(b[3] for b in bx)) if bx else (0, 0, 0, 0)
         out.append({"kind": "table", "level": 0, "text": RL.text_of(t["grid"]), "page": t["page"] + 1, "grid": t["grid"],
-                    "at": t["lines"][0]})
+                    "at": t["lines"][0], "_box": box})
     out.sort(key=lambda p: tuple(p.get("at") or (0, 0)))
+    keep = {(pi, li) for pi, p in enumerate(doc["pages"]) for li in range(len(p["lines"])) if (pi, li) not in skip}
+    pages = RL.setup(doc, keep, tables)
+    RL.geometry(doc, out, pages)                   # 4.13.0: where each paragraph and table sits on its page
     for p in out:
-        p.pop("at", None)
+        for k in ("at", "_lines", "_box"):
+            p.pop(k, None)
     aside = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(set_aside)
              if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
-    keep = {(pi, li) for pi, p in enumerate(doc["pages"]) for li in range(len(p["lines"])) if (pi, li) not in skip}
-    return out, aside, RL.setup(doc, keep, tables)
+    return out, aside, pages
 
 
 def copy_name(pdf, when=None):
@@ -127,14 +136,20 @@ def build(pdf, out, name=None):
         while gi + 1 < len(pages) and p.get("page", 1) > pages[gi]["pages"][1]:
             RD.section(d, pages[gi])
             gi += 1
+        geo = p.get("geo")
         if p["kind"] == "heading":
-            RD.heading(d, p["text"], p["level"], p.get("size"), p.get("bold", True))
+            RD.heading(d, p["text"], p["level"], p.get("size"), p.get("bold", True), geo, p.get("color", ""))
+        elif p["kind"] == "table":
+            RD.spacer(d, geo)
+            RD.table(d, p["grid"], RD.room(pages[gi]) if pages else 9360)
+        elif geo:
+            RD.para(d, p["text"], geo)
         elif p["kind"] == "list":
             d.rich([(p["text"], {})], indent=360)
-        elif p["kind"] == "table":
-            RD.table(d, p["grid"], RD.room(pages[gi]) if pages else 9360)
         else:
             d.para(p["text"])
+    if d.body and d.body[-1].endswith("</w:tbl>"):
+        d.body.append("<w:p/>")                     # Word ends a document with a paragraph
     if pages:
         d.final_sect = RD.final(pages[gi])
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)

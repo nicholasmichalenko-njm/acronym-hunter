@@ -41,7 +41,7 @@ def ruled(pdf, doc, skip):
                     continue
                 rows = [[{k: c[k] for k in ("text", "cs", "rs", "fill", "bold")} for c in row] for row in t["rows"] if row]
                 out.append({"page": pi, "lines": mine, "box": t["box"],
-                            "grid": {"rows": rows, "widths": t["widths"], "heights": t["heights"], "header": t["header"],
+                            "grid": {"rows": rows, "widths": t["widths"], "heights": t["heights"], "header": t["header"], "pad": t["pad"],
                                      "borders": t["borders"], "source": "ruled"}})
     finally:
         pp.close()
@@ -142,3 +142,109 @@ def body_font(pdf, sample=4000):
     finally:
         doc.close()
     return seen.most_common(1)[0][0] if seen else "Calibri"
+
+
+def _median(v, default):
+    v = sorted(v)
+    return v[len(v) // 2] if v else default
+
+
+def geometry(doc, items, pages):
+    """Where each paragraph and table sits, for the copy to place it the same way. items: the copy's plan in order, each
+    with "_lines" [(page, line)] (paragraphs) or "_box" (tables). Adds "geo": {"before" (points of space above), "pitch"
+    (line to line), "left", "first" (the first line's indent past the rest), "align" ("left", "center", "right",
+    "both"), "break" (starts a new page of the PDF)}."""
+    import statistics
+    sizes = [ln["size"] for p in doc["pages"] for ln in p["lines"] if ln.get("size")]
+    body = statistics.median(sizes) if sizes else 11.0
+    diffs = []
+    for it in items:
+        ls = it.get("_lines") or []
+        for (pa, la), (pb, lb) in zip(ls, ls[1:]):
+            if pa == pb:
+                d = doc["pages"][pb]["lines"][lb]["box"][1] - doc["pages"][pa]["lines"][la]["box"][1]
+                if 0.8 * body < d < 3 * body:
+                    diffs.append(d)
+    body_pitch = _median(diffs, 1.2 * body)
+    group = {}
+    for g in pages:
+        for n in range(g["pages"][0], g["pages"][1] + 1):
+            group[n] = g
+    prev = None
+    for it in items:
+        page = it.get("page", 1)
+        g = group.get(page) or (pages[0] if pages else {"w": 612, "margins": (72, 72, 72, 72)})
+        top_m, right_m, _b, left_m = g["margins"]
+        lo, hi = left_m, g["w"] - right_m
+        geo = {"before": 0.0, "pitch": None, "left": 0.0, "first": 0.0, "align": "left", "break": False}
+        if it.get("_box") is not None:
+            top, bottom, size, pitch, last_top = it["_box"][1], it["_box"][3], body, body_pitch, None
+        else:
+            ls = it.get("_lines") or []
+            lines = [doc["pages"][pi]["lines"][li] for pi, li in ls if pi == page - 1] or \
+                [doc["pages"][pi]["lines"][li] for pi, li in ls]
+            if not lines:
+                it["geo"] = geo
+                prev = None
+                continue
+            bx = [ln["box"] for ln in lines]
+            size = _median([ln.get("size") or body for ln in lines], body)
+            own = [b2[1] - b1[1] for b1, b2 in zip(bx, bx[1:]) if 0.8 * size < b2[1] - b1[1] < 3 * size]
+            pitch = _median(own, body_pitch if abs(size - body) < 0.6 else 1.2 * size)
+            top, bottom, last_top = bx[0][1], bx[-1][3], bx[-1][1]
+            minx = min(b[0] for b in bx)
+            geo["pitch"] = round(pitch, 2)
+            geo["left"] = round(max(0.0, minx - lo), 1)
+            geo["first"] = round(bx[0][0] - minx, 1)
+            mid = (lo + hi) / 2
+            if all(abs((b[0] + b[2]) / 2 - mid) < 4 for b in bx) and max(b[2] - b[0] for b in bx) < 0.85 * (hi - lo):
+                geo["align"] = "center"
+            elif len(bx) >= 2 and all(abs(b[2] - hi) < 3 for b in bx[:-1]) and max(b[2] for b in bx) - min(b[0] for b in bx) > 0.8 * (hi - lo):
+                geo["align"] = "both"
+            elif all(abs(b[2] - hi) < 2 for b in bx) and max(b[0] for b in bx) - min(b[0] for b in bx) > 3 and len(bx) >= 2:
+                geo["align"] = "right"
+        if prev is None:                               # the first thing on the first page sits this far down
+            geo["before"] = round(max(0.0, top - top_m), 1)
+        elif prev["page"] == page:
+            if prev["last_top"] is None:               # after a table
+                gap = top - prev["bottom"] - 0.2 * size
+            else:
+                gap = top - prev["last_top"] - prev["pitch"]
+            geo["before"] = round(max(0.0, gap), 1)
+        elif prev["page"] < page:
+            geo["break"] = True
+            geo["before"] = round(max(0.0, top - top_m), 1)
+        it["geo"] = geo
+        prev = {"page": page, "last_top": last_top, "pitch": pitch, "bottom": bottom}
+    return items
+
+
+def line_style(pdf, page_index, char_index):
+    """(bold, color "RRGGBB" or "") of the character that starts a line: bold from the font's weight or its name."""
+    import ctypes
+    import pypdfium2 as pdfium
+    import pypdfium2.raw as R
+    try:
+        doc = pdfium.PdfDocument(pdf)
+    except Exception:  # noqa: BLE001
+        return False, ""
+    try:
+        page = doc[page_index]
+        tp = page.get_textpage()
+        try:
+            n = tp.count_chars()
+            k = min(max(0, char_index), max(0, n - 1))
+            buf = ctypes.create_string_buffer(256)
+            flags = ctypes.c_int()
+            name = buf.value.decode("utf-8", "replace") if R.FPDFText_GetFontInfo(tp.raw, k, buf, 256, ctypes.byref(flags)) else ""
+            bold = R.FPDFText_GetFontWeight(tp.raw, k) >= 600 or "bold" in name.lower() or "black" in name.lower()
+            r, g, b, a = (ctypes.c_uint() for _ in range(4))
+            color = ""
+            if R.FPDFText_GetFillColor(tp.raw, k, ctypes.byref(r), ctypes.byref(g), ctypes.byref(b), ctypes.byref(a)):
+                color = "%02X%02X%02X" % (r.value, g.value, b.value)
+                color = "" if color == "000000" else color
+            return bold, color
+        finally:
+            tp.close(); page.close()
+    finally:
+        doc.close()
