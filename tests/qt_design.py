@@ -52,9 +52,9 @@ steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the effort's path, then Team and Settings (4.0.0: six steps)", rail[:len(steps)] == steps
       and steps == ["Dashboard", "Documents", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Team", "Settings"], rail)
 w.go("prove"); app.processEvents()
-check("the top bar names the page: Coverage is a view of the Shred page (3.96.0: See it as; 4.0.0: Shred)", w.page_title.text() == "Shred"
-      and w.stack.currentWidget() is w.assign_page and w.stepper.isVisibleTo(w) and w.stepper.views["prove"].isChecked()
-      and w.step_btns["assign"].isChecked())
+check("the top bar names the page: Coverage is a tab of Matrix & Outline (4.3.0)", w.page_title.text() == "Matrix & Outline"
+      and w.stack.currentWidget() is w.assign_page and not w.stepper.isVisibleTo(w) and w.page_tabs.isVisibleTo(w)
+      and w._tab_keys[w.page_tabs.currentIndex()] == "prove" and w.step_btns["matrix"].isChecked())
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
 # 3.15.0: visual hierarchy: three type sizes, card headers, status pills that never stretch, the page's group above it
 check("3.15.0: three sizes: page title > card title > body", D.TYPE["display"] > D.TYPE["title"] > D.TYPE["body"] and D.TYPE["display"] - D.TYPE["title"] >= 6)
@@ -63,7 +63,7 @@ check("... a card's title sits in its own header row; a key card is marked", c.h
       and k.property("key") is True and D.Card().head is None)
 check("... status pills are as tall as their text", w.saved.sizePolicy().verticalPolicy() == w.saved.sizePolicy().Policy.Fixed
       and w.saved.height() < 30, w.saved.height())
-check("... the page's step shows above its title (3.96.0)", w.page_crumb.text() == "Step 2 of 6")
+check("... the page's step shows above its title (3.96.0)", w.page_crumb.text() == "Step 3 of 6")
 check("... menu entries in regular weight", "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])
 w.toast("Saved"); app.processEvents()
 check("a toast shows and names what happened", w.toaster.isVisible() and w.toaster.text() == "Saved")
