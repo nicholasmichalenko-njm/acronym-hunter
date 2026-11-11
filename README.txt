@@ -8,6 +8,8 @@ THE TEAM'S LISTS AS FILES (4.7.1)
   - The large lists are files of their own in the team library's Lists folder: Acronyms.csv is the master acronym list
     (the same file as Stationkeeper Data\acronym_database.csv), and each custom dictionary is a Word dictionary,
     Lists\Dictionaries\<name>.dic, which Word can use as it is. A word added in either place reaches the other.
+  - Faster: with many document versions, moving between pages no longer waits on the menu's count of changes (each
+    pair of versions is compared once), and Changes draws its page view only when you turn it on.
 
 THE TEAM LIBRARY AS FILES (4.7.0)
   - The global standards are now called the Company Standards (Default), everywhere.
