@@ -8,15 +8,17 @@ $ErrorActionPreference = 'Stop'
 $fx = Join-Path $Root 'test_samples\fidelity'
 $tagged = Join-Path $fx 'pdf_word_tagged'; $plain = Join-Path $fx 'pdf_word_untagged'; $reflow = Join-Path $fx 'word_reflow'
 foreach ($d in $tagged, $plain, $reflow) { New-Item -ItemType Directory -Force $d | Out-Null }
-$word = New-Object -ComObject Word.Application
+$word = New-Object -ComObject Word.Application      # the first PDF takes most of a minute (Word reads the printer)
+Start-Sleep -Milliseconds 400
 $word.Visible = $false
 $word.DisplayAlerts = 0
 try {
     foreach ($f in Get-ChildItem $fx -Filter 'F*.docx') {
         $stem = [IO.Path]::GetFileNameWithoutExtension($f.Name)
-        $doc = $word.Documents.Open($f.FullName, $false, $true)
+        [string]$src = $f.FullName; $no = $false; $ro = $true
+        $doc = $word.Documents.Open([ref]$src, [ref]$no, [ref]$ro)
         foreach ($pair in @(@($tagged, $true), @($plain, $false))) {
-            $out = Join-Path $pair[0] "$stem.pdf"
+            [string]$out = Join-Path $pair[0] "$stem.pdf"
             # ExportAsFixedFormat(path, PDF, open after, optimize for print, whole document, from, to, content,
             #   doc props, keep IRM, no bookmarks, structure tags, bitmap missing fonts, not PDF/A)
             $doc.ExportAsFixedFormat($out, 17, $false, 0, 0, 1, 1, 0, $true, $true, 0, $pair[1], $true, $false)
@@ -28,8 +30,10 @@ try {
         foreach ($p in Get-ChildItem $tagged -Filter 'F*.pdf') {
             $stem = [IO.Path]::GetFileNameWithoutExtension($p.Name)
             try {
-                $doc = $word.Documents.Open($p.FullName, $false, $true)    # ConfirmConversions off, read-only
-                $doc.SaveAs2((Join-Path $reflow "$stem.docx"), 16)
+                [string]$src = $p.FullName; $no = $false; $ro = $true
+                $doc = $word.Documents.Open([ref]$src, [ref]$no, [ref]$ro)    # ConfirmConversions off, read-only
+                [string]$dst = Join-Path $reflow "$stem.docx"; $fmt = 16
+                $doc.SaveAs2([ref]$dst, [ref]$fmt)
                 $doc.Close($false)
                 Write-Output "REFLOW $stem"
             } catch {

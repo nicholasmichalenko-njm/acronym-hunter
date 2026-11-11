@@ -65,12 +65,17 @@ def text_of(grid):
     return " ".join(c["text"] for row in grid["rows"] for c in row if c["text"])
 
 
-def setup(doc, keep=None):
-    """[{"pages": [first, last] (1-based), "w", "h", "landscape", "margins": (top, right, bottom, left)}] in points."""
+def setup(doc, keep=None, found=()):
+    """[{"pages": [first, last] (1-based), "w", "h", "landscape", "margins": (top, right, bottom, left)}] in points.
+    found: the tables (their boxes count: a table's borders reach past its text)."""
+    extra = {}
+    for t in found:
+        if t.get("box"):
+            extra.setdefault(t["page"], []).append(t["box"])
     out = []
     for pi, p in enumerate(doc.get("pages") or []):
         w, h = round(p.get("w") or 612), round(p.get("h") or 792)
-        boxes = [ln["box"] for li, ln in enumerate(p["lines"]) if keep is None or (pi, li) in keep]
+        boxes = [ln["box"] for li, ln in enumerate(p["lines"]) if keep is None or (pi, li) in keep] + extra.get(pi, [])
         if out and (out[-1]["w"], out[-1]["h"]) == (w, h):
             g = out[-1]
             g["pages"][1] = pi + 1
@@ -88,3 +93,52 @@ def setup(doc, keep=None):
         clamp = lambda v: max(18, min(144, round(v / 9) * 9))         # noqa: E731  to the nearest eighth of an inch
         g["margins"] = (clamp(top), clamp(right), clamp(bottom), clamp(left))
     return out
+
+
+FAMILIES = {"timesnewroman": "Times New Roman", "times": "Times New Roman", "liberationserif": "Times New Roman",
+            "arial": "Arial", "helvetica": "Arial", "liberationsans": "Arial", "arialnarrow": "Arial Narrow",
+            "calibri": "Calibri", "carlito": "Calibri", "cambria": "Cambria", "caladea": "Cambria", "aptos": "Aptos",
+            "garamond": "Garamond", "georgia": "Georgia", "verdana": "Verdana", "tahoma": "Tahoma", "segoeui": "Segoe UI",
+            "couriernew": "Courier New", "courier": "Courier New", "bookantiqua": "Book Antiqua", "centurygothic": "Century Gothic"}
+
+
+def family(name):
+    """A PDF font's name as Word's family: the subset tag (ABCDEF+), the style (,Bold -BoldMT PSMT) taken off."""
+    import re
+    n = (name or "").split("+", 1)[-1]
+    n = re.split(r"[,-]", n)[0]
+    n = re.sub(r"(PSMT|MT|PS)$", "", n)
+    key = re.sub(r"[^a-z]", "", n.lower())
+    for k, v in FAMILIES.items():
+        if key == k or (key.startswith(k) and len(k) >= 5):
+            return v
+    return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", n) or "Calibri"
+
+
+def body_font(pdf, sample=4000):
+    """The font most of the PDF's text is set in, as a Word family (from up to sample characters)."""
+    import ctypes
+    from collections import Counter
+    import pypdfium2 as pdfium
+    import pypdfium2.raw as R
+    seen = Counter()
+    try:
+        doc = pdfium.PdfDocument(pdf)
+    except Exception:  # noqa: BLE001
+        return "Calibri"
+    try:
+        buf = ctypes.create_string_buffer(256)
+        flags = ctypes.c_int()
+        for i in range(len(doc)):
+            page = doc[i]
+            tp = page.get_textpage()
+            n = tp.count_chars()
+            for k in range(0, n, max(1, n // 400)):
+                if R.FPDFText_GetFontInfo(tp.raw, k, buf, 256, ctypes.byref(flags)):
+                    seen[family(buf.value.decode("utf-8", "replace"))] += 1
+            tp.close(); page.close()
+            if sum(seen.values()) >= sample:
+                break
+    finally:
+        doc.close()
+    return seen.most_common(1)[0][0] if seen else "Calibri"

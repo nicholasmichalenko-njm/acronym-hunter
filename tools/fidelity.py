@@ -78,20 +78,21 @@ def _baseline(pdf, want):
     return sum(1 for w in want if w in got)
 
 
-def score(folder, show=False):
+def score(folder, show=False, keep=None):
     import pagesent as PS
     import redlinecheck as CK
     import redlinecopy as RC
     with open(os.path.join(FIX, "fidelity_truth.json"), encoding="utf-8") as f:
         truth = json.load(f)
     rows = []
-    tmp = tempfile.mkdtemp()
+    tmp = keep or tempfile.mkdtemp()
+    os.makedirs(tmp, exist_ok=True)
     for stem in sorted(truth):
         pdf = os.path.join(folder, stem + ".pdf")
         if not os.path.isfile(pdf):
             continue
         want = [t["rows"] for t in truth[stem]]
-        out = os.path.join(tmp, stem + ".docx")
+        out = os.path.join(tmp, stem + " - copy.docx")
         RC.build(pdf, out)
         got = docx_tables(out)
         exact = sum(1 for w in want if w in got)
@@ -130,4 +131,8 @@ def report(rows):
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     folder = args[0] if args else os.path.join(FIX, "pdf_word_tagged")
-    print(report(score(folder, show="--show" in sys.argv)))
+    k = sys.argv.index("--keep") if "--keep" in sys.argv else -1
+    keep = sys.argv[k + 1] if 0 <= k < len(sys.argv) - 1 else None       # the copies kept (to save as PDF and compare)
+    args = [a for a in args if a != keep]
+    folder = args[0] if args else os.path.join(FIX, "pdf_word_tagged")
+    print(report(score(folder, show="--show" in sys.argv, keep=keep)))

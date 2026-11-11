@@ -54,6 +54,7 @@ class Doc:
         self.styles = {}         # 3.24.0: {kind: style id}: written on a template, a kind takes its style, not colors
         self.skip = set()        # 3.33.0: kinds the content map leaves out of the file
         self.final_sect = None   # 4.13.0: the last section's own sectPr (Redline's copy: the PDF's page size and margins)
+        self.font, self.half_points = "Calibri", 22   # 4.13.0: the body text's font and size (Redline's copy: the PDF's)
 
     def _kind(self, kind):
         """3.33.0: the content map row a kind follows: a capture ("cap:win_theme") takes the capture row unless it has its own."""
@@ -155,8 +156,8 @@ class Doc:
             f'<w:outlineLvl w:val="{i - 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="{max(22, 34 - 2 * i)}"/></w:rPr></w:style>'
             for i in range(1, 10))                          # 3.30.0: all nine heading levels
         styles = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles {W}>'
-                  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>'
-                  '<w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>'
+                  f'<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="{_x(self.font)}" w:hAnsi="{_x(self.font)}" w:cs="{_x(self.font)}"/>'
+                  f'<w:sz w:val="{int(self.half_points)}"/></w:rPr></w:rPrDefault></w:docDefaults>'
                   '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
                   + heads
                   + "".join(f'<w:style w:type="paragraph" w:customStyle="1" w:styleId="AppendixHeading{i}"><w:name w:val="Appendix Heading {i}"/>'

@@ -98,3 +98,11 @@ def final(g):
 def room(g):
     """Twips between the margins of g."""
     return int((g["w"] - g["margins"][1] - g["margins"][3]) * TW)
+
+
+def heading(d, text, level, size=None, bold=True):
+    """A heading in Word's Heading N style, its run at the size and weight the PDF set it in."""
+    level = max(1, min(9, int(level)))
+    rpr = ("<w:b/>" if bold else "<w:b w:val=\"0\"/>") + (f'<w:sz w:val="{int(round(size * 2))}"/>' if size else "")
+    d.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/></w:pPr><w:r><w:rPr>{rpr}</w:rPr>'
+                  f'<w:t xml:space="preserve">{_x(text)}</w:t></w:r></w:p>')

@@ -84,7 +84,9 @@ def plan(pdf, name=None):
         if not text:
             continue
         if p["kind"] == "heading":
-            out.append({"kind": "heading", "level": depth(text), "text": text, "page": p["page"]})
+            first = doc["pages"][p["lines"][0][0]]["lines"][p["lines"][0][1]]
+            out.append({"kind": "heading", "level": depth(text), "text": text, "page": p["page"],
+                        "size": round(first.get("size") or 0, 1), "bold": bool(first.get("bold"))})   # 4.13.0: as set
         elif PS._LIST.match(text):
             out.append({"kind": "list", "level": 0, "text": text, "page": p["page"]})
         else:
@@ -99,7 +101,7 @@ def plan(pdf, name=None):
     aside = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(set_aside)
              if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
     keep = {(pi, li) for pi, p in enumerate(doc["pages"]) for li in range(len(p["lines"])) if (pi, li) not in skip}
-    return out, aside, RL.setup(doc, keep)
+    return out, aside, RL.setup(doc, keep, tables)
 
 
 def copy_name(pdf, when=None):
@@ -112,17 +114,21 @@ def build(pdf, out, name=None):
     Raises ValueError for a PDF with no typed text (a scanned page): read it with OCR first (Fix text)."""
     import docxw
     import redlinedocx as RD
+    import redlinelayout as RL
     paras, aside, pages = plan(pdf, name)
     if not paras:
         raise ValueError("The PDF has no typed text the copy could be made from.")
     d = docxw.Doc()
+    doc = PS.doc_of(pdf)
+    d.font = RL.body_font(pdf)                      # 4.13.0: the PDF's own body font and size
+    d.half_points = int(round(2 * PS._body_size(doc))) or 22
     gi = 0                                          # 4.13.0: each run of pages keeps its size, orientation and margins
     for p in paras:
         while gi + 1 < len(pages) and p.get("page", 1) > pages[gi]["pages"][1]:
             RD.section(d, pages[gi])
             gi += 1
         if p["kind"] == "heading":
-            d.heading(p["text"], p["level"])
+            RD.heading(d, p["text"], p["level"], p.get("size"), p.get("bold", True))
         elif p["kind"] == "list":
             d.rich([(p["text"], {})], indent=360)
         elif p["kind"] == "table":
