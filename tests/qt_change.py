@@ -60,6 +60,7 @@ d, v = dp.add([AMD], choices=[{}])[0]
 # Compare
 w.go("compare"); app.processEvents()
 cp = w.compare_page
+cp.page_view = True                                    # 4.7.1: the page view draws only when shown (More > See the changes on the page)
 rows = cp.show(d["id"], None, v["id"])
 ch = [i for i, r in enumerate(rows) if r["kind"] != "same"]
 check("two changes, both to decide", len(ch) == 2 and "0 of 2 decided" in cp.p_dec.text() and not cp.decided(ch[0]), cp.p_dec.text())

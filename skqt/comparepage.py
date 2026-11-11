@@ -436,6 +436,10 @@ class ComparePage(QWidget):
         return True
 
     def draw(self):
+        if CC.on(self):                              # 4.7.1: the page view is hidden behind the cards; drawn when shown
+            self._draw_owed = True
+            return
+        self._draw_owed = False
         sc = self.view.scene(); sc.clear(); self.view.boxes = {}
         self._tag_y = -100.0
         self.page_box.blockSignals(True); self.page_box.setValue(self.n); self.page_box.blockSignals(False)

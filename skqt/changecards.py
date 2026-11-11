@@ -71,6 +71,8 @@ def set_page_view(page, on_):
         fill(page)
     elif page.i is not None:
         page.select(page.i)
+    elif getattr(page, "_draw_owed", False):
+        page.draw()
 
 
 def show(page):
