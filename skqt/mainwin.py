@@ -39,9 +39,10 @@ from .settingspage import SettingsPage
 # current and readable; Shred says what every piece of the customer's text is; Matrix & Outline decides what we answer and
 # where; Setup, Drafts (the team writes in Word; the app reads the drafts back) and Submit. Pages not yet rebuilt sit in
 # the step they belong to (3.96.0: the menu is the effort's path; All Efforts, My Work and Your Tools are in the switcher).
-RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("assign", "Shred"), ("matrix", "Matrix & Outline"),
-                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit"),
-                    ("redline", "Redline")]),                # 4.8.0: below the six steps, no number (redlining is no stage)
+RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"),
+                    ("redline", "Redline"),                  # 4.12.0: under Documents (4.8.0: below the six steps, no number)
+                    ("assign", "Shred"), ("matrix", "Matrix & Outline"),
+                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Team", [("team", "Team")]),
         ("Settings", [("settings", "Settings")])]
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k != "redline")
@@ -86,8 +87,8 @@ VIEWS = {}                     # 3.90.0 views of Review's maps; 4.3.0: place, cr
 BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
 GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of {len(STEP_KEYS) - 1}")
             for k, e in RAIL_OF.items()
-            for n in [[x for x, _t in RAIL[0][1]].index(e) if e in [x for x, _t in RAIL[0][1]] else 0]}
-GROUP_OF.update({"redline": "", "rcheck": "", "exceptions": ""})   # 4.8.0: Redline has no step number
+            for n in [STEP_KEYS.index(e) if e in STEP_KEYS else 0]}          # 4.12.0: Redline sits among them, unnumbered
+GROUP_OF.update({k: "Documents" for k in ("redline", "rcheck", "exceptions")})   # 4.12.0: a part of Documents, no step number
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
 
 

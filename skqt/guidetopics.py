@@ -789,9 +789,9 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
         if _t[0] == _k and isinstance(_t[5], list):
             _t[5].append(_line)
 # 3.75.0: the Guide reads in the menu's order (nine groups; a tab's page after its menu item)
-_ORDER = ("path home deliverables record meetings requirements library custqa datacalls verify read compare assign prove crosswalk "
+_ORDER = ("path home deliverables record meetings requirements library custqa datacalls redline verify read compare assign prove crosswalk "
           "evalcrit shredreq shredacc sort matrix impact setups effortfmt structure storyboards acronyms acrlist techedit drafts reviews truth "
-          "finalcheck qa checks postsub keywords redline team formatstd styles qpstd layoutstd designs profiles templates studio "
+          "finalcheck qa checks postsub keywords team formatstd styles qpstd layoutstd designs profiles templates studio "
           "rules audit applyword fixcopy refs settings efforts mywork tools exportall").split()     # 3.96.0: the effort's path
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):

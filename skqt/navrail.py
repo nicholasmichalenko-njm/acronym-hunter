@@ -54,6 +54,9 @@ def _circle(n, state, t):
     return f"background:transparent;color:{t['rail_text']};border:2px solid #3A4B66;"
 
 
+SUB = {"redline": "Documents"}           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
+
+
 class StepButton(QPushButton):
     """A menu entry: the step's number in a circle, its name, and what is left on the right."""
     def __init__(self, key, text, n=None):
@@ -63,6 +66,9 @@ class StepButton(QPushButton):
         self.setProperty("path", n is not None or key == "home")
         if n is not None or key == "home":
             self.setStyleSheet("QPushButton#rail { padding-left: 42px; }")
+        elif key in SUB:                                       # 4.12.0: under its entry, past the step numbers
+            self.setStyleSheet("QPushButton#rail { padding-left: 58px; font-size: 12px; }")
+            self.setToolTip(f"Part of {SUB[key]}")
         h = QHBoxLayout(self); h.setContentsMargins(8, 0, D.SPACE["m"], 0); h.setSpacing(0)
         self.circle = QLabel("◎" if key == "home" else str(n or "")); self.circle.setFixedSize(24, 24)
         self.circle.setAlignment(Qt.AlignCenter); self.circle.setObjectName("railStepNo")

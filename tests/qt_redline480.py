@@ -36,8 +36,9 @@ dL, _v = lib0.add(P, DI.read(P), doc_name="Section L", role="matrix", initial="L
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
-check("Redline is in the menu below the six steps, with no step number", "redline" in w.step_btns and "redline" not in MW.STEP_KEYS
-      and [k for k, _t in MW.RAIL[0][1]][-1] == "redline")
+check("Redline is in the menu under Documents (4.12.0), with no step number", "redline" in w.step_btns and "redline" not in MW.STEP_KEYS
+      and [k for k, _t in MW.RAIL[0][1]].index("redline") == [k for k, _t in MW.RAIL[0][1]].index("library") + 1
+      and MW.GROUP_OF["redline"] == "Documents" and MW.GROUP_OF["assign"] == "Step 2 of 6")
 w.rail_go("redline"); app.processEvents()
 check("its tabs: Prepare, Check, Exceptions", w._tab_keys == ["redline", "rcheck", "exceptions"] and w.page_title.text() == "Redline",
       (w._tab_keys, w.page_title.text()))
