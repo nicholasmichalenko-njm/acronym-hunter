@@ -87,7 +87,7 @@ r = next((k for k in kids if "12-point" in k.text(1)), None)
 dt = next((k for k in kids if "December 15" in k.text(1)), None)
 check("... the shred's rule and date sit in the three groups (4.6.0): the 12-point rule in Format, the date in Submission and dates",
       r is not None and dt is not None and r.parent().text(0).startswith("Format") and dt.parent().text(0).startswith("Submission and dates")
-      and r.text(4) == "Setup, Submit", list(tops))
+      and r.text(4) == "Listed here", (list(tops), r.text(4) if r else None))      # 4.21.0: a typed piece checks no other page
 check("... the rule's words and where it came from", "12-point" in r.text(1) and "Section_L.pdf" in r.text(3), (r.text(1), r.text(3)))
 rp.tree.setCurrentItem(r); app.processEvents()
 btn = [b for b in rp.card.findChildren(QPushButton) if b.text() == "Show it on the page"]
