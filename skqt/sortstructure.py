@@ -111,7 +111,7 @@ class StructureView(QWidget):
         R = self.host.review
         ids = ids or self.selected_ids()
         if R is None or not ids:
-            self.host.status("Select topics first (and read the requirements into Shred).")
+            self.host.status("Select topics first (the customer's documents must be in Documents).")
             return {}
         R.snap("sections from topics")
         made = TP.make_subsections(self.rec(), R.M, ids, parent or "")
@@ -126,7 +126,7 @@ class StructureView(QWidget):
         R = self.host.review
         r = self.rec()
         if R is None or r is None:
-            self.host.status("Read the notice into Shred first.")
+            self.host.status("Add the notice in Documents first.")
             return {}
         ids = [t["id"] for t in TP.roots(r) if not t.get("sections")]
         if not ids:

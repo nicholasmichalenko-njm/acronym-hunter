@@ -183,7 +183,7 @@ class DecideBar(QFrame):
         if kind in CR.NEEDS_TARGET and (M is None or not target):
             pg.host.status(("Click the section for it in Our response first." if kind == "new" else
                             "Click our piece for it in Our response first.") if M is not None else
-                           "Read the documents into Shred first (Documents): decisions on requirements need the matrix.")
+                           "Add the customer's documents in Documents first: decisions on requirements need the matrix.")
             return None
         rv = pg.review
         ref = ""

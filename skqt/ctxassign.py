@@ -307,7 +307,7 @@ class CtxMode:
         rows = rows if rows is not None else self.selected()
         pg = self.page
         if not rows or pg.R is None:
-            self.host.status("Select a piece on the page first." if pg.R is not None else "Read the customer documents into Shred first (Documents): the matrix holds requirements.")
+            self.host.status("Select a piece on the page first." if pg.R is not None else "Add the customer's documents in Documents first (each is extracted as it arrives): the matrix holds requirements.")
             return []
         import capture as CAP
         M = pg.M

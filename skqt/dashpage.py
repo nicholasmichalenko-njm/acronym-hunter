@@ -283,7 +283,7 @@ class DashPage(QWidget):
         q = d["reqs"]
         if not q:
             self.comp_bar.set([])
-            self.comp_text.setText("No compliance matrix yet. Documents > Read it into Shred brings the customer's documents in.")
+            self.comp_text.setText("No compliance matrix yet. Add the customer's documents in Documents: each is extracted as it arrives.")
             return
         segs = [(q["placed"], "req", "Requirements placed"), (q["reqs"] - q["placed"], "warn", "Requirements not placed"),
                 (q["context"], "ctx", "Supporting context"), (q["customer"], "cust", "The customer's"),

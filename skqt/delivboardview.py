@@ -160,7 +160,7 @@ class Detail(QScrollArea):
             self.vol_combo = cb
             self.v.addWidget(cb)
         else:
-            self.v.addWidget(D.label("The response structure has no volumes yet (Structure, or Volumes... in Shred).", "muted"))
+            self.v.addWidget(D.label("The response structure has no volumes yet (Matrix & Outline > Outline: + Volume).", "muted"))
         # requirements
         rr = c.get("req_rows") or []
         if c["volume"]:

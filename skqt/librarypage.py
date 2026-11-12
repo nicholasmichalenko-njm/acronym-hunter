@@ -851,7 +851,7 @@ class LibraryPage(QWidget):
         docs = {(self.lib.doc_of_file(p) or {}).get("id"): p for _n, _l, p in CR.effort_docs(h.ws)}
         paths = [docs[i] for i in ids if i in docs]
         if not paths:
-            return self._say("Read into Shred", "Only customer documents are read into the compliance matrix. Open the others "
+            return self._say("Extract", "Only customer documents are read into the compliance matrix. Open the others "
                              "one at a time: they read beside the structure.", answer)
         from . import shredpick as SP                # 4.1.0: extracted at once, no question; the first opens in Shred
         w = SP.extract_paths(h, paths, then_file=os.path.basename(paths[0]), out=out)

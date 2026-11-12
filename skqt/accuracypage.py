@@ -63,7 +63,7 @@ class AccuracyPage(QWidget):
         self.hist.setMaximumHeight(200)
         hc.add(self.hist)
         v.addWidget(hc)
-        self.how = D.label("To add an RFP: save it in the folder, read it into Shred in a test effort, decide every piece, then "
+        self.how = D.label("To add an RFP: save it in the folder, add it to a test effort's Documents, shred every piece, then "
                            "Save this effort's shred as answer keys. The build scores the set each release.", "muted")
         v.addWidget(self.how)
 

@@ -111,7 +111,7 @@ class SortPage(QWidget):
         srt = TP.sortable(items)
         uns = TP.unsorted(r, items)
         self.sumlab.setText(f"{len(srt) - len(uns)} of {len(srt)} sorted, {len(uns)} in Unsorted" if srt else
-                            "Nothing to sort yet: read the customer's documents into Shred first")
+                            "Nothing to sort yet: add the customer's documents in Documents first")
         self.fill_tree(r, items)
         self.fill_table(r, items)
         self.fill_targets(r)

@@ -920,7 +920,7 @@ class BuilderPage(QWidget):
         r2.addStretch(1)
         w2 = QWidget(); w2.setLayout(r2); self.mv.addWidget(w2)
         if not self.cont.count():
-            self.mv.addWidget(D.label("Nothing in it yet: decide pieces into it in Shred, or place library items and "
+            self.mv.addWidget(D.label("Nothing in it yet: place pieces in it on Place, or place library items and "
                                       "what is not placed yet from the right.", "muted"))
         self.show_everything(lab)                     # 3.37.0
 

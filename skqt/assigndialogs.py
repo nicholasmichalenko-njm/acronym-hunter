@@ -67,7 +67,7 @@ def budget_dialog(self, run=True):
 def volumes_dialog(self):
     """One volume (a name, or blank) or several (the headings of the structure that start a volume)."""
     if self.M is None:
-        self.host.status("Read the customer documents into Shred first: the volumes are part of the compliance matrix.")
+        self.host.status("Add the customer's documents in Documents first: the volumes are part of the compliance matrix.")
         return None
     mode, name, heads = SD.volumes_of(self.M)
     d = QDialog(self); d.setWindowTitle("Volumes"); d.resize(560, 520)

@@ -176,7 +176,7 @@ class ChecksPage(QWidget):
         t.blockSignals(False)
         open_n = sum(1 for r in rules if not r["done"])
         self.w_sum.setText(f"{len(rules)} written rule(s); {open_n} not done yet." if rules else
-                           "None yet: in Shred, Bins > Written formatting rule takes one.")
+                           "None yet: capture one from a piece in Shred (Written formatting rule).")
         self.w_card.setVisible(True)
         return rules
 
