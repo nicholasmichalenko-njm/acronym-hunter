@@ -155,7 +155,7 @@ check("... Clear leaves it Not set yet", dd.values()["due"] == "" and dd.due_dat
 dd.deleteLater()
 s = ESUM.summary("Kestrel", {"path": LIST})
 check("All Efforts knows each effort's gate", "gate" in s and "goals_open" in s)
-check("new files: Add to the Library... or Ignore", w.watch_strip.add_btn.text() == "Add to the Library..." and w.watch_strip.skip_btn.text() == "Ignore")
+check("new files: Add to Documents... or Ignore", w.watch_strip.add_btn.text() == "Add to Documents..." and w.watch_strip.skip_btn.text() == "Ignore")
 check("stage colors by name, own color wins", SC.color_of({"name": "Pink team"}) == SC.NAMED["Rose"]
       and SC.color_of({"name": "Pink team", "color": "Teal"}) == SC.NAMED["Teal"] and SC.color_of({"name": "Something"}, 2) == SC.PALETTE[2][1])
 r.set_stage_color(r.stages[1]["id"], "Purple")

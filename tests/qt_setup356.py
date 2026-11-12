@@ -122,7 +122,7 @@ check("... and the next comparison starts there", sp.packets(os.path.join(tmp, "
 made = []
 w.setup_page.make_on_templates = lambda folder=None, opts=None, go=None, starts=None: made.append((opts, go)) or ["t"]
 check("Make the setup makes it on the templates", sp.make() == ["t"] and made)
-check("each volume's template shown", "Templates" in sp.tmpl.text())
+check("each volume's template shown", "each volume's template" in sp.tmpl.text())
 
 # ---------------------------------------------------------------- the Structure Builder's button
 w.go("structure"); app.processEvents()

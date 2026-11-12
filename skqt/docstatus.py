@@ -106,7 +106,7 @@ def status(page, d, st=None):
                         WARN if look else OK if ver == pages else NONE))
     text, _tone, key = page.review_state(d, st)
     shred = {"unread": ("Not extracted yet", NONE), "needs": (text.replace("Needs reviewing", "In progress"), WARN),
-             "reviewed": ("Done", OK), "not_needed": ("Left out", NONE)}[key]
+             "reviewed": ("Marked shredded", OK), "not_needed": ("Left out", NONE)}[key]
     out.append(("Shred", shred[0], shred[1]))
     pc = _pieces(page, d)                                      # 4.1.0: its pieces and its acros and abs
     if pc is not None:

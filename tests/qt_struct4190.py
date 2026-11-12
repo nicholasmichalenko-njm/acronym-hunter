@@ -53,7 +53,7 @@ check("a piece typed Structure", ST.has(vol, "structure"))
 w.stepper.see("shredlist"); app.processEvents()
 lp = w.shredlist_page
 top = lp.t.topLevelItem(0)
-check("List: the document, its headings and counts", top is not None and top.text(0).startswith("Section L.pdf") and "decided" in top.text(0)
+check("List: the document, its headings and counts", top is not None and top.text(0).startswith("Section L.pdf") and "shredded" in top.text(0)
       and top.childCount() >= 1, top.text(0) if top else None)
 
 

@@ -21,8 +21,8 @@ USES = (("acrfinder", "Find acros and abs (Acros & Abs Finder, its own window)",
         ("firstuse", "Check first use (First Use Check)", (".docx",)),
         ("copyreview", "Copy review (Technical Edit) of what I am working on", (".docx",)),
         ("fulltext", "Pull out all the text (Full Text)", None),
-        ("shred", "Find the requirements (Shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
-        ("library", "Add to the Documents of what I am working on", None),
+        ("shred", "Find the requirements (Quick shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
+        ("library", "Add to Documents, in the effort I am working on", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE),
         ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)),     # 3.57.0
         ("strip", "Strip the setup out (a clean copy)", (".docx",)))                             # 3.60.0

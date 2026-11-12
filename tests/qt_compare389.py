@@ -114,7 +114,7 @@ ch = [i for i, r in enumerate(rows) if r["kind"] != "same"]
 check("the amendment's own page, not a table", cp.pdf and cp.pdf.endswith("Kestrel_Section_L_Amd1.pdf") and not hasattr(cp, "table"), cp.pdf)
 check("every change is marked on the page", all(i in cp.view.boxes for i in ch if rows[i]["kind"] != "removed")
       and any(cp.placed[rows[i]["key"]].get("removed") for i in ch if rows[i]["kind"] == "removed"))
-check("the summary counts and links", all(s in cp.sum.text() for s in ("touch placed sentences", "editorial", "to decide", "href='placed'")),
+check("the summary counts and links", all(s in cp.sum.text() for s in ("touch placed pieces", "editorial", "to decide", "href='placed'")),
       cp.sum.text())
 check("... and the finish line", cp.p_dec.text() == f"0 of {len(ch)} decided", cp.p_dec.text())
 check("the bar holds five commands at most", len(cp.bar.visible_commands()) <= 5)

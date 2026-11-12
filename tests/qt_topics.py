@@ -83,7 +83,7 @@ pg.topic_show.setCurrentIndex(pg.topic_show.findData(t1)); app.processEvents()
 box = pg.view.boxes[a["id"]]
 other = next(b for i, b in pg.view.boxes.items() if i != a["id"])
 check("Show one topic dims the rest", box.opacity() == 1.0 and other.opacity() < 0.5)
-check("its coverage: sentences, decided, open, in a section", "1 sentence(s): 0 decided, 1 open, 0 in a section" in pg.topic_cov.text(), pg.topic_cov.text())
+check("its coverage: pieces, decided, open, in a section", "1 piece(s): 0 decided, 1 open, 0 in a section" in pg.topic_cov.text(), pg.topic_cov.text())
 pg.topic_show.setCurrentIndex(0); app.processEvents()
 labels = pg.R.labels()
 TP.update(rec(), t1, sections=[labels[1]])

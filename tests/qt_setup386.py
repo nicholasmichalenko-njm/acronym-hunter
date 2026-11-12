@@ -61,7 +61,7 @@ check("the section's printed blocks, in print order", bl.isVisibleTo(w) and bl.c
 check("each says its kind and where it came from", bl.item(0).text().startswith("1. Requirement") and "p." in bl.item(0).text(), bl.item(0).text())
 bl.setCurrentRow(0)
 check("act on the row", [a.text() for a in bl.menu(run=False).actions() if a.text()] ==
-      ["Earlier", "Later", "Move to another section...", "Print the reference only", "Show it in Review"])
+      ["Earlier", "Later", "Move to another section...", "Print the reference only", "Show it in Shred"])
 first = reqs[0]["id"]
 check("Later moves it down", bl.move(first, 1) and SD.placed_in(M)[LAB][1] == first and bl.item(1).data(Qt.UserRole) == first)
 check("Earlier moves it back", bl.move(first, -1) and SD.placed_in(M)[LAB][0] == first)

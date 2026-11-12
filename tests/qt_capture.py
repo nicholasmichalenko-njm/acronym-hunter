@@ -141,8 +141,8 @@ from PySide6.QtWidgets import QLabel
 und = [it for it in M.items if not it.get("decision")][:2]
 pg.show_card(und); app.processEvents()
 txt = " ".join(x.text() for x in pg.card.findChildren(QLabel))
-check("undecided sentences: the author field says to decide them first", not pg.authors.btn.isEnabled()
-      and "Decide the sentence first" in txt)
+check("undecided pieces: the author field says to decide them first", not pg.authors.btn.isEnabled()
+      and "Decide the piece first" in txt)
 keep = [it for it in M.items if it.get("decision") == "Keep"][:2]
 pg.show_card(keep + und[:1]); app.processEvents()
 txt = " ".join(x.text() for x in pg.card.findChildren(QLabel))

@@ -76,7 +76,7 @@ dl = pg.all_excerpts(run=False)
 check("... it opens everything captured", dl.windowTitle().startswith("Captured list"))
 dl.reject()
 sp = w.settings_page
-check("Settings has Review: decisions and captures", sp.ri_card.title.text() == "Review: decisions and captures")
+check("Settings has Shred: decisions and captures", sp.ri_card.title.text() == "Shred: decisions and captures")
 d = sp.review_items(run=False)
 codes = [c for c, *_r in RI.DECISIONS]
 row = lambda code: codes.index(code)
