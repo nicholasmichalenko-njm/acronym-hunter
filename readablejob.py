@@ -9,6 +9,15 @@ import os
 
 import readable as RD
 
+# 4.23.1: the job runs on a background thread, and what it needs was imported there, at first use. In the built program
+# an import reads the program's archive, and that read failed now and then while the window's thread was importing too
+# ("Recovered from an error", 12 times in the events of 3.59.0 to 4.21.0). Imported here, once, by the thread that
+# loads this module.
+try:
+    import compliance, docversions, effort, effortcal, effortrec, effortstate, postsub, statusdoc, subreq, workspace  # noqa: E401,F401
+except Exception:  # noqa: BLE001  the job imports again where it uses them
+    pass
+
 
 def signature(list_path, data_dir, matrix_path=""):
     """The saved files' times: when any changes, the readable copy is out of date."""
