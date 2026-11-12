@@ -109,6 +109,31 @@ wv.b_usemean.click(); app.processEvents()
 check("Put in Means fills Means", tp.typed.text() == "Kestrel Ground Station", tp.typed.text())
 wv.reading.setText("KGS-2"); wv.b_fixread.click(); app.processEvents()
 check("Put in Reads as fills Reads as", tp.reads.text() == "KGS-2", tp.reads.text())
+# the line between the page and the card: a paint after the card's parts are gone draws no line and raises nothing
+import shiboken6
+gone = tp.where_view                                   # what a late paint still holds: a view Qt has deleted
+shiboken6.delete(gone)
+check("the page view of the card before is gone", not shiboken6.isValid(gone))
+try:
+    got = AL.links(tp); ok = got == []
+except RuntimeError as e:
+    ok = False; got = str(e)
+check("links with a deleted page view: no line, no error", ok, got)
+tp.decide.gutter.repaint(); app.processEvents()
+tp.where_view = None
+tp.select(tt); app.processEvents()
+# Effort home with no record yet
+hp = w.home_page
+keep_rec = type(hp).rec
+type(hp).rec = property(lambda self: None)
+try:
+    td = hp.theme_drafts(); ok = isinstance(td, list)
+except AttributeError as e:
+    ok = False; td = str(e)
+type(hp).rec = keep_rec
+check("Effort home: the drafts list with no effort record yet raises nothing", ok, td)
+import readablejob, sys as _sys
+check("the readable copy's modules are loaded with it, not on its thread", all(m in _sys.modules for m in ("statusdoc", "postsub", "effortcal", "effortstate")))
 # marks on the page
 check("a plural of a term in capitals is marked: RFPs, the SOW's, CDRLs.", PG.spans("The RFPs and the SOW's terms; CDRLs.", "RFP") == [(4, 7)]
       and PG.spans("The RFPs and the SOW's terms; CDRLs.", "SOW") == [(17, 20)] and PG.spans("CDRLs.", "CDRL") == [(0, 4)])

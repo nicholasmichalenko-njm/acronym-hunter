@@ -1330,7 +1330,7 @@ class HomePage(QWidget):
                 for f in sorted(os.listdir(vdir)):
                     if f.lower().endswith(".docx") and not f.startswith("~$"):
                         out.append((os.path.splitext(f)[0], os.path.join(vdir, f)))
-            for d in DL.items(self.rec):
+            for d in (DL.items(self.rec) if self.rec is not None else []):   # 4.23.1: no effort record yet
                 p = d.get("file", "")
                 if p.lower().endswith(".docx") and os.path.isfile(p) and p not in [x[1] for x in out]:
                     out.append((d["name"], p))

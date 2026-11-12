@@ -247,7 +247,13 @@ def pick_rect(page):
 
 
 def links(page):
-    a, b = spelled_rect(page), pick_rect(page)
+    """4.23.1: the line is drawn on every paint, and the card it joins is rebuilt at each selection, so a paint can
+    come while the page view or a suggestion it knew is gone (Qt: the object is already deleted). No line then; before,
+    that error came on every paint (51 times in one session's events, in the Finder)."""
+    try:
+        a, b = spelled_rect(page), pick_rect(page)
+    except RuntimeError:
+        return []
     return [(a, b)] if a is not None and b is not None else []
 
 
