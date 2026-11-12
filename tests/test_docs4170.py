@@ -133,6 +133,14 @@ HL.mark(its, "3", 2)
 check("an unnumbered subheading reads under its parent, and so do the pieces below it",
       HL.found_under(its[3]) == "L.3 Page Limits and Format > Technical Approach" and its[1]["section_title"] == "Page Limits and Format",
       HL.found_under(its[3]))
+import compliance as C
+mxp = os.path.join(tmp, "Kestrel_Compliance_Matrix.xlsx")
+MM = C.Matrix(mxp); MM.items = [full(dict(x, key=f"k{x['id']}", loc="1")) for x in its]; MM.save()
+back = C.Matrix(mxp).load()
+h3 = next(x for x in back.items if x["id"] == "3")
+check("the matrix keeps a heading's level and what it reads under", h3.get("hlevel") == 2 and h3.get("base") == ["L.3", "Page Limits and Format"]
+      and next(x for x in back.items if x["id"] == "4")["section_title"] == "Page Limits and Format > Technical Approach",
+      (h3.get("hlevel"), h3.get("base")))
 HL.unmark(its, "3")
 check("Not a heading: it is a piece again, and the pieces below go back under L.3", its[2]["type"] == "" and not its[2].get("hlevel")
       and HL.found_under(its[3]) == "L.3 Page Limits and Format")
