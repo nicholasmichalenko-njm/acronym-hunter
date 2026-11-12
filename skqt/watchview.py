@@ -19,7 +19,7 @@ class WatchStrip(QWidget):
         h = QHBoxLayout(self); h.setContentsMargins(D.SPACE["xl"], 6, D.SPACE["xl"], 6); h.setSpacing(D.SPACE["s"])
         self.text = QLabel(""); self.text.setWordWrap(True); self.text.setTextFormat(Qt.RichText); h.addWidget(self.text, 1)
         self.add_btn = D.button("Add to the Library...", "primary", lambda: host.watch_add(), "Open the new and changed files in "
-                                "the Library's table to look at and add (a changed file comes up as a new version of its document)")
+                                "the Documents table to look at and add (a changed file comes up as a new version of its document)")
         self.skip_btn = D.button("Ignore", None, lambda: host.watch_set_aside(), "Do not offer these files again unless they change")   # 3.12.0
         self.miss_btn = D.button("Review missing...", None, lambda: host.watch_missing(), "Find the file, keep the record without "
                                  "it, or mark the document withdrawn")
@@ -93,7 +93,7 @@ class MissingDialog(QDialog):
         if WA.found_at(lib, rec, doc_id, path, was=was):
             self._row_done(doc_id, "Found: the same file at a new place")
             return True
-        self.host.status("That file holds other contents. Add it as a new version from the Library (Add files...).")
+        self.host.status("That file holds other contents. Add it as a new version from Documents (Add files...).")
         return False
 
     def keep(self, doc_id, was=None):
@@ -123,7 +123,7 @@ class FoldersDialog(QDialog):
         self.resize(860, 380)
         v = QVBoxLayout(self)
         v.addWidget(D.label("Stationkeeper checks these folders, and every folder inside them, when the effort opens, when the "
-                            "Library refreshes, and every few minutes. New files are offered to add, changed files as new "
+                            "Documents refreshes, and every few minutes. New files are offered to add, changed files as new "
                             "versions, and a document whose file is gone is reported until you decide what happened.", "muted"))
         self.t = QTableWidget(0, 2); self.t.setHorizontalHeaderLabels(["Folder", "New files go to"])
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QAbstractItemView.SelectRows)

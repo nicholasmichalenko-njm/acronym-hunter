@@ -23,12 +23,12 @@ class ProvePage(QWidget):
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.pills = {}
         for key, text, tone in (("Keep", "requirements", "req"), ("Context", "context", "ctx"), ("unused", "not used", "head"),
-                                ("needs_home", "without a section", "warn"), ("missing", "words not in the review", "crit")):
+                                ("needs_home", "without a section", "warn"), ("missing", "words not in the shred", "crit")):
             p = D.Pill(f"0 {text}", tone); p.base = text
             self.pills[key] = p
             top.addWidget(p)
         top.addStretch(1)
-        cov = D.Card("Coverage", "Every sentence of every file, by decision.")
+        cov = D.Card("Coverage", "Every piece of every file, by decision.")
         self.table = QTableWidget(0, len(COLS))
         self.table.setHorizontalHeaderLabels([h for _k, h in COLS])
         self.table.verticalHeader().setVisible(False)
@@ -37,15 +37,15 @@ class ProvePage(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         cov.add(self.table)
         v.addWidget(cov, 1)
-        self.check_btn = D.button("Run the text check", "primary", self.run_check, "Compare each file word for word with the review")
-        self.add_btn = D.button("Add the missing lines", None, self.add_missing, "Each goes into the review where it is in the document")
+        self.check_btn = D.button("Run the text check", "primary", self.run_check, "Compare each file word for word with the shred")
+        self.add_btn = D.button("Add the missing lines", None, self.add_missing, "Each goes into the shred where it is in the document")
         self.add_btn.setEnabled(False)
-        tc = D.Card("Text check", "Every word of each RFP file, read straight from the file, compared with the review.",
+        tc = D.Card("Text check", "Every word of each RFP file, read straight from the file, compared with the shred.",
                     actions=(self.add_btn, self.check_btn))
         self.check_line = D.label("Not run yet.", "muted")
         tc.add(self.check_line)
         self.missing = QTableWidget(0, 3)
-        self.missing.setHorizontalHeaderLabels(["File", "Where", "Text not in the review"])
+        self.missing.setHorizontalHeaderLabels(["File", "Where", "Text not in the shred"])
         self.missing.verticalHeader().setVisible(False)
         self.missing.setEditTriggers(QTableWidget.NoEditTriggers)
         self.missing.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
@@ -108,6 +108,6 @@ class ProvePage(QWidget):
         diag.activity("compliance_text_added", n=len(added))
         self.host.changed()
         self.host.assign_page.load()
-        self.host.toast(f"{len(added)} line(s) added to the review in their place")
+        self.host.toast(f"{len(added)} line(s) added to the shred in their place")
         self.run_check()
         return added

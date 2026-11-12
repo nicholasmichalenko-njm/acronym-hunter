@@ -194,7 +194,7 @@ def add_lead_ins(M):
                     it.update({"file": x.get("file", ""), "loc": x.get("loc", ""), "page": x.get("page"),
                                "context": ld[:700], "key": C.text_key(ld), "decision": "", "map": "", "owner": "",
                                "status": "", "notes": "", "response_page": "", "links": "", "learned": "",
-                               "context_for": "", "new": "Lead-in, now a sentence of its own", "id": "",
+                               "context_for": "", "new": "Lead-in, now a piece of its own", "id": "",
                                "section": x.get("section", ""), "section_title": x.get("section_title", "")})
                     M.items.insert(i, it)
                     added.append(it)
@@ -205,6 +205,6 @@ def add_lead_ins(M):
     if added:
         C.assign_ids(M.items)
         for it in added:
-            M.log(it["id"], "lead-in made a sentence of its own")
+            M.log(it["id"], "lead-in made a piece of its own")
         M.pending = True
     return added

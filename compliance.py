@@ -1436,7 +1436,7 @@ class Matrix:
         if self.setup:
             self._save_setup(wb, Font)
         cv = wb.create_sheet("Coverage")             # 2.29.0: proof that every sentence was considered
-        cv.append(["File", "Sentences", "Keep", "Context", "Customer", "Drop", "Undecided", "Placed", "Need a home", "Every sentence decided"])
+        cv.append(["File", "Sentences", "Keep", "Context", "Customer", "Drop", "Undecided", "Placed", "Need a home", "Every piece decided"])
         for c in cv[1]:
             c.font = Font(bold=True)
         for row in self.coverage():
@@ -1537,13 +1537,13 @@ def write_coverage_docx(matrix, path, title=""):
     doc.props = {"StationkeeperMatrix": matrix.name or "", "StationkeeperCoverage": datetime.date.today().isoformat()}
     cov = matrix.coverage()
     tot = cov[-1]
-    doc.heading(title or f"{matrix.name}: RFP coverage, every sentence", 1)
+    doc.heading(title or f"{matrix.name}: RFP coverage, every piece", 1)
     unused = tot[""] + tot["Drop"]
     ok = tot["total"] and not tot["needs_home"]
-    doc.rich([(f"Every sentence was read: {tot['Keep']} compliance requirement(s), {tot['Context']} context, "
+    doc.rich([(f"Every piece was read: {tot['Keep']} compliance requirement(s), {tot['Context']} context, "
                + (f"{tot['Customer']} the customer's, " if tot["Customer"] else "") + f"{unused} not used."
-               + (f" {tot['needs_home']} assigned sentence(s) have no section yet." if tot["needs_home"] else
-                  " Every assigned sentence has a section."), {"bold": True, "color": "15803D" if ok else "B91C1C"})])
+               + (f" {tot['needs_home']} assigned piece(s) have no section yet." if tot["needs_home"] else
+                  " Every assigned piece has a section."), {"bold": True, "color": "15803D" if ok else "B91C1C"})])
     doc.para(f"Built {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} from the compliance matrix {os.path.basename(matrix.path)}.")
     doc.table(["File", "Sentences", "Compliance", "Context", "Customer", "Not used", "In a section", "No section"],
               [[r["file"], r["total"], r["Keep"], r["Context"], r["Customer"], r[""] + r["Drop"], r["placed"], r["needs_home"]] for r in cov],

@@ -589,7 +589,7 @@ CAPTIONS = {   # 3.35.0: what each sketch shows, in one line above it
     "hf": "A page of one part with its header and footer: what sits left, center and right, and the marking.",
     "toc": "The table of contents: its levels, indents and leaders, as set.",
     "lists": "Each list level: its bullet or number and its indent.",
-    "content_map": "Where Review's content goes in the template: each kind of content and the style it takes.",
+    "content_map": "Where the shred's content goes in the template: each kind of content and the style it takes.",
     "terms": "Words to avoid and fix, as the check flags them.",
     "office": "A worksheet and a slide in the fonts set for Excel and PowerPoint.",
     "graphics": "The graphics rules: sizes, resolution and placement.",

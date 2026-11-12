@@ -63,7 +63,7 @@ def export(result, path):
     about = wb.create_sheet("About")
     for line in (["File", os.path.basename(result["file"])], ["Requirements", len(result["rows"])],
                  *[[k, n] for k, n in result["counts"].items()],
-                 ["Note", "A draft from Stationkeeper's quick shred. File it to an effort to decide each one in Review."]):
+                 ["Note", "A draft from Stationkeeper's quick shred. File it to an effort to decide each one in Shred."]):
         about.append(line)
     wb.save(path)
     return len(result["rows"])

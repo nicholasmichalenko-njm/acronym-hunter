@@ -298,7 +298,7 @@ def start_effort(host, v):
         diag.swallowed()
     host.go("home")
     try:
-        host.toast(f"{name} is ready. Next: add the customer's documents in Library.")
+        host.toast(f"{name} is ready. Next: add the customer's documents in Documents.")
     except Exception:
         pass
     return name

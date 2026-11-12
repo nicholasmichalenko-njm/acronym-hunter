@@ -4,6 +4,8 @@ words, how far along it is, and the one thing to do next. Every page in a step e
 only from what the effort already holds; rules only (No AI); nothing leaves the PC."""
 import datetime
 
+import shredwords as SW
+
 STEPS = (("library", "Documents", "The solicitation package: complete, current and readable"),
          ("assign", "Shred", "What every piece of the customer's text is, and its acros and abs"),
          ("matrix", "Matrix & Outline", "What we answer, and where in our structure"),
@@ -133,13 +135,13 @@ def steps(f):
     if r:
         und = r["undecided"]
         total = r["sentences"] or 1
-        bits = [f"{r['decided']} of {_plural(r['sentences'], 'piece')} sorted"]
+        bits = [SW.progress(r["decided"], r["sentences"])]
         if acr:
             bits.append(f"{_acros(acr)} to decide")
         rs = f.get("reshred") or 0                           # 4.6.0: passages Changes sent back keep Shred open
         out.append({"key": "assign", "done": not und and not acr and not rs,
                     "progress": 1.0 if not und and not acr and not rs else r["decided"] / total,
-                    "badge": f"{und} to shred" if und else (f"{f.get('reshred')} to re-shred" if f.get("reshred") else
+                    "badge": SW.left(und) if und else (f"{f.get('reshred')} to re-shred" if f.get("reshred") else
                                                             f"{acr} acros" if acr else ""), "summary": ". ".join(bits) + ".",
                     "left": und})
     else:

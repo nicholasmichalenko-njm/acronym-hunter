@@ -179,7 +179,7 @@ class VerifyPage(QWidget):
         sv.addWidget(self.scan_box)
         split.addWidget(side); split.setSizes([900, 320])
         self.empty = D.EmptyState("No customer documents yet", "Add the RFP files in Documents. Verify shows "
-                                  "each page so every block gets a role before Review.", "Go to Documents", lambda: self.host.go("library"))
+                                  "each page so every block gets a role before Shred.", "Go to Documents", lambda: self.host.go("library"))
         v.addWidget(self.empty)
         # ---- the bar beside the selection
         self.rolebar = QFrame(); self.rolebar.setObjectName("cardhead")

@@ -21,8 +21,8 @@ TYPES = {
                   "steps": {"read": "core", "reqs": "core", "structure": "opt", "setup": "skip", "check": "skip"}},
 }
 TYPE_NAMES = tuple(TYPES)
-STEPS = (("read", "Read", "library", "The customer's documents in the Library"),
-         ("reqs", "Requirements", "assign", "Every shall, must, should and may, decided in Review"),
+STEPS = (("read", "Read", "library", "The customer's documents, in Documents"),
+         ("reqs", "Requirements", "assign", "Every shall, must, should and may, typed in Shred"),
          ("structure", "Structure", "structure", "The response outline; every kept requirement in a section"),
          ("setup", "Setup", "setups", "Each section's lead, then the volume files"),
          ("check", "Check", "finalcheck", "Final Check on each volume before it goes"))

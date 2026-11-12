@@ -52,7 +52,7 @@ def build(M, path, effort_name="", stage="Review", reviewers="", when=None):
     d.rich([("How to review: ", {"bold": True}),
             ("for each requirement, write a verdict in the Verdict column (" + ", ".join(VERDICTS) + ") and your comments "
              "beside it. Word comments on a row are read too. Leave the ID column as it is. Send the file back; it is read "
-             "into Stationkeeper and each comment lands on that requirement's sentence card.", {})])
+             "into Stationkeeper and each comment lands on that requirement's piece card.", {})])
     n = 0
     groups = rows_by_section(M)
     for lab, items in groups:

@@ -111,7 +111,7 @@ class CrosswalkPage(QWidget):
                                       "instruction and add this factor to it, or note it for the proposal manager.", "muted"))
             return
         self.dv.addWidget(D.label(f"{r['num']} {r['title']}", "title"))
-        self.dv.addWidget(D.label(f"{r['items']} sentence(s) in this section of the RFP.", "muted"))
+        self.dv.addWidget(D.label(f"{r['items']} piece(s) in this section of the RFP.", "muted"))
         secs = X.sections(self.host.review.M)
         for kind, title, links in (("M", "Evaluated by", r["m"]), ("C", "Work", r["c"])):
             self.dv.addWidget(D.SectionTitle(title))

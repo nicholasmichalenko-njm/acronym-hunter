@@ -43,12 +43,12 @@ class AccuracyPage(QWidget):
         for p in (self.p_set, self.p_recall, self.p_prec, self.p_kind):
             top.addWidget(p)
         top.addStretch(1)
-        card = D.Card("The shred set", "Public RFPs you saved on this PC, each with an answer key you labeled in Review. "
+        card = D.Card("The shred set", "Public RFPs you saved on this PC, each with an answer key you labeled in Shred. "
                       f"Recall is the share of real requirements the shred finds (the target is {SE.TARGET:g}%); precision "
                       "is the share of its flags that are real.", key=True,
                       actions=[D.button("Score the set", "primary", lambda: self.score()),
-                               D.button("Save this effort's Review as answer keys", None, lambda: self.save_keys(),
-                                        "A key beside each RFP this effort read: every sentence's decision and kind")])
+                               D.button("Save this effort's shred as answer keys", None, lambda: self.save_keys(),
+                                        "A key beside each RFP this effort read: every piece's decision and kind")])
         fr = QHBoxLayout()
         self.folder = D.label("", None); fr.addWidget(self.folder, 1)
         fr.addWidget(D.button("Choose the folder...", "ghost", lambda: self.choose()))
@@ -63,8 +63,8 @@ class AccuracyPage(QWidget):
         self.hist.setMaximumHeight(200)
         hc.add(self.hist)
         v.addWidget(hc)
-        self.how = D.label("To add an RFP: save it in the folder, read it into Review in a test effort, decide every sentence, then "
-                           "Save this effort's Review as answer keys. The build scores the set each release.", "muted")
+        self.how = D.label("To add an RFP: save it in the folder, read it into Shred in a test effort, decide every piece, then "
+                           "Save this effort's shred as answer keys. The build scores the set each release.", "muted")
         v.addWidget(self.how)
 
     # ------------------------------------------------------------ the folder
@@ -115,7 +115,7 @@ class AccuracyPage(QWidget):
     def save_keys(self):
         R = self.host.review
         if R is None:
-            self.host.status("Open the test effort that read the RFP, decide its sentences in Review, then save the keys.")
+            self.host.status("Open the test effort that read the RFP, decide its pieces in Shred, then save the keys.")
             return []
         got = SE.save_keys(R.M)
         diag.activity("shred_keys_saved", n=len(got))
@@ -124,7 +124,7 @@ class AccuracyPage(QWidget):
             return []
         open_ = sum(n - d for _p, _k, n, d in got)
         self.result = None
-        self.host.toast(f"{len(got)} answer key(s) saved" + (f"; {open_} sentence(s) still undecided are left out" if open_ else ""))
+        self.host.toast(f"{len(got)} answer key(s) saved" + (f"; {open_} piece(s) still undecided are left out" if open_ else ""))
         self.refresh()
         return got
 

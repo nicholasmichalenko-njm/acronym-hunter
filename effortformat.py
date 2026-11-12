@@ -403,7 +403,7 @@ def parts(config_dir, ws, tid=None):
         if slot in mine_pins and st["item"] is not None:
             src = f"This effort: {lib.shown_name(st['item'])}"
         elif st["item"] is not None:
-            src = f"Global: {lib.shown_name(st['item'])}"
+            src = f"Company Standards: {lib.shown_name(st['item'])}"
         elif _slot_in_layer(lay, slot, kind):
             src = "This effort's own"
         else:

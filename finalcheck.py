@@ -225,7 +225,7 @@ def run(volume, ctx=None):
     if not has_docx:
         lines.append(_line("Format rules", "Against the standards", HUMAN, "No Word file for this volume."))
     elif std is None:
-        lines.append(_line("Format rules", "Against the standards", HUMAN, "No standard for this volume (Production > Effort Profiles)."))
+        lines.append(_line("Format rules", "Against the standards", HUMAN, "No standard for this volume (Team > Effort Profiles)."))
     else:
         try:
             import prodfix as PF
@@ -279,7 +279,7 @@ def run(volume, ctx=None):
     if not has_docx:
         lines.append(_line("Acronyms", "First use and the list", HUMAN, "No Word file for this volume."))
     elif not qr:
-        lines.append(_line("Acronyms", "First use and the list", HUMAN, "No effort acronym list to check against (Acronyms > Scan)."))
+        lines.append(_line("Acronyms", "First use and the list", HUMAN, "No effort acronym list to check against (Acros & Abs > Scan)."))
     else:
         import volcheck as V
         mine = {os.path.basename(docx), os.path.splitext(os.path.basename(docx))[0], name}

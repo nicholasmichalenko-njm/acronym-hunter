@@ -112,7 +112,7 @@ def read_files(paths, chunks_of, progress=None, stop=None, page_copy=None):
             raise ReadFailed(name, ex)
     if stop is not None and stop():
         raise Stopped()
-    say(len(paths) / n, "Finding the requirements in every sentence")
+    say(len(paths) / n, "Finding the requirements in every piece")
     heads = []
     items = C.extract(fc, heads)
     for name, pl in places.items():
@@ -175,8 +175,8 @@ def text_check_line(results):
     if not results:
         return ""
     if not miss:
-        return f"Text check: all {words} words of the RFP files are in the review."
-    return f"Text check: {miss} of {words} words in {sum(1 for r in results if r['missing'])} file(s) are not in the review yet."
+        return f"Text check: all {words} words of the RFP files are in the shred."
+    return f"Text check: {miss} of {words} words in {sum(1 for r in results if r['missing'])} file(s) are not in the shred yet."
 
 
 def add_missing(M, results):
@@ -308,6 +308,6 @@ def drop_repeats(M):
         ids = {id(x) for x in drop}
         M.items[:] = [x for x in M.items if id(x) not in ids]
         for x in drop:
-            M.log(x["id"], "removed: a repeat of a line already in the review")
+            M.log(x["id"], "removed: a repeat of a line already in the shred")
         diag.activity("compliance_repeats_removed", n=len(drop))
     return len(drop)

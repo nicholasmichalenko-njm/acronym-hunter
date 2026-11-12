@@ -117,16 +117,16 @@ class ReadPage(QWidget):
         self.start_lbl = D.label("Start the response structure from", "label", wrap=False); srow.addWidget(self.start_lbl)
         self.start = QComboBox(); self.start.setMinimumWidth(360); srow.addWidget(self.start)
         self.start.setToolTip("Choose after reading: Structure shows what the RFP prescribes and its headings to pick from. "
-                              "Blank: build it in Review as you read.")
+                              "Blank: build it in Shred as you read.")
         srow.addStretch(1)
         row = QHBoxLayout(); v.addLayout(row)
         self.add_btn = D.button("Add files...", None, self.pick, "Read files that are not in Customer Documents"); row.addWidget(self.add_btn)
         row.addStretch(1)
-        self.go_btn = D.button("Go to Review", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
+        self.go_btn = D.button("Go to Shred", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
         self.aside_btn = D.button("Set aside...", "ghost", lambda: self.show_aside(),          # 3.59.0
                                   "What the last read set aside: page headers and footers, lines repeated on every page")
         self.aside_btn.setEnabled(False); row.addWidget(self.aside_btn)
-        self.read_btn = D.button("Read", "primary", self.read, "Read the ticked documents into the review"); row.addWidget(self.read_btn)
+        self.read_btn = D.button("Read", "primary", self.read, "Read the ticked documents into the shred"); row.addWidget(self.read_btn)
         self.boxes = []
         self._guard = False
 
@@ -148,14 +148,14 @@ class ReadPage(QWidget):
         if R is not None:
             left = CR.unread_docs(R.M, docs)
             c = R.M.counts()
-            self.info.setText(f"The compliance matrix holds {len(R.M.items)} sentences from {len(R.M.sources)} file(s): "
+            self.info.setText(f"The compliance matrix holds {len(R.M.items)} pieces from {len(R.M.sources)} file(s): "
                               f"{c['Keep']} compliance requirements, {c['Context']} context. "
                               + (f"{len(left)} customer document(s) are not in it yet: tick them and Read adds them (decisions are kept)."
                                  if left else "Every customer document of this effort is in it."))
             docs = left
         else:
             self.info.setText("The effort's customer documents (latest version of each). The ones whose role is Builds the matrix "
-                              "are ticked (set roles in Library); tick any others to read into the matrix too. Read starts "
+                              "are ticked (set roles in Documents); tick any others to read into the matrix too. Read starts "
                               "the compliance matrix.")
         known = self.identities_known()
         lib = self.library()
@@ -186,7 +186,7 @@ class ReadPage(QWidget):
         busy = self.running()
         self.read_btn.setEnabled(any(r.isChecked() for r in self.boxes) and not busy)
         self.read_btn.setText("Reading..." if busy else "Read")
-        self.read_btn.setToolTip("Reading is running: wait for it or press Stop." if busy else "Read the ticked documents into the review")
+        self.read_btn.setToolTip("Reading is running: wait for it or press Stop." if busy else "Read the ticked documents into the shred")
         self.add_btn.setEnabled(not busy)
         self.start.setEnabled(not busy)
         for b in (self.tick_all, self.tick_none, self.tick_sel, self.untick_sel, self.only):
@@ -239,7 +239,7 @@ class ReadPage(QWidget):
              ("prescribed", "What the RFP prescribes (volumes and sections it spells out)"),
              ("headings", "The RFP's headings"),
              ("typed", "The outline typed for this effort"),
-             ("blank", "Blank: build it in Review as I read"))
+             ("blank", "Blank: build it in Shred as I read"))
 
     def fill_start(self):
         new = self.host.review is None
@@ -270,7 +270,7 @@ class ReadPage(QWidget):
             SS.apply(M, ol)
             return f"Structure: {len(ol)} RFP headings."
         SS.apply(M, [])
-        return "" if choice == "choose" else "Blank structure: build it beside the page in Review."
+        return "" if choice == "choose" else "Blank structure: build it beside the page in Shred."
 
     def pick(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "RFP documents", "", "RFP documents (*.docx *.pdf *.xlsx *.pptx *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
@@ -592,14 +592,14 @@ class ReadPage(QWidget):
             self._apply_pending(M)
             start_msg = self._start_structure(M, getattr(self, "_start", "auto"))
             self.host.set_matrix(M, new=True)
-            msg = f"{len(items)} sentences from {len(src)} file(s). {start_msg}".strip()
+            msg = f"{len(items)} pieces from {len(src)} file(s). {start_msg}".strip()
         else:
             merge, self._merge = getattr(self, "_merge", None), None       # 4.2.0: a new version (newversion.merge)
             add = merge(items, heads, src) if merge else CR.add_read(self.host.review.M, items, heads, src)
             fixed = CR.complete(self.host.review.M)
             self._apply_pending(self.host.review.M)
             self.host.changed()
-            msg = f"{len(add)} sentences added."
+            msg = f"{len(add)} pieces added."
         if fixed:
             msg += f" {fixed} line(s) the reader did not split out were added in their place."
         if empty:

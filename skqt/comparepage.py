@@ -67,7 +67,7 @@ class ComparePage(QWidget):
         bar.add("Prev change", lambda: self.step(-1), "The change before this one (K)")
         bar.add("Next change", lambda: self.step(1), "The next change (J)")
         self.b_next = bar.primary("Next to decide", lambda: self.next_open(), "The next change still to decide (F8)")
-        self.in_matrix = bar.more("Only what touches our response", lambda _on: self.fill(), "Only the changes that touch a sentence "
+        self.in_matrix = bar.more("Only what touches our response", lambda _on: self.fill(), "Only the changes that touch a piece "
                                   "in the compliance matrix", checkable=True)
         bar.more("Editorial changes: No action for all", lambda: self.editorial_all(),
                  "Punctuation, spacing, capitals and numbering only: No action (editorial) for each one still to decide")
@@ -312,7 +312,7 @@ class ComparePage(QWidget):
         n_ru = sum(1 for i in ch if "rule" in self.tags[i])
         n_ed = sum(1 for i in ch if CM.editorial(self.rows[i]))
         n_op = sum(1 for i in ch if not self.decided(i))
-        parts = [a("all", f"{len(ch)} changes"), a("placed", f"{n_pl} touch placed sentences"), a("rule", f"{n_ru} submission rules"),
+        parts = [a("all", f"{len(ch)} changes"), a("placed", f"{n_pl} touch placed pieces"), a("rule", f"{n_ru} submission rules"),
                  a("editorial", f"{n_ed} editorial"), a("open", f"{n_op} to decide")]
         txt = f"{html.escape(vb['label'])} against {html.escape(va['label'])}: " + " · ".join(parts)
         if self.tag_filter != "all" or self.in_matrix.isChecked():
@@ -399,8 +399,8 @@ class ComparePage(QWidget):
                 self.nodes[it["id"]] = ch
         self.tree.expandAll()
         n = len(mine)
-        self.right_note.setText(f"{n} placed sentence{'s' if n != 1 else ''} touched by {self.cur[2]['label']}; each keeps its place "
-                                "until its change is decided." if n else "No placed sentence is touched by this version.")
+        self.right_note.setText(f"{n} placed piece{'s' if n != 1 else ''} touched by {self.cur[2]['label']}; each keeps its place "
+                                "until its change is decided." if n else "No placed piece is touched by this version.")
 
     def targets_of(self, i):
         """[(tree node, style, tone)] the selected change's lines go to."""

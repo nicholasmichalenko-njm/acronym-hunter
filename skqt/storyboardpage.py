@@ -71,7 +71,7 @@ class StoryboardPage(QWidget):
         frow.addStretch(1)
         f.addWidget(D.label("Graphics", "label"))
         self.gfx_list = D.label("", "muted"); f.addWidget(self.gfx_list)
-        self.graphics = QPlainTextEdit(); self.graphics.setPlaceholderText("Graphic ideas, one a line (Graphic need in Review lists one "
+        self.graphics = QPlainTextEdit(); self.graphics.setPlaceholderText("Graphic ideas, one a line (Graphic need in Shred lists one "
                                                                             "for the graphics team)")
         self.graphics.setFixedHeight(80); f.addWidget(self.graphics)
         self.saved_lbl = D.label("", "muted"); f.addWidget(self.saved_lbl)
@@ -101,7 +101,7 @@ class StoryboardPage(QWidget):
         if self.host.ws is None or self.M is None or not self.M.outline:
             self.tree.clear(); self.vol.clear()
             self.title.setText("Storyboards")
-            self.facts.setText("Build the response structure first (Structure, or + Heading in Review): each section gets a storyboard.")
+            self.facts.setText("Build the response structure first (Structure, or + Heading in Shred): each section gets a storyboard.")
             return
         cur = self.vol.currentData()
         self.vol.blockSignals(True); self.vol.clear()
@@ -160,7 +160,7 @@ class StoryboardPage(QWidget):
         sb, f = SB.get(r, lab), SB.facts(r, M, lab)
         self.title.setText(f"Storyboard: {lab}")
         self.facts.setText(f"<b>Lead</b> {html.escape(f['lead'] or 'not named')}  ·  <b>Writers</b> {html.escape(f['with'] or '-')}"
-                           f"  ·  <b>Page budget</b> {(PB.fmt(f['pages']) + ' pages') if f['pages'] else 'not set (Page budget... in Review)'}"
+                           f"  ·  <b>Page budget</b> {(PB.fmt(f['pages']) + ' pages') if f['pages'] else 'not set (Page budget... in Shred)'}"
                            f"  ·  <b>{len(f['reqs'])}</b> requirement(s)")
         self.status.setCurrentText(sb["status"])
         self.message.setText(sb["message"])

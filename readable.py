@@ -259,11 +259,11 @@ FILES = [
     ("Deliverables.csv", "What the effort must deliver: kind, owner, status, format, page limit, our working file, the customer form, done marks per stage."),
     ("Formatting requirements.csv", "Whether the effort is page-limited, its page limits, and each formatting rule: required (what and where) or not specified."),
     ("Timeline (paper trail).csv", "Everything that happened, in order: documents added, decisions, stage moves, assignments, notes, tasks."),
-    ("Submission requirements.csv", "Due dates, page limits, format, files, copies, delivery and deliverables: the value, the sentence and document it came from, and whether a change is reviewed."),
+    ("Submission requirements.csv", "Due dates, page limits, format, files, copies, delivery and deliverables: the value, the piece and document it came from, and whether a change is reviewed."),
     ("Customer documents.csv", "Every customer document and version: file, when added, by whom, fingerprint, whether its changes are reviewed."),
-    ("Customer document text", "Folder: the text of each customer document version, sentence by sentence, with the RFP section."),
-    ("Compliance assignments.csv", "Every RFP sentence and its role: Compliance requirement, Context, Not used or Not decided yet; our section; owner; section lead and contributors; the requirements a context sentence supports; reference; text; status; notes."),
-    ("Response structure and people.csv", "Our response outline with each section's lead and contributors and how many requirements and context sentences it holds."),
+    ("Customer document text", "Folder: the text of each customer document version, piece by piece, with the RFP section."),
+    ("Compliance assignments.csv", "Every RFP piece and its role: Compliance requirement, Context, Not used or Not decided yet; our section; owner; section lead and contributors; the requirements a context piece supports; reference; text; status; notes."),
+    ("Response structure and people.csv", "Our response outline with each section's lead and contributors and how many requirements and context pieces it holds."),
     ("Acronyms.csv", "The effort's acronyms, abbreviations, units and symbols: definition, alternate forms, status, approver, source, first use."),
     ("Keywords.csv", "The effort's keywords for SharePoint: category, status, source, why."),
 ]
@@ -282,7 +282,7 @@ def readme_text(info, out, app_version=""):
             L.append(f"      {what}")
     L += ["", "THE EFFORT'S WORKING FILES (what the app itself saves, beside this folder)",
           f"  {info.get('list') or '<effort>_Effort_List.xlsx'}: the acronym list, keywords and their history (Excel).",
-          f"  {info.get('matrix') or '<effort>_Matrix.xlsx'}: the compliance matrix: every RFP sentence, its decision and place, the outline, setup, coverage and history (Excel)." if info.get("matrix") else
+          f"  {info.get('matrix') or '<effort>_Matrix.xlsx'}: the compliance matrix: every RFP piece, its decision and place, the outline, setup, coverage and history (Excel)." if info.get("matrix") else
           "  The compliance matrix workbook, once there is one (Excel).",
           "  '<effort list> - app data' folder: the app's own files. record.json holds stages, tasks, notes, deliverables and the",
           "  timeline; documents\\ holds the customer document versions and their text; backups\\ holds dated copies of the two",
@@ -336,7 +336,7 @@ MORE_FILES = [
     ("Calendar.xlsx", "Every date the effort has (the due date, stage plans, tasks, due dates, reviews and meetings) with times, time zones, owners, places and details. Calendar.csv is the same; Calendar.ics opens in Outlook."),
     ("Post-submission checklist.xlsx", "What the team does after submission: owners, due dates, status, who finished each and when, notes."),
     ("Library documents.csv", "Every document in the effort's library (customer, bidders, Q&A, ours): category, folder, tags, role, versions and where each file is."),
-    ("Taken from documents.csv", "Every sentence taken from a library document and where it went: context for a section or requirement, a note, question or task."),
+    ("Taken from documents.csv", "Every piece taken from a library document and where it went: context for a section or requirement, a note, question or task."),
     ("Change decisions.csv", "What each new customer version changed and the decision made on it: who, when and why."),
     ("Team.csv", "The people on the effort and their roles."),
     ("Customer contacts.csv", "The customer's points of contact captured from the documents: name, title, organization, e-mail, phone, address, where found."),

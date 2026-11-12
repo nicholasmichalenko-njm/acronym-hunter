@@ -87,14 +87,14 @@ def summary(lib, d, vb, va=None, M=None, data_dir=""):
         except Exception:
             pass
     title = f"What changed in {vb.get('label', 'the new version')}" + (f" of {d.get('name', '')}" if d.get("name") else "")
-    parts = [f"{c['changed']} sentence(s) changed, {c['added']} added, {c['removed']} removed"]
+    parts = [f"{c['changed']} piece(s) changed, {c['added']} added, {c['removed']} removed"]
     if rules:
         parts.append(f"{len(rules)} touch submission rules (page limits, dates, formats)")
     if M is not None:
         parts.append(f"{len(reqs)} compliance requirement(s) affected" + (f" (owners: {', '.join(sorted(owners)[:4])})" if owners else ""))
         if not_in:
-            parts.append(f"{not_in} new sentence(s) not in the matrix yet")
-    parts.append(f"{to_decide} change(s) to decide in Compare")
+            parts.append(f"{not_in} new piece(s) not in the matrix yet")
+    parts.append(f"{to_decide} change(s) to decide in Changes")
     return {"title": title, "doc": d, "from": va, "to": vb, "changed": c["changed"], "added": c["added"], "removed": c["removed"],
             "rules": rules, "requirements": reqs, "owners": sorted(owners), "not_in_matrix": not_in, "to_decide": to_decide,
             "text": "; ".join(parts) + "."}

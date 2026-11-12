@@ -16,7 +16,7 @@ class TopicsDialog(QDialog):
         self.setWindowTitle("Topics of this effort"); self.resize(820, 520)
         v = QVBoxLayout(self)
         v.addWidget(D.label("The first nine topics are on keys 1 to 9 in Sort mode. Map a topic to the response sections that "
-                            "answer it: a sentence carrying it goes there when you make it a requirement.", "muted"))
+                            "answer it: a piece carrying it goes there when you make it a requirement.", "muted"))
         row = QHBoxLayout(); v.addLayout(row, 1)
         self.list = QListWidget(); self.list.setMinimumWidth(260); self.list.currentRowChanged.connect(lambda _r: self.show_one())
         row.addWidget(self.list)
@@ -30,7 +30,7 @@ class TopicsDialog(QDialog):
         bh.addWidget(D.button("Up", "ghost", lambda: self.move(-1)))
         bh.addWidget(D.button("Down", "ghost", lambda: self.move(1)))
         bh.addStretch(1)
-        bh.addWidget(D.button("Take out", "danger", lambda: self.remove(), "The topic and its tags come off; sentences keep their decisions"))
+        bh.addWidget(D.button("Take out", "danger", lambda: self.remove(), "The topic and its tags come off; pieces keep their decisions"))
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.accept); bb.accepted.connect(self.accept)
         v.addWidget(bb)
         self.fill()

@@ -62,7 +62,7 @@ def mark_page(page):
         lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
         lab.setBrush(QColor(D.tokens()["warn"]))
         lab.setPos(r.right() + 4, r.bottom() - 9)
-        lab.setToolTip("\n".join(x["text"] for x in f) + "\nIt keeps its place. Decide the change in Compare.")
+        lab.setToolTip("\n".join(x["text"] for x in f) + "\nIt keeps its place. Decide the change in Changes.")
         sc.addItem(lab)
         page.labels.append(lab)
         n += 1
@@ -73,7 +73,7 @@ def line(f):
     """Rich text for a card or a row: the flag, and the link that opens the change."""
     import html
     return (f"<span style='font-weight:600'>{html.escape(f['text'])}</span>. It keeps its place. "
-            f"<a href='amend:{f['pk']}|{f['key']}'>Open the change in Compare</a>")
+            f"<a href='amend:{f['pk']}|{f['key']}'>Open the change in Changes</a>")
 
 
 def from_link(href):

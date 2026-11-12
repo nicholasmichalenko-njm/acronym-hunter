@@ -73,7 +73,7 @@ class CtxMode:
         pg = self.page
         path = self.path()
         if not path or not os.path.isfile(path):
-            return "", f"{self.doc['name']}: the original file is not on this PC (its text is: search it in Library)"
+            return "", f"{self.doc['name']}: the original file is not on this PC (its text is: search it in Documents)"
         if path.lower().endswith(".pdf"):
             return path, ""
         if not OP.kind(path):
@@ -150,8 +150,8 @@ class CtxMode:
         pg.clear_card()
         pg.notes = None
         if not rows:
-            pg.add(D.EmptyState("No sentence selected", f"{self.doc['name']} is a library document ({DV.ROLE_NAMES[self.lib.role_of(self.doc)]}). "
-                                "Click a sentence, then choose where it goes with the buttons beside the structure."))
+            pg.add(D.EmptyState("No piece selected", f"{self.doc['name']} is a library document ({DV.ROLE_NAMES[self.lib.role_of(self.doc)]}). "
+                                "Click a piece, then choose where it goes with the buttons beside the structure."))
             return
         it = rows[-1]
         top = QWidget(); th = QHBoxLayout(top); th.setContentsMargins(0, 0, 0, 0); th.setSpacing(D.SPACE["s"])
@@ -242,24 +242,24 @@ class CtxMode:
     def attach(self, kind, target=None, rows=None):
         rows = rows if rows is not None else self.selected()
         if not rows:
-            self.host.status("Select a sentence on the page first.")
+            self.host.status("Select a piece on the page first.")
             return 0
         target = self.page.target if target is None else target
         if kind == "section" and not target:
-            self.host.status("Click a section in your structure first: C puts the sentence there as context.")
+            self.host.status("Click a section in your structure first: C puts the piece there as context.")
             return 0
         self._keep(f"{CX.KIND_NAMES[kind].lower()} {target or ''}".strip())
         for r in rows:
             self.store.attach(r, kind, target or "", save=False)
         self.store.save()
-        self._done(f"{len(rows)} sentence(s): {CX.KIND_NAMES[kind].lower()}" + (f" {target}" if target else ""), len(rows))
+        self._done(f"{len(rows)} piece(s): {CX.KIND_NAMES[kind].lower()}" + (f" {target}" if target else ""), len(rows))
         return len(rows)
 
     def for_requirement(self, req_id=None, rows=None):
         """F: context for a compliance requirement: one of the target section's (asked), or the one given."""
         rows = rows if rows is not None else self.selected()
         if not rows:
-            self.host.status("Select a sentence on the page first.")
+            self.host.status("Select a piece on the page first.")
             return 0
         M = self.page.M
         if req_id is None:
@@ -277,14 +277,14 @@ class CtxMode:
         for r in rows:
             self.store.attach(r, "requirement", req_id, save=False)
         self.store.save()
-        self._done(f"{len(rows)} sentence(s): context for {req_id}", len(rows))
+        self._done(f"{len(rows)} piece(s): context for {req_id}", len(rows))
         return len(rows)
 
     def record(self, kind, rows=None, owner=""):
         """N, Q, T: a note, a question or a task in the effort record, quoting the sentence and where it is from."""
         rows = rows if rows is not None else self.selected()
         if not rows:
-            self.host.status("Select a sentence on the page first.")
+            self.host.status("Select a piece on the page first.")
             return 0
         self._keep(f"{CX.KIND_NAMES[kind].lower()} (it stays in the effort record)")
         rec = R_.Record(self.host.ws.root)
@@ -307,7 +307,7 @@ class CtxMode:
         rows = rows if rows is not None else self.selected()
         pg = self.page
         if not rows or pg.R is None:
-            self.host.status("Select a sentence on the page first." if pg.R is not None else "Read the customer documents into Review first (Library): the matrix holds requirements.")
+            self.host.status("Select a piece on the page first." if pg.R is not None else "Read the customer documents into Shred first (Documents): the matrix holds requirements.")
             return []
         import capture as CAP
         M = pg.M
@@ -332,7 +332,7 @@ class CtxMode:
             self.store.save()
             self.host.changed()
             pg.load_files_keep()
-        self._done(f"{len(made)} sentence(s) made compliance requirements" + (f" in {pg.target}" if pg.target else "")
+        self._done(f"{len(made)} piece(s) made compliance requirements" + (f" in {pg.target}" if pg.target else "")
                    + (": " + ", ".join(it["id"] for it in made) if made else ""), len(made))
         return made
 
@@ -345,7 +345,7 @@ class CtxMode:
         for r in rows:
             self.store.ignore(self.doc["id"], r["id"])
         self.store.save()
-        self._done(f"{len(rows)} sentence(s) ignored" + (f"; {n} attachment(s) taken off" if n else ""))
+        self._done(f"{len(rows)} piece(s) ignored" + (f"; {n} attachment(s) taken off" if n else ""))
         return n if n else len(rows)
 
     def undecide(self, rows=None):
@@ -356,7 +356,7 @@ class CtxMode:
         n = sum(self.store.remove(doc=self.doc["id"], iid=r["id"], save=False) + self.store.unignore(self.doc["id"], r["id"])
                 for r in rows)
         self.store.save()
-        self._done(f"{len(rows)} sentence(s): nothing attached, not ignored")
+        self._done(f"{len(rows)} piece(s): nothing attached, not ignored")
         return n
 
     def remove(self, att_id):

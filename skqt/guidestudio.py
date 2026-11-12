@@ -99,7 +99,7 @@ VERIFY = \
    "Click a block (Shift+click or drag for more) and press its key, or pick the role on the bar beside it.",
    "A caption: Confirm what it names, or Pick another and click the figure or table.",
    "Press Enter: the page is verified by you and the next one opens. Next and the strip move on without verifying."],
-  ["The reader uses these roles the next time the document is read into Review.",
+  ["The reader uses these roles the next time the document is read into Shred.",
    "Menu roles... (in More) shows, hides, renames and keys the roles, and adds your own.",
    "A verified page is a record that a person checked it, not a guarantee. Reopen this page... sends one back."])
 

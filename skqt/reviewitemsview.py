@@ -31,9 +31,9 @@ class ReviewItemsDialog(QDialog):
         super().__init__(parent)
         self.host = host
         self.data = RI.load(host.config_dir)
-        self.setWindowTitle("Review: decisions and captures"); self.resize(1080, 680)
+        self.setWindowTitle("Shred: decisions and captures"); self.resize(1080, 680)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("What Review offers and how it looks. A built-in still does what it always did (a contact goes to "
+        v.addWidget(D.label("What Shred offers and how it looks. A built-in still does what it always did (a contact goes to "
                             "Customer information); its name, key, color and showing are yours. Saved on this PC; a team pack "
                             "carries the team's captures.", "muted"))
         self.tabs = QTabWidget(); v.addWidget(self.tabs, 1)
@@ -250,7 +250,7 @@ class ReviewItemsDialog(QDialog):
         RI.save(self.host.config_dir, self.data)
         diag.activity("review_items_saved")
         self.apply()
-        self.host.toast("Review's decisions and captures saved")
+        self.host.toast("Shred's decisions and captures saved")
         return True
 
     def apply(self):

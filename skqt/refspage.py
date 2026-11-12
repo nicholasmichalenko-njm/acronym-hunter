@@ -110,10 +110,10 @@ class TeamReferencesPage(QWidget):
             ("banned", "Banned phrases", "Words and phrases the team does not write, and what to write instead.",
              "Submission Check (Technical Edit from 3.54.0)", [("Open...", lambda: self.open_banned())]),
             ("database", "This PC's acronym database", "Every term and meaning known on this PC: the provided database and the "
-             "terms you added (usually after submission).", "Acronyms, Acronym Finder, First Use Check",
+             "terms you added (usually after submission).", "Acros & Abs, Acros & Abs Finder, First Use Check",
              [("Load a database...", lambda: h.settings_page.load_master()), ("Open in Excel", lambda: self.open_db())]),
             ("exclusion", "Exclusion List", "Terms left out of every effort's acronym list (place names, words that only look "
-             "like acronyms).", "Acronyms, Acronym Finder", [("Open...", lambda: self.open_exclusion())]),
+             "like acronyms).", "Acros & Abs, Acros & Abs Finder", [("Open...", lambda: self.open_exclusion())]),
             ("ocrfix", "Fixes for misread text", "When the reader misreads a word in a picture, the fix used every time a "
              "picture is read on this PC.", "Every space that reads pictures", [("Open...", lambda: self.open_fixes())]),
             ("truth", "The team's Wall of Truth", "The company facts every effort can add: one approved way to write each.",

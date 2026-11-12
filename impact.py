@@ -318,7 +318,7 @@ def headline(r):
     """One line: 'Amendment 3 of RFP: 14 changed, 5 added, 2 removed; 3 requirements, 2 deliverables, 6 compliance'."""
     c = r["counts"]
     parts = [f"{c[k]} {lab}" for k, lab in (("requirements", "submission requirement(s)"), ("deliverables", "deliverable(s)"),
-                                           ("compliance", "compliance sentence(s)"), ("structure", "heading(s)"),
+                                           ("compliance", "compliance piece(s)"), ("structure", "heading(s)"),
                                            ("acronyms", "acronym(s)"), ("keywords", "phrase(s)")) if c[k]]
     t = r["text"]
     return (f"{r['version']} of {r['doc']}: {t['changed']} changed, {t['added']} added, {t['removed']} removed" +

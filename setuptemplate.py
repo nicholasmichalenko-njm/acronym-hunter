@@ -26,7 +26,7 @@ TEMPLATE_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.te
 DOCUMENT_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
 KINDS = (("rfp", "RFP requirement text", "SK RFP Requirement", "7030A0", False),
          ("support", "RFP support text", "SK RFP Support", "2E74B5", True),
-         ("customer", "The customer's own sentences", "SK Customer Text", "6B21A8", True),
+         ("customer", "The customer's own pieces", "SK Customer Text", "6B21A8", True),
          ("objective", "Customer objectives mapped to a section", "SK Customer Objective", "B45309", True),    # 3.33.0
          ("topic", "Topics a section answers", "SK Topic", "4338CA", False),                                  # 3.33.0
          ("capture", "Captures placed in a section (every capture, unless set below)", "SK Capture", "00B050", True),   # 3.33.0
@@ -642,7 +642,7 @@ def ready(M, rec=None):
     placed = {i for ids in P.values() for i in ids}
     keep = [it for it in items if it.get("decision") == "Keep"]
     unplaced = [it for it in keep if it["id"] not in placed]
-    out = [(not und, "Every sentence is decided or ignored", len(und)),
+    out = [(not und, "Every piece is decided or ignored", len(und)),
            (not unplaced, "Every requirement is in a section of the structure", len(unplaced))]
     if rec is not None:
         import excerpts as EX

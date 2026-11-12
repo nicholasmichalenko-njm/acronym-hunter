@@ -199,8 +199,8 @@ class HomePage(QWidget):
         self.fmt_card = self.sub_card
         self.qa_card = D.Card("Customer Q&A", "The questions we submit to the customer, and their answers.")          # 2.98.0
         self.focus_card = D.Card("Evaluation and hot buttons", "How the customer will judge the proposal, and what their "   # 2.99.0
-                                 "documents stress. Capture them in Review (More captures).")
-        self.gfx_card = D.Card("Graphic needs", "Concepts and things that need a graphic, tagged in Review (Graphic need, P) "  # 3.0.4
+                                 "documents stress. Capture them in Shred (More captures).")
+        self.gfx_card = D.Card("Graphic needs", "Concepts and things that need a graphic, tagged in Shred (Graphic need, P) "  # 3.0.4
                                "or from a note.")
         self.themes_card = D.Card("Win themes", "The themes and discriminators agreed at kickoff, the sections that carry them, "   # 3.2.0
                                   "and whether the drafts say them.")
@@ -537,7 +537,7 @@ class HomePage(QWidget):
             return
         self.since_card.title.setText("Since you last opened it: " + SL.summary(c).split(" since ")[0])
         if c["decisions"]:
-            self.since_box.addWidget(D.label("In Review: " + ", ".join(f"{n} decision{'s' if n != 1 else ''} by {who}"
+            self.since_box.addWidget(D.label("In Shred: " + ", ".join(f"{n} decision{'s' if n != 1 else ''} by {who}"
                                                                        for who, n in sorted(c["decisions"].items(), key=lambda x: -x[1])), None))
         for e in c["events"][:12]:
             row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
@@ -574,7 +574,7 @@ class HomePage(QWidget):
             row.addWidget(D.button("Open", "ghost", lambda _=False, i=x["id"]: self.host.deliverables_page.open_requirement(i)))
             self.mywork_box.addLayout(row)
         if len(reqs) > 8:
-            self.mywork_box.addWidget(D.label(f"and {len(reqs) - 8} more in Review", "muted"))
+            self.mywork_box.addWidget(D.label(f"and {len(reqs) - 8} more in Shred", "muted"))
 
     # ------------------------------------------------------------ stage track
     def draw_track(self, r):
@@ -788,7 +788,7 @@ class HomePage(QWidget):
             if x["required"]:
                 col = QVBoxLayout(); col.setSpacing(0)
                 val = ClickLabel(f"Required: {x['value']}", lambda rr=x["row"]: self.open_rule(rr))
-                val.setToolTip("Open it in Rules & Dates: the sentence, its history, edit or confirm")
+                val.setToolTip("Open it in Rules & Dates: the piece, its history, edit or confirm")
                 val.setStyleSheet(f"color:{t['text']};font-weight:600;")
                 col.addWidget(val)
                 if x["where"]:
@@ -818,8 +818,8 @@ class HomePage(QWidget):
             lines = []
         self.sub_now = lines
         if not lines:
-            lay.addWidget(D.label("None found yet. Read the customer documents, or capture an instruction in Review "
-                                  "(select the sentence, then Capture > Submission).", "muted"))
+            lay.addWidget(D.label("None found yet. Read the customer documents, or capture an instruction in Shred "
+                                  "(select the piece, then Capture > Submission).", "muted"))
         t = D.tokens()
         for x in lines[:12]:
             row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
@@ -905,7 +905,7 @@ class HomePage(QWidget):
             row.addWidget(v, 1)
             lay.addLayout(row)
         if not Q.items(r):
-            lay.addWidget(D.label("In Review, select a sentence and press Capture > Question to quote it.", "muted"))
+            lay.addWidget(D.label("In Shred, select a piece and press Capture > Question to quote it.", "muted"))
 
     def draw_focus(self, r):
         """2.99.0: the evaluation factors (subfactors under them) with their relative importance, then the hot buttons."""
@@ -914,7 +914,7 @@ class HomePage(QWidget):
         fs, hs = F.factors(r), F.hot_buttons(r)
         self.focus_now = {"factors": [f["name"] for f in fs], "hot": [h["text"] for h in hs]}
         if not fs and not hs:
-            lay.addWidget(D.label("None yet. In Review, select the sentence and press More captures > Evaluation factor or Hot button.", "muted"))
+            lay.addWidget(D.label("None yet. In Shred, select the piece and press More captures > Evaluation factor or Hot button.", "muted"))
             return
         for f in fs:
             imp = f.get("importance", "Not stated")
@@ -1431,7 +1431,7 @@ class HomePage(QWidget):
         n_open = sum(1 for g in gs if g.get("status") != "Done")
         self.gfx_card.title.setText(f"Graphic needs   {n_open} open" + (f" for {who}" if who else ""))
         if not gs:
-            lay.addWidget(D.label("None yet. In Review, select a sentence (or drag across the words) and press Graphic need "
+            lay.addWidget(D.label("None yet. In Shred, select a piece (or drag across the words) and press Graphic need "
                                   "(P); or press Graphic on a note." if not who else f"No graphic needs for {who}.", "muted"))
             return
         for g in gs[:14]:
@@ -1445,7 +1445,7 @@ class HomePage(QWidget):
             row.addLayout(col, 1)
             if g.get("sid"):
                 row.addWidget(D.button("Open", "ghost", lambda _=False, sid=g["sid"]: self.open_sentence(sid),
-                                       "Open the sentence in Review"), 0, Qt.AlignTop)
+                                       "Open the piece in Shred"), 0, Qt.AlignTop)
             lay.addLayout(row)
         if len(gs) > 14:
             lay.addWidget(D.label(f"and {len(gs) - 14} more (Export... lists them all)", "muted"))
@@ -1453,7 +1453,7 @@ class HomePage(QWidget):
     def open_sentence(self, sid):
         h = self.host
         if h.review is None or h.review.item(sid) is None:
-            h.status("That sentence is no longer in the matrix.")
+            h.status("That piece is no longer in the matrix.")
             return False
         h.go("assign")
         h.assign_page.select(sid)

@@ -183,5 +183,5 @@ def clashes(data, custom=()):
         if len(names) > 1:
             out.append((k, names))
         elif k in RESERVED:
-            out.append((k, names + [f"Review's own {RESERVED[k]}"]))
+            out.append((k, names + [f"Shred's own {RESERVED[k]}"]))
     return out

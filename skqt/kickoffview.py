@@ -71,7 +71,7 @@ class KickoffDialog(QDialog):
             it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Checked)
             self.list.addItem(it)
         if not people:
-            v.addWidget(D.label("Nobody leads or writes a section yet. Set a section's people in Review (Assigned To) or the "
+            v.addWidget(D.label("Nobody leads or writes a section yet. Set a section's people in Shred (Assigned To) or the "
                                 "Setup first.", "muted"))
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Make the packets..."); bb.button(QDialogButtonBox.Ok).setEnabled(bool(people))

@@ -84,7 +84,7 @@ def suggest(r, links, M=None, tags=(), snap_new=None):
     if kind == "removed" and links:
         h = placed[0] if placed else links[0]
         where = f" is placed in {h['map']}" if h.get("map") else " is in the matrix"
-        return {"kind": "removes", "target": h["id"], "why": f"{h['id']}{where}; the customer took the sentence out"}
+        return {"kind": "removes", "target": h["id"], "why": f"{h['id']}{where}; the customer took the piece out"}
     if "rule" in (tags or ()):
         return {"kind": "rule", "target": "", "why": "It changes a submission rule"}
     if kind == "added" and _REQ.search(r.get("new") or ""):

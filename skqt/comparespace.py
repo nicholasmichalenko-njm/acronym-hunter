@@ -154,7 +154,7 @@ class CompareSpace(QWidget):
         self.files = FilesCompare(host)
         wrap = QWidget(); wv = QVBoxLayout(wrap); wv.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
         wv.addWidget(D.label("Any two versions: our drafts, a file from outside the app, two loose files. Customer documents kept "
-                             "in the Library get decisions and impact on Customer versions.", "muted"))
+                             "in Documents get decisions and impact on Customer versions.", "muted"))
         wv.addWidget(self.files, 1)
         self.tabs.addTab(wrap, "Any two files")
         from . import changecards as CC

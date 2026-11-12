@@ -38,7 +38,7 @@ class ToolHost:
         import workspace as W
         self.name = name if name in AL.names(self.root) else AL.FIRST
         where = AL.folder(self.root, self.name)
-        self.ws = W.Workspace(where, "Acronym Finder" if self.name == AL.FIRST else f"Acronym Finder: {self.name}")
+        self.ws = W.Workspace(where, "Acros & Abs Finder" if self.name == AL.FIRST else f"Acros & Abs Finder: {self.name}")
         self.effort_path = os.path.join(where, LIST_NAME)
         AL.remember(self.root, self.name)
 
@@ -97,13 +97,13 @@ def export_list(rows, path):
 class AcronymToolWindow(QMainWindow):
     def __init__(self, config_dir):
         super().__init__()
-        self.setWindowTitle("Acronym Finder - Stationkeeper")
+        self.setWindowTitle("Acros & Abs Finder - Stationkeeper")
         self.resize(1440, 900)
         self.host = ToolHost(self, config_dir)
         from .acronympage import AcronymPage
         root = QWidget(); v = QVBoxLayout(root); v.setContentsMargins(D.SPACE["m"], D.SPACE["m"], D.SPACE["m"], D.SPACE["m"])
         bar = QHBoxLayout(); v.addLayout(bar)
-        bar.addWidget(D.label("Acronym Finder", "title"))
+        bar.addWidget(D.label("Acros & Abs Finder", "title"))
         bar.addWidget(D.label("Its own list on this PC, apart from every effort. Scan, check the meanings and where each was "
                               "found, then export the list.", "muted"), 1)
         self.b_export = D.button("Export the list...", "primary", lambda: self.export(), "Each term and its meaning: Word "
@@ -143,7 +143,7 @@ class AcronymToolWindow(QMainWindow):
         self.pick.setCurrentText(self.host.name)
         self.pick.blockSignals(False)
         self.b_rename.setEnabled(self.host.name != AL.FIRST)
-        self.setWindowTitle(("Acronym Finder" if self.host.name == AL.FIRST else f"Acronym Finder: {self.host.name}") + " - Stationkeeper")
+        self.setWindowTitle(("Acros & Abs Finder" if self.host.name == AL.FIRST else f"Acros & Abs Finder: {self.host.name}") + " - Stationkeeper")
 
     def open_list(self, name):
         if self.page.worker is not None:
@@ -349,7 +349,7 @@ class FirstUseDialog(QDialog):
             path, _ = QFileDialog.getSaveFileName(self, "First use report", os.path.join(os.path.expanduser("~"), "First_Use.xlsx"), "Excel (*.xlsx)")
             if not path:
                 return None
-        V.write_excel(self.report, path, "Acronym Finder")
+        V.write_excel(self.report, path, "Acros & Abs Finder")
         return path
 
 

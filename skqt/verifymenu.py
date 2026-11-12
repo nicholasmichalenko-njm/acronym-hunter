@@ -17,9 +17,9 @@ class MenuDialog(QDialog):
         self.setWindowTitle("Menu roles"); self.resize(640, 560)
         self.config_dir, self.m = config_dir, [dict(r) for r in VR.clean(menu)]
         v = QVBoxLayout(self)
-        v.addWidget(D.label("What each role acts as decides what happens next: text is split into sentences for Review, "
+        v.addWidget(D.label("What each role acts as decides what happens next: text is split into sentences for Shred, "
                             "headings build the outline, figures and tables are kept as they are, captions link to one, "
-                            "and headers, footers and Not needed never reach Review.", "muted"))
+                            "and headers, footers and Not needed never reach Shred.", "muted"))
         self.t = QTableWidget(0, len(COLS)); self.t.setHorizontalHeaderLabels(COLS)
         self.t.verticalHeader().setVisible(False); self.t.horizontalHeader().setStretchLastSection(True)
         v.addWidget(self.t, 1)

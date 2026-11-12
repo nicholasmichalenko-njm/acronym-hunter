@@ -60,7 +60,7 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
         "matrix": [("outline", "Outline"), ("place", "Place"), ("matrix", "Matrix"), ("crosswalk", "L to M"),
                    ("prove", "Coverage")],                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
-        "drafts": [("drafts", "Status"), ("draftacr", "Acronyms"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
+        "drafts": [("drafts", "Status"), ("draftacr", "Acros & Abs"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
                    ("truth", "Wall of Truth")],                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
@@ -192,7 +192,7 @@ class MainWindow(QMainWindow):
             self.issue_btn.setVisible(not _sec.ACTIVE)   # SCIF-ready keeps no reports
         except Exception:
             diag.swallowed()
-        self.search = QLineEdit(); self.search.setPlaceholderText("Find a sentence (words or ID)...")
+        self.search = QLineEdit(); self.search.setPlaceholderText("Find a piece (words or ID)...")
         self.search.setMinimumWidth(104); self.search.setClearButtonEnabled(True)   # 3.12.0: room for "Effort Dashboard" at 1280; 3.18.2: and Undo; 3.63.0: and Note
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
@@ -397,7 +397,7 @@ class MainWindow(QMainWindow):
             it = next((x for x in R.M.items if ql == x["id"].casefold()), None) or \
                 next((x for x in R.M.items if ql in x["text"].casefold()), None)
         if it is None:
-            self.status(f"No sentence has \"{q}\".")
+            self.status(f"No piece has \"{q}\".")
             return None
         self.go("assign")
         self.assign_page.select(it["id"])
@@ -884,7 +884,7 @@ class MainWindow(QMainWindow):
             got = CAP.add_lead_ins(M)
             if got:
                 diag.activity("compliance_lead_ins_added", n=len(got))
-                self.status(f"{len(got)} list lead-in(s) are now sentences of their own, ready to assign.")
+                self.status(f"{len(got)} list lead-in(s) are now pieces of their own, ready to shred.")
         except Exception:
             diag.swallowed()
         if self.ws is not None:

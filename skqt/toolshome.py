@@ -16,33 +16,33 @@ from .adaptive import FlowLayout
 
 OFFICE = (".docx", ".xlsx", ".pptx")
 # what a dropped file can be used for: key -> (what it says, the extensions it takes, None for any the reader takes)
-USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
+USES = (("acrfinder", "Find acros and abs (Acros & Abs Finder, its own window)", None),
         ("acronyms", "Find acronyms in what I am working on", None),
         ("firstuse", "Check first use (First Use Check)", (".docx",)),
         ("copyreview", "Copy review (Technical Edit) of what I am working on", (".docx",)),
         ("fulltext", "Pull out all the text (Full Text)", None),
         ("shred", "Find the requirements (Shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
-        ("library", "Add to the Library of what I am working on", None),
+        ("library", "Add to the Documents of what I am working on", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE),
         ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)),     # 3.57.0
         ("strip", "Strip the setup out (a clean copy)", (".docx",)))                             # 3.60.0
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
-TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart from any effort", "window"),
+TOOLS = {"acrfinder": ("Acros & Abs Finder", "Scan any files for acros and abs, apart from any effort", "window"),
          "firstuse": ("First Use Check", "Your Word files' first uses", "window"),
          "fulltext": ("Full Text", "Every word in the files, as text", "window"),
-         "acronyms": ("Acronyms", "Scan and the acronym list", "page"), "acrlist": ("Acronym List", "The effort's list", "page"),
-         "assign": ("Review", "Requirements from the customer's documents", "page"), "matrix": ("Matrix", "The compliance matrix", "page"),
-         "library": ("Library", "The customer's documents", "page"), "compare": ("Compare", "Two versions, what changed", "page"),
+         "acronyms": ("Acros & Abs", "Scan and the acronym list", "page"), "acrlist": ("Acros & Abs List", "The effort's list", "page"),
+         "assign": ("Shred", "Every piece of the customer's documents, on the page", "page"), "matrix": ("Matrix", "The compliance matrix", "page"),
+         "library": ("Documents", "The customer's documents", "page"), "compare": ("Changes", "Two versions, what changed", "page"),
          "structure": ("Setup", "The sections and each author's starting draft", "page"), "storyboards": ("Storyboards", "One sheet per section", "page"),
          "drafts": ("Draft Status", "A draft read back", "page"), "truth": ("Wall of Truth", "One approved way to state each fact", "page"),
          "reviews": ("Color Reviews", "Review packets and comments", "page"), "qa": ("Submission Check", "The volumes you will submit", "page"),
          "checks": ("Final Checks", "The PDF package, cross-references", "page"), "templates": ("Templates", "Every template the profiles make", "page"),
          "profiles": ("Effort Profiles", "Profiles built by picking", "page"), "fixcopy": ("Fix a Copy", "Fixes into a dated copy", "page"),
-         "audit": ("Audit", "Files against every standard", "page"), "home": ("Effort Dashboard", "Where the effort stands", "page"),
+         "audit": ("Audit", "Files against every standard", "page"), "home": ("Dashboard", "Where the effort stands", "page"),
          "mywork": ("My Work", "Your work in every effort", "page"), "refs": ("Team References", "The lists the team keeps", "page"),
          "custqa": ("Customer Q&A", "Questions to the customer", "page"),
          "techedit": ("Technical Edit", "Copy review of a draft", "page"),
-         "shredreq": ("Requirements", "Every requirement in one file", "page"),
+         "shredreq": ("Quick shred", "Every requirement in one file, with no effort", "page"),
          "shredacc": ("Shred accuracy", "How well the reader finds requirements, on answer keys", "page"),     # 4.19.0: off Shred
          "sort": ("Theme tags", "Cross-cutting themes on requirements, for filtering and assignments", "page")}
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
@@ -143,7 +143,7 @@ class ToolsHome(QWidget):
         self.drop = DropZone(self.files_in); v.addWidget(self.drop)
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Choose files...", "primary", lambda: self.choose()))
-        row.addWidget(D.button("Paste a picture", None, lambda: self.paste(), "A screenshot or a copied figure, read in Acronym Finder"))
+        row.addWidget(D.button("Paste a picture", None, lambda: self.paste(), "A screenshot or a copied figure, read in Acros & Abs Finder"))
         row.addStretch(1)
         pins = D.Card("Pinned tools", "One click each. Edit pins... to change them.",
                       actions=(D.button("Edit pins...", "ghost", lambda: self.edit_pins()),))
@@ -175,7 +175,7 @@ class ToolsHome(QWidget):
                 it.widget().deleteLater()
         for k in self.pins:
             t, what, _kind = TOOLS[k]
-            b = D.button(t, None, lambda _=False, k_=k: self.open(k_), what)
+            b = D.button(t.replace("&", "&&"), None, lambda _=False, k_=k: self.open(k_), what)   # 4.20.0: Acros & Abs, not a shortcut mark
             b.setMinimumWidth(150)
             self.tl.addWidget(b)
         self.recent.clear()

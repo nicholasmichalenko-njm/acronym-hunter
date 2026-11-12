@@ -104,12 +104,12 @@ class CustQAPage(QWidget):
         self.find.textChanged.connect(lambda _t: self.fill()); top.addWidget(self.find)
         from .commandbar import CommandBar                       # 3.77.0: one bar (Rule 8)
         self.bar = CommandBar()
-        self.bar.primary("+ Question", lambda: self.add(), "A question typed here (Capture > Question in Review quotes the page for you)")
+        self.bar.primary("+ Question", lambda: self.add(), "A question typed here (Capture > Question in Shred quotes the page for you)")
         self.bar.add("Edit", lambda: self.edit(), "Every field, the answer included (double-click works too)")
         self.bar.add("Approve", lambda: self.set_status("Approved"), "Ready to send")
         self.bar.add("Capture the answer...", lambda: self.capture_answer(),                 # 3.41.0
                      "The customer's answer as a capture (an objective, a key point...), its source this question")
-        self.bar.more("Show on the page", lambda: self.show_page(), "The sentence in Review")
+        self.bar.more("Show on the page", lambda: self.show_page(), "The piece in Shred")
         self.bar.more("Earlier in the list", lambda: self.move(-1), "The numbers follow")
         self.bar.more("Later in the list", lambda: self.move(1))
         self.bar.more_sep()
@@ -127,7 +127,7 @@ class CustQAPage(QWidget):
             self.table.setColumnWidth(k, w)
         self.table.itemDoubleClicked.connect(lambda _i: self.edit())
         v.addWidget(self.table, 1)
-        self.empty = D.label("No customer questions yet. In Review, select a sentence (or drag across words in it) and press "
+        self.empty = D.label("No customer questions yet. In Shred, select a piece (or drag across words in it) and press "
                              "Capture > Question; or press + Question here.", "muted")
         v.addWidget(self.empty)
 
@@ -268,7 +268,7 @@ class CustQAPage(QWidget):
     def show_page(self):
         sel = self.selected()
         if not sel or not sel[0].get("sid") or self.host.review is None:
-            return self.host.status("This question was not captured from a sentence of the matrix.")
+            return self.host.status("This question was not captured from a piece of the matrix.")
         self.host.go("assign")
         return self.host.assign_page.select(sel[0]["sid"])
 

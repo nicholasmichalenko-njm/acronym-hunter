@@ -25,14 +25,14 @@ class ShredPage(QWidget):
         self.result = None
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         v.addWidget(D.label("Every requirement in one file, with no matrix to set up: an RFP, a draft RFP or a statement of work. "
-                            "Export a draft matrix, or file it to an effort to decide each one in Review.", "muted"))
+                            "Export a draft matrix, or file it to an effort to decide each one in Shred.", "muted"))
         top = QHBoxLayout(); v.addLayout(top)
         top.addWidget(D.button("Choose a file...", "primary", lambda: self.choose()))
         self.file = D.label("No file yet.", "label"); top.addWidget(self.file, 1)
         self.f_kind = QComboBox(); self.f_kind.addItem("Every kind"); self.f_kind.addItems(list(SQ.KINDS))
         self.f_kind.currentIndexChanged.connect(lambda _i: self.fill()); top.addWidget(self.f_kind)
         self.b_export = D.button("Export the matrix...", None, lambda: self.export(), "A draft compliance matrix in Excel")
-        self.b_file = D.button("File to an effort...", None, lambda: self.to_effort(), "Read this file into an effort's Review")
+        self.b_file = D.button("File to an effort...", None, lambda: self.to_effort(), "Read this file into an effort's Shred")
         top.addWidget(self.b_export); top.addWidget(self.b_file)
         self.counts = D.label("", "muted"); v.addWidget(self.counts)
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
@@ -135,7 +135,7 @@ class ShredPage(QWidget):
             if not names:
                 h.status("No effort yet: start one on All Efforts, or Working on: Unfiled.")
                 return None
-            name, ok = QInputDialog.getItem(self, "File to an effort", "Read this file into the Review of:", names + [UF.NAME], 0, False)
+            name, ok = QInputDialog.getItem(self, "File to an effort", "Read this file into the Shred of:", names + [UF.NAME], 0, False)
             if not ok:
                 return None
         if h.effort_name != name and not h.work_on(name):

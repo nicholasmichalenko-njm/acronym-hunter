@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 import diag
+import shredwords as SW
 import navsteps as NS
 from . import design as D
 
@@ -269,7 +270,7 @@ class Stepper(QWidget):
             import shredtypes as ST
             by = ST.counts(rv.M.items)[1]
         nr, ne = by.get("rule", 0) + by.get("date", 0), by.get("evaluation", 0)
-        return {"assign": (f"{r['undecided']} of {r['sentences']} left" if r and r["undecided"] else "all sorted" if r else "nothing extracted",
+        return {"assign": (SW.left(r["undecided"]) if r else SW.NONE,
                            "warn" if r and r["undecided"] else "done" if r else "todo"),
                 "requirements": (f"{nr} from the shred" if nr else "none from the shred", "done" if nr else "todo"),
                 "evalcrit": (f"{ne} from the shred" if ne else "none from the shred", "done" if ne else "todo"),

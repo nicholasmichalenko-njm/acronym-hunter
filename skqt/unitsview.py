@@ -14,7 +14,7 @@ class UnitsDialog(QDialog):
         self.setWindowTitle("Units of measurement"); self.resize(820, 520)
         v = QVBoxLayout(self)
         v.addWidget(D.label("The team's units. Those ticked In every table go in each volume's Units of Measurement table; "
-                            "the units captured in Review (Unit of measurement, under More...) join their own effort's table.", "muted"))
+                            "the units captured in Shred (Unit of measurement, under More...) join their own effort's table.", "muted"))
         self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Unit", "What it means", "System", "In every table"])
         self.t.verticalHeader().setVisible(False)
         for i, w in enumerate((120, 400, 140, 110)):

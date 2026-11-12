@@ -1,1 +1,34 @@
-{}
+{
+ "effortpath.py": {
+  "sorted": [
+   {
+    "s": " sorted",
+    "why": "theme tags that have a theme; the step it belonged to left the path in 4.19.0"
+   }
+  ]
+ },
+ "skqt/homebar.py": {
+  "sorted": [
+   {
+    "s": "A line caught now, sorted later",
+    "why": "a quick note filed later, not a piece"
+   }
+  ]
+ },
+ "skqt/mainwin.py": {
+  "review": [
+   {
+    "s": " files first; Review again for the rest.",
+    "why": "the watch strip's Review button (look at the new files), a verb"
+   }
+  ]
+ },
+ "navsteps.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "a key of the path's facts"
+   }
+  ]
+ }
+}

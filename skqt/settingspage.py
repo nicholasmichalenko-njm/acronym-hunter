@@ -108,8 +108,8 @@ class SettingsPage(QWidget):
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
         self.db_text = self.db.add(D.label("", "muted"))
         self.db.hide()                                   # 3.77.0: shown in Team References; load_master stays here
-        self.ri_card = D.Card("Review: decisions and captures", "Every decision (L, M, SOW, Interest, Support, Customer's, "   # 3.29.0
-                              "Ignore) and every capture in Review: its name, key, color, whether it shows and where; which "
+        self.ri_card = D.Card("Shred: decisions and captures", "Every decision (L, M, SOW, Interest, Support, Customer's, "   # 3.29.0
+                              "Ignore) and every capture in Shred: its name, key, color, whether it shows and where; which "
                               "decisions an effort type hides (an RFI hides L, M and SOW and shows Interest); the team's own captures.",
                               actions=[D.button("Decisions and captures...", "primary", lambda: self.review_items())])
         v.addWidget(self.ri_card)
@@ -120,12 +120,12 @@ class SettingsPage(QWidget):
                               actions=[D.button("Response elements...", "primary", lambda: self.response_elements())])
         v.addWidget(self.re_card)
         self.un_card = D.Card("Units of measurement", "The team's units, what each means and its system; those ticked go in "   # 3.31.0
-                              "every Units of Measurement table, with the units each effort captures in Review.",
+                              "every Units of Measurement table, with the units each effort captures in Shred.",
                               actions=[D.button("Units...", "primary", lambda: self.units())])
         v.addWidget(self.un_card)
-        self.sg_card = D.Card("Suggestion rules", "Review's Suggest uses rules you can read, not AI: who acts, the verb and the RFP "
+        self.sg_card = D.Card("Suggestion rules", "Shred's Suggest uses rules you can read, not AI: who acts, the verb and the RFP "
                               "section, then the team's and each effort's own rules, made from corrections (Make a rule... on a "
-                              "sentence's card). A team pack shares the team's.",                        # 3.18.0
+                              "piece's card). A team pack shares the team's.",                        # 3.18.0
                               actions=[D.button("Suggestion rules...", None, lambda: self.host.assign_page.rules_dialog())])
         self.sg_text = self.sg_card.add(D.label("", "muted"))
         v.addWidget(self.sg_card)
@@ -192,7 +192,7 @@ class SettingsPage(QWidget):
     SECTIONS = (("This effort", ("eff",)),
                 ("You", ("mode", "look_card", "tz_card")),    # 4.4.0: Appearance had no section since 3.91.0
                 ("The team", ("tl_card", "authors", "process_card", "folders_card", "doctypes_card", "roles_card", "branding_card", "team_card")),
-                ("Review and responses", ("ri_card", "re_card", "un_card", "sg_card")),
+                ("Shred and responses", ("ri_card", "re_card", "un_card", "sg_card")),
                 ("Our data and backups", ("ourdata", "bk", "data")),
                 ("Training", ("tr",)),
                 ("Updates and help", ("up", "sec", "help")))
@@ -683,7 +683,7 @@ def send_training(self, out=None, areas=None, everything=False, text=False, ackn
         for a, title in TP.AREAS:
             cb = QCheckBox(title); cb.setChecked(True); boxes[a] = cb; v.addWidget(cb)
         ev = QCheckBox("Everything, not only what is new since the last send"); v.addWidget(ev)
-        tv = QCheckBox("Include the sentence text (RFP sentences and section titles)"); v.addWidget(tv)
+        tv = QCheckBox("Include the piece text (RFP pieces and section titles)"); v.addWidget(tv)
         v.addWidget(D.label("Left out always: customer information, team names, file paths, user and PC names.", "muted"))
         if left:                                      # 2.97.0
             v.addWidget(D.label(f"Also left out: {len(left)} effort(s) marked above CUI or with no sensitivity set "

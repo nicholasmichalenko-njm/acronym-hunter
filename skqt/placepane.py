@@ -30,7 +30,7 @@ def add(page, rows):
             page.add(D.label("An evaluation piece links through L to M, not a section.", "muted"))
         else:
             page.add(D.label("Rules, dates and information are not placed: they stay in Shred and travel to Setup and Submit."
-                             if ks else "Not sorted yet: say what it is in Shred first.", "muted"))
+                             if ks else "Not shredded yet: say what it is in Shred first.", "muted"))
         count(page)
         return None
     if it.get("left_out"):

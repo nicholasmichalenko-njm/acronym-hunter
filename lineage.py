@@ -148,9 +148,9 @@ def diff_text(d):
         return "The compliance matrices match."
     parts = []
     if d["changed"]:
-        parts.append(f"{d['changed']} sentence(s) decided, assigned or noted differently")
+        parts.append(f"{d['changed']} piece(s) decided, assigned or noted differently")
     if d["only_theirs"]:
-        parts.append(f"{d['only_theirs']} sentence(s) only in the package")
+        parts.append(f"{d['only_theirs']} piece(s) only in the package")
     if d["only_mine"]:
         parts.append(f"{d['only_mine']} only in your copy")
     return "Compliance matrix: " + "; ".join(parts) + "."

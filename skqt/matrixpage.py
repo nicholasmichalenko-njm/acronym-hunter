@@ -60,7 +60,7 @@ class MatrixPage(QWidget):
         self.order = QComboBox(); self.order.addItems(["In the RFP's order", "In your structure's order"])
         self.context = QComboBox(); self.context.addItems(["Supporting context in its requirement's cell", "Supporting context on its own rows"])
         self.empty = QCheckBox("Sections with nothing assigned yet")
-        self.cust = QCheckBox("A sheet listing the customer's sentences")
+        self.cust = QCheckBox("A sheet listing the customer's pieces")
         for w in (self.role_keep, self.role_ctx, self.order, self.context, self.empty, self.cust):
             (w.toggled if isinstance(w, QCheckBox) else w.currentIndexChanged).connect(lambda *_a: self.changed())
             rows.add(w)
@@ -239,7 +239,7 @@ class MatrixPage(QWidget):
             self.table.setColumnWidth(i, min(420, max(90, want, fm.horizontalAdvance(h) + 28)))
         self.table.resizeRowsToContents()
         if self.d.get("layout") == "outline":
-            how = "One row per outline item; a sentence in several items is in each of their rows."
+            how = "One row per outline item; a piece in several items is in each of their rows."
         else:
             how = "Context in its requirement's cell." if self.d.get("context") == "cell" else "Context on its own rows."
         self.info.setText(f"{n} rows" + (f" (the first {PREVIEW_ROWS} shown)" if n > PREVIEW_ROWS else "")

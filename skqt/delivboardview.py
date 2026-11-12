@@ -160,7 +160,7 @@ class Detail(QScrollArea):
             self.vol_combo = cb
             self.v.addWidget(cb)
         else:
-            self.v.addWidget(D.label("The response structure has no volumes yet (Structure, or Volumes... in Review).", "muted"))
+            self.v.addWidget(D.label("The response structure has no volumes yet (Structure, or Volumes... in Shred).", "muted"))
         # requirements
         rr = c.get("req_rows") or []
         if c["volume"]:
@@ -177,7 +177,7 @@ class Detail(QScrollArea):
             tb.cellDoubleClicked.connect(lambda r, _c, rr=rr: pg.open_requirement(rr[r]["id"]))
             self.req_table = tb
             self.v.addWidget(tb)
-            self.v.addWidget(D.label("Double-click one to open it in Review.", "muted"))
+            self.v.addWidget(D.label("Double-click one to open it in Shred.", "muted"))
         # changes
         if c["changed"] or c["awaiting"] or c["changed_reqs"]:
             self.v.addWidget(D.SectionTitle("What changed"))
@@ -196,7 +196,7 @@ class Detail(QScrollArea):
         # context
         if c["context"]:
             self.v.addWidget(D.SectionTitle("Context from the library"))
-            self.v.addWidget(D.label(f"{c['context']} sentence(s) from library documents are attached to its sections; they print in "
+            self.v.addWidget(D.label(f"{c['context']} piece(s) from library documents are attached to its sections; they print in "
                                      "Response Setup under each section."))
         # files
         self.v.addWidget(D.SectionTitle("Files"))

@@ -349,6 +349,6 @@ def summary_text(r):
     if not r["words"]:
         return f"{r['file']}: no typed text (pictures or a scanned file: read with OCR)."
     if not r["missing"]:
-        return (f"{r['file']}: all {r['words']} words are in the review" +
+        return (f"{r['file']}: all {r['words']} words are in the shred" +
                 (f" ({r['in_headings']} as section headings)." if r["in_headings"] else "."))
-    return f"{r['file']}: {r['missing']} of {r['words']} words are not in the review yet ({r['pct']}% covered)."
+    return f"{r['file']}: {r['missing']} of {r['words']} words are not in the shred yet ({r['pct']}% covered)."

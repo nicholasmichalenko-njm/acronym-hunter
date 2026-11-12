@@ -238,7 +238,7 @@ class LibraryPage(QWidget):
             top.addWidget(p); p.setVisible(False)       # originals missing), never as green chatter
         top.addStretch(1)
         self.b_taken = D.button("Library text used in the shred...", None, lambda: self.show_taken(),
-                                "Every sentence you took from a library document in the shred (as context for a section, a "
+                                "Every piece you took from a library document in the shred (as context for a section, a "
                                 "requirement's context, a note, a task) and where it went: a list to check and export for writers")
         self.b_taken.setVisible(False)                  # 3.20.3: in the document's panel and its right-click menu instead
         self.b_cat = D.button("+ Category...", "ghost", lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
@@ -335,7 +335,7 @@ class LibraryPage(QWidget):
         rvl.addWidget(self.b_more)
         self.d_taken = D.label("", "muted"); rvl.addWidget(self.d_taken)
         self.b_taken2 = D.button("See where its text went...", "ghost", lambda: self.show_taken(),
-                                 "The sentences taken from library documents in the shred, and what each is attached to")
+                                 "The pieces taken from library documents in the shred, and what each is attached to")
         rvl.addWidget(self.b_taken2)
         self.side.addWidget(self.rv_box)
         self._side_labels = []
@@ -656,7 +656,7 @@ class LibraryPage(QWidget):
             nt = len(CX.Store(self.host.ws.root).load().of_doc(d["id"]))
         except Exception:
             nt = 0
-        self.d_taken.setText(f"{nt} sentence(s) taken from it" if nt else "")
+        self.d_taken.setText(f"{nt} piece(s) taken from it" if nt else "")
         self.d_taken.setVisible(bool(nt))
         self.show_review(d)
         self.b_ident.setVisible(d.get("category", "customer") == "customer" and not getattr(self, "focus", False))   # 4.6.0: right-click
@@ -851,7 +851,7 @@ class LibraryPage(QWidget):
         docs = {(self.lib.doc_of_file(p) or {}).get("id"): p for _n, _l, p in CR.effort_docs(h.ws)}
         paths = [docs[i] for i in ids if i in docs]
         if not paths:
-            return self._say("Read into Review", "Only customer documents are read into the compliance matrix. Open the others "
+            return self._say("Read into Shred", "Only customer documents are read into the compliance matrix. Open the others "
                              "one at a time: they read beside the structure.", answer)
         from . import shredpick as SP                # 4.1.0: extracted at once, no question; the first opens in Shred
         w = SP.extract_paths(h, paths, then_file=os.path.basename(paths[0]), out=out)
@@ -1214,7 +1214,7 @@ class TakenDialog(QDialog):
         v.addWidget(self.table, 1)
         row = QHBoxLayout(); v.addLayout(row)
         self.count = D.label("", "muted", wrap=False); row.addWidget(self.count); row.addStretch(1)
-        row.addWidget(D.button("Open in Shred", None, lambda: self.open_selected(), "Show the sentence on its page"))
+        row.addWidget(D.button("Open in Shred", None, lambda: self.open_selected(), "Show the piece on its page"))
         row.addWidget(D.button("Export to Excel...", "primary", lambda: self.export(), "Every row, for writers"))
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); row.addWidget(bb)
         self.fill()
@@ -1273,7 +1273,7 @@ class ConformDialog(QDialog):
         self.setMinimumWidth(760)
         v = QVBoxLayout(self)
         v.addWidget(D.label(f"{len(ins)} change instruction(s) found in {amend['name']}. Each is applied to the latest version "
-                            "of the document it changes; the result is its next version, Conformed, which Changes and Review "
+                            "of the document it changes; the result is its next version, Conformed, which Changes and Shred "
                             "show like any reissued version. Nothing in the files changes.", "muted"))
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.label("It changes", "label", wrap=False))
@@ -1312,7 +1312,7 @@ class ConformDialog(QDialog):
             it = self.list.item(k); i = it.data(Qt.UserRole)
             r = next((x for j, x in zip(pick, res) if j == i), None)
             it.setForeground(D.color("muted") if r is None else (D.color("ok") if r["status"] == "applied" else D.color("crit")))
-            it.setToolTip("" if r is None else (r["why"] or f"applied to {r['n']} sentence(s)"))
+            it.setToolTip("" if r is None else (r["why"] or f"applied to {r['n']} piece(s)"))
         self.result.setText(AI.summary(res) + ". Red ones were not found in " + base["name"] + "; hover for why." if res else "Tick an instruction.")
         self.go.setEnabled(any(r["status"] == "applied" for r in res))
 

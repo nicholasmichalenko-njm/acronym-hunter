@@ -15,7 +15,7 @@ class DesignPick(QDialog):
         self.setWindowTitle("Section designs for this effort"); self.resize(560, 360)
         self.M, self.cfg = M, config_dir
         v = QVBoxLayout(self)
-        v.addWidget(D.label("The design each section uses, from Production > Standards > Parts. None leaves an optional "
+        v.addWidget(D.label("The design each section uses, from Team > Standards > Parts. None leaves an optional "
                             "section out. Make the setup fills each one and writes it beside the setup.", "muted"))
         f = QFormLayout(); v.addLayout(f)
         self.boxes = {}

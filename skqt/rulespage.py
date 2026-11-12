@@ -16,11 +16,11 @@ import rulebook as RB
 import suggestrules as SR
 from . import design as D
 
-READING = ("Who acts: a sentence where the Offeror or the Contractor acts can be a requirement; one where the Government "
+READING = ("Who acts: a piece where the Offeror or the Contractor acts can be a requirement; one where the Government "
            "acts is support.",
            "The verb: shall, must and will are Mandatory; should is Desired; may is Optional (no suggestion).",
            "Evaluation wording (will be evaluated, rated, assessed) points to Section M.",
-           "The RFP section a sentence is in (Section L, M or C numbering, or its title) gives its designation.",
+           "The RFP section a piece is in (Section L, M or C numbering, or its title) gives its designation.",
            "No suggestion when the rules are not sure: no clear actor, an Optional verb, a plain statement. You decide.")
 
 
@@ -49,7 +49,7 @@ class RulesPage(QWidget):
         self._loading = False
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(D.SPACE["m"])
         top = D.Card("Rules", "Every rule the app follows and checks, in one list. A rule's values live where they always "
-                     "have (Production Standards, Effort Formatting, the Acronym List); each rule links there.")
+                     "have (Production Standards, Effort Formatting, the Acros & Abs List); each rule links there.")
         self.summary = QLabel(""); self.summary.setTextFormat(Qt.RichText); self.summary.setWordWrap(True); top.add(self.summary)
         sw = QHBoxLayout(); sw.setSpacing(D.SPACE["s"])
         sw.addWidget(D.label("Show", "label", wrap=False))
@@ -189,12 +189,12 @@ class RulesPage(QWidget):
     # ------------------------------------------------------------ reading the customer's documents
     def _build_theirs(self):
         w = QWidget(); v = QVBoxLayout(w); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(D.SPACE["m"])
-        c = D.Card("How Review's Suggest reads a sentence", "Built in, in this order after your phrase rules below. "
+        c = D.Card("How Shred's Suggest reads a piece", "Built in, in this order after your phrase rules below. "
                    "Nothing is learned without you: a phrase rule is made when you add it here or correct a suggestion.")
         self.reading = QLabel("".join(f"<div style='margin:3px 0'>{i}. {html.escape(x)}</div>" for i, x in enumerate(READING, 1)))
         self.reading.setTextFormat(Qt.RichText); self.reading.setWordWrap(True); c.add(self.reading)
         v.addWidget(c)
-        c2 = D.Card("Phrase rules", "A sentence holding the phrase gets this suggestion (case and spacing ignored; the longest "
+        c2 = D.Card("Phrase rules", "A piece holding the phrase gets this suggestion (case and spacing ignored; the longest "
                     "phrase wins). This effort's rules win over the team's.")
         self.pt = QTableWidget(0, 4); self.pt.setHorizontalHeaderLabels(["Phrase", "Suggests", "For", "Why"])
         self.pt.verticalHeader().setVisible(False); self.pt.setEditTriggers(QAbstractItemView.NoEditTriggers)

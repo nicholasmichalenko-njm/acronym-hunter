@@ -529,28 +529,28 @@ class AssignPage(QWidget):
         self.done_btn = D.button("Mark shredded", None, lambda: self.mark_reviewed(), "Every piece of this document is looked at")
         self.next_btn = D.button("Next document \u203a", None, lambda: self.next_file(), "The next document not shredded yet")
         bar.addWidget(self.done_btn); bar.addWidget(self.next_btn)
-        self.sg_btn = D.button("Suggest", "ctx", lambda: self.toggle_suggest(), "Show what each sentence most likely is, "
+        self.sg_btn = D.button("Suggest", "ctx", lambda: self.toggle_suggest(), "Show what each piece most likely is, "
                                "from rules you can read (not AI). Nothing is decided until you accept it")      # 3.18.0
         self.sg_btn.setCheckable(True)                     # 3.20.3: up front, where it is seen
         bar.addWidget(self.sg_btn)
         self.keys = {}
         # 2.82.0: sentence edits stay by the page; the decisions sit beside the response structure, where they land
-        for text, kind, fn, tip in (("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
-                                    ("Split  S", None, self.do_split, "Split the selected sentence before the word you clicked"),
-                                    ("Make a sentence  Shift+S", None, lambda: self.do_extract(), "Drag across words inside a sentence, "
-                                     "then this: those words become a sentence of their own, ready to assign (3.20.3)")):
+        for text, kind, fn, tip in (("Combine  J", None, self.do_combine, "One piece from the selected ones (they need not be next to each other)"),
+                                    ("Split  S", None, self.do_split, "Split the selected piece before the word you clicked"),
+                                    ("Make a piece  Shift+S", None, lambda: self.do_extract(), "Drag across words inside a piece, "
+                                     "then this: those words become a piece of their own, ready to assign (3.20.3)")):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split("  ")[0].split()[0]] = b
             bar.addWidget(b)
             b.setVisible(False)          # 3.75.0 (house rule 8): the keys and the sentence's right-click do these; Undo is the frame's
         self.keys["Split"].setEnabled(False)
         self.keys["Make"].setEnabled(False)
-        self.keys["Split"].setToolTip("Select a sentence, then click the word the second part starts with: a red line "
+        self.keys["Split"].setToolTip("Select a piece, then click the word the second part starts with: a red line "
                                       "shows the split, and this button (or S) makes it")
         bar.addStretch(1)
         self.cap_btn = D.button("Add missed text", None, lambda: self.toggle_capture(),
                                 "Drag a box around text the reader missed: Stationkeeper reads it (the PDF's text, else OCR) "
-                                "and adds it as a sentence in its place, ready to assign")
+                                "and adds it as a piece in its place, ready to assign")
         self.cap_btn.setCheckable(True)
         bar.addWidget(self.cap_btn)
         self.pan_btn = D.button("Pan  H", None, lambda: self.toggle_pan(), "Drag to move the page (or hold Space and drag, "
@@ -583,7 +583,7 @@ class AssignPage(QWidget):
         self.sg_all_btn = D.button("Accept all shown", None, lambda: self.accept_suggestions(clear_only=False),
                                    "Accept every suggestion shown in this document")
         self.sg_check_btn = D.button("Select unchecked", "ghost", lambda: self.select_unchecked(),
-                                     "The sentences decided from a suggestion that nobody has checked yet")
+                                     "The pieces decided from a suggestion that nobody has checked yet")
         self.sg_rules_btn = D.button("Rules...", "ghost", lambda: self.rules_dialog(), "The team's and this effort's suggestion rules")
         for b in (self.sg_clear_btn, self.sg_all_btn, self.sg_check_btn, self.sg_rules_btn):
             sh.addWidget(b)
@@ -596,15 +596,15 @@ class AssignPage(QWidget):
         self.bulk_lbl = D.label("", "label", wrap=False); bh.addWidget(self.bulk_lbl)
         self.bulk_info = D.label("", "muted", wrap=False); bh.addWidget(self.bulk_info)
         bh.addStretch(1)
-        self.bulk_dec = QComboBox(); self.bulk_dec.setToolTip("One decision for every selected sentence")
+        self.bulk_dec = QComboBox(); self.bulk_dec.setToolTip("One decision for every selected piece")
         for text, key in BULK_DECISIONS:
             self.bulk_dec.addItem(text, key)
         self.bulk_dec.activated.connect(lambda i: self.bulk_decide(self.bulk_dec.itemData(i)))
-        self.bulk_sec = QComboBox(); self.bulk_sec.setToolTip("Every selected sentence in this section: decided ones keep "
+        self.bulk_sec = QComboBox(); self.bulk_sec.setToolTip("Every selected piece in this section: decided ones keep "
                                                               "their decision (requirement, support, the customer's); "
                                                               "undecided ones become requirements; ignored ones stay out")
         self.bulk_sec.activated.connect(lambda i: self.bulk_section(self.bulk_sec.itemData(i)))
-        self.bulk_own = QComboBox(); self.bulk_own.setToolTip("One author for every selected requirement and support sentence "
+        self.bulk_own = QComboBox(); self.bulk_own.setToolTip("One author for every selected requirement and support piece "
                                                               "(names from the author list)")
         self.bulk_own.activated.connect(lambda i: self.bulk_author(self.bulk_own.itemData(i)))
         for cb in (self.bulk_dec, self.bulk_sec, self.bulk_own):
@@ -641,7 +641,7 @@ class AssignPage(QWidget):
         self.target_lbl = D.label("", None); self.target_lbl.setTextFormat(Qt.RichText)
         trow = QHBoxLayout(); trow.setSpacing(D.SPACE["s"]); trow.addWidget(self.target_lbl, 1)
         self.undecided_btn = D.button("Select undecided", "ghost", lambda: self.select_undecided(),   # 3.0.4
-                                      "Select every sentence in this document with no decision yet (Ctrl+A selects them all)")
+                                      "Select every piece in this document with no decision yet (Ctrl+A selects them all)")
         trow.addWidget(self.undecided_btn, 0, Qt.AlignTop); dv.addLayout(trow)
         self._dv = dv                                       # 3.85.0: the home, the offer and what is left go under it
         # 3.35.0: the target item's own values, the ones the outline matrix shows beside its Section L and M content
@@ -670,7 +670,7 @@ class AssignPage(QWidget):
         self.legend = D.label("&nbsp;&nbsp;".join(f"<span style='color:{c}'>\u25A0</span> {n}" for n, c in D.LEGEND)
                               + "&nbsp;&nbsp;<span style='color:#94A3B8'>\u25A1</span> Not decided", "muted")   # 3.18.1
         self.legend.setTextFormat(Qt.RichText); self.legend.setWordWrap(True)
-        self.legend.setToolTip("The colors on the page. Every decision has its own; a sentence something was captured from "
+        self.legend.setToolTip("The colors on the page. Every decision has its own; a piece something was captured from "
                                "has the pink outline and what was captured in the margin.")
         dv.addWidget(self.legend)
         self.dec_box = dec
@@ -684,7 +684,7 @@ class AssignPage(QWidget):
         ch.addWidget(D.label("Capture", "label", wrap=False))
         self.into_target = QCheckBox("Into the target section")                  # 3.29.1: captures go where requirements go
         self.into_target.setToolTip("Each capture goes into the section selected in your structure (the target), as a "
-                                    "requirement does. Move it later from the sentence's card, a right-click or the Captured list.")
+                                    "requirement does. Move it later from the piece's card, a right-click or the Captured list.")
         self.into_target.setChecked(True)
         self.into_target.toggled.connect(lambda on: self._save_into_target(on))
         ch.addWidget(self.into_target); ch.addStretch(1)
@@ -753,9 +753,9 @@ class AssignPage(QWidget):
         self.outline_rows = [srw]                                # 4.5.0: building the outline is Outline's (shredfocus)
         for text, fn, tip in (("+ H1", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section (H1)"),
                               ("+ H2", lambda: self.new_section(sub=True), "A section under the target, one level down"),
-                              ("From sentence", lambda: self.section_from_sentence(), "A section under the target, named with the selected sentence"),
+                              ("From piece", lambda: self.section_from_sentence(), "A section under the target, named with the selected piece"),
                               ("Copy RFP section", lambda: self.copy_rfp_section(),
-                               "The RFP section the selected sentence is in (and its subsections, if you want) under the "
+                               "The RFP section the selected piece is in (and its subsections, if you want) under the "
                                "target, titled as the RFP titles it; its requirements with no section yet go into it")):
             b = D.button(text, None, fn, tip)
             b.setVisible(text == "+ H1")           # 3.75.0: the rest are on the section's right-click and in Setup
@@ -788,7 +788,7 @@ class AssignPage(QWidget):
                               ("\u2191", lambda: self.outline_op(O.move, -1), "Up"), ("\u2193", lambda: self.outline_op(O.move, 1), "Down"),
                               ("\u2192", lambda: self.outline_op(O.indent), "One level down (under the section above)"),
                               ("\u2190", lambda: self.outline_op(O.outdent), "One level up"),
-                              ("Delete", lambda: self.delete_section(), "Take the target out; its sentences go to the section above")):
+                              ("Delete", lambda: self.delete_section(), "Take the target out; its pieces go to the section above")):
             b = D.button(text, "ghost" if text != "Delete" else "danger", fn, tip)
             if len(text) == 1:
                 b.setFixedWidth(34)
@@ -817,7 +817,7 @@ class AssignPage(QWidget):
         pagew = QWidget(); pv = QVBoxLayout(pagew); pv.setContentsMargins(0, 0, 0, 0); pv.setSpacing(D.SPACE["xs"])
         self.topic_bar = QWidget(); tb = FlowLayout(spacing=4); self.topic_bar.setLayout(tb)
         self.sort_btn = D.button("Sort mode", None, lambda: self.toggle_sort(), "Sort by topic: keys 1 to 9 put the selected "
-                                 "sentences in the first nine topics (again takes it off). Decisions stay on their keys.")
+                                 "pieces in the first nine topics (again takes it off). Decisions stay on their keys.")
         self.sort_btn.setCheckable(True)
         tb.addWidget(self.sort_btn)
         self.topic_chips = QWidget(); self.topic_chips_lay = FlowLayout(spacing=4); self.topic_chips.setLayout(self.topic_chips_lay)
@@ -1123,7 +1123,7 @@ class AssignPage(QWidget):
         self.tops = self.canvas.lay_out(sc)
         self.canvas.ensure([0])
         self.build_boxes()
-        self.note.setText("Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, or a middle-button drag, moves the page. Ctrl+wheel zooms.")
+        self.note.setText("Click a piece; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         if f in (__import__("setupdoc").setup_of(self.M).get("superseded") or []):    # 4.17.0: say which version this is
             self.note.setText("An older version: only its pieces that changed are here, waiting in Documents > Changes. "
                               "Shred the latest version, the other file in the list.")
@@ -1168,7 +1168,7 @@ class AssignPage(QWidget):
             self.change_of[it["id"]] = ch
         n = len(self.change_of)
         if n:
-            self.note.setText(f"{m['to'].get('label', '')} of {m['doc'].get('name', '')}: {n} sentence(s) changed or new since "
+            self.note.setText(f"{m['to'].get('label', '')} of {m['doc'].get('name', '')}: {n} piece(s) changed or new since "
                               f"{m['from'].get('label', '')}, outlined on the page (amber: changed, green: new). Click one to see "
                               "what it was.")
             diag.activity("assign_changes_marked", n=n)
@@ -1257,7 +1257,7 @@ class AssignPage(QWidget):
             t.setPos(x + SHEET_X - (0 if kind != "row" else 0), y)
         self.sheet = {"path": path, "cells": cells, "cw": cw, "lh": lh}
         self.build_boxes()
-        self.note.setText("Sheet view: each cell as it is in the workbook. Click a sentence in a cell; Ctrl+click adds one; "
+        self.note.setText("Sheet view: each cell as it is in the workbook. Click a piece in a cell; Ctrl+click adds one; "
                           "Page view (beside File) shows the PDF copy instead.")
         QTimer.singleShot(0, self.view.fit)
 
@@ -1472,7 +1472,7 @@ class AssignPage(QWidget):
         its = [it for it in self.M.items if (it.get("section") or "") == num] or \
               [it for it in self.M.items if (it.get("section") or "").startswith(num + ".")]
         if not its:
-            self.host.status(f"No sentence of {num} is in the review.")
+            self.host.status(f"No piece of {num} is in the shred.")
             return None
         self.select(its[0]["id"])
         return its[0]["id"]
@@ -1568,7 +1568,7 @@ class AssignPage(QWidget):
         if "Make" in self.keys:
             self.keys["Make"].setEnabled(self.cx is None)
         self.show_card(self.selected())
-        self.host.status(f"Picked words in {len(pieces)} sentences. Make a sentence (Shift+S) makes them one sentence, split from "
+        self.host.status(f"Picked words in {len(pieces)} pieces. Make a piece (Shift+S) makes them one piece, split from "
                          "where they were; a capture uses just these words; click elsewhere to drop them.")
         return pieces
 
@@ -1594,8 +1594,8 @@ class AssignPage(QWidget):
         s0, e0 = ms[a].start() - len(lead), ms[b].end() + len(tail)            # and an opening bracket before it come along
         self.grab = {"iid": iid, "a": a, "b": b, "s": s0, "e": e0, "text": text[s0:e0].strip()}
         self.clear_split(card=False)
-        self.host.status(f"Picked: \"{self.grab['text'][:80]}\". Capture uses these words; Make a sentence (Shift+S) makes them a "
-                         "sentence of their own; click elsewhere to drop them.")
+        self.host.status(f"Picked: \"{self.grab['text'][:80]}\". Capture uses these words; Make a piece (Shift+S) makes them a "
+                         "piece of their own; click elsewhere to drop them.")
         if "Make" in self.keys:
             self.keys["Make"].setEnabled(self.cx is None)
         self.show_card(self.selected())
@@ -1684,8 +1684,8 @@ class AssignPage(QWidget):
             self.select(iid)
             sel = [iid]
         rows = [x for x in (self.R.item(i) for i in sel) if x]
-        for key, text in (("Combine", "Combine the selected sentences  J"), ("Split", "Split at the red line  S"),
-                          ("Make", "Make the dragged words a sentence  Shift+S")):     # 3.75.0: were buttons
+        for key, text in (("Combine", "Combine the selected pieces  J"), ("Split", "Split at the red line  S"),
+                          ("Make", "Make the dragged words a piece  Shift+S")):     # 3.75.0: were buttons
             b = self.keys.get(key)
             if b is not None:
                 m.addAction(text, b.click).setEnabled(b.isEnabled())
@@ -1699,8 +1699,8 @@ class AssignPage(QWidget):
             name = self.decision_of(rows[0])[0]
             a = m.addAction(f"Take the decision off: {name}" if decided else "Not decided yet", self.do_undecide)
         else:
-            a = m.addAction(f"Take the decision off {len(decided)} of {len(rows)} sentences" if decided
-                            else f"None of the {len(rows)} sentences is decided", self.do_undecide)
+            a = m.addAction(f"Take the decision off {len(decided)} of {len(rows)} pieces" if decided
+                            else f"None of the {len(rows)} pieces is decided", self.do_undecide)
         a.setEnabled(bool(decided)); a.setShortcut("Delete")
         try:
             rec = R_.Record(self.host.ws.root)
@@ -1727,7 +1727,7 @@ class AssignPage(QWidget):
                 m.addAction(f"Clear the map of {', '.join(nums)}", lambda: self.placer.map_selected(""))
         m.addSeparator()
         if len(rows) > 1:
-            m.addAction("Deselect this sentence", lambda: self.deselect(iid))
+            m.addAction("Deselect this piece", lambda: self.deselect(iid))
         m.addAction("Clear selection", lambda: self.view.scene().clearSelection()).setShortcut("Esc")
         return m
 
@@ -1801,7 +1801,7 @@ class AssignPage(QWidget):
         self.excerpt_rows = {}
         if not (rules or qs or others or xs):
             return 0
-        self.head("Captured from this sentence")
+        self.head("Captured from this piece")
         from PySide6.QtWidgets import QLineEdit
         for r in rules:
             w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["xs"])
@@ -2077,7 +2077,7 @@ class AssignPage(QWidget):
         self.dec_all.setText(f"Show every decision ({hidden} hidden for this effort)" if hidden else "Show every decision")
         for d in shown:
             b = D.button(f"{d['name']}  {d['key']}".strip(), self.DEC_KIND[d["code"]], self._dec_fn(d["code"]),
-                         f"{d['name']}. Key: {d['key'] or 'none'}. Change its name, key and color in Settings > Review: "
+                         f"{d['name']}. Key: {d['key'] or 'none'}. Change its name, key and color in Settings > Shred: "
                          "decisions and captures.")
             b.setIcon(D.dot_icon(d["color"]))
             self.keys[self.DEC_KEY[d["code"]]] = b
@@ -2106,7 +2106,7 @@ class AssignPage(QWidget):
                 continue
             if c["place"] == "bar":
                 b = D.button(f"{c['name']}  {c['keyseq']}".strip(), "cap", self._cap_fn(key),
-                             c["does"] + ". Uses the words you dragged across, else the selected sentences.")
+                             c["does"] + ". Uses the words you dragged across, else the selected pieces.")
                 b.setIcon(D.dot_icon(c["color"]))
                 self.cap_keys[key] = b
                 self.cap_lay.addWidget(b)
@@ -2195,7 +2195,7 @@ class AssignPage(QWidget):
             return self.host.status("Captures of this kind are for the matrix's documents.")
         parts = self.excerpt_parts()
         if not parts:
-            return self.host.status("Select a sentence first (drag across words inside it to pick just those; Ctrl+click for more).")
+            return self.host.status("Select a piece first (drag across words inside it to pick just those; Ctrl+click for more).")
         rec = R_.Record(self.host.ws.root)
         if answer is None:
             d = BV.BinDialog(self, rec, self.host.config_dir, bin_id, parts, sections=self.R.labels(), chosen=self.cap_sections())
@@ -2325,7 +2325,7 @@ class AssignPage(QWidget):
         import effortrec as RR
         text, src = self.capture_source()
         if not text:
-            return self.host.status("Select a sentence first (drag across words inside it to pick just those).")
+            return self.host.status("Select a piece first (drag across words inside it to pick just those).")
         if answer is None and getattr(self, "focus", None) == "shred" and self.cx is None:     # 4.12.0: on the pane
             from . import capturecard as CCARD, piececaptures as PC
             if kind in CCARD.KINDS:
@@ -2409,7 +2409,7 @@ class AssignPage(QWidget):
             return None
         if answer is None:
             from PySide6.QtWidgets import QLineEdit
-            d = QDialog(self); d.setWindowTitle("A task on this sentence" if kind == "task" else "A question for the team")
+            d = QDialog(self); d.setWindowTitle("A task on this piece" if kind == "task" else "A question for the team")
             d.setMinimumWidth(520); f = QFormLayout(d)
             f.addRow(D.label(f"{iid}: {it.get('text', '')[:200]}", "muted"))
             t = QLineEdit(); f.addRow("Task" if kind == "task" else "Question", t)
@@ -2523,8 +2523,8 @@ class AssignPage(QWidget):
             pass
         bar = QWidget(); bar.setObjectName("splitBar")
         h = QHBoxLayout(bar); h.setContentsMargins(4, 3, 4, 3); h.setSpacing(4)
-        h.addWidget(D.button("Split here  S", "primary", self.do_split, "Split the sentence at the red line"))
-        h.addWidget(D.button("Cancel", "ghost", lambda: self.clear_split(), "Keep the sentence whole (Esc)"))
+        h.addWidget(D.button("Split here  S", "primary", self.do_split, "Split the piece at the red line"))
+        h.addWidget(D.button("Cancel", "ghost", lambda: self.clear_split(), "Keep the piece whole (Esc)"))
         bar.setStyleSheet(f"QWidget#splitBar{{background:{D.tokens()['surface']};border:1px solid #DC2626;border-radius:6px;}}")
         px = sc.addWidget(bar)
         px.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
@@ -2598,7 +2598,7 @@ class AssignPage(QWidget):
             b.setSelected(True); n += 1
         self._guard = False
         self.on_select()
-        self.host.status(f"{n} sentence(s) selected." if n else ("Every sentence here has a decision." if undecided else "Nothing to select."))
+        self.host.status(f"{n} piece(s) selected." if n else ("Every piece here has a decision." if undecided else "Nothing to select."))
         return n
 
     def select_undecided(self):
@@ -2612,14 +2612,14 @@ class AssignPage(QWidget):
         for wdg in (self.bulk_dec, self.bulk_sec, self.bulk_own, self.bulk_clear):
             wdg.setEnabled(on)
         if not on:
-            self.bulk_lbl.setText("1 sentence selected" if len(rows) == 1 else "No sentences selected")
+            self.bulk_lbl.setText("1 piece selected" if len(rows) == 1 else "No pieces selected")
             self.bulk_info.setText("Select two or more for one decision, section or author on all")
             return
         tally = {}
         for it in rows:
             k = {"Keep": "requirement", "Context": "support", "Customer": "customer's"}.get(it.get("decision", ""), "undecided")
             tally[k] = tally.get(k, 0) + 1
-        self.bulk_lbl.setText(f"{len(rows)} sentences selected")
+        self.bulk_lbl.setText(f"{len(rows)} pieces selected")
         self.bulk_info.setText("  \u00b7  ".join(f"{tally[k]} {k}" for k in ("requirement", "support", "customer's", "undecided") if tally.get(k)))
         self.bulk_sec.blockSignals(True); self.bulk_sec.clear()
         self.bulk_sec.addItem("Put all in section...", "")
@@ -2648,7 +2648,7 @@ class AssignPage(QWidget):
         n = self.R.put_in(rows, lab)                     # 3.18.2: decided sentences keep their decision
         out = sum(1 for it in rows if it.get("decision") == "Drop")
         diag.activity("compliance_assigned", n=n)
-        self.after(f"{n} sentence(s) in {lab}" + (f"; {out} ignored left out of the response" if out else ""))
+        self.after(f"{n} piece(s) in {lab}" + (f"; {out} ignored left out of the response" if out else ""))
         return n
 
     def bulk_author(self, name):
@@ -2658,10 +2658,10 @@ class AssignPage(QWidget):
         n = self.R.set_authors(rows, name) if rows else 0
         if n:
             diag.activity("assign_card_authors", n=n)
-            self.after(f"{n} sentence(s): author {name or 'the section lead'}")
+            self.after(f"{n} piece(s): author {name or 'the section lead'}")
         else:
             self.refresh_bulk(rows)
-            self.host.status("Authors go on requirements and support sentences: decide them first.")
+            self.host.status("Authors go on requirements and support pieces: decide them first.")
         return n
 
     def show_card(self, rows):
@@ -2671,7 +2671,7 @@ class AssignPage(QWidget):
         self.clear_card()
         self.notes = None
         if self.R is None or not rows:
-            self.add(D.EmptyState("No sentence selected", "Click a sentence on the page to see everything decided about it. "
+            self.add(D.EmptyState("No piece selected", "Click a piece on the page to see everything decided about it. "
                                   "Ctrl+click adds more; drag a box around several."))
             return
         M = self.M
@@ -2751,8 +2751,8 @@ class AssignPage(QWidget):
             br = QHBoxLayout(); bv.addLayout(br)
             if ch["kind"] == "changed":
                 br.addWidget(D.button("Show the old page", None, lambda: self.old_page(it["id"]),
-                                      f"{m['from'].get('label', '')} at the same spot, the old sentence highlighted"))
-            br.addWidget(D.button("Decide in Compare", "ghost", lambda: self.host.go("compare")))
+                                      f"{m['from'].get('label', '')} at the same spot, the old piece highlighted"))
+            br.addWidget(D.button("Decide in Changes", "ghost", lambda: self.host.go("compare")))
             br.addStretch(1)
             self.change_box = box
             self.add(box)
@@ -2832,15 +2832,15 @@ class AssignPage(QWidget):
             can = [r for r in rows if r.get("decision") in ("Keep", "Context")]     # 3.15.1: the selection's own count
             from .people import NamesField                  # 2.77.0: authors come from the author list only
             ed = self.add(NamesField(self.host, SD.split_names((can[0] if can else it).get("owner", "")), empty="(the section's lead)",
-                                     title="Authors" if len(rows) == 1 else f"Authors for {len(can)} sentences",
+                                     title="Authors" if len(rows) == 1 else f"Authors for {len(can)} pieces",
                                      on_change=lambda names, rows=rows: self.set_authors(rows, ", ".join(names))))
             ed.setEnabled(bool(can))
             self.authors = ed
             if not can:                                     # 3.15.1: say why, instead of a grey button
-                self.add(D.label("Authors go on requirements and context. Decide the sentence first (L, E or R makes it a "
+                self.add(D.label("Authors go on requirements and context. Decide the piece first (L, E or R makes it a "
                                  "requirement; C makes it context), then choose one or more authors.", "muted"))
             elif len(can) < len(rows):
-                self.add(D.label(f"Authors go on the {len(can)} requirement and context sentence(s) of the {len(rows)} selected.", "muted"))
+                self.add(D.label(f"Authors go on the {len(can)} requirement and context piece(s) of the {len(rows)} selected.", "muted"))
             lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
             if on and not it.get("owner"):
                 self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
@@ -2879,8 +2879,8 @@ class AssignPage(QWidget):
                                                         + (f"  \u00b7  {g['section']}" if g.get("section") else ""))))
             wr = QHBoxLayout(); wr.setSpacing(D.SPACE["xs"])
             if not F:                                   # 4.5.0: + Task is on the right-click; Ask a question by the chips
-                wr.addWidget(D.button("+ Task...", None, lambda _=False, i=it["id"]: self.add_work("task", i), "A task about this sentence, with an owner and a due date"))
-                wr.addWidget(D.button("+ Ask the team...", None, lambda _=False, i=it["id"]: self.add_work("question", i), "A question for the team about this sentence"))
+                wr.addWidget(D.button("+ Task...", None, lambda _=False, i=it["id"]: self.add_work("task", i), "A task about this piece, with an owner and a due date"))
+                wr.addWidget(D.button("+ Ask the team...", None, lambda _=False, i=it["id"]: self.add_work("question", i), "A question for the team about this piece"))
             wr.addStretch(1)
             self.body_add_layout(wr)
         ids, how = self.R.related(it)
@@ -2986,14 +2986,14 @@ class AssignPage(QWidget):
             lm = ""
         self.R.set_lm(rows, lm)
         diag.activity("compliance_lm_set", n=len(rows))
-        self.after(f"{len(rows)} sentence(s): {SD.LM_SHORT.get(lm, lm) if lm else 'a requirement, neither L, M nor SOW'}")
+        self.after(f"{len(rows)} piece(s): {SD.LM_SHORT.get(lm, lm) if lm else 'a requirement, neither L, M nor SOW'}")
 
     def set_authors(self, rows, text):
         n = self.R.set_authors(rows, text)
         if n:
             diag.activity("assign_card_authors", n=len(rows))
             self.host.changed()
-            self.host.status(f"Author(s) set on {n} sentence(s).")
+            self.host.status(f"Author(s) set on {n} piece(s).")
 
     def act(self, fn, *a):
         fn(*a)
@@ -3114,7 +3114,7 @@ class AssignPage(QWidget):
                 node.setForeground(3, QColor("#B91C1C" if PB.source(self.M, lab) == "rfp" else "#1D4ED8"))
                 node.setToolTip(3, f"{PB.SOURCE_NAME[PB.source(self.M, lab)]}: {PB.fmt(PB.pages(self.M, lab))} page(s), subsections included")
             if ctxn.get(lab):
-                node.setToolTip(2, f"{ctxn[lab]} sentence(s) from library documents attached as context")
+                node.setToolTip(2, f"{ctxn[lab]} piece(s) from library documents attached as context")
             node.setData(0, Qt.UserRole, lab)
             if lab == self.target:
                 f = node.font(0); f.setBold(True); node.setFont(0, f)
@@ -3135,13 +3135,13 @@ class AssignPage(QWidget):
         if self.R is None or not self.M.outline:
             self.target_lbl.setText("<b>Decide</b> &nbsp;Requirements go into the response structure: add a section below first.")
         elif self.cx is not None:
-            self.target_lbl.setText("<b>From the library</b> &nbsp;" + (f"C and R put the selected sentences into <b>{html.escape(self.target)}</b>"
-                                    if self.target else "Click a section below: C and R put the selected sentences there."))
+            self.target_lbl.setText("<b>From the library</b> &nbsp;" + (f"C and R put the selected pieces into <b>{html.escape(self.target)}</b>"
+                                    if self.target else "Click a section below: C and R put the selected pieces there."))
         elif self.target:
-            self.target_lbl.setText(f"<b>Decide</b> &nbsp;L, M and SOW put the selected sentences into "
+            self.target_lbl.setText(f"<b>Decide</b> &nbsp;L, M and SOW put the selected pieces into "
                                     f"<b>{html.escape(self.target)}</b>")
         else:
-            self.target_lbl.setText("<b>Decide</b> &nbsp;Click a section below: L, M and SOW put the selected sentences there.")
+            self.target_lbl.setText("<b>Decide</b> &nbsp;Click a section below: L, M and SOW put the selected pieces there.")
         self.show_item_values()
         lab = self.target if (self.R is not None and self.cx is None and self.target and self.target in set(O.labels(self.M))) else None
         self.section_panel.show_section(lab)
@@ -3208,7 +3208,7 @@ class AssignPage(QWidget):
 
     def set_target(self, lab):
         self.target = lab
-        self.host.status(f"Target: {lab}. R puts the selected sentences there.")
+        self.host.status(f"Target: {lab}. R puts the selected pieces there.")
         b = getattr(self, "add_same_btn", None)             # 4.18.0: + H2 after an H2 target
         if b is not None:
             b.setText(f"+ H{self.level_of_section(lab) if lab else 1}")
@@ -3270,7 +3270,7 @@ class AssignPage(QWidget):
             return
         n = self.place_reqs(rows)
         diag.activity("compliance_assigned", n=n)
-        self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: compliance requirement "
+        self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' pieces'}: compliance requirement "
                    + (f"in {self.target}" if self.target else "(no section yet: click one, or build one with + Heading)"))
 
     def do_sow(self):
@@ -3284,13 +3284,13 @@ class AssignPage(QWidget):
             n = self.place_reqs(rows)
             self.R.set_lm(rows, "C")
         diag.activity("compliance_assigned", n=n)
-        self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: SOW (Work) requirement "
+        self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' pieces'}: SOW (Work) requirement "
                    + (f"in {self.target}" if self.target else "(no section yet: click one, or build one with + Heading)"))
 
     def do_lm(self, lm):
         """2.68.0: L or M; a sentence that is not a requirement yet becomes one (in the target section, if any)."""
         if self.cx is not None:
-            return self.host.status("L and M are for the matrix's documents. R makes this sentence a requirement first.")
+            return self.host.status("L and M are for the matrix's documents. R makes this piece a requirement first.")
         rows = self.selected()
         if not rows:
             return
@@ -3300,7 +3300,7 @@ class AssignPage(QWidget):
                 self.place_reqs(new)
             self.R.set_lm(rows, lm)
         diag.activity("compliance_lm_set", n=len(rows))
-        self.after(f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'}: {SD.LM_SHORT.get(lm, lm)} ({SD.LM[lm]})")
+        self.after(f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' pieces'}: {SD.LM_SHORT.get(lm, lm)} ({SD.LM[lm]})")
 
     # ------------------------------------------------------------ topics and Sort mode (3.28.0)
     def _trec(self):
@@ -3310,7 +3310,7 @@ class AssignPage(QWidget):
         self.sort_on = (not self.sort_on) if on is None else bool(on)
         self.sort_btn.setChecked(self.sort_on)
         self.fill_topics()
-        self.host.status("Sort mode: select sentences and press 1 to 9 for a topic (again takes it off)." if self.sort_on
+        self.host.status("Sort mode: select pieces and press 1 to 9 for a topic (again takes it off)." if self.sort_on
                          else "Sort mode off: 1 to 9 do nothing.")
         return self.sort_on
 
@@ -3327,12 +3327,12 @@ class AssignPage(QWidget):
         self.topic_btns = []
         for n, t in enumerate(lst):
             b = D.button((f"{n + 1}  " if self.sort_on and n < 9 else "") + t["name"], None, lambda _=False, i=n: self.tag_topic(i),
-                         f"Put the selected sentences in {t['name']} (again takes it off)" + (f"; key {n + 1} in Sort mode" if n < 9 else ""))
+                         f"Put the selected pieces in {t['name']} (again takes it off)" + (f"; key {n + 1} in Sort mode" if n < 9 else ""))
             b.setIcon(D.dot_icon(t["color"]))
             lay.addWidget(b); self.topic_btns.append(b)
         cur = self.topic_show.currentData()
         self.topic_show.blockSignals(True); self.topic_show.clear()
-        self.topic_show.addItem("Every sentence", "")
+        self.topic_show.addItem("Every piece", "")
         self.topic_show.addItem("No topic yet", "-")
         for t in lst:
             self.topic_show.addItem(t["name"], t["id"])
@@ -3351,12 +3351,12 @@ class AssignPage(QWidget):
         cov = TP.coverage(rec, self.M.items)
         if tid and tid != "-":
             c = cov.get(tid) or {}
-            self.topic_cov.setText(f"{c.get('sentences', 0)} sentence(s): {c.get('decided', 0)} decided, {c.get('open', 0)} open, "
+            self.topic_cov.setText(f"{c.get('sentences', 0)} piece(s): {c.get('decided', 0)} decided, {c.get('open', 0)} open, "
                                    f"{c.get('in_section', 0)} in a section")
         else:
             tagged = set(rec.data.get("topic_tags", {}))
             n = sum(1 for it in self.M.items if it.get("type") != "Heading" and it["id"] not in tagged)
-            self.topic_cov.setText(f"{len(TP.topics(rec))} topic(s); {n} sentence(s) with no topic yet")
+            self.topic_cov.setText(f"{len(TP.topics(rec))} topic(s); {n} piece(s) with no topic yet")
         return cov
 
     def tag_topic(self, n):
@@ -3368,11 +3368,11 @@ class AssignPage(QWidget):
             return self.host.status(f"No topic {n + 1} yet: + Topic adds one.")
         rows = self.selected()
         if not rows:
-            return self.host.status("Select sentences first (Ctrl+click for more).")
+            return self.host.status("Select pieces first (Ctrl+click for more).")
         on = TP.tag(rec, [it["id"] for it in rows], lst[n]["id"])
         diag.activity("topic_tagged", n=len(rows))
         self.restyle(); self.show_coverage()
-        self.host.status(f"{len(rows)} sentence(s) {'in' if on else 'out of'} {lst[n]['name']}.")
+        self.host.status(f"{len(rows)} piece(s) {'in' if on else 'out of'} {lst[n]['name']}.")
         return on
 
     def new_topic(self, name=None):
@@ -3397,8 +3397,8 @@ class AssignPage(QWidget):
         made = TP.from_headings(rec, self.M.items)
         diag.activity("topics_from_headings", n=len(made))
         self.fill_topics(); self.restyle()
-        self.host.status(f"{len(made)} topic(s) from the RFP's headings; the sentences under each carry it." if made
-                         else "No headings found (sentences marked as RFP headings make topics).")
+        self.host.status(f"{len(made)} topic(s) from the RFP's headings; the pieces under each carry it." if made
+                         else "No headings found (pieces marked as RFP headings make topics).")
         return made
 
     def topics_from_tags(self):
@@ -3516,20 +3516,20 @@ class AssignPage(QWidget):
             lab = O.add(self.M, title)
         diag.activity("qt_section_added")
         self.target = lab
-        self.after(f"Section added: {lab}. It is the target: R, L or M puts the selected sentences there.")
+        self.after(f"Section added: {lab}. It is the target: R, L or M puts the selected pieces there.")
         return lab
 
     def section_from_sentence(self):
         rows = self.selected()
         if not rows or self.M is None:
-            self.host.status("Select the sentence to name the section with.")
+            self.host.status("Select the piece to name the section with.")
             return None
         self.R.snap()
         tgt = self.target if self.target in set(O.labels(self.M)) else (self.active_volume or None)
         lab = O.from_sentence(self.M, rows[-1], parent=tgt)
         diag.activity("qt_section_added")
         self.target = lab
-        self.after(f"Section added from the sentence: {lab}")
+        self.after(f"Section added from the piece: {lab}")
         return lab
 
     # ------------------------------------------------------------ text the reader missed (2.70.0)
@@ -3654,7 +3654,7 @@ class AssignPage(QWidget):
         for iid in ids:
             self.view.boxes[iid].setSelected(True)
         self.show_card(self.selected())
-        self.host.status(f"{len(ids)} sentence(s) here were decided from a suggestion and not checked yet." if ids else
+        self.host.status(f"{len(ids)} piece(s) here were decided from a suggestion and not checked yet." if ids else
                          "Every suggestion accepted here has been checked.")
         return len(ids)
 
@@ -3707,13 +3707,13 @@ class AssignPage(QWidget):
             from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
             d = QDialog(self); d.setWindowTitle("Make a suggestion rule"); d.setMinimumWidth(560)
             f = QFormLayout(d)
-            f.addRow(D.label("Every sentence holding this phrase gets this suggestion. Keep the phrase short and true for "
+            f.addRow(D.label("Every piece holding this phrase gets this suggestion. Keep the phrase short and true for "
                              "every RFP: a few words around the verb usually work.", "muted"))
             ph = QLineEdit(SR.phrase_from(it.get("text", ""))); f.addRow("Phrase", ph)
             cb = QComboBox()
             for k, t in SR.CATS:
                 cb.addItem(t, k)
-            cb.setCurrentIndex(max(0, cb.findData(cur if cur in SR.CAT_NAME else "L"))); f.addRow("Such sentences are", cb)
+            cb.setCurrentIndex(max(0, cb.findData(cur if cur in SR.CAT_NAME else "L"))); f.addRow("Such pieces are", cb)
             sc = QComboBox(); sc.addItem("The team (every effort; the team library shares it with every PC)", "team")
             sc.addItem("This effort only", "effort"); f.addRow("For", sc)
             bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Make the rule")
@@ -3745,7 +3745,7 @@ class AssignPage(QWidget):
         d = QDialog(self); d.setWindowTitle("Suggestion rules"); d.resize(820, 460)
         lay = QVBoxLayout(d)
         lay.addWidget(D.label("Rules come first, before the built-in ones (who acts, the verb, the RFP section). This effort's "
-                              "rules win over the team's. Make one from a sentence in Review: Make a rule... on its card.", "muted"))
+                              "rules win over the team's. Make one from a piece in Shred: Make a rule... on its card.", "muted"))
         t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Phrase", "Makes", "For", "By", "Added"])
         t.setSelectionBehavior(QAbstractItemView.SelectRows); t.verticalHeader().setVisible(False)
         t.setEditTriggers(QAbstractItemView.NoEditTriggers); t.setColumnWidth(0, 330)
@@ -3814,7 +3814,7 @@ class AssignPage(QWidget):
             row.addWidget(D.button("Checked", "primary", lambda: self.check_suggestion(), "A person looked and it is right"))
         if state in ("rejected", "changed") or (cat and now and not SR.agrees(cat, now)) or (not cat and now in ("L", "M", "SOW", "I", "req")):
             row.addWidget(D.button("Make a rule...", None, lambda: self.make_rule(it),
-                                   "Teach it: sentences holding a phrase from this one get the right suggestion from now on"))
+                                   "Teach it: pieces holding a phrase from this one get the right suggestion from now on"))
         row.addStretch(1)
         self.add(box)
         self.sg_box = box
@@ -3828,7 +3828,7 @@ class AssignPage(QWidget):
         self.view.set_pan(on)
         self.pan_btn.setChecked(on)
         self.note.setText("Drag to move the page. H or the Pan button turns it off." if on else
-                          "Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, "
+                          "Click a piece; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, "
                           "or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         return on
 
@@ -3842,7 +3842,7 @@ class AssignPage(QWidget):
         self.view.set_capture(on)
         self.cap_btn.setChecked(on)
         self.note.setText("Drag a box around the text the reader missed (Esc cancels)." if on else
-                          "Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, "
+                          "Click a piece; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, "
                           "or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         return on
 
@@ -3907,7 +3907,7 @@ class AssignPage(QWidget):
         req = QCheckBox("Make it a compliance requirement" + (f" in {self.target}" if self.target else " (no section yet)"))
         lay.addWidget(req)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        bb.button(QDialogButtonBox.Ok).setText("Add to the review")
+        bb.button(QDialogButtonBox.Ok).setText("Add to the shred")
         bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
         lay.addWidget(bb)
         if d.exec() != QDialog.Accepted or not ed.toPlainText().strip():
@@ -3919,7 +3919,7 @@ class AssignPage(QWidget):
         to say it our way. Returns the new labels."""
         rows = self.selected()
         if not rows or self.M is None:
-            self.host.status("Select a sentence (or the heading) of the RFP section to copy.")
+            self.host.status("Select a piece (or the heading) of the RFP section to copy.")
             return None
         it = rows[-1]
         f, num, title = SS.rfp_section_of(self.M, it)
@@ -3937,7 +3937,7 @@ class AssignPage(QWidget):
         tgt = self.target if self.target in set(O.labels(self.M)) else (self.active_volume or None)
         made = SS.copy_section(self.M, it, parent=tgt, with_subsections=with_subs)
         if not made:
-            self.host.status("That sentence is in no RFP section to copy.")
+            self.host.status("That piece is in no RFP section to copy.")
             return None
         diag.activity("qt_rfp_section_copied", n=len(made))
         self.target = made[0]
@@ -4136,8 +4136,8 @@ class AssignPage(QWidget):
         m.addAction("One level up", lambda: self.outline_op(O.outdent))
         m.addAction("Move to a part...", lambda: self.move_to_part())
         m.addSeparator()                                              # 3.75.0: what the buttons under the tree did
-        m.addAction("+ Section from the selected sentence", lambda: self.section_from_sentence())
-        m.addAction("Copy the RFP section of the selected sentence", lambda: self.copy_rfp_section())
+        m.addAction("+ Section from the selected piece", lambda: self.section_from_sentence())
+        m.addAction("Copy the RFP section of the selected piece", lambda: self.copy_rfp_section())
         pm = m.addMenu("Parts")
         for a in self.parts_btn.menu().actions():
             pm.addAction(a)
@@ -4192,7 +4192,7 @@ class AssignPage(QWidget):
             self.active_volume = ""
         self.target = to or None
         diag.activity("qt_section_removed")
-        self.after(f"Section {label} taken out" + (f"; its sentences are in {to}" if to else "; its sentences have no section now"))
+        self.after(f"Section {label} taken out" + (f"; its pieces are in {to}" if to else "; its pieces have no section now"))
         return to
 
     def do_for_req(self):
@@ -4214,7 +4214,7 @@ class AssignPage(QWidget):
         if rows:
             self.R.ctx(rows)
             diag.activity("compliance_assigned", n=len(rows))
-            self.after(f"{len(rows)} sentence(s): support for {rows[0].get('context_for') or 'nothing yet (+ Requirement on the card)'}")
+            self.after(f"{len(rows)} piece(s): support for {rows[0].get('context_for') or 'nothing yet (+ Requirement on the card)'}")
 
     def do_customer(self):
         if self.cx is not None:
@@ -4222,7 +4222,7 @@ class AssignPage(QWidget):
         rows = self.selected()
         if rows:
             self.R.customer(rows)
-            self.after(f"{len(rows)} sentence(s): the customer's")
+            self.after(f"{len(rows)} piece(s): the customer's")
 
     def do_clear(self):
         """X: ignored, a decision of its own (3.18.1: grey on the page, counted as decided)."""
@@ -4232,7 +4232,7 @@ class AssignPage(QWidget):
         if rows:
             self.R.ignore(rows)
             diag.activity("compliance_ignored", n=len(rows))
-            self.after(f"{len(rows)} sentence(s): ignored")
+            self.after(f"{len(rows)} piece(s): ignored")
             return len(rows)
         return 0
 
@@ -4243,7 +4243,7 @@ class AssignPage(QWidget):
         rows = self.selected()
         if rows:
             self.R.clear(rows)
-            self.after(f"{len(rows)} sentence(s): not decided")
+            self.after(f"{len(rows)} piece(s): not decided")
             return len(rows)
         return 0
 
@@ -4252,20 +4252,20 @@ class AssignPage(QWidget):
             return self.host.status("Combine and Split are for the matrix's documents.")
         rows = self.selected()
         if len(rows) < 2:
-            self.host.status("Select two or more sentences (Ctrl+click or drag), then M.")
+            self.host.status("Select two or more pieces (Ctrl+click or drag), then M.")
             return
         first = self.R.combine(rows, self.placed)
         diag.activity("compliance_merged", n=len(rows))
         self.build_boxes()
         self.select(first["id"])
-        self.after(f"Combined {len(rows)} sentences into {first['id']}")
+        self.after(f"Combined {len(rows)} pieces into {first['id']}")
 
     def do_split(self):
         if self.cx is not None:
             return self.host.status("Combine and Split are for the matrix's documents.")
         rows = self.selected()
         if len(rows) != 1:
-            self.host.status("Select one sentence, click the word to split before, then S.")
+            self.host.status("Select one piece, click the word to split before, then S.")
             return
         at = self.split_at
         if at is None:                                     # 3.20.3: no word clicked: split exactly where you click in the text
@@ -4274,7 +4274,7 @@ class AssignPage(QWidget):
                 return
         parts = self.R.split(rows[0], at)
         if not parts:
-            self.host.status("Click the word to split before (in the selected sentence), then S.")
+            self.host.status("Click the word to split before (in the selected piece), then S.")
             return
         diag.activity("compliance_split", n=len(parts))
         self.clear_split(card=False)
@@ -4304,17 +4304,17 @@ class AssignPage(QWidget):
         """3.20.3 Shift+S: the words dragged across become a sentence of their own (the rest stays as the parts before and
         after), selected and ready to assign. Returns the new sentence."""
         if self.cx is not None:
-            return self.host.status("Make a sentence is for the documents being shredded.")
+            return self.host.status("Make a piece is for the documents being shredded.")
         if grab is None and getattr(self, "grab_multi", None):     # 3.28.1: words from several sentences: one sentence
             return self.extract_multi(self.grab_multi)
         g = grab or self.grab
         it = self.R.item(g["iid"]) if g else None
         if it is None or "s" not in g:
-            self.host.status("Drag across the words inside a sentence first, then Make a sentence (Shift+S).")
+            self.host.status("Drag across the words inside a piece first, then Make a piece (Shift+S).")
             return None
         mid = self.R.extract(it, g["s"], g["e"])
         if mid is None:
-            self.host.status("Those words are the whole sentence already.")
+            self.host.status("Those words are the whole piece already.")
             return None
         diag.activity("compliance_extracted")
         self.clear_grab()
@@ -4352,7 +4352,7 @@ class AssignPage(QWidget):
         self.clear_split(card=False)
         self.build_boxes()
         self.select(first["id"])
-        self.after(f"{first['id']}: the picked words from {len(mids)} sentences, one sentence now, ready to assign")
+        self.after(f"{first['id']}: the picked words from {len(mids)} pieces, one piece now, ready to assign")
         return first
 
     def undo_text(self):
@@ -4423,12 +4423,12 @@ class OldPageDialog(QDialog):
         v = QVBoxLayout(self)
         self.found = found
         if found is None:
-            v.addWidget(D.label("The old sentence was not found on the old version's pages (its words may be laid out "
+            v.addWidget(D.label("The old piece was not found on the old version's pages (its words may be laid out "
                                 "differently). Its wording: " + old_text, "muted"))
             page_i, rects = 0, []
         else:
             page_i, rects = found
-            v.addWidget(D.label(f"Page {page_i + 1}: the old sentence is highlighted.", "muted"))
+            v.addWidget(D.label(f"Page {page_i + 1}: the old piece is highlighted.", "muted"))
         scale = 1.6
         doc = pdfium.PdfDocument(pdf)
         try:

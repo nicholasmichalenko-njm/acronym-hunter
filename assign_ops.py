@@ -162,7 +162,7 @@ class Review:
         response. One Undo step. Returns how many are in label now."""
         if not rows or label not in set(self.labels()):
             return 0
-        self.snap(f"put {len(rows)} sentence(s) in {label}")
+        self.snap(f"put {len(rows)} piece(s) in {label}")
         new = [it for it in rows if not it.get("decision")]
         if new:
             C.assign_requirement(self.M.items, new, label)
@@ -277,7 +277,7 @@ class Review:
         if not mid or (not before and not after):
             return None
         with self.group():
-            self.snap("extract words into their own sentence")
+            self.snap("extract words into their own piece")
             parts = [p for p in (before, mid, after) if p]
             i = self.M.items.index(it)
             new = []

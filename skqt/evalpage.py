@@ -22,7 +22,7 @@ class EvalPage(QWidget):
         self.sumlab = D.label("", "title"); v.addWidget(self.sumlab)
         v.addWidget(D.label("The factors and subfactors the customer will score, with their relative importance, and the "
                             "deliverables each one judges. Capture them in the shred (More captures > Evaluation factor) or add "
-                            "them here; make one from an evaluation sentence below.", "muted"))
+                            "them here; make one from an evaluation piece below.", "muted"))
         self.table = QTableWidget(0, 4); self.table.setHorizontalHeaderLabels(["Factor", "Importance", "Judges", "From"])
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setSelectionMode(QTableWidget.SingleSelection)
@@ -84,7 +84,7 @@ class EvalPage(QWidget):
         self.mtab.setRowCount(len(ms))
         for i, it in enumerate(ms):
             ts = ST.types_of(it)                                                     # 4.5.0: every type it has
-            for j, val in enumerate((it["id"], it.get("text", ""), ", ".join(tnames.get(t, t) for t in ts) or "not sorted yet")):
+            for j, val in enumerate((it["id"], it.get("text", ""), ", ".join(tnames.get(t, t) for t in ts) or "not shredded yet")):
                 self.mtab.setItem(i, j, QTableWidgetItem(val))
 
     def current(self):

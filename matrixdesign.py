@@ -56,7 +56,7 @@ COLUMNS = {
     "m_content": ("Evaluation Content", 60),        # sentences designated M
 }
 OUTLINE_KEYS = ("item", "assigned_to", "page_alloc", "pct_complete", "l_refs", "l_content", "m_refs", "m_content")
-LAYOUTS = (("outline", "One row per outline item (Section L and M side by side)"), ("sentences", "One row per RFP sentence"))
+LAYOUTS = (("outline", "One row per outline item (Section L and M side by side)"), ("sentences", "One row per RFP piece"))
 CUSTOM = "custom:"                                   # 2.51.0: a column of the team's own, filled in Excel
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
 # 2.56.0 (the user's default): Volume, Response section no., Response section name, RFP section, RFP content (compliance
@@ -76,7 +76,7 @@ SENTENCES = {"columns": [{"key": k, "heading": h} for k, h in
 # sentence assigned to several items is in each of their rows.
 DEFAULT = dict(SENTENCES, columns=[{"key": k, "heading": COLUMNS[k][0]} for k in OUTLINE_KEYS], layout="outline",
                order="structure")
-BUILTIN_VIEWS = (("Outline with L and M", "outline"), ("RFP sentences", "sentences"))
+BUILTIN_VIEWS = (("Outline with L and M", "outline"), ("RFP pieces", "sentences"))
 _FAR = __import__("re").compile(r"\b(?:FAR|DFARS|NFS|AFFARS|DFARS PGI)\s+(?:clause\s+)?\d{1,3}\.\d{2,4}(?:-\d+)?(?:\([a-z0-9]+\))*", __import__("re").I)
 
 
@@ -203,7 +203,7 @@ def _plain(design):
 
 def view_summary(design):
     d = clean(design)
-    lay = "one row per outline item" if d["layout"] == "outline" else "one row per RFP sentence"
+    lay = "one row per outline item" if d["layout"] == "outline" else "one row per RFP piece"
     return f"{lay}; " + ", ".join(c["heading"] for c in d["columns"])
 
 

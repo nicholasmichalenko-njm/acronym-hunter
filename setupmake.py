@@ -126,9 +126,9 @@ def preview(M, label):
         out.append(("Author and due date", who + (f", contributors {p['with']}" if p["with"] else "")
                     + ", due " + (due(M, label) or "not set")))
     if on["customer"]:
-        out.append(("Customer context", f"{n.get('Customer', 0)} customer sentence(s), objectives and library context"))
+        out.append(("Customer context", f"{n.get('Customer', 0)} customer piece(s), objectives and library context"))
     if on["captures"]:
-        out.append(("Meeting notes and captures", "the captures placed here in Review"))
+        out.append(("Meeting notes and captures", "the captures placed here in Shred"))
     if on["topics"]:
         out.append(("Topics", "the topics this section answers"))
     return out

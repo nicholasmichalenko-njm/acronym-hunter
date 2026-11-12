@@ -7,29 +7,29 @@ TOPICS = [
   "acronym lists and the submission checks. Everything stays on this PC.",
   "You are new to Stationkeeper, or want the big picture.",
   ["Open the menu on the left. Its groups are by job: Effort, Solicitation (the RFP, its changes and our questions about it), Compliance, Writing, Quality, "
-   "Production, Post-Submission and Effort files. A tool with several pages shows them as tabs under its title (Review: "
-   "Review, Structure, Coverage). Each tool is in one place. Click a group's name to fold it away. The open effort and "
+   "Production, Post-Submission and Effort files. A tool with several pages shows them as tabs under its title (Shred: "
+   "Shred, Structure, Coverage). Each tool is in one place. Click a group's name to fold it away. The open effort and "
    "its stage are at the top; a dot in the stage's color marks the tools this stage needs, and each group says how many "
    "it holds.",
    "Your role decides which tools open. A greyed tool is for another role: open it to see who it is for and how to get "
    "it. Settings > Roles and Preview tools can hide them.",
    "Start an effort on All Efforts, or open one you already have.",
-   "Add the customer's documents in Library, then Read it into Review: decide every sentence and build the structure beside the page.",
+   "Add the customer's documents in Documents, then Read it into Shred: decide every piece and build the structure beside the page.",
    "Make the matrix and the Response Setup documents from your decisions, then check the volumes in Response Quality."],
   ["Press F1 on any page to open this Guide at that page.",
-   "Press Ctrl+K to find a page, an effort, a sentence or a person from anywhere.",
+   "Press Ctrl+K to find a page, an effort, a piece or a person from anywhere.",
    "Every decision saves as you make it. Closing the app never loses work."]),
  ("tools", "Home", "Your Tools",
   "The first screen: drop any file and pick what to do with it, your pinned tools, the files you opened from here, and your "
   "efforts and Unfiled.",
   "Whenever you start: a quick job on any document, or the effort you are working on.",
   ["Drop a file on the dashed box, or Choose files...: Stationkeeper lists the tools that take it (find acronyms, check first "
-   "use, pull out all the text, add to the Library, audit). Pick one.",
-   "Paste a picture: a screenshot or a copied figure, read in Acronym Finder.",
+   "use, pull out all the text, add to Documents, audit). Pick one.",
+   "Paste a picture: a screenshot or a copied figure, read in Acros & Abs Finder.",
    "Pinned tools: one click each. Edit pins... picks them; your role's starting set is only a start.",
    "Recent files: double-click to open one again with any tool. Your efforts: double-click to work on one, or Unfiled."],
   ["Working on (top right) says what every space works on: an effort, or Unfiled (loose work kept until you file it).",
-   "Ctrl+K finds any page, effort, sentence or person."]),
+   "Ctrl+K finds any page, effort, piece or person."]),
  ("mywork", "Home", "My Work",
   "One person's work in every effort on this PC, soonest first: tasks, questions for them, customer questions, "
   "deliverables and graphic needs they own, the requirements they answer, and the sections they lead with page budgets.",
@@ -75,7 +75,7 @@ TOPICS = [
    "Each stage has a color: the header's top line, the stage pill and the current stage on the track show it.",
    "Export overview... writes one Word file each time: due dates and your summary first. All overviews... lists every "
    "one with its stage and summary, and opens its file.",
-   "New files in the watched folders show in a strip under the top bar: Review opens them in the Library; Ignore stops "
+   "New files in the watched folders show in a strip under the top bar: Review opens them in Documents; Ignore stops "
    "offering them until they change.",
    "Graphic needs lists what was tagged as needing a graphic; Export... makes a workbook for the graphics team."]),
  ("requirements", "Shred", "Rules & Dates",
@@ -90,7 +90,7 @@ TOPICS = [
   "Every deliverable of the effort on one board: volumes, forms, plans and CDRLs, with owner, status, pages against "
   "the limit and what is missing.",
   "You track what has to be turned in and who owns each piece.",
-  ["Press + Deliverable... to add one, or capture one from a sentence in Review (More captures).",
+  ["Press + Deliverable... to add one, or capture one from a piece in Shred (More captures).",
    "Click a card to see its requirements, what a new customer version changed, its submission check and its files.",
    "Double-click a card (or a row in the list) to open the deliverable's own page: Overview (type, status, owner, due "
    "date, what it is, its guidelines), Format and submission, Parts and people, Requirements, Attachments and files, "
@@ -101,7 +101,7 @@ TOPICS = [
    "sections, with their leads from Setup, are its parts. Any deliverable can have parts of its own.",
    "Discussion: dated notes with the writer's name; filter by person; pin the ones everyone needs. Each note is also in "
    "the effort's timeline. A deliverable's due date and its own dates show on the calendar.",
-   "Double-click a requirement to open it in Review."],
+   "Double-click a requirement to open it in Shred."],
   ["View: List shows the same deliverables as a table; Arrange: drag them into the team's order, and set the board to "
    "Your order to follow it.",
    "Every name picker ends with Add a person...: add someone once and every picker offers them after."]),
@@ -109,25 +109,25 @@ TOPICS = [
   "How the customer will judge the proposal: the evaluation factors and subfactors with their relative importance, and "
   "the deliverables each one judges.",
   "Right after the RFP is read, and whenever you decide what a section must prove.",
-  ["Factors captured in Review (More captures > Evaluation factor) show here; Add puts one in by hand, as a factor or "
+  ["Factors captured in Shred (More captures > Evaluation factor) show here; Add puts one in by hand, as a factor or "
    "under one.",
    "Deliverables it judges... ties a factor to the deliverables it scores; the Effort Dashboard's Evaluation criteria "
    "card and All Efforts show them.",
-   "Evaluation sentences in Review (Section M) are listed below: Make it a factor reads the factor's name and importance "
-   "from the customer's words; Open in Review shows the sentence in place."],
+   "Evaluation pieces in Shred (Section M) are listed below: Make it a factor reads the factor's name and importance "
+   "from the customer's words; Open in Shred shows the piece in place."],
   ["Set importance changes a factor's relative importance (Significantly more important to Pass/fail)."]),
  ("effortfmt", "Effort", "Effort Formatting",
   "This effort's formatting on top of the Company Standards (Default): the values efforts change most up front, each with the "
-  "global value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",
+  "Company Standards value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",
   "An effort needs its own fonts, sizes, margins or header text, or the RFP sets formatting rules.",
   ["Changes apply to: Every volume, or one volume of the effort.",
    "Set a value, or press Use it beside what the RFP says. A value that breaks the RFP's rule shows in red.",
-   "Make it global writes this effort's value into the Company Standards (Default), a volume profile or the effort type; Undo the "
-   "last Make it global puts it back.",
+   "Make it the Company Standard writes this effort's value into the Company Standards (Default), a volume profile or the effort type; Undo the "
+   "last Make it the Company Standard puts it back.",
    "Every setting... opens Production Standards on this effort (an amber band says so); Back to Effort Formatting returns.",
    "Footer, the team's line (Rule 7) sets the line under the marking in every Rule 7 footer of this effort. Field, beside "
    "each header and footer box, puts a field (page number, A number, volume values, your fields) where the cursor is."],
-  ["Library parts this effort uses lists each part's source: the global version, a version this effort chose, or its own copy.",
+  ["Library parts this effort uses lists each part's source: the Company Standards version, a version this effort chose, or its own copy.",
    "Production Standards itself edits only the Company Standards (Default)."]),
  ("record", "Effort", "Effort Record",
   "The effort's details, team and roles, stages and gates, status reports, the effort package and backups.",
@@ -149,36 +149,36 @@ TOPICS = [
    "When a topic has been taken into account, select it and press Considered (who and when are kept). Not needed asks why.",
    "Select words in the notes and press Make a topic of the selection (or right-click): the topic box opens with them.",
    "Export to Word... saves the meeting, its notes and topics."],
-  ["Open topics show on the Effort Dashboard, in My Work for their owner, and on the card of the sentence or section they "
-   "point at in Review.",
+  ["Open topics show on the Effort Dashboard, in My Work for their owner, and on the card of the piece or section they "
+   "point at in Shred.",
    "A stage gate can hold until every topic is considered: add the goal Every meeting topic considered in Effort Record."]),
- ("library", "Effort Library", "Library",
+ ("library", "Effort Library", "Documents",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
   ["Press Add documents... (Customer or Ours; Add a folder... is under More). Stationkeeper suggests the type, its "
    "initial (R, A1, TO1) and whether it is a new version of a document you have.",
    "Watched folders... checks the customer folder and any folder you add for new, changed and missing files. New files "
-   "show at the top of the Library: Add to the Library... or Ignore. The same words are never added twice.",
-   "The Review column says where each document stands: Not read yet, Needs reviewing (how many sentences are decided), "
-   "or Reviewed. Select one and press its button: Read it into Review, Continue reviewing or Open in Review. Select "
+   "show at the top of Documents: Add to Documents... or Ignore. The same words are never added twice.",
+   "The Shred column says where each document stands: Not read yet, Needs reviewing (how many pieces are shredded), "
+   "or Reviewed. Select one and press its button: Read it into Shred, Continue reviewing or Open in Shred. Select "
    "several unread ones to read them together.",
    "For an amendment that says what to change, press Apply its instructions... to make the Conformed version."],
   ["Initial and type... and Rename... fix a document's details. The customer's files are never changed.",
    "A document marked above CUI is refused on a regular install. Follow your site's spill procedure."]),
- ("read", "Effort Library", "Read into Review",
-  "The Library's second tab: several customer documents read into the compliance matrix at once. Every sentence is cut "
+ ("read", "Effort Library", "Read into Shred",
+  "Documents' second tab: several customer documents read into the compliance matrix at once. Every piece is cut "
   "out of the page, scans and pictures are read with OCR, and nothing is dropped.",
-  "A new solicitation arrives with many files, or you add files that are not in the Library yet.",
+  "A new solicitation arrives with many files, or you add files that are not in Documents yet.",
   ["Tick the documents (or press Add files...).",
-   "Press Read. The progress panel shows each file and page; Review opens when it is done.",
-   "One document at a time is simpler from the Documents tab: Read it into Review."],
+   "Press Read. The progress panel shows each file and page; Shred opens when it is done.",
+   "One document at a time is simpler from the Documents tab: Read it into Shred."],
   ["Scanned pages and pictures are read by the OCR reader (AI and ML), on this PC.",
-   "Every read runs the text check: Coverage (in Review) shows it file by file."]),
+   "Every read runs the text check: Coverage (in Shred) shows it file by file."]),
  ("custqa", "Shred", "The Q&A log",
   "The formal questions you submit to the customer: their exact words and where they are, your question, its status "
   "and the answer. 4.1.0: a drawer, opened from the Q&A button on Shred, Matrix & Outline and Drafts.",
   "Before the questions-due date, and when the answers come back.",
-  ["In Review, select a sentence (or drag across words) and use Capture > Question. It quotes the customer and the "
+  ["In Shred, select a piece (or drag across words) and use Capture > Question. It quotes the customer and the "
    "place for you.",
    "Here, edit the question, its category and owner, and move it from Draft to Approved.",
    "Export to Word or Excel, or fill the customer's own Q&A form. Exporting can mark the questions Submitted.",
@@ -199,33 +199,33 @@ TOPICS = [
   "Requirement, Instruction (L), Evaluation (M) or SOW task, with its section, page and the words that make it one.",
   "The day an RFP or draft RFP drops, before any effort exists; or any time you need a quick list.",
   ["Choose a file... (or drop it on Your Tools and pick Find the requirements).",
-   "Filter by kind. Select a row: the sentence with its words in bold, and where it is.",
+   "Filter by kind. Select a row: the piece with its words in bold, and where it is.",
    "Export the matrix...: a draft compliance matrix in Excel, one row per requirement.",
-   "File to an effort...: reads the file into that effort's Review, where each requirement gets its decision."],
-  ["The same reader as Review; nothing is kept until you file it to an effort."]),
+   "File to an effort...: reads the file into that effort's shred, where each requirement gets its decision."],
+  ["The same reader as Shred; nothing is kept until you file it to an effort."]),
  ("assign", "Shred", "Shred",
   "The customer's document as it looks, every piece boxed. Say what each piece is (4.5.0: one job here; placing is "
   "Matrix & Outline > Place). Every customer document is extracted when it is added.",
-  "From the first read until every piece is sorted, and again when a new version arrives.",
+  "From the first read until every piece is shredded, and again when a new version arrives.",
   ["Click a piece. The pane shows What it is: Requirement (R), Instruction (L), Rule (U), Date (D), Evaluation (E), "
    "Deliverable (V), Information (G) and Not applicable (X), as chips. A click or a key puts a type on; again takes it off.",
    "A piece can be several things: a requirement that is also a date shows on Requirements and on Rules & Dates. "
-   "Not applicable clears the rest. The review's decision follows: any answered type makes it a requirement (L from "
+   "Not applicable clears the rest. The shred's decision follows: any answered type makes it a requirement (L from "
    "Instruction, M from Evaluation); only Rule, Date or Information makes it the customer's; none leaves it undecided.",
    "The suggestion shows dashed on its chip, with why. Enter takes it; More > Take every suggestion takes them all.",
    "Capture (a menu in the pane) files the picked words: a contact, an objective (O), a key point (K), a graphic need "
    "(P), the effort's own captures. Rule and Date cover submission and formatting rules and key dates; Acros & Abs holds "
    "the acronyms; Ask a question puts a customer question, citing the piece, in the Q&A log.",
-   "Drag across words to pick just those words. Make a sentence (Shift+S) makes them a piece of their own; Split (S) "
+   "Drag across words to pick just those words. Make a piece (Shift+S) makes them a piece of their own; Split (S) "
    "splits at a clicked word; Combine (J) joins the selected pieces. Fix text (F2, in More) has the rest.",
    "Several pieces at once: Ctrl+click, drag a box, or Ctrl+A; a chip then acts on all of them. Esc clears the selection.",
-   "N goes to the next piece not sorted in this document.",
+   "N goes to the next piece not shredded in this document.",
    "A piece a new version changed shows Changed by <version> on its pane until it is shredded again; a new one shows "
    "New in <version>.",
    "When a document is done, press Mark this document shredded: it is marked and the next one opens.",
    "More: Fix text, Take every suggestion, Add missed text (drag a box around text the reader missed), Next document, "
    "Fit width (Ctrl+0), Pan (H, or hold Space and drag) and the Captured list.",
-   "Settings > Review: decisions and captures sets every type's and capture's name, key, color and showing.",
+   "Settings > Shred: decisions and captures sets every type's and capture's name, key, color and showing.",
    "Topics and Sort mode are on See it as > Sort.",
    "On Place (Matrix & Outline), the pane says where the piece goes and why: Place it (Enter), Another section..., "
    "Leave it out of the matrix... Rules, dates and information stay in Shred; an evaluation piece links through L to M.",
@@ -241,28 +241,28 @@ TOPICS = [
    "Undo (top bar) or Ctrl+Z undoes the last change on the page, the structure too: a section added by mistake comes "
    "back out. The Pages column of the structure (double-click) sets a section's pages: the RFP's limit or the team's guideline.",
    "Every choice has its own color on the page (3.18.1): L green, M orange, SOW teal, support blue, the customer's purple, "
-   "ignored grey; only undecided sentences stay plain. X ignores (a decision); Delete takes a decision off. A sentence "
+   "ignored grey; only undecided pieces stay plain. X ignores (a decision); Delete takes a decision off. A piece "
    "something was captured from has a pink outline, and the margin says what.",
-   "Suggest (3.18.0) shows what each sentence most likely is, dashed on the page, from rules you can read (who acts, the "
+   "Suggest (3.18.0) shows what each piece most likely is, dashed on the page, from rules you can read (who acts, the "
    "verb, the RFP section; then the team's rules), not AI. Enter accepts the selected ones; Accept the clear ones takes "
    "only the sure ones; Not right drops one; any key decides otherwise. Accepted ones stay marked until someone presses "
-   "Checked. Make a rule... on a card teaches it: a phrase and what such sentences are, for the team or this effort."],
-  ["J joins sentences; S splits one where you clicked (Split here).",
-   "Ctrl+Z undoes. Ctrl+F finds a sentence by its words or number.",
-   "On a later version, changed sentences are outlined in amber and new ones in green. Show the old page shows what it "
+   "Checked. Make a rule... on a card teaches it: a phrase and what such pieces are, for the team or this effort."],
+  ["J joins pieces; S splits one where you clicked (Split here).",
+   "Ctrl+Z undoes. Ctrl+F finds a piece by its words or number.",
+   "On a later version, changed pieces are outlined in amber and new ones in green. Show the old page shows what it "
    "was."]),
  ("prove", "Matrix & Outline", "Coverage",
-  "Review's third tab: every sentence of every customer file, by decision, and the text check, which reads each file "
+  "Shred's third tab: every piece of every customer file, by decision, and the text check, which reads each file "
   "word for word and finds text the reader missed (in tables, text boxes, headers and footers).",
-  "Before you call the review finished, before a gate, and when someone asks whether every line was read.",
+  "Before you call the shred finished, before a gate, and when someone asks whether every line was read.",
   ["Read the table: requirements, context, the customer's, ignored, and requirements with no section yet, per file.",
    "Press Run the text check. If anything is missing, press Add the missing lines: they go in their place in the document.",
-   "The Library's Review column shows the same thing a document at a time."],
+   "Documents' Shred column shows the same thing a document at a time."],
   ["Every read runs the text check too, and says the result in the status bar."]),
  ("sort", "Shred", "Sort",
   "Name the big areas of what is being bought (an architecture, a service, the parts of the work) and file every "
   "requirement under one, before the outline is built.",
-  "After the requirements are read into Review, and whenever an amendment adds some.",
+  "After the requirements are read into Shred, and whenever an amendment adds some.",
   ["Start from...: the RFP's headings (its own numbering), the evaluation factors, or the starter list. Rename a "
    "topic in your own words; its requirements stay with it.",
    "Unsorted, at the top, holds what has no topic yet. Select rows (Ctrl or Shift for more) and press 1 to 9 for the "
@@ -271,7 +271,7 @@ TOPICS = [
    "name as another name; Split... cuts a compound sentence into parts with the same words (IDs .a, .b).",
    "Overview: each area's requirements, how many are shall, should and may, and how many come from L, M and the SOW.",
    "Read back from Excel...: a matrix workbook edited in Excel (ID and Topic columns, topics separated by ';') files "
-   "each sentence under the topics typed there.",
+   "each requirement under the topics typed there.",
    "Suggested: in Unsorted, each requirement whose words point at one topic shows it and why (a topic's Keywords... "
    "count most, then the words of its name). Take the suggestions files the selected rows, or every row shown.",
    "View: Structure: each topic beside the response outline. Map to it (a topic fills a section), Make subsections "
@@ -279,11 +279,11 @@ TOPICS = [
    "home topic's first section), and Our fit (Strong, Partial, Gap) per topic. For an RFI or sources sought, Make the "
    "response from the topics adds a Response volume with a section per topic. The line on top says what is still "
    "missing."],
-  ["These are the same topics as Review's Sort mode and the matrix's Topic column.",
-   "A topic can name its response sections (Review > Topics...): a requirement kept with no section goes to its "
+  ["These are the same topics as Shred's Sort mode and the matrix's Topic column.",
+   "A topic can name its response sections (Shred > Topics...): a requirement kept with no section goes to its "
    "topic's first section."]),
  ("matrix", "Shred", "Matrix",
-  "The compliance matrix as the customer will see it, built from your decisions in Review.",
+  "The compliance matrix as the customer will see it, built from your decisions in Shred.",
   "You deliver the matrix, or share it with the team.",
   ["Choose the columns. Add a column... adds your own.",
    "Press Export the matrix..., or Export the compliance package... for the matrix with its reports.",
@@ -295,8 +295,8 @@ TOPICS = [
   "Whenever you add an RFP to the set, and after each release.",
   ["Make a folder for the set (Choose the folder...; it starts as Stationkeeper Shred Set in your user folder) and save "
    "public RFPs in it: the RFP, Sections L and M, the SOW, any amendments.",
-   "Read an RFP into Review in a test effort and decide every sentence: requirement (with its kind), context or drop.",
-   "Back here, press Save this effort's Review as answer keys: a key is saved beside each RFP the effort read.",
+   "Read an RFP into Shred in a test effort and decide every piece: requirement (with its kind), context or drop.",
+   "Back here, press Save this effort's shred as answer keys: a key is saved beside each RFP the effort read.",
    "Press Score the set. Each RFP shows its scores; the set's scores go in By release."],
   ["The set stays on this PC. The build scores it each release and logs the numbers only, never a file's name or text.",
    "The build stops when recall drops below the floor: the first run's score, raised as the shred gets better."]),
@@ -307,8 +307,8 @@ TOPICS = [
   "Right after the first read, while you build the structure: it shows which sections carry the score.",
   ["Read the rows. Gaps show where an instruction has no factor or a factor has no instruction.",
    "Press Export the crosswalk... for a review or the proposal manager."],
-  ["The crosswalk fills in from your L, M and SOW decisions in Review."]),
- ("compare", "Effort Library", "Compare",
+  ["The crosswalk fills in from your L, M and SOW decisions in Shred."]),
+ ("compare", "Effort Library", "Changes",
   "A card per change a new version of a customer document made: the old and new wording, what it touches in our response, "
   "and No impact, Re-shred or Ask a question on the card. Any two files (under More): our drafts or any files, with the "
   "redline in Word.",
@@ -319,21 +319,21 @@ TOPICS = [
    "hides the sentences that stayed the same. Redline (Word)... exports the changes marked; Tracked changes (Word)... "
    "saves a Word file where each change is a tracked change to accept or reject. Two Word files are compared by Word "
    "itself (formatting kept) when Word is on this PC; other files as their text.",
-   "Final Checks' Open in Compare, and dropping two files on Your Tools, open Any two files with both picked."],
+   "Final Checks' Open in Changes, and dropping two files on Your Tools, open Any two files with both picked."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
  ("structure", "Plan", "Structure",
-  "Review's second tab: start or replace the sections of your response from the RFP or a Word outline. Most teams "
-  "build the structure beside the page in Review as they read; this tab is for starting it in one step.",
+  "Shred's second tab: start or replace the sections of your response from the RFP or a Word outline. Most teams "
+  "build the structure beside the page in Shred as they read; this tab is for starting it in one step.",
   "When the RFP spells out the response's organization, or you have an outline in Word.",
   ["Choose how to start: What the RFP prescribes, RFP headings, RFP outline, Word outline..., or Blank.",
-   "Press Apply. Back in Review, the structure is beside the page: + H1 or + H2 (the target's level, or one level down), From sentence and Copy RFP "
+   "Press Apply. Back in Shred, the structure is beside the page: + H1 or + H2 (the target's level, or one level down), From piece and Copy RFP "
    "section add to it as you read."],
   ["Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget)."]),
  ("setups", "Plan", "Setup",
   "One page for the response's sections and each author's starting draft: build the sections, say who writes each and "
   "when, pick the template, and make the setup: the volume's template with every section's heading, and under it the "
   "customer's words, how it is scored, the PM's direction, its pages, its lead and due date, in hidden reference styles.",
-  "As soon as you have headings, even before the customer's documents are read; and again after the Review, a new "
+  "As soon as you have headings, even before the customer's documents are read; and again after the shred, a new "
   "template or new direction.",
   ["No sections yet: drop a file on the page or Bring in a file... (Excel, Word or PDF), or type the sections, then Use "
    "these sections. Use a template file... works before or after the sections.",
@@ -359,7 +359,7 @@ TOPICS = [
    "Set the status as it moves: Drafting, Ready for review, Approved. It saves as you type.",
    "Export the volume... makes one Word file, a page per section, for the review. Export this section... makes one."],
   ["Win themes come from the Effort Dashboard (+ Theme... under Win themes); a theme linked to the section is ticked for you.",
-   "Graphic needs tagged in Review for the section list here too."]),
+   "Graphic needs tagged in Shred for the section list here too."]),
  ("drafts", "Drafts", "Status",
   "Read each volume's newest draft back by the response structure's headings and the setup's styles: where each section stands "
   "against its page budget, requirements an author removed, and styles pasted text brought in.",
@@ -385,9 +385,9 @@ TOPICS = [
    "Export the wall... makes the page to post in the war room and hand to writers; Export... gives the editors the findings."],
   ["The drafts are the Word files in the effort's Volumes folder (and the deliverables' files).",
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
- ("acronyms", "Write", "Acronyms",
+ ("acronyms", "Write", "Acros & Abs",
   "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
-  "documents or your own drafts; Acronym List is the effort's list with its definitions, and (3.37.0) Show > "
+  "documents or your own drafts; Acros & Abs List is the effort's list with its definitions, and (3.37.0) Show > "
   "Lists to submit, by volume, builds each volume's list from what it uses.",
   "At the start (scan the customer's documents), throughout (add terms and their definitions), and at the end (the lists you submit).",
   ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
@@ -411,24 +411,24 @@ TOPICS = [
    "right-click a row for every action; double-click for Details. Select several rows to act on them together.",
    "Fixes for misread text...: when the reader misreads a word in a picture (KSF for KSE), add the fix; it is used every "
    "time a picture is read on this PC. Undo puts back the last change.",
-   "Acronym List: edit a definition in place. Export the list... for the team. Import a list... reads any Excel or CSV "
+   "Acros & Abs List: edit a definition in place. Export the list... for the team. Import a list... reads any Excel or CSV "
    "list and merges it (new terms come in the list; the same meaning fills empty fields; a second meaning is kept under "
    "Other definitions for review). Export... picks the columns, format and volumes; Every "
    "effort... puts every effort's list in one workbook; Import a volume's list... brings a volume's own list in; "
    "Volumes... says which volumes use the selected terms; Activity, New in the last scan, Show in scan, Open in Excel and "
    "Reload help run the list; Add to this PC's database... keeps chosen terms for every effort.",
-   "First use in your volumes is checked in Quality > Submission Check (Check first use... on the Acronym List opens it)."],
+   "First use in your volumes is checked in Quality > Submission Check (Check first use... on the Acros & Abs List opens it)."],
   ["The customer's own definitions win over the master database.",
    "The list is kept in the effort's Excel workbook, in the effort's folder."]),
- ("lists", "Acronyms", "Lists to Submit",
-  "In the Acronym List (Show > Lists to submit, by volume, 3.37.0): the acronym list for each volume from what that volume "
+ ("lists", "Acros & Abs", "Lists to Submit",
+  "In the Acros & Abs List (Show > Lists to submit, by volume, 3.37.0): the acronym list for each volume from what that volume "
   "actually uses.",
   "At the end, when the volumes are final.",
   ["Review each volume's list.",
    "Press Export the lists (Word)... or Export (Excel)...",
    "Record in the effort list notes which volume uses each term."],
   []),
- ("acrtool", "Acronyms", "Acronym Finder (its own window)",
+ ("acrtool", "Acros & Abs", "Acros & Abs Finder (its own window)",
   "The acronym scan as a tool in its own window, for quick jobs with no effort: scan any files, check each term's meaning "
   "and where it was found, export the list, check first use in your own Word files.",
   "When you need a list of a document's acronyms and their meanings, or to check a submittal's first uses, fast.",
@@ -448,7 +448,7 @@ TOPICS = [
    "Symbols: beside the definition box, Greek letters, subscripts, superscripts, math, accents, units and arrows. Right-click "
    "a box, or press Ctrl+Shift+Space, to make the selection subscript, superscript or normal text (H₂O, m²)."],
   ["Its list is its own, on this PC, apart from every effort; it reopens with the last scan."]),
- ("firstuse", "Acronyms", "First Use Check (its own window)",
+ ("firstuse", "Acros & Abs", "First Use Check (its own window)",
   "One or more Word files checked on their own: where each acronym is first used, and every acronym used before it is "
   "defined, never defined, or spelled out more than once.",
   "Before a document goes out, or whenever you need to know a draft's first uses fast, with no effort open.",
@@ -465,12 +465,12 @@ TOPICS = [
    "Entries in a table of contents never count as a first use.",
    "Export the report to Excel."],
   ["Submission Check does the same for an effort's volumes and also compares each spell-out with the effort's acronym list."]),
- ("fulltext", "Acronyms", "Full Text (its own window)",
+ ("fulltext", "Acros & Abs", "Full Text (its own window)",
   "Every word in the files you choose, typed text exactly and picture text through the reader (equations in linear form), "
   "shown in one box and saved as text.",
   "When you need a document's words as plain text: to search it, compare it, or paste it somewhere else.",
   ["Open it from Home (Your Tools: a pin, or drop files and pick Pull out all the text), or start the program with the fulltext switch.",
-   "Choose files..., Choose a folder..., or Acronym Finder's files (the files its open list scanned). Press Read all the text; "
+   "Choose files..., Choose a folder..., or Acros & Abs Finder's files (the files its open list scanned). Press Read all the text; "
    "Stop ends it.",
    "Save as one .txt..., Save one .txt per file... (each named after its file, with _fulltext), or Copy."],
   ["The text carries the same classification and markings as the source files. Save and handle it the same way.",
@@ -592,13 +592,13 @@ TOPICS = [
    "Each template's name counts up a version every time it is made again."]),
  ("rules", "Team", "Rules",
   "Every rule the app follows and checks, in one list: the production rules for our documents (Rule 1 to 13 and the "
-  "team's own) and the rules Review's Suggest reads the customer's documents by.",
+  "team's own) and the rules Shred's Suggest reads the customer's documents by.",
   "To see which rules are on, how each is kept, and where to change a rule's values; to add a rule of your own.",
   ["Show: Our documents, or Reading the customer's documents.",
    "Each rule says how it is kept: checked by the app, checked with Word on this PC, or a checklist item for people.",
    "Untick On for every effort to turn a rule off everywhere. An effort departs from a rule on Effort Formatting only.",
-   "Change it opens the page that holds the rule's values (Production Standards, Effort Formatting, the Acronym List).",
-   "Add the rule adds one of your own (a checklist item). Phrase rules: a sentence holding the phrase gets that suggestion.",
+   "Change it opens the page that holds the rule's values (Production Standards, Effort Formatting, the Acros & Abs List).",
+   "Add the rule adds one of your own (a checklist item). Phrase rules: a piece holding the phrase gets that suggestion.",
    "Field recipes: your field codes, written and changed here (name, where used, the code one field per line, the text "
    "between, the bookmark it needs and what it spans, the style it reads). The starters are yours to change or remove. "
    "This effort's own code... sets a different one for the open effort only. Read a template... lists a file's fields "

@@ -91,7 +91,7 @@ class AcronymPage(QWidget):
                                 "read with the files already scanned")             # 3.53.0
         self.b_cancel = D.button("Cancel", "danger", lambda: self.cancel()); self.b_cancel.hide()
         self.b_window = D.button("Open in its own window", "ghost", lambda: self.own_window(),     # 3.50.0
-                                 "Acronym Finder: scan any files and export the list, apart from this effort")
+                                 "Acros & Abs Finder: scan any files and export the list, apart from this effort")
         for b in (self.b_files, self.b_lib, self.b_folder, self.b_again, self.b_paste, self.b_cancel, self.b_window):
             top.addWidget(b)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
@@ -553,7 +553,7 @@ class AcronymPage(QWidget):
     def scan_customer(self):
         paths = self.customer_paths()
         if not paths:
-            self.host.status("No customer documents on this PC yet: add them in Library.")
+            self.host.status("No customer documents on this PC yet: add them in Documents.")
             return None
         diag.activity("customer_terms_scan", files=len(paths))
         return self.scan(paths)

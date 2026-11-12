@@ -45,7 +45,7 @@ BUILTIN = (
     ("13", "Formatting", "Our style names start with AA, then a name that says where the style is used and what it is for.",
      "people", ("formatstd", "roles"), ()),
 )
-WHERE_NAME = {"prodstd": "Production Standards", "effortfmt": "Effort Formatting", "acrlist": "the Acronym List",
+WHERE_NAME = {"prodstd": "Production Standards", "effortfmt": "Effort Formatting", "acrlist": "the Acros & Abs List",
               "formatstd": "Formatting Standards", "layoutstd": "Layout", "rules": "Rules > Fix a Copy's checks",
               "designs": "Section designs"}   # 3.69.0
 

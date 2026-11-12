@@ -7,6 +7,7 @@ Rules only (No AI); nothing leaves the PC."""
 import os
 
 import diag
+import shredwords as SW
 
 OK, WARN, NONE = "ok", "warn", "none"
 
@@ -109,7 +110,7 @@ def status(page, d, st=None):
     out.append(("Shred", shred[0], shred[1]))
     pc = _pieces(page, d)                                      # 4.1.0: its pieces and its acros and abs
     if pc is not None:
-        out.append(("Pieces", f"{pc[0]} piece(s)" + (f", {pc[1]} not sorted" if pc[1] else ", all sorted"), WARN if pc[1] else OK))
+        out.append(("Pieces", SW.of_document(pc[0], pc[1]), WARN if pc[1] else OK))
     ac = _acros(page, d)
     if ac is not None:
         out.append(("Acros & Abs", f"{ac[0]} found" + (f", {ac[1]} to decide" if ac[1] else ", all decided"), WARN if ac[1] else OK))
@@ -126,7 +127,7 @@ def status(page, d, st=None):
     except Exception:  # noqa: BLE001
         nt = 0
     if nt:
-        out.append(("Used as context", f"{nt} sentence(s) taken from it in the shred", OK))
+        out.append(("Used as context", f"{SW.pieces(nt)} taken from it in the shred", OK))
     n = len(d.get("versions") or [])
     if not getattr(page, "focus", False):                    # 4.6.0: the panel lists the versions once
         out.append(("Versions", f"{n} version(s); the latest governs" if n > 1 else "1 version", NONE))

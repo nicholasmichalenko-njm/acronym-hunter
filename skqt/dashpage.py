@@ -63,8 +63,8 @@ class DashPage(QWidget):
         self.tiles = {
             "due": D.Tile("-", "days to the due date", "accent", lambda: go("home"), "Effort home: the stage track and the calendar"),
             "goals": D.Tile("-", "gate goals met", "accent", lambda: go("home"), "Effort home: the gate goals of this stage"),
-            "placed": D.Tile("-", "requirements placed in a section", "accent", lambda: go("assign"), "Review"),
-            "owned": D.Tile("-", "requirements with an owner", "accent", lambda: go("assign"), "Review: People..."),
+            "placed": D.Tile("-", "requirements placed in a section", "accent", lambda: go("assign"), "Shred"),
+            "owned": D.Tile("-", "requirements with an owner", "accent", lambda: go("assign"), "Shred: People..."),
             "questions": D.Tile("-", "open questions", "accent", lambda: go("home"), "Effort home: notes and open questions"),
             "qdue": D.Tile("-", "days until questions are due", "accent", lambda: go("custqa"),     # 3.20.3
                            "Customer Q&A: the questions to send the customer, and when they are due"),
@@ -74,7 +74,7 @@ class DashPage(QWidget):
             "deliv": D.Tile("-", "deliverables need attention", "accent", lambda: go("deliverables"),
                             "The deliverables board (2.87.0)"),
             "library": D.Tile("-", "library roles to confirm", "accent", lambda: go("library"),
-                              "Library: documents whose role is only suggested (2.83.0)")}
+                              "Documents: documents whose role is only suggested (2.83.0)")}
         self.tile_row = QWidget()
         tg = QGridLayout(self.tile_row); tg.setContentsMargins(0, 0, 0, 0); tg.setSpacing(D.SPACE["m"])
         for i, t in enumerate(self.tiles.values()):
@@ -283,7 +283,7 @@ class DashPage(QWidget):
         q = d["reqs"]
         if not q:
             self.comp_bar.set([])
-            self.comp_text.setText("No compliance matrix yet. Library > Read it into Review brings the customer's documents in.")
+            self.comp_text.setText("No compliance matrix yet. Documents > Read it into Shred brings the customer's documents in.")
             return
         segs = [(q["placed"], "req", "Requirements placed"), (q["reqs"] - q["placed"], "warn", "Requirements not placed"),
                 (q["context"], "ctx", "Supporting context"), (q["customer"], "cust", "The customer's"),
@@ -291,8 +291,8 @@ class DashPage(QWidget):
         self.comp_bar.set(segs)
         self.comp_legend.addWidget(D.legend([s for s in segs if s[0]]))
         rv = d.get("review")
-        self.comp_text.setText(f"{q['decided']} of {q['sentences']} sentences decided ({q['pct']}%). "
-                               + (f"{plural(q['undecided'], 'sentence')} still to decide in Review." if q["undecided"] else "Every sentence is decided.")
+        self.comp_text.setText(f"{q['decided']} of {q['sentences']} pieces decided ({q['pct']}%). "
+                               + (f"{plural(q['undecided'], 'piece')} still to decide in Shred." if q["undecided"] else "Every piece is decided.")
                                + (f"\n{rv[0]} review: {rv[1]['Compliant']} compliant, {rv[1]['Partly']} partly, {rv[1]['Not compliant']} not "
                                   f"compliant, {rv[1]['Not addressed']} not addressed, {rv[1]['not_reviewed']} not reviewed." if rv else "")
                                + self.review_feed_text())
@@ -313,7 +313,7 @@ class DashPage(QWidget):
             if M is not None and TP.topics(rec):
                 cov = TP.coverage(rec, M.items)
                 op = sum(c["open"] for c in cov.values())
-                bits.append(f"{op} sentence(s) in topics still to decide" if op else "every topic's sentences are decided")
+                bits.append(f"{op} piece(s) in topics still to decide" if op else "every topic's pieces are decided")
             if M is not None:
                 per = {}
                 for it in M.items:
@@ -421,5 +421,5 @@ class DashPage(QWidget):
             _cell(t, i, 0, p["person"]); _cell(t, i, 1, p["sections"]); _cell(t, i, 2, p["reqs"]); _cell(t, i, 3, p["tasks"])
             _cell(t, i, 4, p["late"], "crit" if p["late"] else None); _cell(t, i, 5, p["questions"], "warn" if p["questions"] else None)
         if not rows:
-            t.setRowCount(1); _cell(t, 0, 0, "Nobody named yet: name section leads in Review (People...) or give tasks an owner.", "muted")
+            t.setRowCount(1); _cell(t, 0, 0, "Nobody named yet: name section leads in Shred (People...) or give tasks an owner.", "muted")
         _fit(t, 16)

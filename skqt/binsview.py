@@ -164,7 +164,7 @@ class ExcerptsDialog(QDialog):
         v.addWidget(self.t, 1)
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Edit...", None, lambda: self.edit()))
-        row.addWidget(D.button("Show in Review", "ghost", lambda: self.show_it()))
+        row.addWidget(D.button("Show in Shred", "ghost", lambda: self.show_it()))
         row.addWidget(D.button("Take out", "ghost", lambda: self.take_out()))
         tgt = getattr(page, "target", None)                                   # 3.29.1: the selected rows into a section
         self.into_btn = D.button(f"Into the target ({tgt})" if tgt else "Into the target", None, lambda: self.into_target(),
@@ -287,7 +287,7 @@ class BinsDialog(QDialog):
         self.setWindowTitle("Captures of this effort")
         self.resize(640, 420)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("Your own captures. The built-in ones are named, colored and shown in Settings > Review: decisions and captures. Captures of this effort get the keys Alt+1 to Alt+9; one shared with the "
+        v.addWidget(D.label("Your own captures. The built-in ones are named, colored and shown in Settings > Shred: decisions and captures. Captures of this effort get the keys Alt+1 to Alt+9; one shared with the "
                             "team shows in every effort on this PC and travels in the next team pack.", "muted"))
         self.list = QListWidget(); v.addWidget(self.list, 1)
         row = QHBoxLayout(); v.addLayout(row)

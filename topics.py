@@ -378,7 +378,7 @@ def read_back(rec, items, path):
         if head is not None:
             break
     wb.close()
-    rec.log("effort", f"Topics read back from a matrix workbook: {out['filed']} sentence(s)")
+    rec.log("effort", f"Topics read back from a matrix workbook: {out['filed']} piece(s)")
     rec.save()
     return out
 

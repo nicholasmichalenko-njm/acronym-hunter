@@ -243,7 +243,7 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
                     diag.swallowed()
             if log is not None:
                 log("customer", f"{d['name']}: {v['label']} added ({v['file']}){what}" if i else
-                    f"{d['name']} added ({v['file']}, {v.get('sentences', 0)} sentences)", {"version": v["id"]})
+                    f"{d['name']} added ({v['file']}, {v.get('sentences', 0)} pieces)", {"version": v["id"]})
         if other and log is not None:
             log("library", "Library: " + ", ".join(f"{n} to {lib.category_name(c)}" for c, n in other.items()) + " added")
     if progress is not None:
@@ -280,7 +280,7 @@ def link(M, rows, owner_of=None, files=()):
         for txt in (r.get("old"), r.get("new")):
             it = idx.get(C.text_key(txt)) if txt else None
             if it is not None and it["id"] not in [h["id"] for h in hits]:
-                hits.append(entry(it, "the same sentence"))
+                hits.append(entry(it, "the same piece"))
         if not hits and r["kind"] == "changed":
             w = _words(r.get("old")) | _words(r.get("new"))
             best, score = None, 0.0

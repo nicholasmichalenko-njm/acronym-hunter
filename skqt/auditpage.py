@@ -63,7 +63,7 @@ class AuditPage(QWidget):
         self.area_f.currentIndexChanged.connect(lambda _i: self.show_findings()); frow.addWidget(self.area_f)
         frow.addWidget(D.label("Group by", "label", wrap=False))                       # 3.38.0: findings by production rule
         self.group_f = QComboBox(); self.group_f.addItem("Area", "area"); self.group_f.addItem("Rule", "rule")
-        self.group_f.setToolTip("Rule: each production rule (Production > Rules) with its findings; checks no rule names come last")
+        self.group_f.setToolTip("Rule: each production rule (Team > Rules) with its findings; checks no rule names come last")
         self.group_f.currentIndexChanged.connect(lambda _i: self.show_findings()); frow.addWidget(self.group_f)
         frow.addStretch(1)
         det.body.addLayout(frow)

@@ -30,7 +30,7 @@ PART_NAMES = {"authors": "Author list", "design": "Matrix design", "banned": "Ba
               "logos": "Company logos", "roles": "Effort Home layouts by role", "markings": "Sensitivity markings",
               "topics": "Team topics", "postsub": "Post-submission checklist", "process": "Stages, gates and roles",
               "doctypes": "Document types", "folders": "Folders and file names", "access": "Preview tools turned on", "suggest": "Suggestion rules",
-              "bins": "Review bins"}
+              "bins": "Shred bins"}
 LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process", "doctypes", "folders", "access")
 FILES = {"authors": "author_list.json", "design": "matrix design.json", "banned": "banned_words.csv", "goals": "stage_goals.json",
          "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json",
@@ -311,7 +311,7 @@ def preview(config_dir, info, data):
         import excerpts as EX
         mine = {b["name"].casefold() for b in EX.team_bins(config_dir)}
         new = [b for b in json.loads(data[FILES["bins"]]) if isinstance(b, dict) and str(b.get("name", "")).casefold() not in mine]
-        out.append(("bins", f"{len(new)} Review bin(s) added"))
+        out.append(("bins", f"{len(new)} Shred bin(s) added"))
     if FILES["postsub"] in data:
         mine = os.path.isfile(os.path.join(config_dir, FILES["postsub"]))
         out.append(("postsub", "Replaces the default post-submission checklist (locked)" if "postsub" in lk else

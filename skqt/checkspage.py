@@ -60,7 +60,7 @@ class ChecksPage(QWidget):
         v.addWidget(self.pkg_card)
         # ---- 3.29.0: the RFP's written formatting rules (from Review): a phrase looked for, or an item someone ticks
         self.w_card = D.Card("The RFP's written rules", "Formatting rules the RFP states in words (a marking, a legend, a "
-                             "label), taken in Review. One that quotes the words to carry is looked for in the drafts below; "
+                             "label), taken in Shred. One that quotes the words to carry is looked for in the drafts below; "
                              "the rest are ticked by a person.", actions=[D.button("Look for the phrases", "primary", lambda: self.check_written())])
         self.w_sum = self.w_card.add(D.label("", "muted"))
         self.w_table = _table(["Done", "Rule (the RFP's words)", "Where", "Checked by", "Result"], [50, 0, 200, 150, 220], 1, 180)
@@ -100,8 +100,8 @@ class ChecksPage(QWidget):
         v.addWidget(self.x_card)
         # ---- compare two drafts
         self.c_card = D.Card("Compare two drafts", "What changed between two versions of a volume: the red team copy and today's, "
-                             "say. Open in Compare shows them side by side, with the redline in Word.",       # 3.55.0: one Compare
-                             actions=[D.button("Open in Compare", "primary", lambda: self.open_compare())])
+                             "say. Open in Changes shows them side by side, with the redline in Word.",       # 3.55.0: one Compare
+                             actions=[D.button("Open in Changes", "primary", lambda: self.open_compare())])
         cf = QFormLayout(); self.c_card.body.addLayout(cf)
         self.older, self.newer = QComboBox(), QComboBox()
         for label, cb in (("Earlier version", self.older), ("Later version", self.newer)):
@@ -176,7 +176,7 @@ class ChecksPage(QWidget):
         t.blockSignals(False)
         open_n = sum(1 for r in rules if not r["done"])
         self.w_sum.setText(f"{len(rules)} written rule(s); {open_n} not done yet." if rules else
-                           "None yet: in Review, Bins > Written formatting rule takes one.")
+                           "None yet: in Shred, Bins > Written formatting rule takes one.")
         self.w_card.setVisible(True)
         return rules
 

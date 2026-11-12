@@ -31,7 +31,7 @@ def after_added(host, made, lib, run=None):
                 import amendinst as AI
                 n = len(AI.instructions_of(lib, v))
                 if n:
-                    host.last_hint = (f"{d.get('name', 'The amendment')} holds {n} change instruction(s): Library > Apply its "
+                    host.last_hint = (f"{d.get('name', 'The amendment')} holds {n} change instruction(s): Documents > Apply its "
                                       "instructions makes the conformed version of the document it changes.")
                     host.status(host.last_hint)
             except Exception:
@@ -72,8 +72,8 @@ class WhatChangedDialog(QDialog):
             v.addWidget(D.label("Compliance requirements it touches" + (f" (owners: {', '.join(s['owners'][:6])})" if s["owners"] else ""), "label"))
             v.addWidget(D.label(", ".join(h["id"] for h in s["requirements"][:20]) + (" ..." if len(s["requirements"]) > 20 else ""), "mono"))
         if s["not_in_matrix"]:
-            v.addWidget(D.label(f"{s['not_in_matrix']} new sentence(s) are not in the matrix yet: Library > Read it into Review adds the new version, "
-                                "or decide them in Compare.", "muted"))
+            v.addWidget(D.label(f"{s['not_in_matrix']} new piece(s) are not in the matrix yet: Documents > Read it into Shred adds the new version, "
+                                "or decide them in Changes.", "muted"))
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         rev = bb.addButton("Review the changes", QDialogButtonBox.ActionRole)
         rev.clicked.connect(lambda: self.review())

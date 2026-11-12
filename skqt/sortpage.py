@@ -35,10 +35,10 @@ class SortPage(QWidget):
         self.start.activated.connect(lambda _i: self.seed(self.start.currentData()))
         top.addWidget(self.start)
         top.addWidget(D.button("Read back from Excel...", None, lambda: self.read_back(), "A matrix workbook with ID and Topic columns, "
-                               "edited in Excel: each sentence goes under the topics typed there"))
+                               "edited in Excel: each piece goes under the topics typed there"))
         v.addWidget(D.label("Name the big areas of what is being bought, then file each requirement under one: select rows and "
-                            "press 1 to 9 for the first nine topics, or pick a topic and File. A sentence's first topic is its home; "
-                            "the others are cross-references. Rename a seeded topic in your own words; its sentences stay.", "muted"))
+                            "press 1 to 9 for the first nine topics, or pick a topic and File. A piece's first topic is its home; "
+                            "the others are cross-references. Rename a seeded topic in your own words; its pieces stay.", "muted"))
         self.stack = QStackedWidget(); v.addWidget(self.stack, 1)
         # ---- Sort
         sw = QWidget(); sl = QVBoxLayout(sw); sl.setContentsMargins(0, 0, 0, 0)
@@ -111,7 +111,7 @@ class SortPage(QWidget):
         srt = TP.sortable(items)
         uns = TP.unsorted(r, items)
         self.sumlab.setText(f"{len(srt) - len(uns)} of {len(srt)} sorted, {len(uns)} in Unsorted" if srt else
-                            "Nothing to sort yet: read the customer's documents into Review first")
+                            "Nothing to sort yet: read the customer's documents into Shred first")
         self.fill_tree(r, items)
         self.fill_table(r, items)
         self.fill_targets(r)
@@ -230,7 +230,7 @@ class SortPage(QWidget):
                                     if ts else "In Unsorted.", None))
         self.card.addWidget(D.button("Split...", "ghost", lambda: self.split(it), "Cut a compound sentence into parts with the same words "
                                      "(IDs .a, .b); each part keeps its topics"))
-        self.card.addWidget(D.button("Open in Review", "ghost", lambda: (self.host.go("assign"), self.host.assign_page.select(it["id"]))))
+        self.card.addWidget(D.button("Open in Shred", "ghost", lambda: (self.host.go("assign"), self.host.assign_page.select(it["id"]))))
 
     # ------------------------------------------------------------ actions
     def _after(self, msg=""):
@@ -254,7 +254,7 @@ class SortPage(QWidget):
             got = TP.add_starter(r)
         self.start.setCurrentIndex(0)
         diag.activity("sort_seeded", n=len(got))
-        self._after(f"{len(got)} topic(s) ready. Rename any in your own words; the sentences under them stay.")
+        self._after(f"{len(got)} topic(s) ready. Rename any in your own words; the pieces under them stay.")
         return got
 
     def add_topic(self, name=None, sub=False):
@@ -378,7 +378,7 @@ class SortPage(QWidget):
             self.host.changed()
             diag.activity("sort_split", n=len(parts))
         else:
-            self.host.status("The rules see one requirement here. Split it in Review at the point you click.")
+            self.host.status("The rules see one requirement here. Split it in Shred at the point you click.")
         self._after()
         return parts
 

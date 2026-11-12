@@ -9,21 +9,21 @@ import diag
 import supportfile as SF
 from . import design as D
 
-SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a person"),
+SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a piece or a person"),
              ("Anywhere", "Ctrl+Shift+I", "Issues and ideas: write down a bug, an improvement or an idea (stays on this PC)"),
-             ("Anywhere", "Ctrl+F", "Find a sentence by its words or number"),
+             ("Anywhere", "Ctrl+F", "Find a piece by its words or number"),
              ("Anywhere", "F1", "The Guide, open at the page you are on"),
-             ("Review (on the page)", "R", "SOW (Work): the selected sentences go to the target section as requirements"),
-             ("Review (on the page)", "C", "Context: support for the last requirement you clicked"),
-             ("Review (on the page)", "G", "The customer's (counted, never answered)"),
-             ("Review (on the page)", "L / E", "L (Instructions) / M (Evaluation): requirements with that designation"),
-             ("Review (on the page)", "X or Delete", "Clear the decision"),
-             ("Review (on the page)", "J / S", "Join the selected sentences / split one"),
+             ("Shred (on the page)", "R", "SOW (Work): the selected pieces go to the target section as requirements"),
+             ("Shred (on the page)", "C", "Context: support for the last requirement you clicked"),
+             ("Shred (on the page)", "G", "The customer's (counted, never answered)"),
+             ("Shred (on the page)", "L / E", "L (Instructions) / M (Evaluation): requirements with that designation"),
+             ("Shred (on the page)", "X or Delete", "Clear the decision"),
+             ("Shred (on the page)", "J / S", "Join the selected pieces / split one"),
              ("Any page", "Ctrl+Z", "Undo the last change on the page (the top bar's Undo says what)"),
-             ("Review (on the page)", "Ctrl+click", "Select several sentences"),
-             ("Review (on the page)", "Ctrl+A", "Select every sentence on the page (Select undecided: only those with no decision)"),
-             ("Review (on the page)", "P", "Graphic need: tag what needs a graphic, from the sentence or the words you picked"),
-             ("Review (on the page)", "Escape", "Clear the selection, or stop drawing a box for missed text")]
+             ("Shred (on the page)", "Ctrl+click", "Select several pieces"),
+             ("Shred (on the page)", "Ctrl+A", "Select every piece on the page (Select undecided: only those with no decision)"),
+             ("Shred (on the page)", "P", "Graphic need: tag what needs a graphic, from the piece or the words you picked"),
+             ("Shred (on the page)", "Escape", "Clear the selection, or stop drawing a box for missed text")]
 
 
 def support_card(host):
@@ -145,7 +145,7 @@ class Finder(QDialog):
         self.host = host
         self.setWindowTitle("Find"); self.setMinimumSize(680, 460)
         v = QVBoxLayout(self)
-        self.box = QLineEdit(); self.box.setPlaceholderText("A page, an effort, a sentence's words or number, a person")
+        self.box = QLineEdit(); self.box.setPlaceholderText("A page, an effort, a piece's words or number, a person")
         v.addWidget(self.box)
         self.list = QListWidget(); v.addWidget(self.list, 1)
         v.addWidget(D.label("Enter opens it. Esc closes.", "muted"))
@@ -162,10 +162,10 @@ class Finder(QDialog):
         out += [("Effort", n, "Open this effort", ("effort", n)) for n in h.efforts.names()
                 if not (h.efforts.get(n) or {}).get("archived")]
         if h.review is not None:
-            out += [("Sentence", f"{it['id']}  {it['text'][:90]}", (it.get("decision") or "Undecided") + (f" · {it['map']}" if it.get("map") else ""),
+            out += [("Piece", f"{it['id']}  {it['text'][:90]}", (it.get("decision") or "Undecided") + (f" · {it['map']}" if it.get("map") else ""),
                      ("sentence", it["id"])) for it in h.review.M.items]
         try:
-            out += [("Person", n, "Sentences assigned to them", ("person", n)) for n in h.people()]
+            out += [("Person", n, "Pieces assigned to them", ("person", n)) for n in h.people()]
         except Exception:
             diag.swallowed()
         return out
@@ -201,7 +201,7 @@ class Finder(QDialog):
             h.go("assign"); h.assign_page.select(val)
         elif kind == "person":
             h.go("assign")
-            h.status(f"Sentences assigned to {val}: " + str(sum(1 for x in h.review.M.items if val in (x.get("owner") or "")))
+            h.status(f"Pieces assigned to {val}: " + str(sum(1 for x in h.review.M.items if val in (x.get("owner") or "")))
                      if h.review is not None else f"{val}")
         diag.activity("finder_used")
         self.accept()

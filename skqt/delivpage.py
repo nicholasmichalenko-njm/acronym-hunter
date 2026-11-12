@@ -278,7 +278,7 @@ class DeliverableView(QWidget):
             lay.addWidget(D.label("Requirements show here once it is a Structure volume (Overview) and requirements are placed in "
                                   "its sections.", "muted"))
             return
-        lay.addWidget(D.label(f"{len(rr)} requirement(s) placed in {d['volume']}. Double-click one to open it in Review.", "muted"))
+        lay.addWidget(D.label(f"{len(rr)} requirement(s) placed in {d['volume']}. Double-click one to open it in Shred.", "muted"))
         self.req_table = _table(["ID", "Section", "Author", "The customer's words"],
                                 [(x["id"], x["section"], x["owner"] or "no author", x["text"]) for x in rr], stretch=3)
         self.req_table.cellDoubleClicked.connect(lambda r, _c, rr=rr: self.page.open_requirement(rr[r]["id"]))

@@ -11,7 +11,7 @@ from . import design as D
 
 def people_dialog(self):
     if self.M is None or not self.M.outline:
-        self.host.status("Build the response structure first (Review): people lead and write its sections.")
+        self.host.status("Build the response structure first (Shred): people lead and write its sections.")
         return None
     d = QDialog(self); d.setWindowTitle("People for each section"); d.resize(720, 520)
     lay = QVBoxLayout(d)
@@ -67,7 +67,7 @@ def budget_dialog(self, run=True):
 def volumes_dialog(self):
     """One volume (a name, or blank) or several (the headings of the structure that start a volume)."""
     if self.M is None:
-        self.host.status("Read the customer documents into Review first: the volumes are part of the compliance matrix.")
+        self.host.status("Read the customer documents into Shred first: the volumes are part of the compliance matrix.")
         return None
     mode, name, heads = SD.volumes_of(self.M)
     d = QDialog(self); d.setWindowTitle("Volumes"); d.resize(560, 520)

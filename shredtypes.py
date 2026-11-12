@@ -205,7 +205,7 @@ def set_types(items, keys, log=None):
             it[FIELD] = val
             n += 1
             if log is not None:
-                log(it.get("id", ""), f"shred: {', '.join(keys) or 'not sorted'}")
+                log(it.get("id", ""), f"shred: {', '.join(keys) or 'no type'}")
     return n
 
 

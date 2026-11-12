@@ -113,7 +113,7 @@ class DecideBar(QFrame):
             ((placed or links or [{}])[0].get("id", ""))
         self.sec_target = (self.sugg or {}).get("target", "") if (self.sugg or {}).get("kind") == "new" else ""
         where = r.get("section", "")
-        self.title.setText(f"{WORDS[r['kind']]} sentence" + (f", under {where}" if where else ""))
+        self.title.setText(f"{WORDS[r['kind']]} piece" + (f", under {where}" if where else ""))
         self.words.setText(diff_html(r))
         for kind, b in self.btns.items():
             b.setProperty("kind", "primary" if self.sugg and self.sugg["kind"] == kind else "")
@@ -140,13 +140,13 @@ class DecideBar(QFrame):
         tg = []
         if self.req_target and r["kind"] != "added":
             it = self.page.item(self.req_target)
-            tg.append(f"our sentence <b>{html.escape(self.req_target)}</b>" + (f" in {html.escape(it['map'])}" if it and it.get("map") else ""))
+            tg.append(f"our piece <b>{html.escape(self.req_target)}</b>" + (f" in {html.escape(it['map'])}" if it and it.get("map") else ""))
         if self.sec_target:
             tg.append(f"section <b>{html.escape(self.sec_target)}</b>")
         if tg:
             bits.append("Target: " + ", ".join(tg))
         self.hint.setText("<br>".join(bits))
-        self.hint.setToolTip("Click a sentence or a section in Our response to change the target.")
+        self.hint.setToolTip("Click a piece or a section in Our response to change the target.")
 
     def set_req(self, iid):
         self.req_target = iid or ""
@@ -182,14 +182,14 @@ class DecideBar(QFrame):
         M = pg.M()
         if kind in CR.NEEDS_TARGET and (M is None or not target):
             pg.host.status(("Click the section for it in Our response first." if kind == "new" else
-                            "Click our sentence for it in Our response first.") if M is not None else
-                           "Read the documents into Review first (Library): decisions on requirements need the matrix.")
+                            "Click our piece for it in Our response first.") if M is not None else
+                           "Read the documents into Shred first (Documents): decisions on requirements need the matrix.")
             return None
         rv = pg.review
         ref = ""
         if kind == "updates":
             if not r.get("new"):
-                pg.host.status("A removed sentence cannot update a requirement: use Remove.")
+                pg.host.status("A removed piece cannot update a requirement: use Remove.")
                 return None
             e = CR.apply_update(M, rv, target, r["new"], d["name"], vb["label"])
             ref = e["id"] if e else ""

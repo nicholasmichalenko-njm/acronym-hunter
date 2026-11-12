@@ -475,7 +475,7 @@ def promote(rec, xid, who=None):
         return x["truth"]
     words = text_of(x)
     label = (x.get("note") or " ".join(words.split()[:8])).strip()
-    tid = WT.add(rec, label, words, kind="Fact", source=where_of(x), notes=f"From Review: {NAME.get(x['bin'], x['bin'])}", who=who)
+    tid = WT.add(rec, label, words, kind="Fact", source=where_of(x), notes=f"From Shred: {NAME.get(x['bin'], x['bin'])}", who=who)
     if tid:
         x["truth"] = tid
         rec.save()

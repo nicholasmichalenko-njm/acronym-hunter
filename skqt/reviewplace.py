@@ -137,7 +137,7 @@ class Placer:
         orow.addWidget(self.offer_lbl, 1)
         self.b_place = D.button("Map and place", "primary", lambda: self.take("place"))
         orow.addWidget(self.b_place)
-        orow.addWidget(D.button("Map only", None, lambda: self.take("map"), "The heading's other sentences are suggested for it"))
+        orow.addWidget(D.button("Map only", None, lambda: self.take("map"), "The heading's other pieces are suggested for it"))
         orow.addWidget(D.button("Just this one", None, lambda: self.take("once"), "No map; the app does not ask again for it"))
         self.offer_row.setVisible(False)
         decide_layout.addWidget(self.offer_row)
@@ -190,7 +190,7 @@ class Placer:
         if self.off and self.off["rest"]:
             n = len(self.off["rest"])
             self.offer_lbl.setText(f"Send the rest of {self.off['num']} {self.off['title']} to {label} too? "
-                                   f"({n} more sentence{'s' if n != 1 else ''})")
+                                   f"({n} more piece{'s' if n != 1 else ''})")
             self.b_place.setText(f"Map and place {n}")
             self.offer_row.setVisible(True)
         else:
@@ -217,7 +217,7 @@ class Placer:
         self.offer_row.setVisible(False)
         diag.activity("review_map_offer", n=n)
         pg.after({"place": f"{off['num']} goes to {off['label']}: {n} more placed.",
-                  "map": f"{off['num']} goes to {off['label']}: its other sentences are suggested there.",
+                  "map": f"{off['num']} goes to {off['label']}: its other pieces are suggested there.",
                   "once": f"Just this one: {off['num']} stays unmapped."}[how])
         return n
 
@@ -227,13 +227,13 @@ class Placer:
         label = label if label is not None else (pg.target or "")
         nums = sorted({HS.heading_of(it)[0] for it in pg.selected() if HS.heading_of(it)[0]})
         if not nums:
-            pg.host.status("The selected sentences sit under no customer heading.")
+            pg.host.status("The selected pieces sit under no customer heading.")
             return 0
         pg.R.snap()
         for n in nums:
             HS.map_heading(pg.M, n, label)
         pg.after((f"{', '.join(nums)} goes to {label}." if label else f"{', '.join(nums)}: map cleared.")
-                 + " Placed sentences stay where they are.")
+                 + " Placed pieces stay where they are.")
         return len(nums)
 
     def show_left(self):

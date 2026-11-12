@@ -27,7 +27,7 @@ class AsideDialog(QDialog):
         self.host, self.entries = host, list(entries)
         self.setWindowTitle("What the read set aside"); self.resize(900, 520)
         v = QVBoxLayout(self)
-        v.addWidget(D.label(f"{len(self.entries)} line(s) not in the review as sentences. Repeated lines are in it once. "
+        v.addWidget(D.label(f"{len(self.entries)} line(s) not in the shred as pieces. Repeated lines are in it once. "
                             "Select a header or footer and Put back if it says something the response must answer.", "muted"))
         self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["File", "Why", "Times", "Text"])
         self.t.verticalHeader().setVisible(False); self.t.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -39,7 +39,7 @@ class AsideDialog(QDialog):
                 it = QTableWidgetItem(x); it.setData(Qt.UserRole, k); self.t.setItem(k, c, it)
         v.addWidget(self.t, 1)
         bb = QDialogButtonBox(QDialogButtonBox.Close)
-        bb.addButton(D.button("Put back in the review", "primary", lambda: self.put_back()), QDialogButtonBox.ActionRole)
+        bb.addButton(D.button("Put back in the shred", "primary", lambda: self.put_back()), QDialogButtonBox.ActionRole)
         bb.rejected.connect(self.reject); bb.accepted.connect(self.accept)
         v.addWidget(bb)
 
@@ -52,5 +52,5 @@ class AsideDialog(QDialog):
         got = put_back(R.M, [self.entries[r] for r in rows])
         diag.activity("set_aside_put_back", n=len(got))
         self.host.changed()
-        self.host.toast(f"{len(got)} line(s) put back in the review" if got else "Only headers and footers can be put back")
+        self.host.toast(f"{len(got)} line(s) put back in the shred" if got else "Only headers and footers can be put back")
         return got

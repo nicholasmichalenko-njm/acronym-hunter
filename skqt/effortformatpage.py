@@ -34,8 +34,8 @@ class EffortFormatPage(QWidget):
         self.host = host
         self.rows, self._loading, self.rfp_map = {}, False, {}
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
-        self.empty = D.EmptyState("Open an effort", "Effort Formatting holds one effort's formatting on top of the global "
-                                  "standards. Open an effort from All Efforts.")
+        self.empty = D.EmptyState("Open an effort", "Effort Formatting holds one effort's formatting on top of the Company "
+                                  "Standards (Default). Open an effort from All Efforts.")
         outer.addWidget(self.empty)
         self.body = QWidget(); outer.addWidget(self.body, 1)
         bv = QVBoxLayout(self.body); bv.setContentsMargins(0, 0, 0, 0); bv.setSpacing(D.SPACE["m"])
@@ -66,10 +66,10 @@ class EffortFormatPage(QWidget):
         sc.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         inner = QWidget(); sc.setWidget(inner)
         iv = QVBoxLayout(inner); iv.setContentsMargins(0, 0, 0, 0); iv.setSpacing(D.SPACE["m"])
-        vals = D.Card("The values efforts change most", "The global value is in grey. Set this effort's own; Reset takes "
+        vals = D.Card("The values efforts change most", "The Company Standards value is in grey. Set this effort's own; Reset takes "
                       "it back to the Company Standards (Default) value. Where the RFP has a rule, it shows beside the value, in red when the value breaks it.")
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(D.SPACE["m"]); self.grid.setVerticalSpacing(D.SPACE["xs"])
-        for c, h in enumerate(("", "Global value", "This effort", "The RFP says", "", "")):
+        for c, h in enumerate(("", "Company Standards", "This effort", "The RFP says", "", "")):
             if h:
                 self.grid.addWidget(D.label(h, "label", wrap=False), 0, c)
         r = 1
@@ -88,8 +88,8 @@ class EffortFormatPage(QWidget):
                     actions=[D.button("Open this effort's workbook", None, lambda: self.open_book(),     # 4.7.0
                                       "This effort's changes as a workbook beside its list: edit it in Excel; a blank cell means the default"),
                              D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the Company Standards (Default) value"),
-                             D.button("Undo the last Make it global", "ghost", lambda: self.undo_keep(),
-                                      "Put the Company Standards (Default) back as they were before the last Make it global")])
+                             D.button("Undo the last Make it the Company Standard", "ghost", lambda: self.undo_keep(),
+                                      "Put the Company Standards (Default) back as they were before the last Make it the Company Standard")])
         self.changes = QLabel(""); self.changes.setTextFormat(Qt.RichText); self.changes.setWordWrap(True); ch.add(self.changes)
         iv.addWidget(ch)
         lp = D.Card("Library parts this effort uses", "Covers, headers and footers, numbering, table looks: the global "
@@ -104,7 +104,7 @@ class EffortFormatPage(QWidget):
         lp.add(self.parts)
         iv.addWidget(lp)
         # 3.38.0: the one place an effort departs from a production rule
-        rc = D.Card("Rules this effort follows", "The production rules (Production > Rules). Untick a rule this effort "
+        rc = D.Card("Rules this effort follows", "The production rules (Team > Rules). Untick a rule this effort "
                     "departs from: Audit and Fix a Copy stop reporting it, for this effort only. A rule turned off for every "
                     "effort shows greyed.")                         # 3.75.0: the menu opens the Rules page
         self.rules_list = QListWidget(); self.rules_list.setMinimumHeight(260)
@@ -123,11 +123,11 @@ class EffortFormatPage(QWidget):
             ed.lineEdit().editingFinished.connect(lambda k=key: self.edited(k))
         elif kind in ("size", "inches"):
             ed = QDoubleSpinBox(); ed.setRange(0, 400 if kind == "size" else 5); ed.setDecimals(1 if kind == "size" else 2)
-            ed.setSingleStep(0.5 if kind == "size" else 0.25); ed.setSpecialValueText("Global"); ed.setMinimumWidth(110)
+            ed.setSingleStep(0.5 if kind == "size" else 0.25); ed.setSpecialValueText("Standard"); ed.setMinimumWidth(110)
             ed.editingFinished.connect(lambda k=key: self.edited(k))
         elif kind in ("spacing", "position", "paper", "onoff"):
             ed = QComboBox(); ed.setMinimumWidth(160)
-            ed.addItem("Global", None)
+            ed.addItem("Standard", None)
             for v, t in {"spacing": EFM.SPACING, "position": EFM.POSITION, "paper": PAPERS, "onoff": ONOFF}[kind]:
                 ed.addItem(t, v)
             ed.activated.connect(lambda _i, k=key: self.edited(k))
@@ -149,7 +149,7 @@ class EffortFormatPage(QWidget):
         reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the Company Standards (Default) value")
         box = QHBoxLayout(); box.setSpacing(D.SPACE["xs"]); box.addWidget(use); box.addWidget(reset)
         wbox = QWidget(); wbox.setLayout(box); self.grid.addWidget(wbox, r, 4)
-        keep = QToolButton(); keep.setText("Make it global"); keep.setPopupMode(QToolButton.InstantPopup)
+        keep = QToolButton(); keep.setText("Make it the Company Standard"); keep.setPopupMode(QToolButton.InstantPopup)
         keep.setToolTip("Write this effort's value into the Company Standards (Default), for every effort that uses them")
         menu = QMenu(keep); keep.setMenu(menu)
         menu.aboutToShow.connect(lambda k=key, m=menu: self.fill_keep_menu(k, m))
@@ -192,7 +192,7 @@ class EffortFormatPage(QWidget):
             except (TypeError, ValueError):
                 ed.setValue(ed.minimum())
         elif kind in ("spacing", "position", "paper", "onoff"):
-            ed.setItemText(0, f"Global ({self._label(kind, g['team'])})")
+            ed.setItemText(0, f"Standard ({self._label(kind, g['team'])})")
             i = ed.findData(g["effort"]) if g["effort"] is not None else 0
             ed.setCurrentIndex(max(0, i))
         else:
@@ -395,7 +395,7 @@ class EffortFormatPage(QWidget):
             t = D.tokens()
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
                               f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the Company Standards (Default) or "
-                              f"the template library, unless you choose Make it global.</div>")
+                              f"the template library, unless you choose Make it the Company Standard.</div>")
             self.etype.clear(); self.etype.addItem("None (volumes only)", "")
             for e in data.get("effort_types", []):
                 self.etype.addItem(e["name"], e["id"])
@@ -419,11 +419,11 @@ class EffortFormatPage(QWidget):
                 self.show_row(key)
             ch = EFM.changed(self.host.config_dir, self.host.ws, self.tid())
             if ch:
-                self.changes.setText("".join(f"<div style='margin:2px 0'><b>{_esc(w)}</b>: global {_esc(_show(a))}, "
+                self.changes.setText("".join(f"<div style='margin:2px 0'><b>{_esc(w)}</b>: Company Standards {_esc(_show(a))}, "
                                              f"this effort's <b>{_esc(_show(b))}</b></div>" for w, a, b in ch[:60])
                                      + (f"<div>and {len(ch) - 60} more</div>" if len(ch) > 60 else ""))
             else:
-                self.changes.setText(f"<span style='color:{t['muted']}'>Nothing yet: every value is the global one.</span>")
+                self.changes.setText(f"<span style='color:{t['muted']}'>Nothing yet: every value is the Company Standards one.</span>")
             pr = EFM.parts(self.host.config_dir, self.host.ws, self.tid())
             self.parts.setRowCount(len(pr))
             for i, (_slot, what, src) in enumerate(pr):

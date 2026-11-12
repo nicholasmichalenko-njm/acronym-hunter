@@ -7,6 +7,8 @@ first words. Undecided only, a type, a document. Double-click a piece: it opens 
 Rules only (No AI); nothing leaves the PC."""
 import re
 
+import shredwords as SW
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
@@ -96,7 +98,7 @@ class ListPage(QWidget):
         self.doc = QComboBox(); self.doc.setMinimumWidth(220); self.doc.currentIndexChanged.connect(lambda _i: self.fill())
         top.addWidget(self.doc)
         self.kind = QComboBox(); self.kind.currentIndexChanged.connect(lambda _i: self.fill()); top.addWidget(self.kind)
-        self.only = QCheckBox("Undecided only"); self.only.toggled.connect(lambda _on: self.fill()); top.addWidget(self.only)
+        self.only = QCheckBox("Not shredded only"); self.only.toggled.connect(lambda _on: self.fill()); top.addWidget(self.only)
         self.t = QTreeWidget(); self.t.setHeaderLabels(self.COLS); self.t.setColumnWidth(0, 560)
         for c, w in ((1, 120), (2, 90), (3, 120), (4, 50)):
             self.t.setColumnWidth(c, w)
@@ -150,7 +152,7 @@ class ListPage(QWidget):
 
         def add(parent, n):
             head = (f"H{n['level']}  " + " ".join(x for x in (n["num"], n["title"]) if x)).strip()
-            it = QTreeWidgetItem([f"{head}    {n['done']} of {n['n']} decided"])
+            it = QTreeWidgetItem([f"{head}    {SW.under(n['done'], n['n'])}"])
             f = it.font(0); f.setBold(True); it.setFont(0, f)
             parent.addChild(it)
             for p in n["pieces"]:
@@ -171,9 +173,9 @@ class ListPage(QWidget):
             for r in roots:
                 add(fi, r)
                 total += r["n"]; done += r["done"]
-            fi.setText(0, f"{f}    {sum(r['done'] for r in roots)} of {sum(r['n'] for r in roots)} decided")
+            fi.setText(0, f"{f}    {SW.under(sum(r['done'] for r in roots), sum(r['n'] for r in roots))}")
             fi.setExpanded(True)
-        self.say.setText(f"{done} of {total} piece(s) decided, under the customer's headings. Double-click a piece to open it "
+        self.say.setText(f"{SW.progress(done, total)}, under the customer's headings. Double-click a piece to open it "
                          "on its page." if total else "No piece matches.")
         return total
 

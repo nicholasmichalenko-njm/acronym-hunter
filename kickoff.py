@@ -276,7 +276,7 @@ def panel_groups(pack):
     g.append(("People and pages", [who or "No lead or writers set yet",
                                    f"Page budget: {PB.fmt(pack['pages'])} pages" if pack["pages"] else "Page budget: not set"]))
     c = count(pack)
-    g.append(("What the customer asks for", [f"{c['reqs']} requirement(s), {c['support']} supporting sentence(s)"]
+    g.append(("What the customer asks for", [f"{c['reqs']} requirement(s), {c['support']} supporting piece(s)"]
               + [f"{r['ref']} ({r['lm']}): {r['text']}" if r["lm"] else f"{r['ref']}: {r['text']}" for r in pack["reqs"] if not r["support"]]))
     if pack["factors"]:
         g.append(("How it is scored (Section M)", pack["factors"].splitlines()))

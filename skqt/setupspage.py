@@ -90,7 +90,7 @@ class SetupsPage(QWidget):
         # ---- the sections, when there are none yet (3.73.0, decision 11: bring in any file, or type them)
         self.start_card = D.Card("Sections", "Drop a file here (Excel, Word or PDF) or bring one in, and the app finds the "
                                  "sections in it. Or type them, one per line (numbers first, two spaces deeper per level). No "
-                                 "Review needed, and the template can be picked before or after the sections.", key=True)
+                                 "shred needed, and the template can be picked before or after the sections.", key=True)
         self.heads = QPlainTextEdit(); self.heads.setPlaceholderText("1 Technical Approach\n  1.1 Understanding\n2 Management Approach")
         self.heads.setMinimumHeight(110)
         self.start_card.add(self.heads)
@@ -129,7 +129,7 @@ class SetupsPage(QWidget):
         wv.addWidget(self.prev)
         from .setupblocks import BlockList                 # 3.86.0: each printed block, in print order; act on the row
         self.blocks = BlockList(self)
-        self.blocks.setToolTip("Right-click a block: Earlier, Later, Move to another section..., Print the reference only, Show it in Review")
+        self.blocks.setToolTip("Right-click a block: Earlier, Later, Move to another section..., Print the reference only, Show it in Shred")
         wv.addWidget(self.blocks)
 
         # ---- the sections: the Structure Builder's tree, menu, keys and placing (3.74.0)
@@ -391,9 +391,10 @@ class SetupsPage(QWidget):
             pl = ST.plan(M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info)
         except Exception:  # noqa: BLE001
             diag.swallowed()
-            return "Templates: set in Production > Templates."
-        return "Templates (Production > Templates): " + "; ".join(
-            f"{p['volume'] or 'the response'}: {p['template_name']} version {p['version']}" for p in pl)
+            return "Templates: set in Team > Effort Profiles > Templates."
+        return ("Made with the setup, each volume's template: "               # 4.20.0: one plain line (it read "Kestrel: Kestrel Kestrel")
+                + "; ".join(f"{p['template_name']}, version {p['version']}" for p in pl)
+                + ". Its formatting is Effort Formatting; its profile is in Team > Effort Profiles.")
 
     def pick(self, label):
         self.cur = label
