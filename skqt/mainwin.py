@@ -71,11 +71,13 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
-REVIEW_VIEWS = ("shredreq", "shredacc", "sort")               # 4.3.0: L to M and Coverage are Matrix & Outline's
+REVIEW_VIEWS = ("shredlist",)          # 4.19.0: Page and List; the quick shred, Accuracy and Theme tags are Your Tools
+TOOL_PAGES = ("shredreq", "shredacc", "sort")
 TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
 # the menu entry each page lights up
 RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
+RAIL_OF.update({k: "tools" for k in TOOL_PAGES})                 # 4.19.0
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
                 "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
@@ -90,6 +92,7 @@ GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 
             for n in [STEP_KEYS.index(e) if e in STEP_KEYS else 0]}          # 4.12.0: Redline sits among them, unnumbered
 GROUP_OF.update({k: "Documents" for k in ("redline", "rcheck", "exceptions")})   # 4.12.0: a part of Documents, no step number
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
+GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Your Tools' own
 
 
 def members(key):
@@ -241,6 +244,8 @@ class MainWindow(QMainWindow):
         self.compare_space = CompareSpace(self, self.compare_page)      # 3.55.0: one Compare: customer versions and any two files
         from .shredpage import ShredPage
         self.shred_page = ShredPage(self)                               # 3.55.0: requirements from any file
+        from .shredlist import ListPage
+        self.shredlist_page = ListPage(self)                            # 4.19.0: the shred as a tree of the customer's structure
         from .custqapage import CustQAPage
         self.custqa_page = CustQAPage(self)           # 2.98.0
         self.impact_page = ImpactPage(self)
@@ -327,7 +332,7 @@ class MainWindow(QMainWindow):
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
-                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}
+                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "shredlist": self.shredlist_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}
         for pg in dict.fromkeys(self.pages.values()):     # 4.3.0: Place, L to M and Coverage share the Shred page
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

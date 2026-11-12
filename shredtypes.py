@@ -2,8 +2,8 @@
 17; claude/stationkeeper-shred-plan-4.1.md). The shred says what each piece IS; only Matrix & Outline decides whether it
 goes in the matrix and where.
 
-The eight piece types, the team's to rename, recolor, rekey or hide (config piece_types.json): Requirement, Instruction,
-Rule, Date, Evaluation, Deliverable, Information, Not applicable.
+The nine piece types (4.19.0: Structure, the piece that sets our response structure), the team's to rename, recolor, rekey or hide (config piece_types.json): Requirement, Instruction,
+Rule, Date, Evaluation, Deliverable, Information, Not applicable, Structure.
 
 Each type lands on one of Shred's four tabs (Requirements, Rules & Dates, Evaluation; Acros & Abs holds the acronym
 list, not a type) and says whether Place offers it (only what the proposal must answer: Requirement, Instruction,
@@ -28,7 +28,8 @@ TYPES = (("requirement", "Requirement", "R", "#0D9488", "requirements", True),
          ("evaluation", "Evaluation", "E", "#EA580C", "evaluation", True),
          ("deliverable", "Deliverable", "V", "#0369A1", "requirements", True),
          ("information", "Information", "G", "#64748B", "requirements", False),
-         ("not_applicable", "Not applicable", "X", "#64748B", "requirements", False))
+         ("not_applicable", "Not applicable", "X", "#64748B", "requirements", False),
+         ("structure", "Structure", "O", "#7C3AED", "requirements", False))     # 4.19.0: sets our response structure (structfrom)
 KEYS = tuple(t[0] for t in TYPES)
 TABS = (("requirements", "Requirements"), ("rules", "Rules & Dates"), ("evaluation", "Evaluation"), ("acros", "Acros & Abs"))
 FILE = "piece_types.json"

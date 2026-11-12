@@ -10,6 +10,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "qpstd": ("Quick Parts", "Every Quick Part by your numbered categories: its gallery, whether it follows the template's fonts, the pages it fills, and Word's picture of it"),
           "designs": ("Parts", "Covers, CUI pages, title pages, front matter, back covers and Quick Parts, each kept whole as built in Word, with its versions and the part sets it is in"),
           "layoutstd": ("Layout", "Covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC, each with its picture and every value"),
+          "shredlist": ("List", "Every piece of the shred under the customer's headings: what is decided, what is left"),
           "shredreq": ("Requirements", "Every requirement in one file, labelled Requirement, Instruction (L), Evaluation (M) or SOW task; export a draft matrix or file it to an effort"),
           "techedit": ("Technical Edit", "Copy review: mechanics, consistency, Chicago style, plain language, the customer's words and leftovers, with the edited copy as tracked changes"),
           "tools": ("Your Tools", "Drop any file and pick what to do with it, your pinned tools, recent files and your efforts"),
@@ -56,7 +57,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "structure": ("Structure Builder", "Build the response: sections and headings, elements, library items, and "
                         "everything placed in each section; Make the setup from it"),
           "assign": ("Requirements", "Every piece of the customer's text on the page: say what it is, capture what it holds, place it"),
-          "sort": ("Sort", "Name the big areas of what is being bought and file every requirement under one"),
+          "sort": ("Theme tags", "Cross-cutting themes (cybersecurity, transition, staffing) on requirements, for filtering and assignments; they never make headings"),
           "verify": ("Text check", "Every block on every customer page in its role (heading, text, table, header, footer), before the shred"),
           "place": ("Place", "Each requirement in its section of our outline: the customer's page beside the outline"),
           "outline": ("Outline", "Our response structure: volumes and sections, prescribed by the solicitation or ours"),

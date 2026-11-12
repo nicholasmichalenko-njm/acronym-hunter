@@ -1,0 +1,77 @@
+{
+ "on": false,
+ "levels": [
+  {
+   "style": "Heading 1",
+   "fmt": "decimal",
+   "text": "%1",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  },
+  {
+   "style": "Heading 2",
+   "fmt": "decimal",
+   "text": "%1.%2",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  },
+  {
+   "style": "Heading 3",
+   "fmt": "decimal",
+   "text": "%1.%2.%3",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  },
+  {
+   "style": "Heading 4",
+   "fmt": "decimal",
+   "text": "%1.%2.%3.%4",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  },
+  {
+   "style": "Heading 5",
+   "fmt": "decimal",
+   "text": "%1.%2.%3.%4.%5",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  },
+  {
+   "style": "Heading 6",
+   "fmt": "decimal",
+   "text": "%1.%2.%3.%4.%5.%6",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  },
+  {
+   "style": "Heading 7",
+   "fmt": "upperLetter",
+   "text": "Appendix %7",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": 0
+  },
+  {
+   "style": "Heading 8",
+   "fmt": "decimal",
+   "text": "%7.%8",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  },
+  {
+   "style": "Heading 9",
+   "fmt": "decimal",
+   "text": "%7.%8.%9",
+   "number_at": 0,
+   "text_at": 0.5,
+   "restart": null
+  }
+ ]
+}

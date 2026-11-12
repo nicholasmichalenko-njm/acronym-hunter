@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+OUR RESPONSE STRUCTURE: TWO DOORS TO ONE OUTLINE; SHRED'S LIST (4.19.0)
+  - The customer prescribes it: in Shred, type the piece that sets the structure Structure (key O): "shall be organized
+    as follows", the volumes, a required order. On Matrix & Outline (or Setup), Start our structure > Read the Structure
+    pieces...: the volumes come in as H1, a list under the volume it names as H2, a marked heading at its H level, page
+    limits kept. Fix what the reading got wrong in the preview, then Put in our outline. Each heading keeps Required by
+    (the piece and where it sits); the outline stays yours to edit, and Structure... > Check against the required
+    structure lists a required heading renamed, taken out or moved out of order.
+  - We build it: Start our structure > Draft headings from... the customer's headings, the SOW or PWS headings, the
+    evaluation factors, or blank. Draft headings are the outline's own sections, marked Draft: send pieces to them in
+    Shred as you read, arrange them in the builder, then Structure... > Use it as our structure.
+  - Both at once: the required frame first, our drafts under it (Structure... holds both doors after the start).
+  - The card shows while our outline is empty or still the start the app made from the customer's headings.
+  - Shred's views are Page and List. List shows the shred under the customer's headings (H1 to H9 from the references):
+    each heading with how many of its pieces are decided, each piece with its type, decision, owner and page; Undecided
+    only, a type, a document; double-click opens the piece on its page.
+  - The quick shred of any file (Requirements), Shred accuracy and Theme tags (was Sort: cross-cutting themes for
+    filtering and assignments, never headings) are in Your Tools. The path strip has no Sort step.
+
 SHRED: COMPLIANCE LANGUAGE ON ANY WORDS (4.18.0)
   - In Shred, drag over any words of a piece and right-click: Compliance language: just here (kept on the piece),
     Compliance language: everywhere (the words join the compliance words list every outline, matrix and setup reads),

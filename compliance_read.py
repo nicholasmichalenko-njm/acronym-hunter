@@ -137,6 +137,9 @@ def new_matrix(path, items, heads, src, outline_text=""):
     M.items, M.headings, M.sources = items, heads, src
     typed = (outline_text or "").strip()
     M.outline = C.parse_outline(typed) if typed else (C.outline_from_headings(heads, "L") or C.outline_from_headings(heads, ""))
+    if M.outline and not typed:                       # 4.19.0: a start the app made; Start our structure still offers both doors
+        import setupdoc as SD
+        SD.setup_of(M)["outline_auto"] = True
     M.log("matrix", f"read {len(src)} RFP file(s): {len(items)} candidates")
     M.pending = True
     return M

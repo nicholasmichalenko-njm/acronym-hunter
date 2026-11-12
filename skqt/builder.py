@@ -153,6 +153,11 @@ class BuilderPage(QWidget):
         top.addWidget(D.button("Export the setup...", None, lambda: self.host.setup_page.export(), "One plain Word document per volume"))
         top.addWidget(D.button("Export changes only...", "ghost", lambda: self.host.setup_page.export_changes(),
                                "Just what changed since the last export"))
+        self.b_struct = D.button("Structure...", None, None, "The required headings from the Structure pieces, draft "
+                                 "headings, Use it as our structure, Check against the required structure")     # 4.19.0
+        _sm = QMenu(self.b_struct); _sm.aboutToShow.connect(lambda: (_sm.clear(), __import__("skqt.structdoors", fromlist=["x"]).more_items(self, _sm)))
+        self.b_struct.setMenu(_sm)
+        top.addWidget(self.b_struct)
         self.b_kickoff = D.button("Kickoff packets...", None, lambda: self.kickoff(),                    # 3.37.0
                                   "One Word file per author: their sections, the customer's words, how each is scored, "
                                   "objectives, themes, topics, answers, pages and dates")
@@ -207,6 +212,8 @@ class BuilderPage(QWidget):
             sc = QShortcut(QKeySequence(f"Ctrl+{n}"), self); sc.setContext(Qt.WidgetWithChildrenShortcut)
             sc.activated.connect(lambda n=n: self.make_level(n))
         # the text and Start from (the Structure tab before 3.30.0), hidden until asked for
+        from . import structdoors as SDR                       # 4.19.0: Start our structure, two doors
+        v.addWidget(SDR.card(self))
         self.text_panel = StructurePage(host)
         self.text_panel.setVisible(False)
         v.addWidget(self.text_panel, 1)
@@ -350,6 +357,7 @@ class BuilderPage(QWidget):
         from .modes import settings
         self.b_kickoff.setVisible("kickoff" not in MF.hidden(settings()) and not self.embedded)   # 3.57.0: set aside
         self.text_panel.refresh()                    # the text stays the structure's, shown or not
+        __import__("skqt.structdoors", fromlist=["x"]).refresh(self)    # 4.19.0: the start card while the outline is empty
         if R is None:
             self.btree.clear()
             self.sel = None                          # 3.34.1: nothing of the effort open before
@@ -623,6 +631,8 @@ class BuilderPage(QWidget):
                 "element": "An element: " + (o.get("element") or "")}.get(k, f"H{hl}" + (" (Word numbers and lists "
                                                                                                    "H1 to H9; deeper levels are numbered by Stationkeeper)" if hl > 9 else ""))
         brk = o.get("brk")
+        what += f"; required by {o.get('ref') or o.get('req')}" if o.get("req") else ""          # 4.19.0
+        what += "; a draft heading (Structure... > Use it as our structure)" if o.get("draft") else ""
         return what + (f"; starts a Word section, {brk.get('orient', 'portrait')}" if brk else "")
 
     def on_pick(self):
@@ -664,6 +674,7 @@ class BuilderPage(QWidget):
         if R is None:
             return None
         R.snap(what)
+        __import__("setupdoc").setup_of(R.M).pop("outline_auto", None)     # 4.19.0: the person has made it theirs
         new = fn()
         if new is None:
             if R.undo:

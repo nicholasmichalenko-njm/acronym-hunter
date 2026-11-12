@@ -42,8 +42,8 @@ check("the draft compliance matrix: one row per requirement, the matrix's column
       and hdr[:4] == ["ID", "Kind", "Section", "Section title"], (n, ws.max_row, hdr))
 
 from skqt import mainwin as MW
-check("the List view (was Requirements) is with Shred; the Matrix with Matrix & Outline (4.0.0)", MW.RAIL_OF["shredreq"] == "assign"
-      and "sort" in MW.REVIEW_VIEWS and MW.RAIL_OF["matrix"] == "matrix")
+check("the quick shred (Requirements) is Your Tools' (4.19.0); the Matrix with Matrix & Outline", MW.RAIL_OF["shredreq"] == "tools"
+      and "shredlist" in MW.REVIEW_VIEWS and MW.RAIL_OF["matrix"] == "matrix")
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.rail_go("shredreq"); app.processEvents()
 sp = w.shred_page

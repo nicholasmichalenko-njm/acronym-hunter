@@ -46,7 +46,7 @@ F.add_factor(RR.Record(ws0.root), "Technical Approach", importance="More importa
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("Sort is in the Shred space, after Review", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["sort"] == "assign" and "sort" in w.stepper.views)
+check("Theme tags (was Sort) is Your Tools' (4.19.0), not a Shred view", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["sort"] == "tools" and "sort" not in w.stepper.views)
 w.go("sort"); app.processEvents()
 sp = w.sort_page
 n = len(TP.sortable(w.review.M.items))
@@ -116,7 +116,7 @@ check("Read back from Excel: the Topic column files each row; a new name becomes
 w.go("home"); app.processEvents()
 st = {s["key"]: s for s in w.home_page.path.now}
 uns = len(TP.unsorted(sp.rec(), w.review.M.items))
-check("the path strip's Sort step counts what is sorted", "sort" in st and "sorted" in st["sort"]["count"] and st["sort"]["done"] == (uns == 0), st.get("sort"))
+check("the path strip has no Sort step (4.19.0)", "sort" not in st, list(st))
 check("Review's Sort mode shows the same topics", any(b.text().endswith("Cyber and Security") for b in w.assign_page.topic_btns) or
       (w.assign_page.fill_topics() or any(b.text().endswith("Cyber and Security") for b in w.assign_page.topic_btns)))
 

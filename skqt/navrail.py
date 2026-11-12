@@ -12,8 +12,8 @@ import navsteps as NS
 from . import design as D
 
 # the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
-VIEWS = (("assign", "Page", None), ("shredreq", "List", None), ("sort", "Sort", None))   # 4.3.0: placing, L to M and
-VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort"}  # Coverage: Matrix & Outline
+VIEWS = (("assign", "Page", None), ("shredlist", "List", None))   # 4.19.0: List is the shred by the customer's structure   # 4.3.0: placing, L to M and
+VIEW_OF = {"assign": "assign", "shredlist": "shredlist"}  # Coverage: Matrix & Outline
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
 CHIPS = (("assign", "Requirements"), ("requirements", "Rules & Dates"), ("evalcrit", "Evaluation"), ("acronyms", "Acros & Abs"))
 CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Rules & Dates and Evaluation moved in; the Acro List
@@ -242,14 +242,14 @@ class Stepper(QWidget):
         seg = QFrame(); seg.setObjectName("viewSeg"); sh = QHBoxLayout(seg); sh.setContentsMargins(0, 0, 0, 0); sh.setSpacing(0)
         for k, label, _v in VIEWS:
             b = QPushButton(label); b.setCheckable(True); b.setObjectName("viewBtn"); b.setCursor(Qt.PointingHandCursor)
-            b.setToolTip({"assign": "The customer's pages, each piece boxed", "shredreq": "Every requirement in one list",
-                          "sort": "Every requirement under an area of the request"}[k])
+            b.setToolTip({"assign": "The customer's pages, each piece boxed",
+                          "shredlist": "Every piece under the customer's headings, with what is decided"}[k])
             b.clicked.connect(lambda _=False, key=k: self.see(key))
             sh.addWidget(b); self.views[k] = b
         vh.addWidget(seg)
 
     def see(self, key):
-        """A way to see the shred: the page, the list, or Sort (4.3.0: placing is Matrix & Outline's)."""
+        """A way to see the shred: the page or the list (4.19.0; 4.3.0: placing is Matrix & Outline's)."""
         ok = self.w.go(key)
         if key == "assign" and ok is not False:
             self.show_for("assign")

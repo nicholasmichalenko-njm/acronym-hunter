@@ -1184,7 +1184,7 @@ class Locked(Exception):
     """The workbook is open in Excel."""
 
 
-OUTLINE_EXTRA = ("kind", "element", "brk", "lib", "by")   # 3.30.0: kept on the Outline sheet as JSON (column H); 4.5.0: "by"
+OUTLINE_EXTRA = ("kind", "element", "brk", "lib", "by", "req", "req_title", "ref", "draft", "limit", "page")   # 4.19.0: required by, draft   # 3.30.0: kept on the Outline sheet as JSON (column H); 4.5.0: "by"
 
 class Matrix:
     def __init__(self, path, name=""):

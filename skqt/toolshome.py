@@ -42,7 +42,9 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "mywork": ("My Work", "Your work in every effort", "page"), "refs": ("Team References", "The lists the team keeps", "page"),
          "custqa": ("Customer Q&A", "Questions to the customer", "page"),
          "techedit": ("Technical Edit", "Copy review of a draft", "page"),
-         "shredreq": ("Requirements", "Every requirement in one file", "page")}
+         "shredreq": ("Requirements", "Every requirement in one file", "page"),
+         "shredacc": ("Shred accuracy", "How well the reader finds requirements, on answer keys", "page"),     # 4.19.0: off Shred
+         "sort": ("Theme tags", "Cross-cutting themes on requirements, for filtering and assignments", "page")}
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
              "Proposal Manager": ["home", "shredreq", "assign", "reviews", "mywork", "acrfinder", "qa"],
              "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],
