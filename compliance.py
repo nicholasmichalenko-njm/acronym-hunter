@@ -1162,8 +1162,8 @@ def suggest_map(item, outline, stats=None):
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
            "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read", "Place", "Lead place", "L/M",
-           "Area", "Piece", "Left out"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16, 6, 16, 14, 30]
+           "Area", "Piece", "Left out", "Heading level", "Heading under"]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16, 6, 16, 14, 30, 8, 24]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
@@ -1175,7 +1175,8 @@ FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": 
          "L/M": "lm",                                     # 2.68.0: Instructions (L) or Evaluation (M), Shipley
          "Area": "area",                                  # 3.19.0: the area text was added from ("2:72,140,540,168")
          "Piece": "piece",                                # 4.1.0: what the shred says the piece is (shredtypes)
-         "Left out": "left_out"}                          # 4.3.0: left out of the matrix on Place, with its reason (leaveout)
+         "Left out": "left_out",                          # 4.3.0: left out of the matrix on Place, with its reason (leaveout)
+         "Heading level": "hlevel", "Heading under": "base"}   # 4.17.0: a heading marked in Shred at a level (headinglevels)
 
 
 class Locked(Exception):
@@ -1224,6 +1225,14 @@ class Matrix:
                     row["draft_cf"] = ""
                 row["page"] = _page(row["loc"])
                 row["key"] = row["key"] or text_key(row["text"])
+                if row.get("hlevel", "").isdigit():                # 4.17.0: a heading marked at a level
+                    row["hlevel"] = int(row["hlevel"])
+                else:
+                    row.pop("hlevel", None)
+                if row.get("base"):
+                    row["base"] = row["base"].split("|", 1) + ([""] if "|" not in row["base"] else [])
+                else:
+                    row.pop("base", None)
                 self.items.append(row)
             if "Outline" in wb.sheetnames:
                 rows = list(wb["Outline"].iter_rows(values_only=True))[1:]
@@ -1379,6 +1388,7 @@ class Matrix:
             owner = lambda it: setupdoc.owner_of(self, it)
         for it in self.items:
             ws.append([clean_chars(("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
+                       "|".join(it.get("base") or []) if c == "Heading under" else str(it.get("hlevel") or "") if c == "Heading level" else
                        (owner(it) if owner and c == "Owner" else it.get(FIELD[c], ""))) for c in COLUMNS])
             ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw)
             f = fills.get(it["decision"])
@@ -1395,7 +1405,7 @@ class Matrix:
         ws.add_data_validation(dv)
         dv.add(f"B2:B{max(2, ws.max_row) + 500}")
         for col in ("Context", "Key"):
-            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place", "Area")
+            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place", "Area", "Heading under")
         ol = wb.create_sheet("Outline")
         ol.append(["Number", "Title", "Level", "Keep and Context rows placed", "Numbering", "From RFP section", "Part", "Builder"])
         import structparts as SP
