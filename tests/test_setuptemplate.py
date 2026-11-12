@@ -129,6 +129,6 @@ rec = RR.Record(d)
 EX.add(rec, "objective", [EX.part_of(kept[0])])
 r = {w: (ok, n) for ok, w, n in ST.ready(M, rec)}
 check("Ready to make lists what is still open", r["Every requirement is in a section of the structure"][1] == len(kept) - 2
-      and r["Every customer objective is mapped to a section"] == (False, 1) and r["Every sentence is decided or ignored"][0], r)
+      and r["Every customer objective is mapped to a section"] == (False, 1) and r["Every piece is decided or ignored"][0], r)
 print(f"SETUP ON TEMPLATE {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

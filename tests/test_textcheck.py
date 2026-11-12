@@ -23,7 +23,7 @@ def run():
         r = T.check(f, items, heads, ch)
         assert r["words"] and r["missing"] == 0 and r["pct"] == 100.0, (os.path.basename(f), r["missing"], [x for x in r["lines"] if x[2] == "missing"][:5])
         assert r["reader_missing"] == 0, (os.path.basename(f), r["reader_missing"])
-        assert T.summary_text(r).startswith(f"{os.path.basename(f)}: all {r['words']} words are in the review")
+        assert T.summary_text(r).startswith(f"{os.path.basename(f)}: all {r['words']} words are in the shred")
     # the hard file: every part read, the all-caps instruction and the table cell are sentences
     raw = " | ".join(t for _w, t in T.raw_text(hard))
     for part in ("Text box: the Offeror shall keep", "CLIN 0001", "CUI: Kestrel", "Attachment 4, Revision B", "Footnote: test at 1E-6 torr."):
@@ -41,7 +41,7 @@ def run():
     r = T.check(hard, short, heads)
     miss = [x for x in r["lines"] if x[2] == "missing"]
     assert r["missing"] >= 6 and miss and miss[0][1].startswith("Thermal analysis report") and miss[0][0] == "document", miss
-    assert "not in the review yet" in T.summary_text(r)
+    assert "not in the shred yet" in T.summary_text(r)
     # 2.47.0: a line added to the review goes where it is in the document, not at the end
     import pdfmini
     pdf = pdfmini.write(os.path.join(tempfile.mkdtemp(), "o.pdf"), [["Alpha shall be first.", "Bravo shall be second.",
