@@ -151,7 +151,7 @@ def delete(page, d, vid=None, answer=None):
         host.changed()
     page.trashed_now = getattr(page, "trashed_now", []) + [eid]
     _log(host, f"{info['name']}: {'deleted' if info['whole'] else ', '.join(info['versions']) + ' deleted'}; in the Trash")
-    diag.activity("document_deleted", whole=info["whole"])
+    diag.activity("document_deleted" if info["whole"] else "document_version_deleted")
     try:
         page.refresh()
     except Exception:  # noqa: BLE001
@@ -241,7 +241,7 @@ def restore(page, eid):
     if got is not None and M is not None:
         host.changed()
     _log(host, f"{e['name']}: put back from the Trash")
-    diag.activity("trash_restored", kind=e["kind"])
+    diag.activity("trash_restored")
     try:
         page.refresh()
     except Exception:  # noqa: BLE001
