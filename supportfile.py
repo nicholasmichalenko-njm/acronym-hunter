@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.16.0": ["Redline brings the comments reviewers left on the PDF in Acrobat into the Word copy: cross-outs, inserts and replacements as tracked changes, highlights and notes as Word comments on exactly their words, replies and Completed kept.", "Check lists every comment and says which were placed by position; Exceptions makes a row of each."],
     "4.15.0": ["Redline makes a deck saved as PDF into slides: one Word page a slide, the slide's pictures, charts and shapes behind, each box of text where it sits, editable and checked word for word.", "Tables with no borders and no tags come from the gaps between their columns; a table drawn inside a cell stays inside it."],
     "4.14.0": ["Redline reads the tags Word writes into a PDF: a table with no borders and a table inside a cell come out as Word tables.", "A table that runs across pages is one table, its header row kept once and repeated by Word; lists and paragraphs inside a cell stay apart; turned header text stays turned."],
     "4.13.0": ["Redline's copy reads tables from the borders the PDF draws: merged cells, empty cells, wrapped cells, shading, rules-only tables and rotated headers come out cell for cell.", "The copy keeps each page's size, orientation and margins, the body font and size, the space between paragraphs, indents, centering and headings as set."],

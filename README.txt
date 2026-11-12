@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REDLINE: COMMENTS FROM THE PDF (4.16.0)
+  - Make the Word copy brings in the comments reviewers left on the PDF in Acrobat, each on exactly the words it marks,
+    under the reviewer's name and date:
+      a cross-out is a tracked deletion of the struck letters (part of a word stays part of a word);
+      an insert is a tracked insertion at the letter the caret marks;
+      Replace text is a tracked deletion and insertion in one place;
+      a highlight or underline is a Word comment on its words (its note, or Highlighted when it has none);
+      replies stay replies, and a comment set to Completed is marked done.
+  - A sticky note, text box, callout, shape or stamp has no words of its own: it goes on the words nearest it (a
+    callout on the words its line points at, a shape on the words inside it) and Check says it was placed by position.
+    A mark on a running header goes on the page's first words.
+  - Check still holds the copy to the PDF word for word (with the comments' changes undone) and lists every comment
+    under the differences: what it became, the words it is on, the reviewer and the page.
+  - Exceptions reads the copy's comments as rows too, each with its words and its replies.
+  - More > Make it without the PDF's comments makes a clean copy.
+
 REDLINE FIDELITY: SLIDES AND TABLES WITH NO BORDERS (4.15.0)
   - A deck saved as PDF (PowerPoint or another slide program) becomes slides in the Word copy: one page a slide, the
     slide's size. The slide's pictures, charts, shapes and table shading sit behind the page as one picture; every box
