@@ -82,14 +82,24 @@ z = s.results.get("ZQX") or {}
 check("a term not in the list goes back to Acros & Abs, marked From our drafts", z.get("from_drafts") == vols
       and z.get("locations") == [f"From our drafts: {vols[0]}"] and "WVR" in s.results, z)
 check("... kept with the session", "ZQX" in (w.ws.load_session() or {}).get("manual_items", {}))
-check("... shown here until it is decided", DV.pending(s) == {"WVR": [vols[1]], "ZQX": vols} and pg.pending_list.count() == 2
+check("... shown here until it is decided", DV.pending(s) == {"WVR": [vols[1]], "ZQX": vols} and pg.pending_list.rowCount() == 2
       and pg.p_card.isVisibleTo(w))
-check("... said in a sentence", "2 term(s) not in the list went to Acros & Abs" in pg.said.text(), pg.said.text())
+check("... said in a sentence", "2 term(s) not in the list are below to decide" in pg.said.text(), pg.said.text())
 pg.check()
-check("checking again adds nothing twice", len([t for t in s.results if t == "ZQX"]) == 1 and "went to Acros" not in pg.said.text(), pg.said.text())
-s.set_status(["ZQX"], "Not a term"); s.set_status(["WVR"], "In the list")
-pg.fill()
-check("decided on Acros & Abs: off the list here", DV.pending(s) == {} and not pg.p_card.isVisibleTo(w), DV.pending(s))
+check("checking again adds nothing twice", len([t for t in s.results if t == "ZQX"]) == 1 and "below to decide" not in pg.said.text(), pg.said.text())
+# 4.23.2: decided here, on the term's row (no jump to Acros & Abs)
+from PySide6.QtWidgets import QPushButton
+check("4.23.2: no Decide them in Acros & Abs; each term has its meaning line and two buttons", pg.bar.action("Decide them in Acros & Abs") is None
+      and pg.pending_terms == ["WVR", "ZQX"] and [b.text() for b in pg.pending_list.cellWidget(0, 3).findChildren(QPushButton)]
+      == ["Add to effort list", "Not a term"])
+pg.pending_list.cellWidget(0, 2).setText("Wide View Radiometer")
+pg.pending_list.cellWidget(0, 3).findChildren(QPushButton)[0].click(); app.processEvents()
+check("Add to effort list on the row: in the list with the meaning typed", s.effort.rows["WVR"]["Status"] == "In the list"
+      and s.effort.rows["WVR"]["Definition"] == "Wide View Radiometer" and pg.pending_terms == ["ZQX"], s.effort.rows.get("WVR"))
+pg.pending_list.cellWidget(0, 3).findChildren(QPushButton)[1].click(); app.processEvents()
+check("Not a term on the row: decided, and the card folds away", s.effort.rows["ZQX"]["Status"] == "Not a term" and DV.pending(s) == {}
+      and not pg.p_card.isVisibleTo(w), DV.pending(s))
+check("it is the same decision on Acros & Abs", ap.session is s and s.results["WVR"].get("effort") == "In the list")
 pg.table.selectRow(0)
 dlg = pg.fix(); app.processEvents()
 check("Fix in a copy: the 3.92.0 check on the selected volume's draft", dlg is not None and dlg.path == p1

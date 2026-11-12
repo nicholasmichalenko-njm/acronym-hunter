@@ -44,8 +44,9 @@ check("4.23.0: the list's bar: Add a term is the main button; Next to decide is 
       ap.bar.main is ap.b_addterm and len(ap.bar.commands) <= 5 and "Next to decide" not in ap.bar.labels()
       and ap.bar.action("In our drafts") is not None and ap.bar.action("Export the report...") is not None
       and ap.bar.labels().count("Add a term") == 1 and "Add a term..." not in ap.bar.labels(), ap.bar.labels())
-check("every scan and tool is in More", all(ap.bar.action(x) is not None for x in ("Scan the customer documents", "Scan files...",
-      "Scan the library...", "Customer acronym lists...", "Letters joined by a hyphen are one term")))
+check("every other scan and tool is in More; Scan files... is on the bar (4.23.2)", all(ap.bar.action(x) is not None for x in ("Scan the customer documents",
+      "Scan the library...", "Customer acronym lists...", "Letters joined by a hyphen are one term")) and ap.bar.action("Scan files...") is None
+      and "Scan files..." in [b.text() for b in ap.bar.commands])
 files = [os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")]
 ap.scan(files)
 t0 = time.time()

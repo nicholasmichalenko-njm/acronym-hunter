@@ -1,13 +1,14 @@
 """Drafts > Acronyms (4.4.0; claude/stationkeeper-drafts-plan-4.4.md, step 3; decision 7). Each volume's newest draft
 checked against the effort's acronym list (acrfix.check): used before it is spelled out, spelled out again, not in the
 list, and the volume's Acronyms table. Fix in a copy opens the 3.92.0 check on the selected volume (fixes go into a copy as
-tracked changes; the draft is never changed). A term not in the list goes back to Shred > Acros & Abs, marked From our
-drafts: <volume>, and is shown here until it is decided there. Rules only (No AI); nothing leaves the PC."""
+tracked changes; the draft is never changed). A term not in the list is decided right here (4.23.2: its meaning typed
+on its row, Add to effort list or Not a term on the row); it is the same decision as on Shred > Acros & Abs, where it
+also shows, marked From our drafts: <volume>. Rules only (No AI); nothing leaves the PC."""
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QListWidget, QTableWidget, QTableWidgetItem, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QLineEdit, QTableWidget, QTableWidgetItem,
+                               QVBoxLayout, QWidget)
 
 import diag
 import draftvols as DV
@@ -27,11 +28,11 @@ class DraftAcrPage(QWidget):
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         bar = self.bar = CommandBar()
         self.b_check = bar.primary("Check the drafts", lambda: self.check(), "Each volume's newest draft against the "
-                                   "effort's acronym list. A term not in the list goes to Acros & Abs to decide.")
+                                   "effort's acronym list. A term not in the list is decided below.")
         self.b_fix = bar.add("Fix in a copy...", lambda: self.fix(), "The selected volume's findings, one at a time; "
                              "fixes go into a copy as tracked changes")
-        bar.more("Decide them in Acros & Abs", lambda: self.host.go("acronyms"), "Shred > Acros & Abs, where the terms "
-                 "from our drafts wait to be decided")
+        # 4.23.2 (Nicholas 2026-11-12 13:51: "Why would I decide them in two places? Why would I have to move to the
+        # other one?"): the jump to Acros & Abs is gone; the terms are decided on their rows below
         v.addWidget(bar)
         self.card = D.Card("Each volume against the list", "The newest Word file in each volume's folder (Status > "
                            "Volume folders...). Nothing in a draft is changed.")
@@ -43,9 +44,14 @@ class DraftAcrPage(QWidget):
         self.card.add(t)
         self.said = self.card.add(D.label("Not checked yet.", "muted"))
         v.addWidget(self.card)
-        self.p_card = D.Card("From our drafts, still to decide", "Terms our drafts use that are not in the list. Decide each "
-                             "on Shred > Acros & Abs: in the list with its meaning, or Not a term.")
-        self.pending_list = QListWidget(); self.pending_list.setMinimumHeight(120)
+        self.p_card = D.Card("From our drafts, still to decide", "Terms our drafts use that are not in the list. Type what "
+                             "each means (it may stay empty), then Add to effort list, or Not a term.")
+        p = self.pending_list = QTableWidget(0, 4); p.setHorizontalHeaderLabels(["Term", "In", "Means", ""])
+        p.verticalHeader().setVisible(False); p.setSelectionMode(QAbstractItemView.NoSelection); p.setMinimumHeight(140)
+        p.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        p.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        p.setColumnWidth(0, 160); p.setColumnWidth(1, 220); p.setColumnWidth(3, 280)
+        self.pending_terms = []
         self.p_card.add(self.pending_list)
         v.addWidget(self.p_card, 1)
 
@@ -100,7 +106,7 @@ class DraftAcrPage(QWidget):
                 P.note(s.ws, f"{r['volume']} checked", to_fix=sum(1 for f in rep["findings"] if f["kind"] != "unlisted"))
         got = sum(1 for r in self.rows if r["report"] is not None)
         self.said.setText(f"{got} of {len(self.rows)} volume(s) checked."
-                          + (f" {added} term(s) not in the list went to Acros & Abs, marked {DV.FROM}." if added else ""))
+                          + (f" {added} term(s) not in the list are below to decide." if added else ""))
         try:
             ap = self.host.acronym_page
             ap.fill()
@@ -129,12 +135,48 @@ class DraftAcrPage(QWidget):
                 t.setItem(i, c, it)
         if self.rows:
             t.selectRow(min(max(keep, 0), len(self.rows) - 1))
-        pend = DV.pending(self.session())
-        self.pending_list.clear()
-        for term in sorted(pend, key=str.lower):
-            self.pending_list.addItem(f"{term}   {DV.FROM}: {', '.join(pend[term])}")
+        s = self.session()
+        pend = DV.pending(s)
+        p = self.pending_list
+        self.pending_terms = sorted(pend, key=str.lower)
+        p.setRowCount(len(self.pending_terms))
+        for i, term in enumerate(self.pending_terms):
+            p.setItem(i, 0, QTableWidgetItem(term)); p.setItem(i, 1, QTableWidgetItem(", ".join(pend[term])))
+            means = QLineEdit(); means.setPlaceholderText("What it means (may stay empty)")
+            got = ((s.results.get(term) or {}).get("selected_definition") or "") if s is not None else ""
+            means.setText("" if got == "Keep All Possibilities" else got)
+            means.returnPressed.connect(lambda t=term: self.decide(t, True))
+            p.setCellWidget(i, 2, means)
+            box = QWidget(); h = QHBoxLayout(box); h.setContentsMargins(4, 0, 4, 0); h.setSpacing(D.SPACE["s"])
+            h.addWidget(D.button("Add to effort list", "primary", lambda _c=False, t=term: self.decide(t, True)))
+            h.addWidget(D.button("Not a term", "danger", lambda _c=False, t=term: self.decide(t, False)))
+            p.setCellWidget(i, 3, box)
+            p.setRowHeight(i, 38)
         self.p_card.setVisible(bool(pend))
         return len(pend)
+
+    def decide(self, term, add, definition=None):
+        """4.23.2: a term from our drafts decided on its row: in the effort's list with the meaning typed, or Not a term.
+        The same decision as on Acros & Abs. Returns True when it was decided."""
+        s = self.session()
+        if s is None or term not in s.results:
+            return False
+        if add:
+            if definition is None and term in self.pending_terms:
+                w = self.pending_list.cellWidget(self.pending_terms.index(term), 2)
+                definition = w.text().strip() if w is not None else ""
+            s.add([term], definition or "")
+            self.host.toast(f"{term} is in the effort's list" + ("" if definition else ", with no definition yet") + ".")
+        else:
+            s.set_status([term], "Not a term")
+            self.host.toast(f"{term}: Not a term in this effort.")
+        diag.activity("draft_acronym_decided", n=1)
+        try:
+            self.host.acronym_page.fill()
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        self.fill()
+        return True
 
     def current(self):
         i = self.table.currentRow()

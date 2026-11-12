@@ -33,13 +33,17 @@ def install(page):
     page.bar = bar
     # 4.23.0 (Nicholas 2026-11-12 13:51): Add a term is the main button; Next to decide is gone (both decisions move to
     # the next term by themselves); In our drafts and the report are in More
+    # 4.23.2: a file handed over (a deliverable, a draft) is scanned from the bar, not from More
+    page.b_scanfiles = bar.add("Scan files...", lambda: page.pick_files(), "Any files: a deliverable handed to you, a draft, "
+                               "pictures, PDFs. Their terms join this effort's review")
     page.b_addterm = bar.primary("Add a term", lambda: __import__("skqt.acrextras", fromlist=["x"]).add_term(page),
                                  "A term the scan did not find: select its words on the page, or type it")
     page.b_drafts = bar.more("In our drafts", lambda: open_drafts(page), "Each volume's draft against the list: first use, "
                              "spelled out again, the volume's Acronyms table")
     bar.more_sep()
     for b in (page.b_cust, page.b_files, page.b_lib, page.b_again, page.b_paste, page.b_window):
-        bar.more(b.text(), b.click, b.toolTip())
+        if b is not page.b_files:                          # 4.23.2: Scan files... is on the bar
+            bar.more(b.text(), b.click, b.toolTip())
         b.setVisible(False)
     bar.more_sep()
     for b in __import__("skqt.acrextras", fromlist=["x"]).top_buttons(page):
