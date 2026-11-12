@@ -50,7 +50,7 @@ def run():
     out = os.path.join(tempfile.mkdtemp(), "cov.docx"); C.write_coverage_docx(M, out)
     with zipfile.ZipFile(out) as z:
         x = z.read("word/document.xml").decode("utf-8")
-    assert "Every sentence was read: 2 compliance requirement(s), 2 context, 1 not used." in x
+    assert "Every piece was read: 2 compliance requirement(s), 2 context, 1 not used." in x
     assert "Compliance requirement" in x and "Support for section 1.2 Schedule" in x and "Not used" in x
     # link_contexts leaves a section's context alone
     C.link_contexts(items)

@@ -392,7 +392,7 @@ class SetupsPage(QWidget):
         except Exception:  # noqa: BLE001
             diag.swallowed()
             return "Templates: set in Team > Effort Profiles > Templates."
-        return ("Made with the setup, each volume's template: "               # 4.20.0: one plain line (it read "Kestrel: Kestrel Kestrel")
+        return ("Made with the setup, each volume's template: "               # 4.20.0: one plain line
                 + "; ".join(f"{p['template_name']}, version {p['version']}" for p in pl)
                 + ". Its formatting is Effort Formatting; its profile is in Team > Effort Profiles.")
 

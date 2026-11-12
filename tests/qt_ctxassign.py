@@ -178,7 +178,7 @@ check("... a Not needed document says how to read it (4.0.0: put it back)", w.li
       and "left out" in w.statusBar().currentMessage(), w.statusBar().currentMessage())
 DV.Library(ws.p("documents")).load().set_role(d["id"], "context")
 w.go("library"); w.library_page.refresh(); w.library_page.select(d["id"]); w.library_page.show_doc()
-check("the document's panel counts what was taken", "3 sentence(s) taken" in w.library_page.d_taken.text(), w.library_page.d_taken.text())
+check("the document's panel counts what was taken", "3 piece(s) taken" in w.library_page.d_taken.text(), w.library_page.d_taken.text())
 # 3.16.0: the Library is where reading starts: a Review column, the review box's button, new files with Add and Ignore
 lp = w.library_page
 w.go("library"); lp.refresh(); app.processEvents()
@@ -208,8 +208,8 @@ check("... Read into Review adds it to the matrix and opens it", got is not None
       and w.assign_page.files.currentText() == "Section_L.docx", (n0, w.review.files(), w.assign_page.files.currentText()))
 w.go("library"); app.processEvents()
 n = lp.show_new({"new": [(os.path.join(tmp, "Amendment 2.pdf"), "customer")], "changed": [], "missing": []})
-check("... new files in the watched folders show in the Library with Add and Ignore", n == 1 and lp.new_box.isVisibleTo(w)
-      and "Amendment 2.pdf" in lp.new_lbl.text() and lp.b_new_add.text() == "Add to the Library...")
+check("... new files in the watched folders show in Documents with Add and Ignore", n == 1 and lp.new_box.isVisibleTo(w)
+      and "Amendment 2.pdf" in lp.new_lbl.text() and lp.b_new_add.text() == "Add to Documents...")
 check("... and go away when there are none", lp.show_new({"new": [], "changed": []}) == 0 and not lp.new_box.isVisibleTo(w))
 w.close()
 n = sum(checks)

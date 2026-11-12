@@ -117,7 +117,7 @@ check("a step quiet for a minute says it is still working", "Still working" in r
 check("the clock runs", ":" in rp.panel.clock.text())
 gate.set()
 wait(lambda: rp.worker is None)
-check("it ends green with what it read", rp.panel.state == "done" and rp.panel.bar.value() == PG.SCALE and "sentences" in rp.panel.detail.text(),
+check("it ends green with what it read", rp.panel.state == "done" and rp.panel.bar.value() == PG.SCALE and "pieces" in rp.panel.detail.text(),
       rp.panel.detail.text())
 check("the matrix is made once, and the status bar clears", w.review is not None and os.path.isfile(out) and not os.path.exists(out + ".2.xlsx")
       and not w.task.running())

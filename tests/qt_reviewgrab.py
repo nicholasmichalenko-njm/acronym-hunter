@@ -125,7 +125,7 @@ pg._guard = True
 for x in items:
     v.boxes[x["id"]].setSelected(True)
 pg._guard = False; pg.on_select(); app.processEvents()
-check("two selected: the bar fills in, the page stays where it was", pg.bulk_lbl.text() == "2 sentences selected"
+check("two selected: the bar fills in, the page stays where it was", pg.bulk_lbl.text() == "2 pieces selected"
       and pg.bulk.height() == h0 and pg.view.geometry().top() == y0, (pg.bulk.height(), h0, pg.view.geometry().top(), y0))
 
 # ---------------------------------------------------------------- objectives: one per item, each with its lead-in

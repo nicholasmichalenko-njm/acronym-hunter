@@ -87,7 +87,7 @@ class ReadPage(QWidget):
         v.setSpacing(D.SPACE["m"])
         self.info = D.label("", "muted"); v.addWidget(self.info)
         self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)   # 2.82.0: running, how far, how it ended
-        card = D.Card("Customer documents", "The latest version of each, from Customer Documents. Click, Shift+click or "
+        card = D.Card("Customer documents", "The latest version of each, from Documents. Click, Shift+click or "
                       "Ctrl+click to select several; Space or a tick on a selected row ticks them all.", key=True)
         trow = QHBoxLayout(); trow.setSpacing(D.SPACE["s"]); card.body.addLayout(trow)     # 2.82.0: tick many at once
         self.tick_all = D.button("Tick all", None, lambda: self.tick(True), "Tick every document"); trow.addWidget(self.tick_all)
@@ -120,7 +120,7 @@ class ReadPage(QWidget):
                               "Blank: build it in Shred as you read.")
         srow.addStretch(1)
         row = QHBoxLayout(); v.addLayout(row)
-        self.add_btn = D.button("Add files...", None, self.pick, "Read files that are not in Customer Documents"); row.addWidget(self.add_btn)
+        self.add_btn = D.button("Add files...", None, self.pick, "Read files that are not in Documents"); row.addWidget(self.add_btn)
         row.addStretch(1)
         self.go_btn = D.button("Go to Shred", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
         self.aside_btn = D.button("Set aside...", "ghost", lambda: self.show_aside(),          # 3.59.0

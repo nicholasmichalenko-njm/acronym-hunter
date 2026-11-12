@@ -40,8 +40,8 @@ st = w.studio_page
 check("the volume list holds the effort's volumes", "Volume I Technical" in [st.vol.itemText(i) for i in range(st.vol.count())])
 st.vol.setCurrentText("Volume I Technical"); st.fill(); app.processEvents()
 what = [r[1] for r in st.anatomy_now]
-check("Anatomy: each part of the profile, then Parts and numbering and Field recipes", "Header and footer" in what and "Table of contents" in what
-      and "Parts and numbering" in what and "Field recipes" in what, what)
+check("Anatomy: each part of the profile, then Sections and numbering and Field recipes", "Header and footer" in what and "Table of contents" in what
+      and "Sections and numbering" in what and "Field recipes" in what, what)
 check("... this effort's own formatting is summed up", st.own.text() != "")
 st.tabs.setCurrentIndex(1); app.processEvents()
 check("Parts and numbering: the usual parts at first", st.ptab.rowCount() == 4 and st.ptab.item(3, 2).text().startswith("A-1"))

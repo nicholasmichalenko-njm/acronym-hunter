@@ -85,8 +85,8 @@ w.rail_go("library"); app.processEvents()
 lp0 = w.library_page
 lp0.refresh(); lp0.select(dL["id"]); lp0.show_doc(); app.processEvents()
 rows = {r[0]: r[1] for r in lp0.status_now}
-check("Documents' panel counts its pieces and how many are not sorted (4.1.0)", rows.get("Pieces", "").endswith("not sorted")
-      or rows.get("Pieces", "").endswith("all sorted"), rows)
+check("Documents' panel counts its pieces and how many are left to shred (4.1.0)", rows.get("Pieces", "").endswith("to shred")
+      or rows.get("Pieces", "").endswith("all shredded"), rows)
 # Documents' Shred it, on a document added later
 lib = DV.Library(ws.p("documents")).load()
 pX = os.path.join(tmp, "Section_C.docx")
