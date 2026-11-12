@@ -85,20 +85,19 @@ check("... its new piece is on the page to shred", late["id"] in pg.view.boxes)
 # Fix text: headings with levels
 FX.toggle(pg) if not pg.fix_on else None
 names = [a.text() for a in FX.heading_menu(pg, run=False).actions() if a.text()]
-check("Fix text's Heading: Heading, Subheading, Level 3, Level 4, Not a heading", names == ["Heading", "Subheading", "Level 3",
-      "Level 4", "Not a heading"], names)
+check("Fix text's Heading: H1 to H9, Not a heading", names == [f"H{n}" for n in range(1, 10)] + ["Not a heading"], names)
 sub = by("Volume I holds the technical approach")
 pg.select(sub["id"]); app.processEvents()
 FX.heading(pg, 3); app.processEvents()
 _i = M.items.index(sub)
 after = next((it for it in M.items[_i + 1:] if it.get("file") == sub.get("file") and it.get("header") != "Yes"), None)
-check("a level 3 heading with no number: the pieces below read under its parent", sub["type"] == "Heading" and sub["hlevel"] == 3
+check("a H3 heading with no number: the pieces below read under its parent", sub["type"] == "Heading" and sub["hlevel"] == 3
       and after["section_title"].endswith("> " + sub["text"].strip(" .:")) and after["section"] == sub["section"],
       (after and (after["text"][:40], after["section"], after["section_title"]), sub["section"], sub["section_title"]))
 import rfpoutline as RO, structure_ops as SO
 ro = RO.as_outline(M)
 mine = next((o for o in ro if o["title"].startswith("Volume I holds")), None)
-check("... the RFP's own outline (Start from) holds it at level 3, with its page, and no number", mine is not None
+check("... the RFP's own outline (Start from) holds it at H3, with its page, and no number", mine is not None
       and mine["level"] == 3 and mine["num"] == "" and mine.get("page"), mine)
 check("... and Start from the customer's headings puts it under its section", any(o["title"].startswith("Volume I holds")
       for o in SO.from_headings(M, "L")), [o["title"][:20] for o in SO.from_headings(M, "L")])

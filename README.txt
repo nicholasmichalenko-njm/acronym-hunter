@@ -23,7 +23,7 @@ DOCUMENTS: REPLACE A FILE, DELETE INTO THE TRASH; HEADINGS WITH LEVELS (4.17.0)
     and shred pieces that go with it, with Cancel the default. Everything moves to the effort's Trash; Undo (Ctrl+Z on
     Documents) puts the last one back. Documents > More > Trash... lists what was deleted or replaced, with Restore and
     Empty the Trash... (which asks, and is the only thing that removes files for good).
-  - Shred > Fix text > Heading: Heading, Subheading, Level 3, Level 4 or Not a heading. A heading gives every piece
+  - Shred > Fix text > Heading: H1 to H9, or Not a heading. A heading gives every piece
     below it, up to the next heading, its number and title (the matrix's Section and Section title). A heading with no
     number reads under the section it is in ("L.2 Proposal Organization > Volume I"), or under the headings marked
     above it. Start from > the RFP's own outline takes each marked heading in order, at its level, with its page.

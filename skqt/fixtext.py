@@ -1,7 +1,7 @@
 """Fix text, a mode inside Shred (4.2.0; claude/stationkeeper-fix-text-decisions-2026-11-10.md, decisions 1 and 8).
 F2 (or the Fix text button) turns it on: a strip over the page holds the tools for text that came out wrong, on the
 same continuous page and the same Undo as the shred: Combine (J), Split (S), Make a sentence (Shift+S), Heading (4.17.0:
-Heading, Subheading, Level 3, Level 4 or Not a heading; the pieces below take its reference), Set
+H1 to H9 or Not a heading; the pieces below take its reference), Set
 aside (a page header, footer or banner; More: every line like it), Add missed text, and Page checked (Ctrl+Enter, the
 main button). The strip says how far the document is checked ("37 of 120 pages checked") and never holds the shred up.
 Text check is no longer a tab of Documents: go("verify") opens Shred in Fix text; the page-by-page check stays under
@@ -35,8 +35,8 @@ def install(page, bar, v):
     page.fix_tools = {}
     for name, fn, tip in (("Combine  J", lambda: page.do_combine(), "One piece from the selected ones, across pages too"),
                           ("Split  S", lambda: page.do_split(), "Split the selected piece at the word you clicked"),
-                          ("Heading", lambda: heading_menu(page), "The selected piece is a heading of the customer's: Heading, "
-                           "Subheading, Level 3 or 4, or Not a heading. The pieces below it take its reference"),
+                          ("Heading", lambda: heading_menu(page), "The selected piece is a heading of the customer's: H1 to H9, "
+                           "or Not a heading. The pieces below it take its number and title"),
                           ("Set aside", lambda: set_aside(page), "A page header, footer, page number or banner: out of the shred, "
                            "still shown on the page"),
                           ("Add missed text", lambda: page.toggle_capture(), "Draw a box around text the reader missed")):
@@ -245,7 +245,7 @@ def heading(page, level=None):
         moved += len(HL.mark(page.M.items, it["id"], lv))
         HL.register(page.M, it)                              # the outline's Start from takes it, with its page
         __import__("rfpoutline").set_level(page.M, it["id"], lv)          # and the RFP's own outline, at its level
-        page.M.log(it["id"], f"fix text: a heading, level {lv}")
+        page.M.log(it["id"], f"fix text: a heading, H{lv}")
     page.M.pending = True
     page.host.changed()
     page.after(f"{len(rows)} heading(s); {moved} piece(s) below now read " + HL.found_under(rows[-1]) if moved else
@@ -272,7 +272,7 @@ def not_heading(page):
 
 
 def heading_menu(page, at=None, run=True):
-    """Heading, Subheading, Level 3, Level 4, Not a heading. Returns the menu."""
+    """H1 to H9, Not a heading. Returns the menu."""
     import headinglevels as HL
     m = QMenu(page)
     for lv, name in HL.NAMES:
