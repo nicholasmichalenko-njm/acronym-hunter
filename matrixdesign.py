@@ -751,7 +751,7 @@ def export(M, path, design, effort_name="", when=None, ctx=None):
     cust = customer_rows(M) if design["customer_sheet"] else []
     if design["customer_sheet"]:
         cs = wb.create_sheet("Customer's")
-        cs.append(["Sentences that read like requirements but are the customer's to act on. Identified, not answered."])
+        cs.append(["Pieces that read like requirements but are the customer's to act on. Identified, not answered."])
         cs["A1"].font = Font(italic=True, color="475569")
         cs.append(["RFP reference", "Sentence", "Source document", "Location in the document"])
         for cell in cs[2]:

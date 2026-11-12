@@ -82,5 +82,5 @@ def extract(host, doc_id):
     if w is None:
         rp._merge = None
         return None
-    host.status(f"Extracting {label}: the same sentences keep their pieces; changes wait in Documents > Changes.")
+    host.status(f"Extracting {label}: the same text keeps its pieces; changes wait in Documents > Changes.")
     return w

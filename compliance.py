@@ -1436,7 +1436,7 @@ class Matrix:
         if self.setup:
             self._save_setup(wb, Font)
         cv = wb.create_sheet("Coverage")             # 2.29.0: proof that every sentence was considered
-        cv.append(["File", "Sentences", "Keep", "Context", "Customer", "Drop", "Undecided", "Placed", "Need a home", "Every piece decided"])
+        cv.append(["File", "Sentences", "Keep", "Context", "Customer", "Drop", "Undecided", "Placed", "Need a home", "Every sentence decided"])
         for c in cv[1]:
             c.font = Font(bold=True)
         for row in self.coverage():
@@ -1545,7 +1545,7 @@ def write_coverage_docx(matrix, path, title=""):
                + (f" {tot['needs_home']} assigned piece(s) have no section yet." if tot["needs_home"] else
                   " Every assigned piece has a section."), {"bold": True, "color": "15803D" if ok else "B91C1C"})])
     doc.para(f"Built {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} from the compliance matrix {os.path.basename(matrix.path)}.")
-    doc.table(["File", "Sentences", "Compliance", "Context", "Customer", "Not used", "In a section", "No section"],
+    doc.table(["File", "Pieces", "Compliance", "Context", "Customer", "Not used", "In a section", "No section"],
               [[r["file"], r["total"], r["Keep"], r["Context"], r["Customer"], r[""] + r["Drop"], r["placed"], r["needs_home"]] for r in cov],
               [2560, 900, 1100, 900, 1000, 900, 1000, 900])
     doc.rich([("Key:  ", {"bold": True}), (" Compliance requirement ", {"fill": COVER_FILL["Keep"]}), ("  ", {}),

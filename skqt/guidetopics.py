@@ -122,8 +122,8 @@ TOPICS = [
   "An effort needs its own fonts, sizes, margins or header text, or the RFP sets formatting rules.",
   ["Changes apply to: Every volume, or one volume of the effort.",
    "Set a value, or press Use it beside what the RFP says. A value that breaks the RFP's rule shows in red.",
-   "Make it the Company Standard writes this effort's value into the Company Standards (Default), a volume profile or the effort type; Undo the "
-   "last Make it the Company Standard puts it back.",
+   "Make it a standard writes this effort's value into the Company Standards (Default), a volume profile or the effort type; Undo the "
+   "last Make it a standard puts it back.",
    "Every setting... opens Production Standards on this effort (an amber band says so); Back to Effort Formatting returns.",
    "Footer, the team's line (Rule 7) sets the line under the marking in every Rule 7 footer of this effort. Field, beside "
    "each header and footer box, puts a field (page number, A number, volume values, your fields) where the cursor is."],

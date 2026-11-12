@@ -18,7 +18,7 @@ class WatchStrip(QWidget):
         self.setObjectName("watchStrip")
         h = QHBoxLayout(self); h.setContentsMargins(D.SPACE["xl"], 6, D.SPACE["xl"], 6); h.setSpacing(D.SPACE["s"])
         self.text = QLabel(""); self.text.setWordWrap(True); self.text.setTextFormat(Qt.RichText); h.addWidget(self.text, 1)
-        self.add_btn = D.button("Add to the Library...", "primary", lambda: host.watch_add(), "Open the new and changed files in "
+        self.add_btn = D.button("Add to Documents...", "primary", lambda: host.watch_add(), "Open the new and changed files in "
                                 "the Documents table to look at and add (a changed file comes up as a new version of its document)")
         self.skip_btn = D.button("Ignore", None, lambda: host.watch_set_aside(), "Do not offer these files again unless they change")   # 3.12.0
         self.miss_btn = D.button("Review missing...", None, lambda: host.watch_missing(), "Find the file, keep the record without "

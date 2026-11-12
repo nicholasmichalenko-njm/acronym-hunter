@@ -109,7 +109,7 @@ def merge(M, f, items, heads, src, ws=None, trash_name=""):
     old_heads = [it for it in M.items if it.get("file") == f and it.get("header") == "Yes"]
     add += [dict(it, id="") for it in items if it.get("file") == f and it.get("header") == "Yes"]
     if gone and ws is not None:
-        T.put(ws, "pieces", trash_name or f"{f}: pieces whose sentences are gone", {"file": f, "items": copy.deepcopy(gone)})
+        T.put(ws, "pieces", trash_name or f"{f}: pieces whose text is gone", {"file": f, "items": copy.deepcopy(gone)})
     drop = {id(x) for x in gone + old_heads}
     M.items = [it for it in M.items if id(it) not in drop] + add
     C.assign_ids(M.items)

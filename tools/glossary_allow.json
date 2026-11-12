@@ -1,9 +1,635 @@
 {
+ "acrparts.py": {
+  "review": [
+   {
+    "s": "Needs Review",
+    "why": "status value saved and compared (startswith/==)"
+   }
+  ]
+ },
+ "acrrules.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of an acronym hit's record"
+   }
+  ]
+ },
+ "acrsession.py": {
+  "review": [
+   {
+    "s": "Needs Review",
+    "why": "acronym status value, saved and compared (acrparts.py, tests)"
+   }
+  ]
+ },
+ "app_gui.py": {
+  "global": [
+   {
+    "s": "Global",
+    "why": "OCR config.yaml key"
+   }
+  ],
+  "sentence": [
+   {
+    "s": "Common words list missing; sentence-end words may ",
+    "why": "grammar: sentence-end words (log message)"
+   }
+  ]
+ },
+ "banned.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of a banned-phrase hit"
+   }
+  ]
+ },
+ "compareany.py": {
+  "compare-page": [
+   {
+    "s": "Compare",
+    "why": "author name written into Word tracked changes; the compare tool, not the page"
+   }
+  ]
+ },
+ "complearn.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "suggestion value compared with Keep/Drop (data)"
+   }
+  ]
+ },
+ "compliance.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "suggest value compared in code (data)"
+   }
+  ],
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "dict key returned to callers (data)"
+   },
+   {
+    "s": "Sentences",
+    "why": "a column heading of a workbook or CSV the effort keeps; it changes only with the file's format number"
+   },
+   {
+    "s": "Every sentence decided",
+    "why": "a column heading of a workbook or CSV the effort keeps; it changes only with the file's format number"
+   }
+  ]
+ },
+ "ctxdocs.py": {
+  "sentence": [
+   {
+    "s": "Sentence",
+    "why": "a column heading of a workbook or CSV the effort keeps; it changes only with the file's format number"
+   }
+  ]
+ },
+ "custdefs.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key (data)"
+   }
+  ]
+ },
+ "dispositions.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "default color review stage name, saved and compared (color team's review)"
+   }
+  ]
+ },
+ "docintake.py": {
+  "library": [
+   {
+    "s": "Library: ",
+    "why": "activity log of Library categories (effort folders), not the page"
+   }
+  ],
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "version key 'sentences' (saved data)"
+   }
+  ]
+ },
+ "docpaths.py": {
+  "library": [
+   {
+    "s": "Library",
+    "why": "the effort's Library folder name on disk"
+   }
+  ]
+ },
+ "docreplace.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "version key 'sentences' (saved data)"
+   }
+  ]
+ },
+ "docversions.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "version record key, saved in record JSON and read back"
+   },
+   {
+    "s": "Sentences",
+    "why": "a column heading of a workbook or CSV the effort keeps; it changes only with the file's format number"
+   }
+  ]
+ },
+ "effortcal.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "calendar Kind value (data, read back from workbook)"
+   },
+   {
+    "s": "Proposal due sets the effort's due date and time. ",
+    "why": "names the calendar Kind value Review (color team review)"
+   }
+  ]
+ },
+ "effortlib.py": {
+  "library": [
+   {
+    "s": "Library",
+    "why": "folder name on disk"
+   }
+  ]
+ },
  "effortpath.py": {
   "sorted": [
    {
     "s": " sorted",
     "why": "theme tags that have a theme; the step it belonged to left the path in 4.19.0"
+   }
+  ]
+ },
+ "effortpkg.py": {
+  "library": [
+   {
+    "s": "Library",
+    "why": "the effort's Library folder name on disk"
+   }
+  ]
+ },
+ "effortstate.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "dict key read by navsteps and tests (data)"
+   }
+  ]
+ },
+ "elementbuild.py": {
+  "library": [
+   {
+    "s": "[Library: ",
+    "why": "placeholder for a Library content item in a Word sample (template library), not the Documents page"
+   }
+  ]
+ },
+ "finalcheck.py": {
+  "acronyms-page": [
+   {
+    "s": "Acronyms",
+    "why": "check section name compared in code; the acronym check, not a page"
+   }
+  ],
+  "library": [
+   {
+    "s": "The Library holds ",
+    "why": "the effort's Library folders hold the amendments"
+   }
+  ]
+ },
+ "folderplan.py": {
+  "review": [
+   {
+    "s": "Review comment dispositions",
+    "why": "color team review comments, not the Shred page"
+   }
+  ]
+ },
+ "impact.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of a submission requirement row"
+   },
+   {
+    "s": "Sentence",
+    "why": "a column of the Impact Review Word report, kept with the report's other headings"
+   }
+  ],
+  "acronyms-page": [
+   {
+    "s": "Acronyms",
+    "why": "section heading inside the Impact Review Word report, not a page name"
+   }
+  ]
+ },
+ "leftovers.py": {
+  "library": [
+   {
+    "s": "^SK ?(RFP|Customer|Library|PM|Setup|Capture|Topic)",
+    "why": "regex over Word style names"
+   }
+  ]
+ },
+ "libconvert.py": {
+  "global": [
+   {
+    "s": "Global standard",
+    "why": "old saved source value compared"
+   }
+  ]
+ },
+ "matrixdesign.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "layout key 'sentences' (saved design data)"
+   },
+   {
+    "s": "Sentence",
+    "why": "a column heading of a workbook or CSV the effort keeps; it changes only with the file's format number"
+   }
+  ]
+ },
+ "navsteps.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "a key of the path's facts"
+   }
+  ]
+ },
+ "pagemarks.py": {
+  "sentence": [
+   {
+    "s": "sentence:",
+    "why": "saved task 'about' prefix compared with startswith (data)"
+   }
+  ]
+ },
+ "readable.py": {
+  "library": [
+   {
+    "s": "Library documents.csv",
+    "why": "file name on disk in the readable copy"
+   }
+  ],
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict keys of rows and version records"
+   },
+   {
+    "s": "Context sentences",
+    "why": "column heading of Response structure and people.csv (a saved column name)"
+   },
+   {
+    "s": "Sentence",
+    "why": "a column heading of a workbook or CSV the effort keeps; it changes only with the file's format number"
+   }
+  ]
+ },
+ "reviewpkt.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "default color review stage name, saved in the packet and compared"
+   }
+  ]
+ },
+ "rulebook.py": {
+  "acronyms-page": [
+   {
+    "s": "Acronyms",
+    "why": "rule group name, saved in own rules and compared with GROUPS (data); a rule category, not the page"
+   }
+  ]
+ },
+ "setupstrip.py": {
+  "library": [
+   {
+    "s": "^SK ?(RFP|Customer|Library|PM|Setup|Capture|Topic)",
+    "why": "regex matching Word style names"
+   }
+  ]
+ },
+ "shredeval.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "dict key of a score result"
+   }
+  ],
+  "library": [
+   {
+    "s": " as the RFP asks (the SF 30, the cover letter or t",
+    "why": "text of a matrix row matched by its words (text_key) to avoid duplicates; changing it adds a second row in existing efforts"
+   }
+  ]
+ },
+ "shredquick.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "suggest value compared"
+   }
+  ]
+ },
+ "skqt/accuracypage.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "dict key of a score result"
+   }
+  ]
+ },
+ "skqt/acronympage.py": {
+  "library": [
+   {
+    "s": "Every customer document in the Library (the newest",
+    "why": "Library = the effort's folders and their contents"
+   }
+  ]
+ },
+ "skqt/acrtool.py": {
+  "acronyms-page": [
+   {
+    "s": "Acronyms",
+    "why": "sheet name of the exported acronym list file"
+   }
+  ]
+ },
+ "skqt/applywordpage.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of a Technical Edit finding"
+   },
+   {
+    "s": "Sentence",
+    "why": "the sentence of our own draft around a finding (grammar), a table column"
+   }
+  ]
+ },
+ "skqt/assign.py": {
+  "library": [
+   {
+    "s": "F is for library documents: open one from the File l",
+    "why": "quotes the File list's 'Library: ' label (ctxassign.PREFIX, matched in librarypage.py); library documents are the effort's Library folders"
+   },
+   {
+    "s": "N, Q and T are for library documents: open one from",
+    "why": "quotes the File list's 'Library: ' label (ctxassign.PREFIX, matched in librarypage.py); library documents are the effort's Library folders"
+   }
+  ],
+  "sentence": [
+   {
+    "s": "Click where the second part starts, then Split. Any",
+    "why": "reading mechanics: real sentences the reader joined into one piece"
+   },
+   {
+    "s": "sentence:",
+    "why": "data: task 'about' key prefix sentence:<id>, compared in sentence_work()"
+   },
+   {
+    "s": "sentences",
+    "why": "data: coverage dict key c.get('sentences')"
+   },
+   {
+    "s": "sentence",
+    "why": "data: register row key r.get('sentence')"
+   }
+  ],
+  "review": [
+   {
+    "s": "Review comments (",
+    "why": "color team review comments, not the Shred page"
+   }
+  ]
+ },
+ "skqt/builder.py": {
+  "library": [
+   {
+    "s": "Library   ",
+    "why": "kind label for Library items (Library content), not the page"
+   }
+  ]
+ },
+ "skqt/captureview.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "key date kind (a color review meeting), saved and compared (data)"
+   }
+  ]
+ },
+ "skqt/changecards.py": {
+  "compare-page": [
+   {
+    "s": "Compare",
+    "why": "author name passed to Word's compare (Word's Compare)"
+   }
+  ]
+ },
+ "skqt/changeview.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of a submission rule"
+   }
+  ]
+ },
+ "skqt/comparebar.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of a submission rule"
+   }
+  ]
+ },
+ "skqt/comparespace.py": {
+  "compare-page": [
+   {
+    "s": "Compare",
+    "why": "button that compares two files (verb)"
+   }
+  ]
+ },
+ "skqt/ctxassign.py": {
+  "library": [
+   {
+    "s": "Library: ",
+    "why": "data: PREFIX of File list labels, matched in librarypage.py; names Library-folder documents"
+   }
+  ]
+ },
+ "skqt/custdocs.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key"
+   },
+   {
+    "s": "sentences",
+    "why": "version key 'sentences'"
+   }
+  ],
+  "acronyms-page": [
+   {
+    "s": "Acronyms",
+    "why": "impact report heading for acronyms found in the document, not a page"
+   }
+  ]
+ },
+ "skqt/dashpage.py": {
+  "sentence": [
+   {
+    "s": "sentences",
+    "why": "dict key in the compliance figures"
+   }
+  ]
+ },
+ "skqt/datacallspage.py": {
+  "sentence": [
+   {
+    "s": "What we need, in one or two sentences: the facts, n",
+    "why": "grammar: sentences of the person's own writing"
+   }
+  ]
+ },
+ "skqt/delivpage.py": {
+  "library": [
+   {
+    "s": "Documents or items that matter to it, from the Lib",
+    "why": "Library = the effort's folders and their contents"
+   }
+  ]
+ },
+ "skqt/docfocus.py": {
+  "library": [
+   {
+    "s": "A folder in the Library's folders on disk",
+    "why": "Library = folders on disk (brief's own keep example)"
+   }
+  ]
+ },
+ "skqt/effortlistextras.py": {
+  "acronyms-page": [
+   {
+    "s": "Acronyms",
+    "why": "sheet name of the exported acronym list file"
+   }
+  ]
+ },
+ "skqt/fixtext.py": {
+  "sentence": [
+   {
+    "s": "The next piece worth a look: a join across pages, ",
+    "why": "reading mechanics: a page that ends mid-sentence"
+   },
+   {
+    "s": "The page break split this sentence; joined is righ",
+    "why": "reading mechanics: a sentence split by a page break"
+   }
+  ]
+ },
+ "skqt/guidestudio.py": {
+  "sentence": [
+   {
+    "s": "Read a draft... lists every banned or avoided phra",
+    "why": "Apply in Word: the sentence of our draft around a banned phrase (grammar), not a shred piece"
+   }
+  ]
+ },
+ "skqt/guidetopics.py": {
+  "sentence": [
+   {
+    "s": "Copy review: the editor's pass on the words of a W",
+    "why": "Technical Edit grammar: 30 words a sentence"
+   },
+   {
+    "s": "+ Subtopic puts one under the topic picked; Merge ",
+    "why": "grammar: a compound sentence split into parts"
+   },
+   {
+    "s": "Any two files: Choose... the earlier and the later",
+    "why": "Any two files tool: sentences of two compared files, not the shred"
+   },
+   {
+    "s": "Press Check the drafts. Each finding shows the vol",
+    "why": "Wall of Truth: a sentence of our draft (and its Sentence column)"
+   },
+   {
+    "s": "Filter by group, Fix or Check, and status. Select ",
+    "why": "Technical Edit: the draft's sentence (grammar)"
+   }
+  ],
+  "review": [
+   {
+    "s": "New files in the watched folders show in a strip u",
+    "why": "Review here is the old strip button (a verb), not the page; listed as stale"
+   },
+   {
+    "s": "Export the volume... makes one Word file, a page p",
+    "why": "a storyboard review (the color team's review)"
+   },
+   {
+    "s": "Pick the draft (the effort's Volumes folder, or Ad",
+    "why": "Technical Edit's Review button (copy review, a verb)"
+   }
+  ],
+  "compare-page": [
+   {
+    "s": "Any two files: Choose... the earlier and the later",
+    "why": "Compare is the button that compares two files"
+   },
+   {
+    "s": "Nothing is changed. The tabs hold each check in fu",
+    "why": "Final Checks' compare of two drafts, not the Changes page"
+   },
+   {
+    "s": "Compare two drafts: pick the earlier and later ver",
+    "why": "Compare two drafts and its Compare button"
+   }
+  ],
+  "library": [
+   {
+    "s": "Library beside a section's contents (3.48.0): resp",
+    "why": "Production Standards' template library panel"
+   },
+   {
+    "s": "The menu across the top goes by layer (3.45.0): Te",
+    "why": "Library (the template library) menu layer"
+   },
+   {
+    "s": "Library > Template library: the shelves as a page,",
+    "why": "Library > Template library: the template library"
+   }
+  ]
+ },
+ "skqt/helpcenter.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "data: the finder's action kind compared in go()"
    }
   ]
  },
@@ -15,6 +641,42 @@
    }
   ]
  },
+ "skqt/librarypage.py": {
+  "library": [
+   {
+    "s": "Library text used in the shred...",
+    "why": "text from library documents (Library content)"
+   },
+   {
+    "s": "Files an older version kept in the app's working f",
+    "why": "the Library's folders on disk"
+   }
+  ],
+  "review": [
+   {
+    "s": "read into Review",
+    "why": "role-change reason saved with the document (data)"
+   }
+  ]
+ },
+ "skqt/libscreen.py": {
+  "library": [
+   {
+    "s": "Library",
+    "why": "template library screen (Production/template library), not the Documents page"
+   }
+  ],
+  "compare-page": [
+   {
+    "s": "Compare...",
+    "why": "button that compares two library items (verb)"
+   },
+   {
+    "s": "Compare ",
+    "why": "dialog title comparing two library items (verb)"
+   }
+  ]
+ },
  "skqt/mainwin.py": {
   "review": [
    {
@@ -23,11 +685,233 @@
    }
   ]
  },
- "navsteps.py": {
+ "skqt/mergedialog.py": {
+  "library": [
+   {
+    "s": "Files or a folder (into the Library)",
+    "why": "Library = the effort's folders on disk"
+   }
+  ]
+ },
+ "skqt/prodstdpage.py": {
+  "library": [
+   {
+    "s": "Library",
+    "why": "Production Standards group for the template library"
+   }
+  ]
+ },
+ "skqt/qapage.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "row key for the banned-words table (data); the column is the sentence around a banned phrase"
+   },
+   {
+    "s": "Sentence",
+    "why": "the sentence of our own draft around a finding (grammar), a table column"
+   }
+  ]
+ },
+ "skqt/reviewpage.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "color review stage name default, passed to dispositions as data"
+   }
+  ]
+ },
+ "skqt/rulespage.py": {
+  "sentence": [
+   {
+    "s": "Add a rule of your own, in one sentence (a checkli",
+    "why": "grammar: write the rule as one sentence"
+   },
+   {
+    "s": "Type the rule in one sentence first.",
+    "why": "grammar: write the rule as one sentence"
+   }
+  ]
+ },
+ "skqt/safety.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "key of the saved view (restore point)"
+   }
+  ]
+ },
+ "skqt/sectioneditor.py": {
+  "library": [
+   {
+    "s": "Library: drag onto the section",
+    "why": "Library items (Library content) to drag into a section"
+   }
+  ]
+ },
+ "skqt/sortpage.py": {
+  "sentence": [
+   {
+    "s": "Cut a compound sentence into parts with the same wo",
+    "why": "grammar: a compound sentence"
+   }
+  ],
+  "sorted": [
+   {
+    "s": " sorted, ",
+    "why": "filed under a topic (Theme tags), pairs with the Unsorted bucket; not a shred type"
+   }
+  ]
+ },
+ "skqt/techeditpage.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "finding dict key (data)"
+   },
+   {
+    "s": "Grade level, words per sentence and the share of s",
+    "why": "Technical Edit readability: grammar sentence"
+   },
+   {
+    "s": "Words a sentence",
+    "why": "Technical Edit readability column: grammar sentence"
+   },
+   {
+    "s": "Sentences",
+    "why": "the sentence of our own draft around a finding (grammar), a table column"
+   }
+  ],
+  "review": [
+   {
+    "s": "Review",
+    "why": "Technical Edit run button: the verb"
+   },
+   {
+    "s": " left out (the draft changed since the review)",
+    "why": "the Technical Edit review of a draft, not the Shred page"
+   }
+  ]
+ },
+ "skqt/verifymenu.py": {
+  "sentence": [
+   {
+    "s": "What each role acts as decides what happens next: ",
+    "why": "reading mechanics: how the reader splits text into sentences"
+   }
+  ]
+ },
+ "skqt/versionsview.py": {
+  "compare-page": [
+   {
+    "s": "Compare",
+    "why": "label and button that compare two chosen versions (the verb)"
+   }
+  ]
+ },
+ "skqt/wallpage.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "finding dict key (data)"
+   },
+   {
+    "s": "Sentence",
+    "why": "the sentence of our own draft around a finding (grammar), a table column"
+   }
+  ]
+ },
+ "subreq.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of a submission requirement and its history"
+   },
+   {
+    "s": "Sentence",
+    "why": "a column heading of a workbook or CSV the effort keeps; it changes only with the file's format number"
+   }
+  ]
+ },
+ "techedit.py": {
+  "acronyms-page": [
+   {
+    "s": "Acronyms",
+    "why": "Technical Edit check group, compared in LEVELS and findings (data); not a page"
+   }
+  ],
+  "sentence": [
+   {
+    "s": "A sentence longer than ",
+    "why": "Technical Edit rule on sentence length (grammar)"
+   },
+   {
+    "s": "A claim with no number in its sentence",
+    "why": "Technical Edit rule: grammar sentence in a draft"
+   },
+   {
+    "s": "sentence",
+    "why": "finding dict key (data)"
+   },
+   {
+    "s": "sentences",
+    "why": "readability dict key (data)"
+   }
+  ]
+ },
+ "topics.py": {
   "sentence": [
    {
     "s": "sentences",
-    "why": "a key of the path's facts"
+    "why": "dict key of topic coverage"
+   }
+  ]
+ },
+ "training_kit_doctr_src/make_demo_samples.py": {
+  "review": [
+   {
+    "s": "Review",
+    "why": "a random word drawn on OCR training images (data)"
+   }
+  ]
+ },
+ "volcheck.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "row key / sentence around a term or banned phrase in a draft (grammar, data)"
+   },
+   {
+    "s": "Sentence",
+    "why": "the sentence of our own draft around a finding (grammar), a table column"
+   }
+  ]
+ },
+ "walloftruth.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key"
+   },
+   {
+    "s": "Sentence",
+    "why": "the sentence of our own draft around a finding (grammar), a table column"
+   }
+  ]
+ },
+ "wordcompare.py": {
+  "compare-page": [
+   {
+    "s": "Compare",
+    "why": "author name on Word's own Compare result (Word's name)"
+   }
+  ]
+ },
+ "wordlab.py": {
+  "sentence": [
+   {
+    "s": "sentence",
+    "why": "dict key of a Technical Edit hit"
    }
   ]
  }

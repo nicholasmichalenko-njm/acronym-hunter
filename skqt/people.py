@@ -469,7 +469,7 @@ class AuthorListCard(D.Card):
         ok = self.L.rename(old, new)
         if ok:
             diag.activity("authors_renamed")
-            self._changed("Renamed. Sentences already assigned keep the old spelling until reassigned.")
+            self._changed("Renamed. Pieces already assigned keep the old spelling until reassigned.")
         else:
             self.host.status("That name is empty or already on the list.")
         return ok
@@ -479,7 +479,7 @@ class AuthorListCard(D.Card):
         if not names:
             self.host.status("Select one or more names first.")
             return 0
-        if answer is None and QMessageBox.question(self, "Remove", f"Take {len(names)} name(s) off the author list? Sentences "
+        if answer is None and QMessageBox.question(self, "Remove", f"Take {len(names)} name(s) off the author list? Pieces "
                                                    "already assigned to them keep their names.") != QMessageBox.Yes:
             return 0
         n = self.L.remove(names)

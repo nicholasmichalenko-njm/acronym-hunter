@@ -88,11 +88,11 @@ class EffortFormatPage(QWidget):
                     actions=[D.button("Open this effort's workbook", None, lambda: self.open_book(),     # 4.7.0
                                       "This effort's changes as a workbook beside its list: edit it in Excel; a blank cell means the default"),
                              D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the Company Standards (Default) value"),
-                             D.button("Undo the last Make it the Company Standard", "ghost", lambda: self.undo_keep(),
-                                      "Put the Company Standards (Default) back as they were before the last Make it the Company Standard")])
+                             D.button("Undo the last Make it a standard", "ghost", lambda: self.undo_keep(),
+                                      "Put the Company Standards (Default) back as they were before the last Make it a standard")])
         self.changes = QLabel(""); self.changes.setTextFormat(Qt.RichText); self.changes.setWordWrap(True); ch.add(self.changes)
         iv.addWidget(ch)
-        lp = D.Card("Library parts this effort uses", "Covers, headers and footers, numbering, table looks: the global "
+        lp = D.Card("Library items this effort uses", "Covers, headers and footers, numbering, table looks: the Company Standards' "
                     "pinned version, a version this effort chose, or this effort's own copy (kept in the effort, never added "
                     "to the library unless you save it there).",
                     actions=[D.button("Choose versions or this effort's own...", None, lambda: self.every_setting(section="profile_parts"),
@@ -149,7 +149,7 @@ class EffortFormatPage(QWidget):
         reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the Company Standards (Default) value")
         box = QHBoxLayout(); box.setSpacing(D.SPACE["xs"]); box.addWidget(use); box.addWidget(reset)
         wbox = QWidget(); wbox.setLayout(box); self.grid.addWidget(wbox, r, 4)
-        keep = QToolButton(); keep.setText("Make it the Company Standard"); keep.setPopupMode(QToolButton.InstantPopup)
+        keep = QToolButton(); keep.setText("Make it a standard"); keep.setPopupMode(QToolButton.InstantPopup)
         keep.setToolTip("Write this effort's value into the Company Standards (Default), for every effort that uses them")
         menu = QMenu(keep); keep.setMenu(menu)
         menu.aboutToShow.connect(lambda k=key, m=menu: self.fill_keep_menu(k, m))
@@ -275,16 +275,16 @@ class EffortFormatPage(QWidget):
         e = EFM.keep_for_team(self.host.config_dir, self.host.ws, key, target, self.tid())
         if e:
             diag.activity("effort_format_kept_for_team")
-            self.host.toast(f"Made global: {e['what']} is {_show(e['now'])}")
+            self.host.toast(f"Made a standard: {e['what']} is {_show(e['now'])}")
         self.after()
         return e
 
     def undo_keep(self):
         h = EFM.undo_last(self.host.config_dir)
         if h:
-            self.host.toast(f"Put back: {h['what']} is {_show(h['was'])} globally again")
+            self.host.toast(f"Put back: {h['what']} is {_show(h['was'])} in the standards again")
         else:
-            self.host.status("Nothing made global to put back.")
+            self.host.status("Nothing made a standard to put back.")
         self.after()
         return h
 
@@ -395,7 +395,7 @@ class EffortFormatPage(QWidget):
             t = D.tokens()
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
                               f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the Company Standards (Default) or "
-                              f"the template library, unless you choose Make it the Company Standard.</div>")
+                              f"the template library, unless you choose Make it a standard.</div>")
             self.etype.clear(); self.etype.addItem("None (volumes only)", "")
             for e in data.get("effort_types", []):
                 self.etype.addItem(e["name"], e["id"])

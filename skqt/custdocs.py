@@ -205,7 +205,7 @@ class DocsPage(QWidget):
         top.addWidget(self.b_folder)
         top.addWidget(D.button("Add files...", "primary", lambda: self.add()))
         card = D.Card("Documents and their versions", "Every version is kept with its text, so Changes works even when the file moves.")
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document / version", "Initial", "Type", "File", "Added", "Sentences",
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document / version", "Initial", "Type", "File", "Added", "Pieces",
                                                               "Changes", "Reviewed"])
         self.tree.setColumnWidth(0, 260); self.tree.setColumnWidth(1, 60); self.tree.setColumnWidth(2, 100)
         self.tree.setColumnWidth(3, 260); self.tree.setColumnWidth(4, 100); self.tree.setColumnWidth(5, 80)

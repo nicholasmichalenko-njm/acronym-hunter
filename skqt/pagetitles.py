@@ -17,7 +17,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "refs": ("Team References", "The lists the team keeps, read by every space: dictionaries, banned phrases, the acronym database, the Exclusion List, fixes for misread text"),
           "profiles": ("Effort Profiles", "Each effort type's profiles, built by picking from the libraries, with the RFP's size limits checked as you pick"),
           "templates": ("Templates", "Every Word template the profiles make: ready, needs review or blocked, and why; make one or all"),
-          "prodstd": ("Production Standards", "The global formatting standards for every effort: the Company Standards (Default), volume profiles, effort types and the template library"),
+          "prodstd": ("Production Standards", "The formatting standards for every effort: the Company Standards (Default), volume profiles, effort types and the template library"),
           "rules": ("Rules", "Every production rule in one list: how each is kept, on or off for every effort, and where its values live; and the rules Shred's Suggest reads by"),
           "effortfmt": ("Effort Formatting", "This effort's formatting on top of the Company Standards (Default): its own fonts, sizes, margins and parts, and the RFP's rules"),
           "shredacc": ("Accuracy", "How well the shred finds requirements, on your own set of public RFPs with answer keys you labeled in Shred"),

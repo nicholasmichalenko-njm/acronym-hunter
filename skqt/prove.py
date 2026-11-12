@@ -7,7 +7,7 @@ import diag
 import compliance_read as CR
 from . import design as D
 
-COLS = [("file", "File"), ("total", "Sentences"), ("Keep", "Requirements"), ("Context", "Context"), ("Customer", "Customer's"),
+COLS = [("file", "File"), ("total", "Pieces"), ("Keep", "Requirements"), ("Context", "Context"), ("Customer", "Customer's"),
         ("unused", "Ignored"), ("needs_home", "No section yet")]
 
 

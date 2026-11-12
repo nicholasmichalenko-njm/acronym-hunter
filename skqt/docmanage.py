@@ -104,7 +104,7 @@ def reread(host, doc_id=None):
         vid = v["id"]
 
         def merge(items, heads, src, f=f, vid=vid, name=d["name"]):
-            got = RP.merge(host.review.M, f, items, heads, src, ws=host.ws, trash_name=f"{name}: pieces whose sentences are gone")
+            got = RP.merge(host.review.M, f, items, heads, src, ws=host.ws, trash_name=f"{name}: pieces whose text is gone")
             lb = _lib(host)
             for dd in lb.all:
                 for vv in dd.get("versions", []):

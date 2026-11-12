@@ -28,7 +28,7 @@ AREAS = (("reading", "Misread lines and not-text regions (small pictures with th
 WARNING = ("This pack can hold text and small pictures from customer documents. It goes only to this PC or the approved "
            "SharePoint folder; never e-mail, GitHub, USB or any other place. You are responsible for making sure it holds "
            "nothing that must not be shared there (classified, export-controlled, proprietary or personal information). "
-           "Remove such content or leave the sentence text out.")
+           "Remove such content or leave the piece text out.")
 MAX_MEMBER = 200 * 1024 * 1024
 ALLOWED = {"manifest.json", "reading.zip", "ocr_fixes.csv", "ocr_ignore.csv", "compliance_records.jsonl",
            "compliance_outlines.json", "compliance_learned.json", "words.json", "text_fixes.json"}

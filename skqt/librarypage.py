@@ -268,7 +268,7 @@ class LibraryPage(QWidget):
         self.new_box = QFrame(); self.new_box.setObjectName("newfiles"); self.new_box.setProperty("card", True)   # 3.16.0
         nb = QHBoxLayout(self.new_box); nb.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); nb.setSpacing(D.SPACE["m"])
         self.new_lbl = D.label("", "body"); nb.addWidget(self.new_lbl, 1)
-        self.b_new_add = D.button("Add to the Library...", "primary", lambda: self.host.watch_add(),
+        self.b_new_add = D.button("Add to Documents...", "primary", lambda: self.host.watch_add(),
                                   "Look at the new and changed files in a table, then add them (a changed file is a new version)")
         self.b_new_skip = D.button("Ignore", None, lambda: self.host.watch_set_aside(), "Do not offer these files again unless they change")
         nb.addWidget(self.b_new_add); nb.addWidget(self.b_new_skip)

@@ -146,7 +146,7 @@ def merge_rows(T, rows, src_name):
             other = _join(ours.get("Other definitions"), theirs.get("Definition"))
             if other != (ours.get("Other definitions") or ""):
                 T.add_or_update(t, change_note=f"another meaning from {src_name}", **{"Other definitions": other})
-            n["review"].append({"part": "Acronyms", "item": t, "ours": ours.get("Definition", ""), "theirs": theirs.get("Definition", ""),
+            n["review"].append({"part": "Acros & Abs", "item": t, "ours": ours.get("Definition", ""), "theirs": theirs.get("Definition", ""),
                                 "why": "Two meanings: ours kept, theirs added to Other definitions"})
             continue
         fields = {}
