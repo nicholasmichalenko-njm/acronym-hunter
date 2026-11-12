@@ -60,7 +60,11 @@ def pdf_words(pdf, name=None):
     import redlinelayout as RL
     tables = RL.tables(pdf, doc, skip | aside)             # 4.11.0: a table's words row by row, cell by cell, as the copy
     in_tables = {x for t in tables for x in t["lines"]}
-    paras = PS.paragraphs(doc, skip | in_tables, force)
+    import redlinepics as RP                               # 4.22.0: a drawing's labels stay in its picture
+    kept0 = {(pi, li) for pi, p in enumerate(doc["pages"]) for li in range(len(p["lines"])) if (pi, li) not in (skip | aside)}
+    regs, _rules = RP.regions(pdf, doc, skip | aside | in_tables, tables, RL.setup(doc, kept0, tables))
+    in_pics = {(pi, li) for pi, rs in regs.items() for r in rs for li in r["lines"]}
+    paras = PS.paragraphs(doc, skip | in_tables | in_pics, force)
     plist = []
     for p in paras:
         kept = [(pi, li) for pi, li in p["lines"] if (pi, li) not in aside]
@@ -73,7 +77,8 @@ def pdf_words(pdf, name=None):
     plist.sort(key=lambda p: tuple(p["at"]))
     gone = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(aside)
             if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
-    return plist, gone
+    pics = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(in_pics)]
+    return plist, gone, pics
 
 
 def docx_paragraphs(path, reject=False):
@@ -107,21 +112,23 @@ def docx_paragraphs(path, reject=False):
 
 
 def faithful(pdf, copy, name=None):
-    """{"differences": [...], "set_aside": [(page, text)], "tables": n, "words": (pdf, copy)}. A slide copy (4.15.0) is
+    """{"differences": [...], "set_aside": [(page, text)], "in_pictures": [(page, text)] (4.22.0: a drawing's labels,
+    kept in its picture), "tables": n, "words": (pdf, copy)}. A slide copy (4.15.0) is
     checked against the slides' words read the way the copy holds them."""
     side = RC.sidecar(copy) or {}
     if side.get("layout") == "slides":
         import redlineslides as SL
         _s, src, gone = SL.plan(pdf, name)
+        pics = []
     else:
-        src, gone = pdf_words(pdf, name)
+        src, gone, pics = pdf_words(pdf, name)
     a, wa = _index(src)
     cp = [p for p in docx_paragraphs(copy, reject=bool(side.get("comments"))) if p["text"].strip()]   # 4.16.0: the
     b, wb = _index(cp)                                     # PDF's comments are tracked changes; read them undone
     diffs = _diff(a, b, lambda i: wa[i] if i < len(wa) else (0, ""), lambda j: wb[j] if j < len(wb) else (0, ""))
     tables = sum(1 for p in src if p.get("kind") == "table")
     return {"differences": diffs, "set_aside": gone, "tables": tables, "words": (len(a), len(b)),
-            "comments": side.get("comments") or []}
+            "comments": side.get("comments") or [], "in_pictures": pics}
 
 
 def returned(copy, redline):
