@@ -17,11 +17,11 @@ def check(name, ok, info=""):
 
 
 t = ST.load(None)
-check("eight types in order", [v["name"] for v in t.values()] == ["Requirement", "Instruction", "Rule", "Date", "Evaluation",
-                                                                    "Deliverable", "Information", "Not applicable"])
+check("nine types in order (4.19.0 adds Structure)", [v["name"] for v in t.values()] == ["Requirement", "Instruction", "Rule", "Date", "Evaluation",
+                                                                    "Deliverable", "Information", "Not applicable", "Structure"])
 check("four tabs, none named Shred", [n for _k, n in ST.TABS] == ["Requirements", "Rules & Dates", "Evaluation", "Acros & Abs"])
 check("each type's tab", [ST.tab_of(k) for k in ST.KEYS] == ["requirements", "requirements", "rules", "rules", "evaluation",
-                                                            "requirements", "requirements", "requirements"])
+                                                            "requirements", "requirements", "requirements", "requirements"])
 check("Place offers only what the proposal must answer", [k for k in ST.KEYS if ST.placed(k)] ==
       ["requirement", "instruction", "evaluation", "deliverable"])
 check("a piece not sorted yet starts on Requirements", ST.tab_of("") == "requirements" and not ST.placed(""))
