@@ -172,11 +172,19 @@ TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
    "acronym list is Lists\\Acronyms.csv and each dictionary a Word .dic file in Lists\\Dictionaries (4.7.1)."],
   ["A copy from another PC (Company Standards-PCNAME.xlsx) is reported, never read. Nothing is deleted."])
 
-REDLINE = ("redline", "Documents", "Redline",
-  "A clean Word copy of a customer PDF to redline in Word, checked word for word, and the exceptions table from the redline.",
-  "When the customer issues a draft RFP, Q&A, the final RFP's terms, an amendment or a model contract to comment on.",
-  ["Prepare: pick the PDF and press Make the Word copy. It goes to the effort's Redlines folder. Fix text in Shred first "
-   "if a page needs it: the copy uses the text as fixed there.",
+REDLINE = ("redline", "Documents", "Prepare for Redline",
+  "A Word file of each PDF and picture in Documents that reads like it, with a reviewer's comments placed as tracked "
+  "changes and Word comments; checked word for word; and the exceptions table from the redline.",
+  "When the customer issues a draft RFP, Q&A, the final RFP's terms, an amendment or a model contract to comment on, "
+  "or a reviewer sends back a commented PDF.",
+  ["Prepare: every PDF and picture in Documents is a row. Press Prepare on its row. The Word file keeps the pictures, "
+   "the headers and footers, the fonts and the tables, as text that flows; it goes to the effort's Redlines folder. "
+   "Fix text in Shred first if a page needs it.",
+   "A PDF with a reviewer's comments: each cross-out, insert and replacement becomes a tracked change, each highlight "
+   "and note a Word comment, where it was made. Check lists any that had to be placed by position.",
+   "You already have the Word file: select the PDF and press Put its comments into my Word file.... The comments go "
+   "into a dated copy of your file; your file is not changed.",
+   "Right-click a row to prepare it as slides or as a document, or without the comments, and to find the file.",
    "Check: Check the copy lists every word added, dropped or changed against the PDF. Check the returned redline... lists "
    "the edits made with Track Changes off. Double-click a finding to see it on the page.",
    "Exceptions: Read the redline's changes... then Export to Excel or Word."],

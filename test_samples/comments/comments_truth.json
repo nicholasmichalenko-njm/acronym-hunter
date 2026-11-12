@@ -265,5 +265,84 @@
     "author": "Marcus Reyes"
    }
   ]
+ },
+ "R01_cover_figure_commented.pdf": {
+  "base": "../redline/R01_cover_figure.pdf",
+  "comments": [
+   {
+    "id": "r_0",
+    "page": 1,
+    "want": "comment",
+    "words": "15 December 2026",
+    "note": "Confirm the due date against the amendment.",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "r_1",
+    "page": 2,
+    "want": "comment",
+    "words": "three volumes",
+    "note": "Four with the past performance volume?",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "r_replace",
+    "page": 2,
+    "want": "replace",
+    "words": "one",
+    "insert": "1.25",
+    "accepted": "with 1.25 inch margins",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "r_3",
+    "page": 2,
+    "want": "comment",
+    "words": "Management Approach",
+    "note": "Rename to Management and Staffing?",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "r_4",
+    "page": 2,
+    "want": "comment",
+    "words": "Kestrel ground station architecture",
+    "note": "Figure needs the backup site.",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "r_strike",
+    "page": 2,
+    "want": "delete",
+    "words": "not",
+    "accepted": "Resumes do count against",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "r_6",
+    "page": 3,
+    "want": "comment",
+    "words": "2 of the scheduling discussion continues",
+    "note": "This paragraph starts on the page before.",
+    "author": "Dana Whitfield",
+    "context": "antenna network"
+   },
+   {
+    "id": "r_7",
+    "page": 3,
+    "want": "comment",
+    "words": "Paragraph 9 of the scheduling discussion",
+    "note": "Last one: cut it.",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "r_8",
+    "page": 3,
+    "want": "comment",
+    "words": "transition plan",
+    "note": "Ninety or sixty days?",
+    "author": "Marcus Reyes"
+   }
+  ]
  }
 }

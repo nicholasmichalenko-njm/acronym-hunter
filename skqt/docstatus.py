@@ -133,11 +133,11 @@ def status(page, d, st=None):
         out.append(("Versions", f"{n} version(s); the latest governs" if n > 1 else "1 version", NONE))
     try:                                                       # 4.8.0: Redline's copy of it
         from . import redlinepage as RLP
-        import redlinecopy as RC
+        import redlineprep as RP
         p = path_of(page, d)
-        made = RC.copies(RLP.folder(page.host), os.path.basename(p)) if p.lower().endswith(".pdf") and RLP.folder(page.host) else []
-        if made:
-            out.append(("Redline copy", "Made " + os.path.basename(made[0]).rsplit(" - ", 1)[-1][:-5], OK))
+        st = RP.state(RLP.folder(page.host), p) if RP.kind(p) and RLP.folder(page.host) else None
+        if st and st["copy"]:
+            out.append(("For redline", RP.said(st), OK))
     except Exception:  # noqa: BLE001
         diag.swallowed()
     nxt = None
@@ -210,8 +210,8 @@ def row_menu(page, at=None, run=True):
     m.addAction("Put it back" if out else "Leave out", lambda: page.set_role("context" if out else "not_needed",
                                                                             why="put back" if out else "left out"))
     m.addAction("Show in folder", lambda: show_in_folder(page, d))
-    if path_of(page, d).lower().endswith(".pdf"):                 # 4.8.0: made on Redline only
-        m.addAction("Prepare a redline copy", lambda: (page.host.go("redline"), page.host.redline_page.select(d["id"])))
+    if __import__("redlineprep").kind(path_of(page, d)):          # 4.22.0: a PDF or a picture (4.8.0: a PDF)
+        m.addAction("Prepare for redline", lambda: (page.host.go("redline"), page.host.redline_page.select(d["id"])))
     __import__("skqt.docfocus", fromlist=["x"]).more_items(page, m, d)     # 4.6.0: what left the panel
     m.addSeparator()
     m.addAction("Delete...", lambda: DM.delete(page, d))                 # 4.17.0: into the effort's Trash

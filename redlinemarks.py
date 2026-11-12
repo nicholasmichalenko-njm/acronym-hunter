@@ -93,10 +93,16 @@ class Para:
 
 
 class Writer:
-    def __init__(self, root):
+    def __init__(self, root, had=None, had_ex=None):
+        """had, had_ex (4.22.0): the comments.xml and commentsExtended.xml a Word file already has; its comments are
+        kept and the new ones follow them."""
         self.root = root
-        self.next_id = 1 + max([int(x) for el in root.iter(W + "ins", W + "del", W + "commentRangeStart")
-                                for x in [el.get(W + "id") or ""] if x.isdigit()] or [0])
+        self.had = etree.fromstring(had) if had else None
+        self.had_ex = etree.fromstring(had_ex) if had_ex else None
+        ids = [el.get(W + "id") or "" for el in root.iter() if el.get(W + "id") is not None]
+        if self.had is not None:
+            ids += [c.get(W + "id") or "" for c in self.had.iter(W + "comment")]
+        self.next_id = 1 + max([int(x) for x in ids if x.isdigit()] or [0])
         self.comments = []                         # (id, author, date, text, parent id or None, done)
         self.replies = {}                          # parent id -> the last reply's reference run
 
@@ -194,10 +200,18 @@ class Writer:
 
     def parts(self):
         """comments.xml and commentsExtended.xml for the comments written."""
-        croot = etree.Element(W + "comments", nsmap={"w": NS_W, "w14": NS_W14, "mc": NS_MC})
-        croot.set("{%s}Ignorable" % NS_MC, "w14")
-        xroot = etree.Element(W15 + "commentsEx", nsmap={"w15": NS_W15, "mc": NS_MC})
-        xroot.set("{%s}Ignorable" % NS_MC, "w15")
+        if self.had is not None:
+            croot = self.had
+        else:
+            croot = etree.Element(W + "comments", nsmap={"w": NS_W, "w14": NS_W14, "mc": NS_MC})
+            croot.set("{%s}Ignorable" % NS_MC, "w14")
+        if self.had_ex is not None:
+            xroot = self.had_ex
+        else:
+            xroot = etree.Element(W15 + "commentsEx", nsmap={"w15": NS_W15, "mc": NS_MC})
+            xroot.set("{%s}Ignorable" % NS_MC, "w15")
+        used = {p.get(W14 + "paraId") for p in croot.iter(W + "p")} | {p.get(W14 + "paraId") for p in self.root.iter(W + "p")}
+        seq = 0
         para_of = {}
         for k, (cid, author, date, text, parent, done) in enumerate(self.comments):
             c = etree.SubElement(croot, W + "comment")
@@ -212,8 +226,11 @@ class Writer:
                     etree.SubElement(rp, W + "rStyle").set(W + "val", "CommentReference")
                     etree.SubElement(r0, W + "annotationRef")
                 r = etree.SubElement(p, W + "r"); t = etree.SubElement(r, W + "t"); t.text = ln; t.set(XS, "preserve")
-            pid = "%08X" % (0x10000000 + 0x101 * (k + 1))
-            p.set(W14 + "paraId", pid); p.set(W14 + "textId", "%08X" % (0x20000000 + 0x101 * (k + 1)))
+            seq += 1
+            while "%08X" % (0x10000000 + 0x101 * seq) in used:
+                seq += 1
+            pid = "%08X" % (0x10000000 + 0x101 * seq)
+            p.set(W14 + "paraId", pid); p.set(W14 + "textId", "%08X" % (0x20000000 + 0x101 * seq))
             para_of[cid] = pid
             x = etree.SubElement(xroot, W15 + "commentEx"); x.set(W15 + "paraId", pid)
             if parent:
@@ -260,7 +277,7 @@ def apply(copy, comments, stream, paras_src=None, now=None):
     paras = [Para(p) for p in root.iter(W + "p")]
     dw = _docx_words(paras)
     amap, exact = _align(stream.words, [w for w, *_ in dw])
-    wr = Writer(root)
+    wr = Writer(root, data.get("word/comments.xml"), data.get("word/commentsExtended.xml"))
     stamp = (now or datetime.datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def at(wi, ci):

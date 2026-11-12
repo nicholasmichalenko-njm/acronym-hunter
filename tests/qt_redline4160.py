@@ -40,11 +40,11 @@ w.toast = lambda msg, *a, **k: toasts.append(msg)
 w.rail_go("redline"); app.processEvents()
 pp = w.redline_page
 pp.refresh(); app.processEvents()
-check("More has Make it without the PDF's comments", "Make it without the PDF's comments" in [a.text() for a in pp.bar.more_menu.actions()],
-      [a.text() for a in pp.bar.more_menu.actions()])
+check("4.22.0: no More menu; the bar has one command, for a Word file you already have", not pp.bar.more_menu.actions()
+      and pp.bar.labels() == ["Put its comments into my Word file..."], pp.bar.labels())
 copy = pp.make(); app.processEvents()
 said = toasts[-1] if toasts else ""
-check("Make the Word copy says what the PDF's comments became", copy and "comment(s) from the PDF" in said
+check("Prepare says what the PDF's comments became", copy and "comment(s) from the PDF" in said
       and "tracked change(s)" in said and "Word comment(s)" in said and "placed by position" in said, said)
 w.go("rcheck"); cp = w.rcheck_page; cp.refresh(); app.processEvents()
 res = cp.check_copy(copy)
@@ -63,7 +63,7 @@ kinds = {r["Kind"] for r in got}
 check("Exceptions: the copy's tracked changes and comments are rows", {"Replaced", "Deleted", "Inserted", "Comment"} <= kinds
       and "comment(s)" in ex.say.text(), (kinds, ex.say.text()))
 plain = pp.make(comments=False); app.processEvents()
-check("Make it without the PDF's comments: a clean copy", plain and "comment(s) from the PDF" not in toasts[-1], toasts[-1])
+check("Prepare it without the comments: a clean copy", plain and "comment(s) from the PDF" not in toasts[-1], toasts[-1])
 k = sum(checks)
 print(f"QT REDLINE 4160 {'PASS' if k == len(checks) else 'FAIL'} ({k}/{len(checks)})")
 w.close(); app.quit()

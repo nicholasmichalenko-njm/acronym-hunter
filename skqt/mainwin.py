@@ -40,7 +40,7 @@ from .settingspage import SettingsPage
 # where; Setup, Drafts (the team writes in Word; the app reads the drafts back) and Submit. Pages not yet rebuilt sit in
 # the step they belong to (3.96.0: the menu is the effort's path; All Efforts, My Work and Your Tools are in the switcher).
 RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"),
-                    ("redline", "Redline"),                  # 4.12.0: under Documents (4.8.0: below the six steps, no number)
+                    ("redline", "Prepare for Redline"),      # 4.22.0 (was Redline); 4.12.0: under Documents (4.8.0: below the six steps, no number)
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Team", [("team", "Team")]),

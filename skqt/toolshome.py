@@ -25,7 +25,9 @@ USES = (("acrfinder", "Find acros and abs (Acros & Abs Finder, its own window)",
         ("library", "Add to Documents, in the effort I am working on", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE),
         ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)),     # 3.57.0
-        ("strip", "Strip the setup out (a clean copy)", (".docx",)))                             # 3.60.0
+        ("strip", "Strip the setup out (a clean copy)", (".docx",)),                             # 3.60.0
+        ("redline", "Prepare it for redline (a Word file beside it)",                           # 4.22.0: a file outside any effort
+         (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")))
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
 TOOLS = {"acrfinder": ("Acros & Abs Finder", "Scan any files for acros and abs, apart from any effort", "window"),
          "firstuse": ("First Use Check", "Your Word files' first uses", "window"),
@@ -263,6 +265,8 @@ class ToolsHome(QWidget):
         if use == "fulltext":
             from .fulltexttool import open_tool
             return open_tool(h.config_dir, paths)
+        if use == "redline":                                # 4.22.0: beside the file; no effort needed
+            return [h.redline_page.prepare(path=p) for p in paths]
         self.ensure_working_on()
         if use == "acronyms":
             import acrlists as AL

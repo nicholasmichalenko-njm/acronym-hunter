@@ -2,9 +2,10 @@
 A menu item of its own below the six steps, with no number: redlining happens at any point (the draft RFP, Q&A, the
 final RFP's terms, amendments, a model contract). Authors redline in Word with Track Changes; the app does what Word
 does badly. Three tabs, each with one main button:
-- Prepare: the effort's customer PDFs with the date of each copy made; Make the Word copy (redlinecopy; 4.16.0: the
-  PDF's comments come in as tracked changes and Word comments). More: Another PDF..., Make it as slides, Make it as a
-  document, Make it without the PDF's comments, Open the Redlines folder. Fix text in Shred first if the page needs it: the copy uses the text as fixed there.
+- Prepare (4.22.0, Prepare for redline): every PDF and picture in Documents, one row each with its state and one
+  Prepare button (redlineprep): a Word file that reads like the PDF, with a reviewer's comments placed as tracked
+  changes and Word comments. Put its comments into my Word file... does the same into a copy of a Word file you have.
+  Right-click a row for the other layout, a copy without the comments, and where the file is.
 - Check: Check the copy against its PDF, word for word; Check the returned redline... (an edit made with Track Changes
   off). Each finding lists its page and the heading above it; double-click shows it on the page in Shred.
 - Exceptions: Read the redline's changes... (each tracked change a row); Export to Excel or Word.
@@ -64,6 +65,7 @@ def _open(path):
 
 
 class PreparePage(QWidget):
+    """4.22.0: Prepare for redline. Every PDF and picture in Documents is a row, with one Prepare button on it."""
     def __init__(self, host):
         super().__init__()
         self.host = host
@@ -72,78 +74,152 @@ class PreparePage(QWidget):
         top = QHBoxLayout(); v.addLayout(top)
         self.say = D.label("", "muted"); top.addWidget(self.say, 1)
         self.bar = CommandBar()
-        self.bar.primary("Make the Word copy", lambda: self.make(), "A clean Word copy of the selected PDF: real headings, the "
-                         "customer's numbers as typed, paragraphs joined, no running headers or page numbers")
-        self.bar.more("Another PDF...", lambda: self.make(other=True), "A PDF that is not in Documents, such as a model contract")
-        self.bar.more("Make it as slides", lambda: self.make(layout="slides"), "One Word page a slide: the slide's pictures "
-                      "behind, each box of text where it sits (a deck saved as PDF is made this way on its own)")
-        self.bar.more("Make it as a document", lambda: self.make(layout="document"), "Running text, headings and tables, even "
-                      "for a PDF that looks like slides")
-        self.bar.more("Make it without the PDF's comments", lambda: self.make(comments=False), "A clean copy: the reviewers' "
-                      "highlights, cross-outs, inserts and notes on the PDF left out")
-        self.bar.more("Open the Redlines folder", lambda: _open(folder(self.host)))
+        self.bar.add("Put its comments into my Word file...", lambda: self.into_word(), "You already have the Word file "
+                     "of the selected PDF: its comments go into a dated copy of your file, as tracked changes and Word "
+                     "comments. Your file is not changed.")
         top.addWidget(self.bar)
-        v.addWidget(D.label("Fix text in Shred first if the page needs it: the copy uses the text as fixed there.", "muted"))
-        self.table = _table(["Document", "File", "Copy made"])
-        self.table.setColumnWidth(0, 260); self.table.setColumnWidth(1, 320)
+        self.table = _table(["Document", "File", "State", ""])
+        self.table.setColumnWidth(0, 250); self.table.setColumnWidth(1, 280); self.table.setColumnWidth(2, 330)
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(lambda pos: self.row_menu(self.table.rowAt(pos.y()), self.table.viewport().mapToGlobal(pos)))
         v.addWidget(self.table, 1)
-        self.empty = D.EmptyState("No customer PDFs yet", "Add the solicitation's PDFs in Documents; each one can have a clean "
-                                  "Word copy to redline.", "Go to Documents", lambda: self.host.go("library"))
+        self.empty = D.EmptyState("No PDFs or pictures yet", "Add them in Documents. Each PDF and each picture there is listed "
+                                  "here, ready to become a Word file to redline.", "Go to Documents", lambda: self.host.go("library"))
         v.addWidget(self.empty); self.empty.hide()
         self.rows = []
 
+    def _folders(self):
+        return folder(self.host), (self.host.ws.p("page copies") if self.host.ws is not None else "")
+
     def refresh(self, select=None):
-        self.rows = customer_pdfs(self.host)
+        import redlineprep as RP
+        if self.host.ws is None:
+            self.rows = []
+        else:
+            import docversions as DV
+            self.rows = RP.sources(DV.Library(self.host.ws.p("documents")).load())
         f = folder(self.host)
+        keep = self.table.currentRow()
         self.table.setRowCount(len(self.rows))
-        for r, (did, name, p) in enumerate(self.rows):
-            import redlinecopy as RC
-            made = RC.copies(f, os.path.basename(p)) if f else []
-            when = os.path.basename(made[0]).rsplit(" - ", 1)[-1][:-5] if made else "not yet"
-            for c, val in enumerate((name, os.path.basename(p), when)):
+        done = 0
+        for r, (did, name, p, _k) in enumerate(self.rows):
+            st = RP.state(f, p)
+            done += bool(st["copy"])
+            for c, val in enumerate((name, os.path.basename(p), RP.said(st))):
                 it = QTableWidgetItem(val); it.setData(Qt.UserRole, did); self.table.setItem(r, c, it)
+            b = D.button("Prepare again" if st["copy"] else "Prepare", None if st["copy"] else "primary",
+                         lambda _=False, r=r: self.prepare(r), "A Word file of this document that reads like it: its pictures, "
+                         "headers and footers, fonts and tables, as text that flows. A reviewer's comments on the PDF come in "
+                         "where they were made, as tracked changes and Word comments.")
+            self.table.setCellWidget(r, 3, b)
             if did == select:
                 self.table.selectRow(r)
-        if self.rows and self.table.currentRow() < 0:
-            self.table.selectRow(0)
-        self.table.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows)
-        self.say.setText(f"{len(self.rows)} customer PDF(s). Copies go to the effort's Redlines folder." if self.rows else "")
+        if self.rows and select is None:
+            self.table.selectRow(keep if 0 <= keep < len(self.rows) else 0)
+        self.table.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows); self.bar.setVisible(bool(self.rows))
+        self.say.setText(f"{len(self.rows)} PDF(s) and picture(s) in Documents, {done} prepared. Prepared files go to the "
+                         "effort's Redlines folder." if self.rows else "")
 
     def select(self, doc_id):
         self.refresh(select=doc_id)
-        return any(d == doc_id for d, _n, _p in self.rows)
+        return any(r[0] == doc_id for r in self.rows)
 
-    def make(self, other=False, pdf=None, layout=None, comments=True):
-        """Make the copy of the selected PDF (or another one). Returns the copy's path, or None. layout (4.15.0):
-        "slides" or "document"; left out, the PDF says which. comments (4.16.0): the PDF's comments come in as tracked
-        changes and Word comments; False leaves them out."""
-        import redlinecopy as RC
-        if pdf is None and other:
-            pdf, _f = QFileDialog.getOpenFileName(self, "A PDF to make a Word copy of", "", "PDF (*.pdf)")
-            if not pdf:
+    def _row(self, r=None):
+        r = self.table.currentRow() if r is None else r
+        if not (0 <= r < len(self.rows)):
+            self.host.status("Pick a document first.")
+            return None
+        return self.rows[r]
+
+    def row_menu(self, r, pos=None, pick=None):
+        """Right-click on a row: the other layout, a copy without the comments, where the prepared file is."""
+        import redlineprep as RP
+        row = self._row(r)
+        if row is None:
+            return None
+        from PySide6.QtWidgets import QMenu
+        st = RP.state(folder(self.host), row[2])
+        acts = [("Prepare it as slides", lambda: self.prepare(r, layout="slides")),
+                ("Prepare it as a document", lambda: self.prepare(r, layout="document")),
+                ("Prepare it without the comments", lambda: self.prepare(r, comments=False))]
+        if st["copy"]:
+            acts += [("Open the prepared file", lambda: _open(st["copy"])),
+                     ("Show it in its folder", lambda: _open(os.path.dirname(st["copy"])))]
+        if pick is not None:
+            return dict(acts)[pick]()
+        m = QMenu(self)
+        for text, fn in acts:
+            m.addAction(text, fn)
+        m.exec(pos)
+        return None
+
+    def prepare(self, r=None, layout=None, comments=True, path=None):
+        """Prepare a row's document (or a file given by path). Returns the prepared file's path, or None."""
+        import redlineprep as RP
+        if path is None:
+            row = self._row(r)
+            if row is None:
                 return None
-        if pdf is None:
-            r = self.table.currentRow()
-            if not (0 <= r < len(self.rows)):
-                self.host.status("Pick a PDF first.")
-                return None
-            pdf = self.rows[r][2]
-        f = folder(self.host) or os.path.dirname(pdf)
-        out = os.path.join(f, RC.copy_name(pdf))
+            path = row[2]
+        elif not self.rows and self.host.ws is not None:
+            self.refresh()
+        f, cf = self._folders()
+        if r is None and path is not None and not any(path == x[2] for x in self.rows):
+            f, cf = os.path.dirname(path), ""               # a file outside the effort (Your Tools): beside the file
+        f = f or os.path.dirname(path)
         try:
-            res = RC.build(pdf, out, layout=layout, comments=comments)
+            if RP.kind(path) == "picture" or RP.page_form(path, cf, make=False) == "":
+                self.host.status("Reading the words on its pages first...")
+            res = RP.prepare(path, f, cf, layout=layout, comments=comments)
         except ValueError as e:
             self.host.status(str(e) + " Read its pages in Shred first.")
             return None
         except PermissionError:
-            self.host.status("The copy is open in Word: close it, then make it again.")
+            self.host.status("The prepared file is open in Word: close it, then prepare it again.")
             return None
-        self.host.toast(f"Word copy made: {res['slides']} slide(s), {res['paragraphs']} paragraphs" if res.get("slides") else
-                        f"Word copy made: {res['paragraphs']} paragraphs, {res['headings']} headings"
-                        + (f", {res['tables']} table(s)" if res.get("tables") else "") + said_comments(res))
+        self.host.toast(f"Prepared: {res['slides']} slide(s), {res['paragraphs']} paragraphs" if res.get("slides") else
+                        f"Prepared: {res['paragraphs']} paragraphs, {res['headings']} headings"
+                        + (f", {res['tables']} table(s)" if res.get("tables") else "")
+                        + (f", {res['pictures']} picture(s)" if res.get("pictures") else "") + said_comments(res))
         diag.activity("redline_copy_made", n=res["paragraphs"])
         self.refresh()
-        return out
+        return res["path"]
+
+    def make(self, other=False, pdf=None, layout=None, comments=True):
+        """As before 4.22.0 (Documents' menu and the tools call it): prepare the selected row, or a PDF by path."""
+        return self.prepare(layout=layout, comments=comments, path=pdf)
+
+    def into_word(self, docx=None, r=None):
+        """The selected PDF's comments into a dated copy of a Word file the person has. Returns the result, or None."""
+        import redlineprep as RP
+        row = self._row(r)
+        if row is None:
+            return None
+        if docx is None:
+            docx, _f = QFileDialog.getOpenFileName(self, f"Your Word file of {row[1]}", "", "Word (*.docx)")
+            if not docx:
+                return None
+        f, cf = self._folders()
+        try:
+            res = RP.into_word(row[2], docx, f or os.path.dirname(docx), cf)
+        except ValueError as e:
+            self.host.status(str(e))
+            return None
+        except PermissionError:
+            self.host.status("Today's copy of that Word file is open in Word: close it, then try again.")
+            return None
+        if not res["comments"]:
+            self.host.status("This PDF has no comments to put into a Word file.")
+            return res
+        pdf_w, got = res["words"]
+        self.host.toast(f"{len(res['comments'])} comment(s) put into a copy of {os.path.basename(docx)}: {res['changes']} tracked "
+                        f"change(s), {res['word_comments']} Word comment(s)"
+                        + (f"; {res['nearby']} placed by position (Check lists them)" if res["nearby"] else "")
+                        + (f". The Word file does not hold {pdf_w - got} of the PDF's {pdf_w} words: look at Check."
+                           if pdf_w and got < 0.98 * pdf_w else ""))
+        diag.activity("redline_comments_into_word", n=len(res["comments"]))
+        self.refresh()
+        return res
 
 
 def said_comments(res):
@@ -194,24 +270,29 @@ class CheckPage(QWidget):
             self.copy.setCurrentIndex(self.copy.findData(keep))
 
     def _source_of(self, copy):
+        """The PDF a prepared file is checked against: its document's PDF, or the page copy a picture was read from."""
         import redlinecopy as RC
+        import redlineprep as RP
         side = RC.sidecar(copy) or {}
         name = side.get("source", "")
-        for _d, _n, p in customer_pdfs(self.host):
-            if os.path.basename(p) == name:
-                return p
+        if self.host.ws is not None and name:
+            import docversions as DV
+            for _d, _n, p, _k in RP.sources(DV.Library(self.host.ws.p("documents")).load()):
+                if os.path.basename(p) == name:
+                    return RP.page_form(p, self.host.ws.p("page copies"), make=False)
         cand = os.path.join(os.path.dirname(copy), name)
         return cand if name and os.path.isfile(cand) else ""
 
-    def fill(self, rows, aside=(), comments=()):
-        """The differences, then the lines set aside, then (4.16.0) each comment from the PDF: what it became, the
+    def fill(self, rows, aside=(), comments=(), pictures=()):
+        """The differences, then the lines set aside, then (4.22.0) a picture's own words, then (4.16.0) each comment from the PDF: what it became, the
         words it is on in the copy, its note, its page, the heading above."""
         notes = [{"kind": f"PDF {c['kind']}, {HOW.get(c['how'], c['how'])}", "was": c.get("in_copy") or c.get("marked", ""),
                   "now": f"{c.get('became', '')}: {c.get('note', '')} ({c.get('author', '')})".strip(), "page": c.get("page"),
                   "heading": c.get("heading", "")} for c in comments]
-        self.found = list(rows) + [{"page": pg} for pg, _t in aside] + notes
+        self.found = list(rows) + [{"page": pg} for pg, _t in aside] + [{"page": pg} for pg, _t in pictures] + notes
         allrows = [(x["kind"], x["was"], x["now"], str(x["page"] or ""), x["heading"]) for x in rows] + \
                   [("Set aside on purpose", t, "", str(pg), "") for pg, t in aside] + \
+                  [("In a picture", t, "kept in the picture, not as text", str(pg), "") for pg, t in pictures] + \
                   [(x["kind"], x["was"], x["now"], str(x["page"] or ""), x["heading"]) for x in notes]
         self.table.setRowCount(len(allrows))
         for r, vals in enumerate(allrows):
@@ -227,7 +308,7 @@ class CheckPage(QWidget):
         import redlinecheck as CK
         copy = copy or self.copy.currentData()
         if not copy:
-            self.host.status("Make a Word copy on Prepare first.")
+            self.host.status("Prepare a document first.")
             return None
         pdf = self._source_of(copy)
         if not pdf:
@@ -236,12 +317,14 @@ class CheckPage(QWidget):
         res = CK.faithful(pdf, copy)
         self.source = pdf
         cms = res.get("comments") or []
-        self.fill(res["differences"], res["set_aside"], cms)
+        pics = res.get("in_pictures") or []
+        self.fill(res["differences"], res["set_aside"], cms, pics)
         n = len(res["differences"])
         self.say.setText((f"{n} difference(s) between the copy and its PDF." if n else "The copy holds every word of its PDF, in order.")
                          + (f" {len(res['set_aside'])} line(s) set aside on purpose in Fix text." if res["set_aside"] else "")
                          + (f" {res['tables']} table(s) were made as Word tables from where the PDF's columns sit: look at "
                             "each beside the PDF (a cell that wrapped, a merged cell)." if res["tables"] else "")
+                         + (f" {len(pics)} line(s) are a picture's own words and stay in the picture." if pics else "")
                          + (f" {len(cms)} comment(s) from the PDF are listed below the differences; look at the ones not "
                             "placed on their own words." if cms else ""))
         diag.activity("redline_copy_checked", n=n)

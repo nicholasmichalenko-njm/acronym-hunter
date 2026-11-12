@@ -40,17 +40,17 @@ check("Redline is in the menu under Documents (4.12.0), with no step number", "r
       and [k for k, _t in MW.RAIL[0][1]].index("redline") == [k for k, _t in MW.RAIL[0][1]].index("library") + 1
       and MW.GROUP_OF["redline"] == "Documents" and MW.GROUP_OF["assign"] == "Step 2 of 6")
 w.rail_go("redline"); app.processEvents()
-check("its tabs: Prepare, Check, Exceptions", w._tab_keys == ["redline", "rcheck", "exceptions"] and w.page_title.text() == "Redline",
+check("its tabs: Prepare, Check, Exceptions", w._tab_keys == ["redline", "rcheck", "exceptions"] and w.page_title.text() == "Prepare for Redline",
       (w._tab_keys, w.page_title.text()))
 check("every role sees it", all(RA.allowed(r, k) for r in ("Production", "Author", "Reviewer", "Capture") for k in ("redline", "rcheck", "exceptions")))
 pp = w.redline_page
 pp.refresh(); app.processEvents()
-check("Prepare lists the customer PDFs, none copied yet", pp.table.rowCount() == 1 and pp.table.item(0, 2).text() == "not yet"
-      and pp.bar.main.text() == "Make the Word copy")
+check("Prepare lists the PDFs in Documents, none prepared yet (4.22.0: a Prepare button on the row)", pp.table.rowCount() == 1
+      and pp.table.item(0, 2).text() == "Not prepared" and pp.table.cellWidget(0, 3).text() == "Prepare")
 copy = pp.make(); app.processEvents()
 check("Make the Word copy writes it in the effort's Redlines folder", copy and os.path.isfile(copy)
       and os.path.basename(os.path.dirname(copy)) == "Redlines" and " - redline copy - " in copy, copy)
-check("... and the list says when", pp.table.item(0, 2).text() != "not yet")
+check("... and the list says when", pp.table.item(0, 2).text().startswith("Prepared 20"))
 w.go("rcheck"); cp = w.rcheck_page; cp.refresh(); app.processEvents()
 res = cp.check_copy()
 check("Check: a fresh copy holds every word of its PDF", res and not res["differences"] and "every word" in cp.say.text(), cp.say.text())
@@ -78,9 +78,9 @@ xl = ep.export("xlsx")
 check("... exported to Excel in the Redlines folder", xl and os.path.isfile(xl) and " - exceptions - " in xl, xl)
 w.go("library"); lp = w.library_page; lp.refresh(); lp.select(dL["id"]); app.processEvents()
 m = DS.row_menu(lp, run=False)
-act = next((a for a in m.actions() if a.text() == "Prepare a redline copy"), None)
+act = next((a for a in m.actions() if a.text() == "Prepare for redline"), None)
 rows_now = {r[0]: r for r in lp.status_now} if hasattr(lp, "status_now") else {}
-check("Documents: the panel says when the redline copy was made", rows_now.get("Redline copy", ("", ""))[1].startswith("Made "), rows_now.get("Redline copy"))
+check("Documents: the panel says when it was prepared", rows_now.get("For redline", ("", ""))[1].startswith("Prepared 20"), rows_now.get("For redline"))
 act.trigger() if act else None; app.processEvents()
 check("... and the row's menu opens Redline > Prepare on the document", act is not None and w.stack.currentWidget() is pp
       and pp.table.currentRow() == 0)

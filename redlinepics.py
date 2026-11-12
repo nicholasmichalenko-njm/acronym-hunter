@@ -183,9 +183,14 @@ def regions(pdf, doc, skip, tables, groups):
                 w, h = page.get_size()
             finally:
                 page.close()
+            ls = doc["pages"][pi]["lines"]
+            if ls and _page_picture(objs, w, h) is not None:     # a scanned page: its words are the copy, and what
+                figs = _scan_figures(pp, pi, [ln["box"] for ln in ls], w, h)   # is drawn between its lines a picture
+                if figs:
+                    found[pi] = figs
+                continue
             if not objs:
                 continue
-            ls = doc["pages"][pi]["lines"]
             lines = [(li, ln["box"], ln["text"]) for li, ln in enumerate(ls) if (pi, li) not in skip]
             taken = [ln["box"] for li, ln in enumerate(ls) if (pi, li) in skip]
             got, rl = page_regions(objs, lines, taken, tbox.get(pi, []), w, h, marg.get(pi, (72, 72, 72, 72)), body)
@@ -197,6 +202,72 @@ def regions(pdf, doc, skip, tables, groups):
         pp.close()
     _recurring(found)
     return found, rules
+
+
+def _page_picture(objs, w, h):
+    """The picture that is the whole page (a scan, or a picture read with its words laid over it), or None."""
+    for x in objs:
+        b = x["box"]
+        if x["kind"] == "image" and (b[2] - b[0]) * (b[3] - b[1]) >= 0.9 * w * h:
+            return x
+    return None
+
+
+def _scan_figures(pp, pi, boxes, w, h, least=54.0):
+    """On a page that is one picture: what is drawn in a gap of at least 3/4 inch between its lines of words (a figure,
+    a logo), as regions in the flow. The page is looked at, small, for anything that is not paper."""
+    from PIL import Image, ImageChops
+    page = pp[pi]
+    try:
+        k = 0.5
+        img = page.render(scale=k).to_pil().convert("L")
+    finally:
+        page.close()
+    ink = img.point(lambda v: 255 if v < 225 else 0)
+    spans = sorted((b[1], b[3]) for b in boxes)
+    left, right = min(b[0] for b in boxes), max(b[2] for b in boxes)
+    edges, cur = [], 0.0
+    for t, b in spans + [(h, h)]:
+        if t - cur >= least:
+            edges.append((cur, t))
+        cur = max(cur, b)
+    out = []
+    for top, bottom in edges:
+        if top <= 0.0 or bottom >= h:                           # the page's own top and bottom margins
+            continue
+        band = ink.crop((0, int((top + 3) * k), img.width, int((bottom - 3) * k)))
+        bb = band.getbbox()
+        if bb is None:
+            continue
+        box = (bb[0] / k, top + 3 + bb[1] / k, bb[2] / k, top + 3 + bb[3] / k)
+        if box[2] - box[0] < SMALL or box[3] - box[1] < SMALL:
+            continue
+        if ImageChops.invert(band.crop(bb)).getbbox() is None and (box[3] - box[1]) < 6:
+            continue                                            # a rule
+        out.append({"box": tuple(round(v, 1) for v in box), "lines": [], "where": "flow", "under_text": False})
+    return out
+
+
+def scanned(pdf, doc):
+    """The page indexes that are a picture of a page with words read over it (ocrpdf's page copies, a searchable scan):
+    the copy holds their words as text that flows and leaves the picture of the page out."""
+    import pypdfium2 as pdfium
+    out = set()
+    try:
+        pp = pdfium.PdfDocument(pdf)
+    except Exception:  # noqa: BLE001
+        return out
+    try:
+        for pi in range(min(len(pp), len(doc.get("pages") or []))):
+            page = pp[pi]
+            try:
+                if doc["pages"][pi]["lines"] and _page_picture(objects(page), *page.get_size()) is not None:
+                    out.add(pi)
+            finally:
+                page.close()
+    finally:
+        pp.close()
+    return out
 
 
 def _recurring(found):

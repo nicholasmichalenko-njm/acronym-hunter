@@ -8,7 +8,7 @@ TOPICS = [
   "You are new to Stationkeeper, or want the big picture.",
   ["The menu on the left is the effort's path: the Dashboard, then six steps in the order of the work: 1 Documents, "
    "2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts, 6 Submit. Each step says what is left and none is ever locked; "
-   "Redline sits under Documents. A step's pages are tabs under its title. Team holds the team's own tools; Settings is last.",
+   "Prepare for Redline sits under Documents. A step's pages are tabs under its title. Team holds the team's own tools; Settings is last.",
    "The effort's name at the top opens All Efforts and Your Tools: any tool on any file, with no effort needed.",
    "Your role decides which of the team's tools show.",
    "Start an effort on All Efforts, or open one you already have.",

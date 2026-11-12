@@ -34,7 +34,7 @@ from skqt import modes as _modes
 _modes.save(show_set_aside=False, hide_other_roles=False)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1440, 900); w.show(); app.processEvents()
 check("ten entries: the Dashboard, six steps, Redline (4.8.0, no number), Team, Settings", [b.text() for b in w.step_btns.values()] ==
-      ["Dashboard", "Documents", "Redline", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Team", "Settings"],
+      ["Dashboard", "Documents", "Prepare for Redline", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Team", "Settings"],
       [b.text() for b in w.step_btns.values()])
 check("the steps are numbered 1 to 6", [b.circle.text() for k, b in w.step_btns.items() if k != "redline"][1:7] == ["1", "2", "3", "4", "5", "6"])
 check("the effort switcher is there with nothing open", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text().startswith("No effort open"))

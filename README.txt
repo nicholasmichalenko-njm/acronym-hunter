@@ -206,11 +206,18 @@ REDLINE (4.8.0)
   - A menu item of its own, below the six steps and with no number: redlining happens at any point (the draft RFP, Q&A,
     the final RFP's terms, amendments, a model contract). Authors redline in Word with Track Changes; there is no
     editor here. Every role sees it. Its files go to the effort's Redlines folder.
-  - Prepare: Make the Word copy makes a clean Word copy of a customer PDF from the text the shred reads, with Fix
-    text's fixes: real Heading styles from the customer's headings (L.3.5.2 is Heading 4), the numbers typed exactly as
-    the customer wrote them (never Word's automatic numbering), paragraphs joined across lines and pages, and the
-    running headers, footers and page numbers left out. A list item keeps its marker as text. Another PDF... (under
-    More) copies a file outside the solicitation, such as a model contract. Fix text in Shred first if a page needs it.
+  - Prepare for Redline (4.22.0; the menu's name for this page, under Documents): every PDF and picture in Documents
+    is a row with its state (Not prepared; Prepared, with the comments placed) and one Prepare button. The Word file
+    reads like the PDF: its pictures (a cover's banner and logo, figures), its headers and footers as Word's own
+    (the page number a field), each paragraph's font, tables as Word tables, and text that flows from page to page
+    (no text boxes). Headings keep the customer's numbers as typed. A picture or a scanned PDF is read first.
+  - A PDF with a reviewer's comments: a cross-out, an insert or a replacement becomes a tracked change, a highlight
+    or a note a Word comment, replies threaded, each where it was made.
+  - Put its comments into my Word file...: for a Word file you already have with the same text as the PDF. The
+    comments go into a dated copy of your file in the Redlines folder; your file is not changed, and comments it
+    already holds are kept.
+  - Right-click a row: Prepare it as slides, as a document, or without the comments; open the prepared file or its
+    folder. A file outside the effort: Your Tools, Prepare it for redline (the Word file goes beside it).
   - Check: Check the copy compares it with its PDF word for word and lists every word added, dropped or changed, with
     its page and the heading above it; a line set aside in Fix text is listed as set aside on purpose. Check the
     returned redline... reads the redline the authors sent back with every tracked change rejected: any difference is
@@ -218,7 +225,8 @@ REDLINE (4.8.0)
   - Exceptions: Read the redline's changes... makes a row of every tracked change: the customer's number (the heading
     above it), the original text, our text, Inserted, Deleted or Replaced, the author, the date and the comment on it.
     Export to Excel or Word.
-  - Documents: the panel says when a redline copy was made, and a PDF's right-click offers Prepare a redline copy.
+  - Documents: the panel says when a document was prepared, and a PDF's or picture's right-click offers Prepare for
+    redline.
   - Limits: a scanned page is only as good as its reading.
 
 THE TEAM'S LISTS AS FILES (4.7.1)

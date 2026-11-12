@@ -81,6 +81,9 @@ def plan(pdf, name=None):
     regs, rules = RP.regions(pdf, doc, skip | in_tables, tables, RL.setup(doc, kept0, tables))   # 4.22.0: the pictures
     in_pics = {(pi, li) for pi, rs in regs.items() for r in rs for li in r["lines"]}
     paras = PS.paragraphs(doc, skip | in_tables | in_pics, force)
+    scans = RP.scanned(pdf, doc)                   # 4.22.0: pages read from a picture
+    if scans:
+        paras = _join_read_lines(doc, paras, scans, skip | in_tables | in_pics)
     starts = [(p["lines"][0][0], doc["pages"][p["lines"][0][0]]["lines"][p["lines"][0][1]].get("a", 0)) for p in paras if p["lines"]]
     how = RL.styles(pdf, starts)                   # 4.22.0: each paragraph's own font, slant and color
     body_font, body_size = RL.body_font(pdf), PS._body_size(doc)
@@ -104,6 +107,10 @@ def plan(pdf, name=None):
         if p["lines"]:
             ln0 = doc["pages"][p["lines"][0][0]]["lines"][p["lines"][0][1]]
             st = how.get((p["lines"][0][0], ln0.get("a", 0))) or {}
+            if p["lines"][0][0] in scans:           # words read from a picture carry no font or size of their own
+                out[-1]["scan"] = True
+                out[-1].pop("size", None)
+                continue
             if st.get("font") and st["font"] != body_font:
                 out[-1]["font"] = st["font"]
             if st.get("italic"):
@@ -168,12 +175,46 @@ def plan(pdf, name=None):
         g["rules"] = {pi: [list(b) for b in rules[pi]] for pi in rules if g["pages"][0] <= pi + 1 <= g["pages"][1]}
     import redlinehf as HF                         # 4.22.0: the running headers and footers become Word's own
     HF.plan(doc, skip - set_aside, pages, lambda pi, a: RL.styles(pdf, [(pi, a)]).get((pi, a)), lambda pi: _words(pdf, pi))
+    for g in pages:                                # read from a picture: the header and footer in the body's font
+        hf = g.get("hf")
+        if hf and hf["page"] in scans:
+            for zone in ("header", "footer"):
+                hf[zone] = [(dict(r, size=9), parts, None, border) for r, parts, _st, border in hf[zone]]
     for p in out:
         for k in ("at", "_lines", "_box"):
             p.pop(k, None)
     aside = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(set_aside)
              if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
     return out, aside, pages
+
+
+def _join_read_lines(doc, paras, scans, out_lines):
+    """On a page read from a picture, the reader gives each line its own box, so a paragraph comes apart at every line.
+    Two text lines are one paragraph when the first reaches the right edge of the text, the next sits one line below
+    it and starts at the same left edge (or further left: the first was indented)."""
+    import statistics
+    edge = {}
+    for pi in scans:
+        ls = [ln for li, ln in enumerate(doc["pages"][pi]["lines"]) if (pi, li) not in out_lines]
+        tops = sorted(ln["box"][1] for ln in ls)
+        steps = [b - a for a, b in zip(tops, tops[1:]) if b - a > 2]
+        if ls and steps:
+            edge[pi] = (min(ln["box"][0] for ln in ls), max(ln["box"][2] for ln in ls), statistics.median(steps))
+    out = []
+    for p in paras:
+        prev = out[-1] if out else None
+        if prev is not None and p["kind"] == "text" and prev["kind"] == "text" and p["lines"] and prev["lines"]:
+            (pa, la), (pb, lb) = prev["lines"][-1], p["lines"][0]
+            if pa == pb and pa in edge:
+                left, right, pitch = edge[pa]
+                a, b = doc["pages"][pa]["lines"][la], doc["pages"][pb]["lines"][lb]
+                width = max(1.0, right - left)
+                if 0 < b["box"][1] - a["box"][1] <= 1.35 * pitch and a["box"][2] >= right - 0.06 * width \
+                        and b["box"][0] <= a["box"][0] + 0.03 * width and not PS._LIST.match(b["text"].strip()):
+                    prev["lines"].extend(p["lines"])
+                    continue
+        out.append(p)
+    return out
 
 
 def _words(pdf, pi):
@@ -289,6 +330,9 @@ def _build_document(pdf, out, name=None):
     doc = PS.doc_of(pdf)
     d.font = RL.body_font(pdf)                      # 4.13.0: the PDF's own body font and size
     d.half_points = int(round(2 * PS._body_size(doc))) or 22
+    worded = [p for p in paras if p["kind"] in ("text", "heading", "list")]
+    if worded and all(p.get("scan") for p in worded):   # 4.22.0: read from a picture: no font to keep
+        d.font, d.half_points = "Times New Roman", 22
     d.ppr_default = '<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'   # 4.15.0: Word's own otherwise adds space
     import redlinepack as RK
     import redlinepics as RP
