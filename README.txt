@@ -520,6 +520,12 @@ ACRONYMS ON THE PAGE (3.92.0)
     In our drafts and the report under More; Export makes the list, the whole effort or one per volume.
   - Decide and move on (4.23.0): Add to effort list and Not a term each move to the next term to decide. There is no
     Next to decide button and no Copy button on the card.
+  - The card has two lines (4.23.1). Reads as is the term: fix it there if it was read wrong, and the list gets what
+    you type, with or without a meaning; what was found becomes part of the longer term, or Not a term here. Means
+    is the definition: pick one, type one, or leave it empty. Beside the page, Put in Reads as and Put in Means
+    carry the words selected on the page to either line. More: Not text, Part of a longer term, Add to the Wall of
+    Truth... (a Term truth: how to write it, what it means here). A plural of a term in capitals is marked on the
+    page (RFPs marks RFP).
   - Acros & Abs Finder: Send the list to an effort... puts its terms and meanings into an effort's acronym list; the
     same meaning is not added twice.
   - Keys on the card: 1 to 4 pick a definition, Enter adds the term to the list with it, X says Not a term. A line joins

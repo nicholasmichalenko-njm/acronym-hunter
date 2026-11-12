@@ -83,29 +83,28 @@ def build(page, t, kind_tone):
         body.addWidget(page.other_btn, 0, Qt.AlignLeft); body.addWidget(block)
 
     # ---- the find as text, then the definition box
-    fr = QHBoxLayout(); fr.setSpacing(D.SPACE["s"])
-    fr.addWidget(D.label("Read here", "muted", wrap=False))
-    page.find_text = QLineEdit(); page.find_text.setReadOnly(True)
-    page.find_text.setPlaceholderText("The line the term was read in shows here when the preview opens")
-    fr.addWidget(page.find_text, 1)                    # 4.23.0: no Copy button beside it (select the words to copy them)
-    body.addLayout(fr)
-    page.typed = QLineEdit(); page.typed.setPlaceholderText("Type a definition to add with it (right-click for subscript, superscript, symbols)")
+    # 4.23.1 (Nicholas 2026-11-12 13:51): two lines. Reads as: the term, typable, to fix a wrong reading. Means: the
+    # definition, picked above or typed, or left empty. The line it was read in is the page beside the card, not a box.
+    from PySide6.QtWidgets import QFormLayout
     from . import symbols as SYM
+    form = QFormLayout(); form.setHorizontalSpacing(D.SPACE["s"]); form.setVerticalSpacing(D.SPACE["s"])
+    page.reads = QLineEdit(t)
+    page.reads.setToolTip("How the term is written. Fix it here if it was read wrong: what you type goes in the list")
+    form.addRow(D.label("Reads as", "muted", wrap=False), page.reads)
+    page.typed = QLineEdit(); page.typed.setPlaceholderText("Pick a meaning above or type one; it may stay empty")
+    page.typed.setToolTip("Right-click for subscript, superscript and symbols")
     tr = QHBoxLayout(); tr.setSpacing(D.SPACE["s"])
     tr.addWidget(page.typed, 1); tr.addWidget(SYM.button(page.typed))
-    page.use_sel = D.button("Use as the definition", "ghost", lambda: page.use_selected(),
-                            "Select words in the passage or click a box in the picture, then put them in the definition box")
-    tr.addWidget(page.use_sel)
-    body.addLayout(tr)
+    form.addRow(D.label("Means", "muted", wrap=False), tr)
+    body.addLayout(form)
+    page.find_text = QLineEdit(); page.find_text.setReadOnly(True); page.find_text.setVisible(False)   # kept for the preview
+    page.use_sel = D.button("Use as the definition", "ghost", lambda: page.use_selected()); page.use_sel.setVisible(False)
     page._actions([t])
 
     # ---- the preview
     locs = d.get("locations", [])
     page.where_view = None
     if getattr(page, "list_only", False):                              # 3.93.0: the page is the On the page tab
-        for w_ in (page.find_text, page.use_sel):
-            w_.setVisible(False)
-        fr.itemAt(0).widget().setVisible(False)
         locs_view = []
     else:
         locs_view = locs
@@ -115,6 +114,15 @@ def build(page, t, kind_tone):
         page.where_view = FoundView(t, locs, page.path_of, on_meaning=lambda x: _meaning(page, x),
                                     on_find_text=lambda x: page.find_text.setText(x),
                                     on_add_term=lambda text, loc, read, crop: APT.missed(page, text, loc, read, crop))
+        wv = page.where_view                                           # 4.23.1: what is selected on the page goes to a line
+        wv.read_lab.setText("Selected on the page")
+        wv.reading.setPlaceholderText("Click a box in the picture, or select words in the passage")
+        for b, text, tip, to in ((wv.b_fixread, "Put in Reads as", "These words are how the term is written", page.reads),
+                                 (wv.b_usemean, "Put in Means", "These words are what the term means", page.typed)):
+            b.setText(text); b.setToolTip(tip)
+            b.clicked.disconnect()
+            b.clicked.connect(lambda _c=False, to=to: (to.setText(" ".join(wv.reading.text().split())), to.setFocus())
+                              if wv.reading.text().strip() else page.host.status("Select words on the page first."))
         if getattr(page, "mid_box", None) is not None:                  # 3.92.0: the customer's page, in the middle
             page.mid_hint.setVisible(False)
             page.mid_box.addWidget(page.where_view, 1)

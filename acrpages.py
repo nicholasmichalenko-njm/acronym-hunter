@@ -115,8 +115,22 @@ def spans(text, term):
         right = fx[b] if b < len(fx) else " "
         if not (left.isalnum() or left == "&") and not (right.isalnum() or right == "&"):
             out.append((a, b))                 # a hyphen is a boundary: DC and RVM are found inside DC-RVM
+        elif not (left.isalnum() or left == "&") and len(fx) == len(text) and _plural_at(text, b):
+            out.append((a, b))                 # 4.23.1: RFPs marks RFP (the scan counts the plural as the term)
         k = fx.find(ft, k + 1)
     return out
+
+
+def _plural_at(text, b):
+    """A lower-case s (or 's) closes a term written in capitals or digits at b: RFPs, CDRLs, the SOW's."""
+    if b < 1 or not (text[b - 1].isupper() or text[b - 1].isdigit()):
+        return False
+    rest = text[b:b + 3]
+    for tail in ("s", "'s", "\u2019s"):
+        if rest.startswith(tail):
+            after = text[b + len(tail):b + len(tail) + 1]
+            return not (after.isalnum() or after == "&")
+    return False
 
 
 def _within(f, g):

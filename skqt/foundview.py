@@ -412,7 +412,8 @@ class FoundView(QWidget):
         self.info = D.label("", "muted"); v.addWidget(self.info)
         from PySide6.QtWidgets import QLineEdit                                 # 3.61.0: what the scan read, fixed here
         rr = QHBoxLayout(); rr.setSpacing(D.SPACE["s"]); v.addLayout(rr)
-        rr.addWidget(D.label("It read", "muted", wrap=False))
+        self.read_lab = D.label("It read", "muted", wrap=False)
+        rr.addWidget(self.read_lab)
         self.reading = QLineEdit(); self.reading.setPlaceholderText("Click a box in the picture, or select words in the passage")
         self.read_orig = ""
         rr.addWidget(self.reading, 1)

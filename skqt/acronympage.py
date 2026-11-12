@@ -391,9 +391,8 @@ class AcronymPage(QWidget):
         else:
             r1.addWidget(D.button("Not a term", "danger", lambda: self.set_status(terms, "Not a term"),
                                   "Not a term in this effort: this scan and every later one, new document versions too"))
-        if len(terms) == 1 and AX.in_pictures(self.session.results[terms[0]]):
-            r1.addWidget(D.button("The picture says something else...", None, lambda: AP.picture_menu(self, terms[0]),
-                                  "Part of a longer term, misread letters, or not text at all"))
+        # 4.23.1: The picture says something else... is gone: a wrong reading is fixed in Reads as; Part of a longer term
+        # and Not text are under More
         self.more_btn = D.button("More", "ghost", lambda: AP.more_menu(self, terms))
         r1.addWidget(self.more_btn)
         r1.addStretch(1)
@@ -500,6 +499,17 @@ class AcronymPage(QWidget):
     def add(self, terms, definition=None):
         typed = definition if definition is not None else (self.typed.text().strip() if len(terms) == 1 and hasattr(self, "typed") else "")
         after = self._after(terms)
+        reads = getattr(self, "reads", None)
+        try:
+            right = " ".join(reads.text().split()) if (reads is not None and len(terms) == 1) else ""
+        except RuntimeError:                                 # the card it sat on is gone
+            right = ""
+        if right and right != terms[0] and self.current() == terms[0]:       # 4.23.1: the reading was fixed on the card
+            from . import acrpart as APT
+            said = APT.read_as(self, terms[0], right, typed)
+            self.fill()
+            self._move_on(after)
+            return said
         msg = self.session.add(terms, typed)
         diag.activity("qt_acronym_added", n=len(terms))
         self.host.toast(msg or "Added to the effort list")

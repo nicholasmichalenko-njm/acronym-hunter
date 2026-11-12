@@ -82,6 +82,51 @@ def misread(page, term, right=None):
     return ok
 
 
+def read_as(page, term, right, definition=""):
+    """4.23.1: the term was read wrong (or only part of it was found) and Reads as was fixed on the card. The list gets
+    the term as typed, with its meaning if one was given. What was found: part of the longer term where it sits inside
+    it; otherwise not a term here, and when it was read from a picture the fix is kept for every later scan on this PC."""
+    import acrmore as AM
+    s = page.session
+    d = s.results.get(term) or {}
+    locs = list(d.get("locations", []))
+    if right not in s.results:
+        AM.add_manual(s, right, definition=definition or "", document=locs[0] if locs else "", to=("results",))
+        s.results[right]["locations"] = locs
+        s.results[right]["count"] = d.get("count", 0)
+    said = s.add([right], definition or "") if s.effort is not None else ""
+    if term in right and AP.set_part(s, term, right):
+        how = f"{term} is part of {right}"
+    else:
+        if AX.in_pictures(d):
+            misread(page, term, right)
+        if s.effort is not None:
+            s.set_status([term], "Not a term")
+        else:
+            s.exclude([term], True)
+        how = f"{term} reads as {right}"
+    page.host.toast(f"{how}: {right} is in the list" + ("" if definition else ", with no definition yet") + ".")
+    return said or how
+
+
+def to_wall(page, term, answer=None):
+    """4.23.1: a term this customer uses in its own way goes on the effort's Wall of Truth, started from here: how to
+    write it and what it means here. The Wall's own dialog opens filled in. Returns the truth's id, or None."""
+    s = page.session
+    d = s.results.get(term) or {}
+    row = (s.effort.rows.get(term) or {}) if s.effort is not None else {}
+    means = (row.get("Definition") or d.get("selected_definition") or "").strip()
+    if means == "Keep All Possibilities":
+        means = ""
+    pre = {"label": term, "kind": "Term", "value": term, "source": "Acros & Abs",
+           "notes": f"Means here: {means}" if means else "Means here: "}
+    wp = page.host.truth_page
+    out = wp.truth_dialog(answer=dict(pre, **answer)) if answer is not None else wp.truth_dialog(prefill=pre)
+    if out:
+        page.host.toast(f"{term} is on the Wall of Truth (Drafts > Wall of Truth).")
+    return out
+
+
 def picture_menu(page, term, run=True):
     m = QMenu(page)
     m.addAction("Part of a longer term...").triggered.connect(lambda: part_of(page, term))
@@ -119,6 +164,11 @@ def more_menu(page, terms, run=True):
             m.addAction(f"Not part of {s.parts[t]['whole']}").triggered.connect(lambda: (AP.clear_part(s, t), page.fill()))
         else:
             m.addAction("Part of a longer term...").triggered.connect(lambda: part_of(page, t))
+        m.addSeparator()
+        if AX.in_pictures(d):                              # 4.23.1: from The picture says something else...
+            m.addAction("Not text (a picture, not letters)").triggered.connect(lambda: not_text(page, t))
+        if s.effort is not None and getattr(page.host, "truth_page", None) is not None:
+            m.addAction("Add to the Wall of Truth...").triggered.connect(lambda: to_wall(page, t))
         m.addSeparator()
     m.addAction("Add to this PC's database").triggered.connect(lambda: AX.add_to_db(page, terms))
     if s.effort is not None and any(t in s.effort.rows for t in terms):

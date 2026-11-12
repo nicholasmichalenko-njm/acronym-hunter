@@ -112,28 +112,33 @@ class WallPage(QWidget):
         return [self.row_id(i.row()) for i in self.table.selectionModel().selectedRows()] if self.table.selectionModel() else []
 
     # ------------------------------------------------------------ the wall
-    def truth_dialog(self, tid=None, answer=None):
+    def truth_dialog(self, tid=None, answer=None, prefill=None):
         """+ Truth... (tid None) or change one. answer (tests): {"label", "kind", "value", "context", "wrong", "owner",
-        "source", "notes"}. Returns the id."""
+        "source", "notes"}. prefill (4.23.1): the same keys, for a new truth started from another page (a term in
+        Acros & Abs): the dialog opens filled in and the person saves it. Returns the id."""
         r = self.rec()
         if r is None:
             return None
         t = WT.get(r, tid) if tid else None
+        if t is None and prefill:
+            t0 = dict({"label": "", "kind": "Term", "value": "", "context": [], "wrong": [], "owner": "", "source": "", "notes": ""}, **prefill)
+        else:
+            t0 = t
         if answer is None:
             d = QDialog(self); d.setWindowTitle("Truth" if t else "New truth"); d.setMinimumWidth(600)
             f = QFormLayout(d)
-            label = QLineEdit(t["label"] if t else ""); label.setPlaceholderText("What the truth is about"); f.addRow("What", label)
-            kind = QComboBox(); kind.addItems(list(WT.KINDS)); kind.setCurrentText(t["kind"] if t else "Number"); f.addRow("Kind", kind)
-            value = QLineEdit(t["value"] if t else ""); value.setPlaceholderText("The value, written the way the team writes it"); f.addRow("Write it as", value)
-            ctx = QLineEdit(", ".join(t.get("context", [])) if t else ""); ctx.setPlaceholderText("Words that appear near it, with commas between them")
+            label = QLineEdit(t0["label"] if t0 else ""); label.setPlaceholderText("What the truth is about"); f.addRow("What", label)
+            kind = QComboBox(); kind.addItems(list(WT.KINDS)); kind.setCurrentText(t0["kind"] if t0 else "Number"); f.addRow("Kind", kind)
+            value = QLineEdit(t0["value"] if t0 else ""); value.setPlaceholderText("The value, written the way the team writes it"); f.addRow("Write it as", value)
+            ctx = QLineEdit(", ".join(t0.get("context", [])) if t0 else ""); ctx.setPlaceholderText("Words that appear near it, with commas between them")
             ctx.setToolTip("The check looks for numbers within a few words of these")
             f.addRow("Beside these words", ctx)
-            wrong = QLineEdit(", ".join(t.get("wrong", [])) if t else ""); wrong.setPlaceholderText("Forms the team must not use, with commas between them")
+            wrong = QLineEdit(", ".join(t0.get("wrong", [])) if t0 else ""); wrong.setPlaceholderText("Forms the team must not use, with commas between them")
             f.addRow("Never write", wrong)
             from .people import name_combo, combo_name
-            own = name_combo(self.host, t.get("owner", "") if t else ""); f.addRow("Owner (who confirms it)", own)
-            src = QLineEdit(t.get("source", "") if t else ""); src.setPlaceholderText("Where the value comes from"); f.addRow("Source", src)
-            notes = QLineEdit(t.get("notes", "") if t else ""); f.addRow("Notes", notes)
+            own = name_combo(self.host, t0.get("owner", "") if t0 else ""); f.addRow("Owner (who confirms it)", own)
+            src = QLineEdit(t0.get("source", "") if t0 else ""); src.setPlaceholderText("Where the value comes from"); f.addRow("Source", src)
+            notes = QLineEdit(t0.get("notes", "") if t0 else ""); f.addRow("Notes", notes)
             if t and t.get("old"):
                 f.addRow(D.label("Before: " + "; ".join(f"{o['value']} (until {o['until'][:10]})" for o in t["old"]), "muted"))
             bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)

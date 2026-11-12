@@ -399,11 +399,13 @@ TOPICS = [
    "from the list. The Exclusion List (never in any effort on this PC) is in Team References.",
    "Add to the database keeps the term and its meaning in this PC's acronym database, apart from the effort's list "
    "(usually after submission). Add a term... adds one by hand: to this scan, the effort list, the database, or all three.",
-   "The card: the meaning (other possibilities folded under Show other possibilities), Read here (the line it was read in), "
-   "the definition box, the actions, then the preview. Show details opens the counts, the places and an equation's symbols.",
+   "The card: the meaning (other possibilities folded under Show other possibilities), then two lines. Reads as is the term: "
+   "fix it there if it was read wrong, and the list gets what you type. Means is the definition: pick one above or type "
+   "one, or leave it empty. Then Add to effort list or Not a term; each moves to the next term to decide. More has Part of "
+   "a longer term, Plural of, A form of, Another way of writing and Add to the Wall of Truth.",
    "The preview boxes what the scan read. Page < and > go through every page or picture of the file. Click a box to see "
-   "what it read: Fix the reading corrects it for every later scan on this PC; Use as the meaning puts the words in the "
-   "definition box. Find < and > step through the finds and come back to the place. Drag to draw a box: Read this area again, Add as a term...; right-drag or Space to move.",
+   "what it read, or select words in a passage: Put in Reads as and Put in Means carry them to the card's two lines. A "
+   "reading fixed on a picture is kept for every later scan on this PC. Find < and > step through the finds and come back to the place. Drag to draw a box: Read this area again, Add as a term...; right-drag or Space to move.",
    "Why is a term missing? Type a term you expected: the Exclusion List, Not a term, a plural or form you set, the filters, or "
    "what the last scan read (with near misses in pictures). Save as the answer key... makes your decided scan the key of "
    "your acronym set (a folder outside the repository), scored by each build.",
