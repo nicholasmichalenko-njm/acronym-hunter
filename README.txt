@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE GUIDE AND THE MESSAGES SAY TODAY'S STEPS (4.20.1)
+  - The Guide (F1) reads in the menu's order: Getting started, Dashboard, Documents, Shred, Matrix & Outline, Setup,
+    Drafts, Submit, Team, Settings, Your Tools. What Stationkeeper does, Documents, Extracting, Shred, Outline and
+    Coverage are rewritten for the app as it is: adding a document extracts it; Shred has Page and List, H1 to H9 in
+    Fix text, Compliance language on any words and the Structure type; our outline starts from two doors.
+  - Messages that sent you to steps that are gone now say what to do today: "Add the customer's documents in
+    Documents first" where they said to read the documents into Review; Place where they said to decide pieces into a
+    section; Fix text where they said Verify.
+  - Sort is named Theme tags in the Guide, as on its page.
+
 ONE WORD FOR ONE THING (4.20.0)
   - The words on every screen now follow one glossary. A piece is anything the shred holds; a piece with a type is
     shredded; a piece in a section of our outline is placed. Shred is the page (it was Review in older text), Documents

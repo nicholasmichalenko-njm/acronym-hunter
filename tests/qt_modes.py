@@ -104,7 +104,7 @@ pk2 = b.record_page.save_package(os.path.join(tmp, "from B.skpkg"))["path"]
 a.presence_answer = "open"
 gotA = a.import_package(pk2, dest=os.path.join(tmp, "PC1"), mode="replace")
 check("back on the first PC: 'newer than your copy', with what differs", gotA and gotA["compare"]["relation"] == "newer"
-      and "newer than your copy" in gotA["compare"]["text"] and "1 piece(s) decided, assigned or noted differently" in gotA["compare"]["text"],
+      and "newer than your copy" in gotA["compare"]["text"] and "1 piece(s) typed, placed or noted differently" in gotA["compare"]["text"],
       gotA and gotA["compare"]["text"])
 check("and the work is there", a.review.item(s2["id"]).get("decision") == "Keep")
 # both change: diverged
