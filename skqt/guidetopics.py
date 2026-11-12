@@ -694,7 +694,7 @@ TOPICS = [
    "Customize...), hide other roles' tools, and show the stage's tools at the top of the menu. The proposal manager turns "
    "Preview tools (Fix a Copy, Make a .dotx template) on or off for the team; a team pack carries the choice.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",
-   "In Updates, Install update pack... installs a new version from its .skupdate file. Undo last update goes back one step.",
+   "In Updates, Install update pack... installs a new version from its .skupdate file. Roll back the update goes back one step.",
    "Help and support opens this Guide, the shortcuts, what's new, Issues and ideas, and the support file.",
    "Issues and ideas (Issue or idea in the top bar, or Ctrl+Shift+I, on any page): choose Bug, Improvement or Idea, "
    "the feature (the page you are on is filled in), the importance, a title and the details, then Save. Describe the "

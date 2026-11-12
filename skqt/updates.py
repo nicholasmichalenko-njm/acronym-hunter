@@ -1,4 +1,4 @@
-"""Updates and security in Qt (2.76.0): the Updates card (Install update pack, Undo last update, Check program files)
+"""Updates and security in Qt (2.76.0): the Updates card (Install update pack, Roll back the update, Verify program files)
 and the About and security card (why Stationkeeper runs without admin rights), for Stationkeeper and Stationkeeper
 Training. The work is updatepack's; this is the window around it. Offline: the person picks the file."""
 import os
@@ -24,7 +24,7 @@ WHY_NO_ADMIN = (
     "Running does not mean approved. It runs because this PC does not block programs in your own folders "
     "(AppLocker or WDAC); IT can turn that on at any time, and company policy may require approval for any program. "
     "Give IT security SECURITY.md (in About Stationkeeper), the SBOM and the checksums. Because the program folder is yours, "
-    "other software running as you could change its files: Check program files compares every file with this "
+    "other software running as you could change its files: Verify program files compares every file with this "
     "version's list.")
 
 
@@ -47,7 +47,7 @@ def version_text():
     b = U.backup_info(app_dir())
     return (f"Version {v}. Update packs (.skupdate) from the approved folder bring it up to date. Only program files "
             "change: efforts, settings, the database and training data stay as they are."
-            + (f" Undo last update goes back to {b['from']}." if b and b.get("to") == v else ""))
+            + (f" Roll back the update goes back to {b['from']}." if b and b.get("to") == v else ""))
 
 
 def updates_card(win, on_close=None, install=None, undo=None):
@@ -59,8 +59,11 @@ def updates_card(win, on_close=None, install=None, undo=None):
     card.lbl = card.add(D.label(version_text(), "muted"))
     row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
     row.addWidget(D.button("Install update pack...", "primary", lambda: install()))
-    row.addWidget(D.button("Undo last update", None, lambda: undo()))
-    row.addWidget(D.button("Check program files", None, lambda: check_program(win)))
+    row.addWidget(D.button("Roll back the update", None, lambda: undo()))
+    row.addWidget(D.button("Verify program files", None, lambda: check_program(win),
+                           "Compares every program file with this version's list and says whether they all match"))
+    row.addWidget(D.button("What's new", None, lambda: __import__("skqt.helpcenter", fromlist=["x"]).show_whats_new(win, last="2.75.0"),
+                           "What changed in each version, newest first"))
     row.addStretch(1)
     card.body.addLayout(row)
     card.add(D.label("Get update packs only from the approved SharePoint folder. A pack that is not signed by the "
@@ -162,7 +165,7 @@ def install_update(win, path=None, answer=None, on_close=None, restart=None):
     text = (U.summary(plan) + "\n\nSigned by the Stationkeeper publisher; every file is checked before anything changes."
             + (f"\n\nNotes: {info['notes']}" if info.get("notes") else "")
             + "\n\nStationkeeper saves your work, closes, updates its program files and opens again (about a minute). "
-              "Efforts, settings, the database and training data are not touched. Undo last update goes back.")
+              "Efforts, settings, the database and training data are not touched. Roll back the update goes back.")
     if answer is None:
         answer = "install" if _confirm(win, "Install update pack", text, "Update now") else "later"
     if answer != "install":
@@ -186,11 +189,10 @@ def undo_update(win, answer=None, on_close=None, restart=None):
     prog, folder = program_name(), app_dir()
     b = U.backup_info(folder)
     if b is None:
-        win.status("There is no update to undo.")
+        win.status("There is no update to roll back.")
         return None
     if answer is None:
-        answer = "undo" if _confirm(win, "Undo last update", f"Go back from {b['to']} to {b['from']}? Stationkeeper saves your "
-                                    "work, closes and opens the earlier version. Your data is not touched.", "Undo the update") else "later"
+        answer = "undo" if rollback_dialog(win, b) else "later"
     if answer != "undo":
         return None
     try:
@@ -204,12 +206,41 @@ def undo_update(win, answer=None, on_close=None, restart=None):
     return res
 
 
+def rollback_dialog(win, b, run=True):
+    """4.23.2: nothing rolls back at one click. The window says the version now, the version it goes back to, and what
+    this version brought that goes away, and waits. Returns True to roll back (run=False: the dialog, for tests)."""
+    import supportfile as SF
+    from . import helpcenter as HC
+    d = QDialog(win); d.setWindowTitle("Roll back the update"); d.setMinimumWidth(600)
+    v = QVBoxLayout(d)
+    d.said = D.label(f"<b>You are on version {b['to']}.</b> Rolling back opens version {b['from']} again. Stationkeeper saves "
+                     "your work, closes, and opens the earlier version. Your efforts, settings, database and training data "
+                     "are not touched.")
+    d.said.setWordWrap(True); v.addWidget(d.said)
+    d.notes = SF.whats_new(b["from"], b["to"])
+    if d.notes:
+        v.addWidget(D.label(f"What goes away with {b['to']}:", "label"))
+        v.addWidget(HC.notes_area(d.notes), 1)
+    else:
+        v.addWidget(D.label("This copy has no list of what that version changed.", "muted"))
+    v.addWidget(D.label(f"To come back to {b['to']} later, install its update pack again.", "muted"))
+    bb = QDialogButtonBox()
+    d.b_go = bb.addButton(f"Roll back to {b['from']}", QDialogButtonBox.AcceptRole)
+    d.b_stay = bb.addButton(f"Stay on {b['to']}", QDialogButtonBox.RejectRole)
+    d.b_stay.setDefault(True)
+    bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); v.addWidget(bb)
+    HC.fit_screen(d, win)
+    if not run:
+        return d
+    return d.exec() == QDialog.Accepted
+
+
 def check_program(win, show=True):
     r = U.check_files(app_dir())
     text = U.check_text(r)
     diag.activity("program_files_checked", n=0 if r is None else len(r["changed"]) + len(r["missing"]) + len(r["extra"]))
     if show:
-        d = QDialog(win); d.setWindowTitle("Check program files"); d.setMinimumWidth(620)
+        d = QDialog(win); d.setWindowTitle("Verify program files"); d.setMinimumWidth(620)
         v = QVBoxLayout(d)
         lab = D.label(text); lab.setWordWrap(True); v.addWidget(lab)
         v.addWidget(D.label("This finds damaged or changed program files. It cannot prove a file is safe if someone "

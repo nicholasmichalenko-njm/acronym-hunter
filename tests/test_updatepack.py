@@ -2,7 +2,7 @@
 that changed since 2.76.0 and is signed; it installs only when the signature matches a publisher key, every path is a
 program file, it is for this program, newer than this copy and holds what this copy lacks; config, the database and
 efforts are never touched; a pack serves a copy that skipped a version; a failure part-way puts everything back, and so
-does the next start after a crash; Undo last update brings the version before back; Check program files finds
+does the next start after a crash; Roll back the update brings the version before back; Verify program files finds
 changed, missing and planted files; tools/make_update.py builds the pack and keeps the manifests."""
 import json, os, shutil, sys, tempfile, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -205,12 +205,12 @@ check("installed: the program files are 2.77.0", after["Stationkeeper.exe"] == b
       and after["_internal/base_library.zip"] == b"lib 2.77", res)
 check("the user's database, settings and efforts are untouched", after["acronym_database.csv"] == before["acronym_database.csv"]
       and after["config/app_settings.json"] == b'{"mine": true}' and "config/efforts/Heron.json" in after)
-check("Check program files: all match", (lambda r: not (r["changed"] or r["missing"] or r["extra"]) and r["ok"] == len(F77))(U.check_files(APP)))
+check("Verify program files: all match", (lambda r: not (r["changed"] or r["missing"] or r["extra"]) and r["ok"] == len(F77))(U.check_files(APP)))
 check("the same pack again: already has it", raises(lambda: U.check(P77, APP, "Stationkeeper"), "already has version 2.77.0"))
 # undo
 u = U.undo(APP, "Stationkeeper")
-check("Undo last update: 2.76.0 is back, data untouched", u == {"from": "2.77.0", "to": "2.76.0"} and snapshot(APP) == before, u)
-check("undo once only", raises(lambda: U.undo(APP, "Stationkeeper"), "no update to undo"))
+check("Roll back the update: 2.76.0 is back, data untouched", u == {"from": "2.77.0", "to": "2.76.0"} and snapshot(APP) == before, u)
+check("undo once only", raises(lambda: U.undo(APP, "Stationkeeper"), "no update to roll back"))
 U.recover(APP)
 # skipping a version: 2.76.0 straight to 2.78.0 (a file removed, one added)
 plan = U.check(P78, APP, "Stationkeeper")
@@ -219,18 +219,18 @@ a78 = snapshot(APP)
 check("2.76.0 straight to 2.78.0: added, removed, replaced", a78["Stationkeeper.exe"] == b"exe 2.78" and "_internal/new/added.pyd" in a78
       and "_internal/old/gone.pyd" not in a78 and not os.path.isdir(os.path.join(APP, "_internal", "old"))
       and a78["acronym_database.csv"] == before["acronym_database.csv"])
-check("an older pack after that: refused (no downgrade)", raises(lambda: U.check(P77, APP, "Stationkeeper"), "older than this copy", "Undo last update"))
+check("an older pack after that: refused (no downgrade)", raises(lambda: U.check(P77, APP, "Stationkeeper"), "older than this copy", "Roll back the update"))
 U.undo(APP, "Stationkeeper")
 check("undo brings back the removed file and takes away the added one", snapshot(APP) == before)
 U.recover(APP)
 check("leftovers are cleared at start", not os.path.isdir(U._udir(APP, "staged")) and not os.path.isdir(U._udir(APP, "undone")))
 
-# ------------------------------------------------ Check program files
+# ------------------------------------------------ Verify program files
 open(os.path.join(APP, "_internal", "python311.dll"), "w").write("tampered")
 os.remove(os.path.join(APP, "README.txt"))
 open(os.path.join(APP, "_internal", "planted.dll"), "w").write("x")
 r = U.check_files(APP)
-check("Check program files: changed, missing and planted files", r["changed"] == ["_internal/python311.dll"] and r["missing"] == ["README.txt"]
+check("Verify program files: changed, missing and planted files", r["changed"] == ["_internal/python311.dll"] and r["missing"] == ["README.txt"]
       and r["extra"] == ["_internal/planted.dll"] and "Not part of this version (1)" in U.check_text(r), r)
 os.makedirs(os.path.join(APP, "_internal", "assets", "brand"), exist_ok=True)              # 3.0.4: the team's logo, placed on purpose
 open(os.path.join(APP, "_internal", "assets", "brand", "logo_01.png"), "wb").write(b"png")

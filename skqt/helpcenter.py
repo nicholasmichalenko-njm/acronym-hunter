@@ -29,7 +29,6 @@ SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a piece or a person
 def support_card(host):
     card = D.Card("Help and support", "Get help without sending any document content.",
                   actions=[D.button("Guide", "primary", lambda: __import__("skqt.guide", fromlist=["x"]).open_guide(host, "start")),
-                           D.button("What's new", None, lambda: show_whats_new(host, last="2.75.0")),
                            D.button("Keyboard shortcuts", None, lambda: show_shortcuts(host)),
                            D.button("Issues and ideas...", None, lambda: host.open_issues()),
                            D.button("Create a support file...", None, lambda: make_support_file(host))])
@@ -105,6 +104,30 @@ def show_shortcuts(host, run=True):
     return d
 
 
+def notes_area(notes):
+    """4.23.2: versions and their notes in an area that scrolls (many versions at once ran off the screen)."""
+    from PySide6.QtWidgets import QFrame, QScrollArea, QWidget
+    inner = QWidget(); v = QVBoxLayout(inner); v.setSpacing(D.SPACE["s"])
+    for ver, items in notes:
+        v.addWidget(D.label(ver, "title"))
+        for it in items:
+            lab = D.label("\u2022  " + it); lab.setWordWrap(True); v.addWidget(lab)
+    v.addStretch(1)
+    area = QScrollArea(); area.setWidgetResizable(True); area.setFrameShape(QFrame.NoFrame); area.setWidget(inner)
+    return area
+
+
+def fit_screen(d, host, width=640, most=0.8, cap=680):
+    """A window no taller than most of the screen it opens on (and never more than cap)."""
+    from PySide6.QtWidgets import QApplication
+    scr = (host.screen() if host is not None and hasattr(host, "screen") else None) or QApplication.primaryScreen()
+    room = scr.availableGeometry().height() if scr is not None else 900
+    h = int(min(cap, most * room))
+    d.setMaximumHeight(int(most * room))
+    d.resize(width, min(h, max(260, d.sizeHint().height() + 40)))
+    return d.height()
+
+
 def show_whats_new(host, last=None, run=True):
     """The card after an update (last: the version before). Returns the dialog, or None when there is nothing new."""
     import app_gui
@@ -113,11 +136,10 @@ def show_whats_new(host, last=None, run=True):
         return None
     d = QDialog(host); d.setWindowTitle(f"What's new in Stationkeeper {app_gui.APP_VERSION}"); d.setMinimumWidth(560)
     v = QVBoxLayout(d)
-    for ver, items in notes:
-        v.addWidget(D.label(ver, "title"))
-        for it in items:
-            lab = D.label("•  " + it); lab.setWordWrap(True); v.addWidget(lab)
+    d.area = notes_area(notes)                               # 4.23.2: the notes scroll; OK stays in view
+    v.addWidget(d.area, 1)
     bb = QDialogButtonBox(QDialogButtonBox.Ok); bb.accepted.connect(d.accept); v.addWidget(bb)
+    fit_screen(d, host)
     d.notes = notes
     if run:
         d.exec()

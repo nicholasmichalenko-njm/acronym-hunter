@@ -14,7 +14,7 @@ How it installs, offline and as the user (no admin):
   3. apply: each old file is moved into _update\\backup\\ and the new one moved into place (Windows lets a running
      program's files be renamed, not overwritten). Any failure moves everything back. A crash part-way is put back
      at the next start, before the program loads anything else.
-  4. Stationkeeper restarts on the new version. Undo last update moves the backup back.
+  4. Stationkeeper restarts on the new version. Roll back the update moves the backup back.
 
 Uses only the Python standard library and edsign (pure Python), so it can run at the very start of the program.
 """
@@ -268,7 +268,7 @@ def check(pack, app_dir, program, edition=None):
         raise UpdateError(f"This copy already has version {info['version']}.")
     if tv < iv:
         raise UpdateError(f"This update pack holds version {info['version']}, older than this copy ({inst['version']}). "
-                          "Nothing was installed. To go back after an update, use Undo last update.")
+                          "Nothing was installed. To go back after an update, use Roll back the update.")
     if iv < vtuple(info["min_version"]):
         raise UpdateError(f"This update pack needs version {info['min_version']} or later; this copy is {inst['version']}. "
                           "Download the full copy once.")
@@ -291,7 +291,7 @@ def check(pack, app_dir, program, edition=None):
     if missing:
         raise UpdateError(f"This update pack does not hold {len(missing)} program file(s) this copy needs (it was made "
                           f"for copies from {info['min_version']} on, and this copy's files differ). Nothing was installed. "
-                          "Use Check program files, or download the full copy.")
+                          "Use Verify program files, or download the full copy.")
     (replace if os.path.isfile(_abs(app_dir, MANIFEST)) else add).append(MANIFEST)
     remove = [rel for rel in inst["files"] if rel not in info["files"] and is_program_path(rel, program)
               and os.path.isfile(_abs(app_dir, rel))]
@@ -471,10 +471,10 @@ def backup_info(app_dir):
 
 
 def undo(app_dir, program):
-    """Undo last update: the version before it comes back from _update\\backup\\. Returns {from, to}."""
+    """Roll back the update: the version before it comes back from _update\\backup\\. Returns {from, to}."""
     b = backup_info(app_dir)
     if b is None or b.get("program") != program:
-        raise UpdateError("There is no update to undo.")
+        raise UpdateError("There is no update to roll back.")
     inst = read_manifest(app_dir)
     if inst is None or inst.get("version") != b["to"]:
         raise UpdateError("This copy changed since the last update, so it cannot be undone. Download the full copy instead.")
