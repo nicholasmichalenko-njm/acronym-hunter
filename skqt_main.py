@@ -78,8 +78,8 @@ def main(argv=None):
     from skqt.mainwin import MainWindow
     app = QApplication(args)
     app.setApplicationName("Stationkeeper")
-    ico = os.path.join(A.BASE_DIR, "assets", "scanner.ico")
-    if os.path.isfile(ico):
+    ico = A.asset_path("scanner.ico")              # 4.19.0: built, the icon is in _internal\assets, not beside the exe
+    if ico:
         app.setWindowIcon(QIcon(ico))
     try:                                             # 3.91.0: Settings > Appearance (Follow Windows, Light, Dark)
         design.apply(app, (A.load_settings() or {}).get("appearance"))
@@ -106,7 +106,7 @@ def main(argv=None):
     if "--selftest" in args:            # the build checks the built program starts (no effort opened)
         w.show()
         app.processEvents()
-        ok = "Stationkeeper" in w.windowTitle() and "classic" not in w.windowTitle()
+        ok = "Stationkeeper" in w.windowTitle() and "classic" not in w.windowTitle() and not app.windowIcon().isNull()
         scan = _selftest_scan()                          # 2.64.0: the built program reads a Word file and finds its terms
         ok = ok and scan.startswith("ok")
         with open(os.path.join(A.SANDBOX_DIR, "qt_selftest.txt"), "w", encoding="utf-8") as f:

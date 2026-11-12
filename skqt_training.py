@@ -29,15 +29,15 @@ def main(argv=None):
     from skqt.trainingwin import TrainingWindow
     app = QApplication(sys.argv if argv is None else argv)
     app.setApplicationName("Stationkeeper Training")
-    ico = os.path.join(A.BASE_DIR, "assets", "trainer.ico")
-    if os.path.isfile(ico):
+    ico = A.asset_path("trainer.ico")              # 4.19.0: built, the icon is in _internal\assets
+    if ico:
         app.setWindowIcon(QIcon(ico))
     design.apply(app)
     w = TrainingWindow(app)
     if "--selftest" in (argv or sys.argv):            # the build checks the built program starts and reads its training set
         w.show()
         app.processEvents()
-        ok = w.windowTitle().startswith("Stationkeeper Training ") and w.stack.count() == 6
+        ok = w.windowTitle().startswith("Stationkeeper Training ") and w.stack.count() == 6 and not app.windowIcon().isNull()
         try:
             import tess_train
             tools = all(os.path.isfile(os.path.join(A.TESS_DIR, t)) for t in ("lstmtraining.exe", "combine_tessdata.exe")) \

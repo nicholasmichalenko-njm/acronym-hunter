@@ -19,7 +19,7 @@ PIC = 132                    # the effort picture on the banner, square
 
 def asset(name):
     import app_gui
-    return os.path.join(app_gui.BASE_DIR, "assets", name)
+    return app_gui.asset_path(name) or ""          # 4.19.0: built, the assets are in _internal, not beside the exe
 
 
 def rounded(path, w, h, radius=12, fit=False):

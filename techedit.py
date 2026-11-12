@@ -101,7 +101,7 @@ def word_list():
     global _WORDS
     if _WORDS is None:
         import app_gui as A
-        p = os.path.join(A.BASE_DIR, "assets", "spelling_words.txt")        # SCOWL, American, sizes up to 70
+        p = A.asset_path("spelling_words.txt") or ""                       # SCOWL, American, sizes up to 70 (4.19.0: built, in _internal)
         try:
             with open(p, encoding="utf-8") as f:
                 _WORDS = {w.strip().lower() for w in f if w.strip() and not w.startswith("#")}
