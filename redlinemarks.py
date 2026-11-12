@@ -98,6 +98,7 @@ class Writer:
         self.next_id = 1 + max([int(x) for el in root.iter(W + "ins", W + "del", W + "commentRangeStart")
                                 for x in [el.get(W + "id") or ""] if x.isdigit()] or [0])
         self.comments = []                         # (id, author, date, text, parent id or None, done)
+        self.replies = {}                          # parent id -> the last reply's reference run
 
     def nid(self):
         self.next_id += 1
@@ -171,6 +172,26 @@ class Writer:
         self.comments.append([cid, author, date, text, parent, False])
         return cid
 
+    def reply(self, parent, author, date, text):
+        """A reply on parent's words, marked the way Word marks one: its start right after the parent's start, its
+        end and reference after the parent's reference (Word threads it through commentsExtended)."""
+        cid = self.nid()
+        ps = next(el for el in self.root.iter(W + "commentRangeStart") if el.get(W + "id") == parent)
+        refs = [el for el in self.root.iter(W + "commentReference") if el.get(W + "id") == parent]
+        after = refs[-1].getparent() if refs else next(el for el in self.root.iter(W + "commentRangeEnd") if el.get(W + "id") == parent)
+        rs = etree.Element(W + "commentRangeStart"); rs.set(W + "id", cid)
+        ps.addnext(rs)
+        re_ = etree.Element(W + "commentRangeEnd"); re_.set(W + "id", cid)
+        ref = etree.Element(W + "r")
+        rpr = etree.SubElement(ref, W + "rPr"); etree.SubElement(rpr, W + "rStyle").set(W + "val", "CommentReference")
+        etree.SubElement(ref, W + "commentReference").set(W + "id", cid)
+        last = self.replies.get(parent)
+        (last if last is not None else after).addnext(re_)
+        re_.addnext(ref)
+        self.replies[parent] = ref
+        self.comments.append([cid, author, date, text, parent, False])
+        return cid
+
     def parts(self):
         """comments.xml and commentsExtended.xml for the comments written."""
         croot = etree.Element(W + "comments", nsmap={"w": NS_W, "w14": NS_W14, "mc": NS_MC})
@@ -192,7 +213,7 @@ class Writer:
                     etree.SubElement(r0, W + "annotationRef")
                 r = etree.SubElement(p, W + "r"); t = etree.SubElement(r, W + "t"); t.text = ln; t.set(XS, "preserve")
             pid = "%08X" % (0x10000000 + 0x101 * (k + 1))
-            p.set(W14 + "paraId", pid); p.set(W14 + "textId", "77777777")
+            p.set(W14 + "paraId", pid); p.set(W14 + "textId", "%08X" % (0x20000000 + 0x101 * (k + 1)))
             para_of[cid] = pid
             x = etree.SubElement(xroot, W15 + "commentEx"); x.set(W15 + "paraId", pid)
             if parent:
@@ -332,7 +353,7 @@ def apply(copy, comments, stream, paras_src=None, now=None):
                 txt = (k.get("note") or "").strip()
                 if k.get("state") and _norm(txt) in ("", _norm(k["state"])):
                     txt = f"Marked {k['state']}"
-                wr.comment(a, b, k.get("author") or "PDF reviewer", k.get("date") or stamp, txt, parent=cid)
+                wr.reply(cid, k.get("author") or "PDF reviewer", k.get("date") or stamp, txt)
                 rec.setdefault("replies", []).append({"author": k.get("author") or "", "note": txt})
         out.append(rec)
     if wr.comments:
