@@ -326,7 +326,7 @@ TOPICS = [
   "build the structure beside the page in Review as they read; this tab is for starting it in one step.",
   "When the RFP spells out the response's organization, or you have an outline in Word.",
   ["Choose how to start: What the RFP prescribes, RFP headings, RFP outline, Word outline..., or Blank.",
-   "Press Apply. Back in Review, the structure is beside the page: + Heading, + Subheading, From sentence and Copy RFP "
+   "Press Apply. Back in Review, the structure is beside the page: + H1 or + H2 (the target's level, or one level down), From sentence and Copy RFP "
    "section add to it as you read."],
   ["Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget)."]),
  ("setups", "Plan", "Setup",

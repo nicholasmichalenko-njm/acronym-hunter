@@ -751,15 +751,17 @@ class AssignPage(QWidget):
         sv.addWidget(self.tree)
         srow = FlowLayout(spacing=4); srw = QWidget(); srw.setLayout(srow); sv.addWidget(srw)   # 3.20.3: wraps
         self.outline_rows = [srw]                                # 4.5.0: building the outline is Outline's (shredfocus)
-        for text, fn, tip in (("+ Heading", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section"),
-                              ("+ Subheading", lambda: self.new_section(sub=True), "A section under the target, one level down"),
+        for text, fn, tip in (("+ H1", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section (H1)"),
+                              ("+ H2", lambda: self.new_section(sub=True), "A section under the target, one level down"),
                               ("From sentence", lambda: self.section_from_sentence(), "A section under the target, named with the selected sentence"),
                               ("Copy RFP section", lambda: self.copy_rfp_section(),
                                "The RFP section the selected sentence is in (and its subsections, if you want) under the "
                                "target, titled as the RFP titles it; its requirements with no section yet go into it")):
             b = D.button(text, None, fn, tip)
-            b.setVisible(text == "+ Heading")      # 3.75.0: the rest are on the section's right-click and in Setup
+            b.setVisible(text == "+ H1")           # 3.75.0: the rest are on the section's right-click and in Setup
             srow.addWidget(b)
+            if text == "+ H1":
+                self.add_same_btn = b                  # 4.18.0: says the level it adds (H1 to H9), as the target is
         from PySide6.QtWidgets import QMenu                           # 3.19.0: cover, title page, front matter, appendices
         self.parts_btn = D.button("Parts", None, None, "Cover, title page, front matter, appendices and back cover: add "
                                   "one, move the target to another part, and each part's rules and page limit")
@@ -1657,6 +1659,14 @@ class AssignPage(QWidget):
         if code and code in dd:
             return dd[code]["name"], dd[code]["color"]
         return "Not decided yet", ""
+
+    def level_of_section(self, label):
+        """4.18.0: a section's level in the response structure (1 for H1), 1 when there is none."""
+        try:
+            o = next((x for x in (self.M.outline if self.M is not None else []) if C.outline_label(x) == label), None)
+            return int(o["level"]) if o else 1
+        except Exception:  # noqa: BLE001
+            return 1
 
     def sentence_menu(self, iid):
         """3.29.0: the right-click menu of a sentence on the page: take its decision off, take off what was captured
@@ -3197,6 +3207,9 @@ class AssignPage(QWidget):
     def set_target(self, lab):
         self.target = lab
         self.host.status(f"Target: {lab}. R puts the selected sentences there.")
+        b = getattr(self, "add_same_btn", None)             # 4.18.0: + H2 after an H2 target
+        if b is not None:
+            b.setText(f"+ H{self.level_of_section(lab) if lab else 1}")
         self.fill_tree()
 
     def open_builder(self):
@@ -4111,8 +4124,9 @@ class AssignPage(QWidget):
         m.addAction("Rename...", lambda: self.rename_section(label))
         m.addAction("Pages...", lambda: self.section_pages(label))
         m.addSeparator()
-        m.addAction("+ Heading after it", lambda: self.new_section(sub=False))
-        m.addAction("+ Subheading under it", lambda: self.new_section(sub=True))
+        lv = self.level_of_section(label)                          # 4.18.0: levels are H1 to H9
+        m.addAction(f"+ H{lv} after it", lambda: self.new_section(sub=False))
+        m.addAction(f"+ H{lv + 1} under it", lambda: self.new_section(sub=True))
         m.addSeparator()
         m.addAction("Up", lambda: self.outline_op(O.move, -1))
         m.addAction("Down", lambda: self.outline_op(O.move, 1))

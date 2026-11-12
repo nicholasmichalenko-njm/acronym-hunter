@@ -103,7 +103,7 @@ class StructurePage(QWidget):
 
     def blank(self):
         self.text.setPlainText("")
-        self.why.setText("A blank structure: Apply, then build it in Review (+ Volume, + Heading, + Subheading, From "
+        self.why.setText("A blank structure: Apply, then build it in Review (+ Volume, + H1 (a section at the target's level), + H2 (one level down), From "
                          "sentence, Copy RFP section) as you read.")
         self.why.show()
         self.preview()

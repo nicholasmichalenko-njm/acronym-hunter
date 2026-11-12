@@ -10,6 +10,10 @@ SHRED: COMPLIANCE LANGUAGE ON ANY WORDS (4.18.0)
     Word outline, the coverage report and the setup documents. The matrix keeps the marks (a hidden column).
   - The piece pane shows the piece's words with its compliance language in that style, so what the list catches is
     visible while you shred.
+  - H1 to H9 everywhere a level is named (Nicholas 18:11): the Setup builder's level buttons (H1, H2, H3, H4 to H9...),
+    its right-click Make it, the tags and tips; Shred's outline adds + H1 at the target's level (+ H3 after an H3) and
+    the section right-click says + H3 after it, + H4 under it. The customer's structure (Fix text > Heading, 4.17.0)
+    and ours use the same words. Word's style names stay Heading 1 to 9.
 
 DOCUMENTS: REPLACE A FILE, DELETE INTO THE TRASH; HEADINGS WITH LEVELS (4.17.0)
   - A document's right-click (and its More): Replace the file... puts the picked file in place of the document's
@@ -2574,7 +2578,7 @@ DOCUMENT INITIALS, L AND M, AND THE STRUCTURE BUILT AS YOU READ (2.68.0)
   - The matrix has Reference (R-L-4.2.1: document initial, L or M, section), Doc, L/M and Section columns, and a
     tab for each volume next to the full Compliance Matrix tab. The Response Setup is one file per volume, as before.
   - Assign no longer waits for a structure: R keeps a sentence as a requirement with no section yet. Beside the page:
-    + Volume, + Heading, + Subheading (as many levels deep as needed), From sentence (a section named with the RFP's
+    + Volume, + H1 (a section at the target's level), + H2 (one level down) (as many levels deep as needed), From sentence (a section named with the RFP's
     words), Rename (or double-click), up, down, indent, outdent, Delete. Sections made here number themselves (1,
     1.1, 1.1.1 ...), restarting in each volume, and every requirement follows its section when numbers change.
   - The volume switcher above the structure picks the volume you are working in: the structure shows its sections

@@ -173,12 +173,12 @@ class BuilderPage(QWidget):
             bl.addWidget(b)
             return b
         for n in (1, 2, 3):
-            tb(f"H{n}", f"Heading {n}", f"Make it Heading {n}: numbered, level {n}", lambda _=False, n=n: self.make_level(n), f"Ctrl+{n}")
-        deep = tb("H4+", "Heading 4-9...", "Make it Heading 4 to 9, or deeper", None)
+            tb(f"H{n}", f"H{n}", f"Make it H{n}: numbered, level {n} (Word's Heading {n})", lambda _=False, n=n: self.make_level(n), f"Ctrl+{n}")
+        deep = tb("H4+", "H4 to H9...", "Make it H4 to H9, or deeper", None)
         deep.setCheckable(True)
         dm = QMenu(deep)
         for n in range(4, 13):
-            dm.addAction(f"Heading {n}" + ("  (Stationkeeper numbers it; not in Word's TOC)" if n > 9 else ""),
+            dm.addAction(f"H{n}" + ("  (Stationkeeper numbers it; not in Word's TOC)" if n > 9 else ""),
                          lambda n=n: self.make_level(n))
         deep.setMenu(dm)
         bl.addWidget(self._sep())
@@ -620,8 +620,8 @@ class BuilderPage(QWidget):
             return "A volume"
         k = o.get("kind") or ""
         what = {"unnumbered": "An unnumbered heading", "divider": "A divider page", "placeholder": "A placeholder",
-                "element": "An element: " + (o.get("element") or "")}.get(k, f"Heading {hl}" + (" (Word numbers and lists "
-                                                                                                   "Heading 1 to 9; deeper levels are numbered by Stationkeeper)" if hl > 9 else ""))
+                "element": "An element: " + (o.get("element") or "")}.get(k, f"H{hl}" + (" (Word numbers and lists "
+                                                                                                   "H1 to H9; deeper levels are numbered by Stationkeeper)" if hl > 9 else ""))
         brk = o.get("brk")
         return what + (f"; starts a Word section, {brk.get('orient', 'portrait')}" if brk else "")
 
@@ -700,7 +700,7 @@ class BuilderPage(QWidget):
             if o.get("kind"):
                 new = O.set_kind(self.M, new, "")
             return O.set_level(self.M, new, n)
-        return self._change(f"Heading {n}: {lab}", go)
+        return self._change(f"H{n}: {lab}", go)
 
     def make_kind(self, kind):
         if not self._need():
@@ -802,7 +802,7 @@ class BuilderPage(QWidget):
         m.addAction("Rename... (F2)", lambda: self.rename(label))
         lv = m.addMenu("Make it")
         for n in range(1, 10):
-            lv.addAction(f"Heading {n}", lambda n=n: self.make_level(n))
+            lv.addAction(f"H{n}", lambda n=n: self.make_level(n))
         lv.addSeparator()
         for k, t in O.KINDS[1:4]:
             lv.addAction(t, lambda k=k: self.make_kind(k))
