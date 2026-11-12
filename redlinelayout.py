@@ -255,6 +255,7 @@ def geometry(doc, items, pages):
         for n in range(g["pages"][0], g["pages"][1] + 1):
             group[n] = g
     prev = None
+    gaps = []                                          # the space between paragraphs on one page, for a page that flows on
     for it in items:
         page = it.get("page", 1)
         g = group.get(page) or (pages[0] if pages else {"w": 612, "margins": (72, 72, 72, 72)})
@@ -287,6 +288,8 @@ def geometry(doc, items, pages):
                 geo["align"] = "both"
             elif all(abs(b[2] - hi) < 2 for b in bx) and max(b[0] for b in bx) - min(b[0] for b in bx) > 3 and len(bx) >= 2:
                 geo["align"] = "right"
+            if geo["align"] in ("center", "right"):     # 4.22.0: a centered title's lines start at different places; that
+                geo["left"] = geo["first"] = 0.0       # is the centering, not an indent
         if prev is None:                               # the first thing on the first page sits this far down
             geo["before"] = round(max(0.0, top - top_m), 1)
         elif prev["page"] == page:
@@ -295,9 +298,16 @@ def geometry(doc, items, pages):
             else:
                 gap = top - prev["last_top"] - prev["pitch"]
             geo["before"] = round(max(0.0, gap), 1)
+            if it.get("_box") is None and prev["last_top"] is not None:
+                gaps.append(geo["before"])
         elif prev["page"] < page:
-            geo["break"] = True
-            geo["before"] = round(max(0.0, top - top_m), 1)
+            # 4.22.0: a new page only where the PDF's page ended early (a cover, the end of a part). A page filled to
+            # its foot flows on, so a line more or less in Word never leaves a page nearly empty.
+            pg = group.get(prev["page"]) or g
+            foot = pg["h"] - pg["margins"][2]
+            full = prev["bottom"] >= foot - 2.5 * (prev["pitch"] or body_pitch)
+            geo["break"] = not full
+            geo["before"] = round(max(0.0, top - top_m), 1) if not full else round(_median(gaps, 0.5 * body), 1)
         it["geo"] = geo
         prev = {"page": page, "last_top": last_top, "pitch": pitch, "bottom": bottom}
     return items
@@ -332,3 +342,47 @@ def line_style(pdf, page_index, char_index):
             tp.close(); page.close()
     finally:
         doc.close()
+
+
+def styles(pdf, starts):
+    """4.22.0: how the text at each place is set, read in one pass. starts: [(page index, character index)]. Returns
+    {(page index, character index): {"font" (Word family), "bold", "italic", "color" ("RRGGBB" or "")}}."""
+    import ctypes
+    import pypdfium2 as pdfium
+    import pypdfium2.raw as R
+    out, by = {}, {}
+    for pi, a in starts:
+        by.setdefault(pi, []).append(a)
+    try:
+        doc = pdfium.PdfDocument(pdf)
+    except Exception:  # noqa: BLE001
+        return out
+    try:
+        buf = ctypes.create_string_buffer(256)
+        flags = ctypes.c_int()
+        for pi, chars in by.items():
+            if pi >= len(doc):
+                continue
+            page = doc[pi]
+            tp = page.get_textpage()
+            try:
+                n = tp.count_chars()
+                for a in chars:
+                    k = min(max(0, a), max(0, n - 1))
+                    while k < n - 1 and R.FPDFText_GetUnicode(tp.raw, k) in (32, 10, 13, 9):
+                        k += 1                              # the first letter, not the space before it
+                    name = buf.value.decode("utf-8", "replace") if R.FPDFText_GetFontInfo(tp.raw, k, buf, 256, ctypes.byref(flags)) else ""
+                    low = name.lower()
+                    bold = R.FPDFText_GetFontWeight(tp.raw, k) >= 600 or "bold" in low or "black" in low
+                    italic = bool(flags.value & 64) or "italic" in low or "oblique" in low
+                    r, g, b, al = (ctypes.c_uint() for _ in range(4))
+                    color = ""
+                    if R.FPDFText_GetFillColor(tp.raw, k, ctypes.byref(r), ctypes.byref(g), ctypes.byref(b), ctypes.byref(al)):
+                        color = "%02X%02X%02X" % (r.value, g.value, b.value)
+                        color = "" if color == "000000" else color
+                    out[(pi, a)] = {"font": family(name) if name else "", "bold": bold, "italic": italic, "color": color}
+            finally:
+                tp.close(); page.close()
+    finally:
+        doc.close()
+    return out

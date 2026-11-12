@@ -96,8 +96,15 @@ def _sect(g):
     w, h = int(g["w"] * TW), int(g["h"] * TW)
     t, r, b, l = (int(m * TW) for m in g["margins"])
     orient = ' w:orient="landscape"' if g["landscape"] else ""
-    return (f'<w:sectPr><w:pgSz w:w="{w}" w:h="{h}"{orient}/><w:pgMar w:top="{t}" w:right="{r}" w:bottom="{b}" w:left="{l}" '
-            'w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>')
+    hf = g.get("hf") or {}                          # 4.22.0: the run of pages' own header and footer
+    refs = (f'<w:headerReference w:type="default" r:id="{g["hdr"]}"/>' if g.get("hdr") else "") \
+        + (f'<w:footerReference w:type="default" r:id="{g["ftr"]}"/>' if g.get("ftr") else "")
+    head = int(round(hf["header_at"] * TW)) if hf.get("header_at") is not None else 720
+    foot = int(round(hf["footer_at"] * TW)) if hf.get("footer_at") is not None else 720
+    num = f'<w:pgNumType w:start="{int(hf["start"])}"/>' if hf.get("start") is not None and hf["start"] >= 0 else ""
+    title = "<w:titlePg/>" if hf.get("title_pg") else ""
+    return (f'<w:sectPr>{refs}<w:pgSz w:w="{w}" w:h="{h}"{orient}/><w:pgMar w:top="{t}" w:right="{r}" w:bottom="{b}" w:left="{l}" '
+            f'w:header="{min(head, max(0, t - 20))}" w:footer="{min(foot, max(0, b - 20))}" w:gutter="0"/>{num}{title}</w:sectPr>')
 
 
 def section(d, g):
@@ -131,17 +138,47 @@ def _ppr(geo, keep_next=False):
     return out
 
 
-def heading(d, text, level, size=None, bold=True, geo=None, color=""):
-    """A heading in Word's Heading N style, its run at the size, weight and color the PDF set it in, placed as on the page."""
+def _fonts(font):
+    f = _x(font)
+    return f'<w:rFonts w:ascii="{f}" w:hAnsi="{f}" w:cs="{f}"/>' if font else ""
+
+
+def rpr(st):
+    """Run properties from how the PDF set a paragraph: {"font", "size", "bold", "italic", "color"}; "" for none."""
+    if not st:
+        return ""
+    out = _fonts(st.get("font")) + ("<w:b/>" if st.get("bold") else "") + ("<w:i/>" if st.get("italic") else "") \
+        + (f'<w:color w:val="{_x(st["color"])}"/>' if st.get("color") else "") \
+        + (f'<w:sz w:val="{int(round(st["size"] * 2))}"/>' if st.get("size") else "")
+    return f"<w:rPr>{out}</w:rPr>" if out else ""
+
+
+def heading(d, text, level, size=None, bold=True, geo=None, color="", font="", italic=False, lead=""):
+    """A heading in Word's Heading N style, its run in the font, size, weight and color the PDF set it in, placed as on
+    the page. lead: runs that go before its text (a picture behind the page)."""
     level = max(1, min(9, int(level)))
-    rpr = ("<w:b/>" if bold else "<w:b w:val=\"0\"/>") + (f'<w:color w:val="{_x(color)}"/>' if color else "") \
-        + (f'<w:sz w:val="{int(round(size * 2))}"/>' if size else "")
-    d.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/>{_ppr(geo, True)}</w:pPr><w:r><w:rPr>{rpr}</w:rPr>'
+    r = _fonts(font) + ("<w:b/>" if bold else "<w:b w:val=\"0\"/>") + ("<w:i/>" if italic else "") \
+        + (f'<w:color w:val="{_x(color)}"/>' if color else "") + (f'<w:sz w:val="{int(round(size * 2))}"/>' if size else "")
+    d.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/>{_ppr(geo, True)}</w:pPr>{lead}<w:r><w:rPr>{r}</w:rPr>'
                   f'<w:t xml:space="preserve">{_x(text)}</w:t></w:r></w:p>')
 
 
-def para(d, text, geo):
-    d.body.append(f'<w:p><w:pPr>{_ppr(geo)}</w:pPr><w:r><w:t xml:space="preserve">{_x(text)}</w:t></w:r></w:p>')
+def para(d, text, geo, st=None, lead=""):
+    d.body.append(f'<w:p><w:pPr>{_ppr(geo)}</w:pPr>{lead}<w:r>{rpr(st)}<w:t xml:space="preserve">{_x(text)}</w:t></w:r></w:p>')
+
+
+def picture(d, run, geo, lead=""):
+    """4.22.0: a picture in the text's flow, in a paragraph of its own: the space above it, its place between the
+    margins, a new page where the PDF starts one. The line is as tall as the picture."""
+    g = dict(geo or {})
+    g["pitch"] = None
+    d.body.append(f'<w:p><w:pPr>{_ppr(g)}</w:pPr>{lead}{run}</w:p>')
+
+
+def holder(d, lead, brk=False):
+    """An empty line that holds a picture behind the page (a page with no paragraph of its own to hold it)."""
+    b = "<w:pageBreakBefore/>" if brk else ""
+    d.body.append(f'<w:p><w:pPr>{b}<w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/></w:pPr>{lead}</w:p>')
 
 
 def spacer(d, geo):

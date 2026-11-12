@@ -74,9 +74,16 @@ def plan(pdf, name=None):
         skip = (auto - set(force)) | set(extra)
         set_aside = set(extra)
     import redlinelayout as RL
+    import redlinepics as RP
     tables = RL.tables(pdf, doc, skip)             # 4.11.0: tables become Word tables; 4.13.0: from their borders first
     in_tables = {x for t in tables for x in t["lines"]}
-    paras = PS.paragraphs(doc, skip | in_tables, force)
+    kept0 = {(pi, li) for pi, p in enumerate(doc["pages"]) for li in range(len(p["lines"])) if (pi, li) not in skip}
+    regs, rules = RP.regions(pdf, doc, skip | in_tables, tables, RL.setup(doc, kept0, tables))   # 4.22.0: the pictures
+    in_pics = {(pi, li) for pi, rs in regs.items() for r in rs for li in r["lines"]}
+    paras = PS.paragraphs(doc, skip | in_tables | in_pics, force)
+    starts = [(p["lines"][0][0], doc["pages"][p["lines"][0][0]]["lines"][p["lines"][0][1]].get("a", 0)) for p in paras if p["lines"]]
+    how = RL.styles(pdf, starts)                   # 4.22.0: each paragraph's own font, slant and color
+    body_font, body_size = RL.body_font(pdf), PS._body_size(doc)
     out = []
     for p in paras:
         texts = [doc["pages"][pi]["lines"][li]["text"] for pi, li in p["lines"]]
@@ -94,6 +101,20 @@ def plan(pdf, name=None):
             out.append({"kind": "text", "level": 0, "text": text, "page": p["page"]})
         out[-1]["at"] = p["lines"][0] if p["lines"] else (p["page"] - 1, 0)
         out[-1]["_lines"] = list(p["lines"])
+        if p["lines"]:
+            ln0 = doc["pages"][p["lines"][0][0]]["lines"][p["lines"][0][1]]
+            st = how.get((p["lines"][0][0], ln0.get("a", 0))) or {}
+            if st.get("font") and st["font"] != body_font:
+                out[-1]["font"] = st["font"]
+            if st.get("italic"):
+                out[-1]["italic"] = True
+            if out[-1]["kind"] != "heading":
+                if st.get("bold") or ln0.get("bold"):
+                    out[-1]["bold"] = True
+                if st.get("color"):
+                    out[-1]["color"] = st["color"]
+                if ln0.get("size") and abs(ln0["size"] - body_size) > 0.6:
+                    out[-1]["size"] = round(ln0["size"], 1)
     for t in tables:
         box = t.get("box")
         if box is None:
@@ -101,16 +122,96 @@ def plan(pdf, name=None):
             box = (min(b[0] for b in bx), min(b[1] for b in bx), max(b[2] for b in bx), max(b[3] for b in bx)) if bx else (0, 0, 0, 0)
         out.append({"kind": "table", "level": 0, "text": RL.text_of(t["grid"]), "page": t["page"] + 1, "grid": t["grid"],
                     "at": t["lines"][0], "_box": box})
+    behind = {}
+    for pi, rs in sorted(regs.items()):            # 4.22.0: pictures in the flow are items; the others ride on a page
+        ls = doc["pages"][pi]["lines"]
+        for r in rs:
+            if r["where"] == "flow":
+                below = [li for li, ln in enumerate(ls) if (pi, li) not in (skip | in_pics) and ln["box"][1] >= r["box"][1] - 1]
+                words = " ".join(ls[li]["text"].strip() for li in r["lines"])
+                out.append({"kind": "picture", "level": 0, "text": "", "page": pi + 1, "at": (pi, (min(below) if below else len(ls)) - 0.5),
+                            "_box": r["box"], "box": list(r["box"]), "words": words})
+            elif not r.get("furniture"):
+                behind.setdefault(pi, []).append(r)
+    for pi in behind:
+        if not any(p["page"] == pi + 1 for p in out):
+            out.append({"kind": "blank", "level": 0, "text": "", "page": pi + 1, "at": (pi, -1), "_box": (0, 0, 0, 0)})
     out.sort(key=lambda p: tuple(p.get("at") or (0, 0)))
+    out = _across_pages(doc, out)
+    seen = set()
+    for p in out:                                  # the first thing on a page holds the pictures behind that page
+        pi = p["page"] - 1
+        if pi in behind and pi not in seen:
+            seen.add(pi)
+            p["behind"] = [{"box": list(r["box"]), "under_text": bool(r["under_text"]),
+                            "words": " ".join(doc["pages"][pi]["lines"][li]["text"].strip() for li in r["lines"])} for r in behind[pi]]
     keep = {(pi, li) for pi, p in enumerate(doc["pages"]) for li in range(len(p["lines"])) if (pi, li) not in skip}
     pages = RL.setup(doc, keep, tables)
     RL.geometry(doc, out, pages)                   # 4.13.0: where each paragraph and table sits on its page
+    grp = {n: g for g in pages for n in range(g["pages"][0], g["pages"][1] + 1)}
+    for p in out:                                  # a picture's place between the margins
+        if p["kind"] == "picture" and p.get("geo") is not None:
+            g = grp.get(p["page"]) or {"w": 612, "margins": (72, 72, 72, 72)}
+            lo, hi = g["margins"][3], g["w"] - g["margins"][1]
+            b = p["box"]
+            if abs((b[0] + b[2]) / 2 - (lo + hi) / 2) < 6:
+                p["geo"]["align"] = "center"
+            else:
+                p["geo"]["left"] = round(max(0.0, b[0] - lo), 1)
+    furn = {}
+    for pi, rs in regs.items():
+        for r in rs:
+            if r.get("furniture"):
+                furn.setdefault(pi, []).append({"box": list(r["box"]), "where": r["where"]})
+    for g in pages:
+        g["furniture"] = {pi: furn[pi] for pi in furn if g["pages"][0] <= pi + 1 <= g["pages"][1]}
+        g["rules"] = {pi: [list(b) for b in rules[pi]] for pi in rules if g["pages"][0] <= pi + 1 <= g["pages"][1]}
+    import redlinehf as HF                         # 4.22.0: the running headers and footers become Word's own
+    HF.plan(doc, skip - set_aside, pages, lambda pi, a: RL.styles(pdf, [(pi, a)]).get((pi, a)), lambda pi: _words(pdf, pi))
     for p in out:
         for k in ("at", "_lines", "_box"):
             p.pop(k, None)
     aside = [(pi + 1, doc["pages"][pi]["lines"][li]["text"].strip()) for pi, li in sorted(set_aside)
              if pi < len(doc["pages"]) and li < len(doc["pages"][pi]["lines"])]
     return out, aside, pages
+
+
+def _words(pdf, pi):
+    """The words of one page with their boxes (pdfobjects), [] when the page cannot be read."""
+    import pypdfium2 as pdfium
+    import pdfobjects as PO
+    try:
+        d = pdfium.PdfDocument(pdf)
+    except Exception:  # noqa: BLE001
+        return []
+    try:
+        page = d[pi]
+        try:
+            return PO.words(page)
+        finally:
+            page.close()
+    finally:
+        d.close()
+
+
+def _across_pages(doc, out):
+    """4.22.0: a paragraph the PDF broke at the foot of a page is one paragraph: the last text of a page that ends
+    without a full stop, low on its page, and the first text of the next page, set the same way, are joined."""
+    res = []
+    for p in out:
+        a = res[-1] if res else None
+        if (a is not None and a["kind"] == "text" and p["kind"] == "text" and p["page"] == a["page"] + 1
+                and a.get("_lines") and p.get("_lines")
+                and all(a.get(k) == p.get(k) for k in ("font", "size", "bold", "italic", "color"))
+                and not re.search(r"[.?!:;\u201d\")\]]\s*$", a["text"])):
+            pi, li = a["_lines"][-1]
+            pg = doc["pages"][pi]
+            if pg["lines"][li]["box"][3] > 0.78 * (pg.get("h") or 792):
+                a["_lines"] = a["_lines"] + p["_lines"]
+                a["text"] = join_lines([doc["pages"][x]["lines"][y]["text"] for x, y in a["_lines"]])
+                continue
+        res.append(p)
+    return res
 
 
 def copy_name(pdf, when=None):
@@ -189,19 +290,67 @@ def _build_document(pdf, out, name=None):
     d.font = RL.body_font(pdf)                      # 4.13.0: the PDF's own body font and size
     d.half_points = int(round(2 * PS._body_size(doc))) or 22
     d.ppr_default = '<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'   # 4.15.0: Word's own otherwise adds space
+    import redlinepack as RK
+    import redlinepics as RP
+    media, n_pic = [], 0
+    want = {}                                       # page index -> the boxes to draw, with the page's text and without
+    for p in paras:
+        if p["kind"] == "picture":
+            want.setdefault((p["page"] - 1, False), []).append(tuple(p["box"]))
+        for b in p.get("behind") or ():
+            want.setdefault((p["page"] - 1, b["under_text"]), []).append(tuple(b["box"]))
+    drawn = {}
+    for (pi, bare), boxes in want.items():
+        for box, blob in zip(boxes, RP.draw(pdf, pi, boxes, without_text=bare)):
+            drawn[(pi, bare, box)] = blob
+
+    def pic(pi, bare, box, behind):
+        nonlocal n_pic
+        n_pic += 1
+        rid, name = f"rIdPic{n_pic}", f"picture{n_pic}.png"
+        media.append((rid, name, drawn[(pi, bare, tuple(box))], "document"))
+        return RP.anchor(rid, n_pic, box) if behind else RP.inline(rid, n_pic, box[2] - box[0], box[3] - box[1])
+
+    import redlinehf as HF
+    hf_parts = []
+    for k, g in enumerate(pages, start=1):          # 4.22.0: each run of pages' header and footer
+        hf = g.get("hf")
+        if not hf:
+            continue
+        for zone in ("header", "footer"):
+            boxes = hf["pictures"][zone]
+            if not (hf[zone] or boxes):
+                continue
+            name, rid, runs = f"{zone}{k}.xml", f"rId{zone.capitalize()}{k}", ""
+            for box, blob in zip(boxes, RP.draw(pdf, hf["page"], [tuple(b) for b in boxes])):
+                n_pic += 1
+                media.append((f"rIdPic{n_pic}", f"picture{n_pic}.png", blob, name))
+                runs += RP.anchor(f"rIdPic{n_pic}", n_pic, box)
+            hf_parts.append((rid, zone, name, HF.parts(g, zone, runs)))
+            g["hdr" if zone == "header" else "ftr"] = rid
     gi = 0                                          # 4.13.0: each run of pages keeps its size, orientation and margins
     for p in paras:
         while gi + 1 < len(pages) and p.get("page", 1) > pages[gi]["pages"][1]:
             RD.section(d, pages[gi])
             gi += 1
         geo = p.get("geo")
+        lead = "".join(pic(p["page"] - 1, b["under_text"], b["box"], True) for b in p.get("behind") or ())
+        st = {k: p[k] for k in ("font", "size", "bold", "italic", "color") if p.get(k)}
         if p["kind"] == "heading":
-            RD.heading(d, p["text"], p["level"], p.get("size"), p.get("bold", True), geo, p.get("color", ""))
+            RD.heading(d, p["text"], p["level"], p.get("size"), p.get("bold", True), geo, p.get("color", ""),
+                       p.get("font", ""), bool(p.get("italic")), lead)
+        elif p["kind"] == "picture":
+            RD.picture(d, pic(p["page"] - 1, False, p["box"], False), geo, lead)
+        elif p["kind"] == "blank":
+            RD.holder(d, lead, bool(geo and geo.get("break")))
         elif p["kind"] == "table":
+            if lead:
+                RD.holder(d, lead, bool(geo and geo.get("break")))
+                geo = dict(geo or {}, **{"break": False})
             RD.spacer(d, geo)
             RD.table(d, p["grid"], RD.room(pages[gi]) if pages else 9360)
         elif geo:
-            RD.para(d, p["text"], geo)
+            RD.para(d, p["text"], geo, st, lead)
         elif p["kind"] == "list":
             d.rich([(p["text"], {})], indent=360)
         else:
@@ -212,13 +361,15 @@ def _build_document(pdf, out, name=None):
         d.final_sect = RD.final(pages[gi])
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     d.save(out)
+    RK.add(out, media, hf_parts)
     side = {"format": FORMAT, "layout": "document", "source": os.path.basename(pdf), "source_sha256": _sha(pdf),
             "made": datetime.datetime.now().isoformat(timespec="seconds"), "paragraphs": paras,
             "set_aside": [list(x) for x in aside]}
     with open(out + SIDE, "w", encoding="utf-8") as f:
         json.dump(side, f, indent=1, ensure_ascii=False)
     return {"path": out, "paragraphs": len(paras), "headings": sum(1 for p in paras if p["kind"] == "heading"),
-            "tables": sum(1 for p in paras if p["kind"] == "table"), "set_aside": len(aside)}
+            "tables": sum(1 for p in paras if p["kind"] == "table"), "set_aside": len(aside), "pictures": n_pic,
+            "headers": sum(1 for _r, z, _n, _x in hf_parts if z == "header"), "footers": sum(1 for _r, z, _n, _x in hf_parts if z == "footer")}
 
 
 def sidecar(copy):
