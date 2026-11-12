@@ -111,7 +111,9 @@ class AcronymToolWindow(QMainWindow):
         self.b_first = D.button("Check first use...", None, lambda: self.first_use(), "Your own Word files, in order: where each "
                                 "acronym first appears and whether it is spelled out there")
         self.b_new = D.button("Start a new list", "ghost", lambda: self.new_list(), "Clear the results and the list (the files are untouched)")
-        for b in (self.b_export, self.b_first, self.b_new):
+        self.b_send = D.button("Send the list to an effort...", None, lambda: self.send_to_effort(), "The terms of this list, "
+                               "with their meanings, into an effort's acronym list (4.23.0). The same meaning is not added twice")
+        for b in (self.b_export, self.b_send, self.b_first, self.b_new):
             bar.addWidget(b)
         lists = QHBoxLayout(); v.addLayout(lists)                         # 3.51.0: named lists
         lists.addWidget(D.label("List", "label"))
@@ -232,6 +234,46 @@ class AcronymToolWindow(QMainWindow):
         diag.activity("acronym_tool_exported", n=n)
         self.host.status(f"{n} terms exported to {path}")
         return path
+
+    def efforts(self):
+        """The efforts this PC knows: {name: its acronym list's path}."""
+        import effort as E
+        reg = E.Registry(os.path.join(self.host.config_dir, "efforts.json"))
+        return {nm: (reg.get(nm) or {}).get("path", "") for nm in reg.names() if (reg.get(nm) or {}).get("path")}
+
+    def send_to_effort(self, name=None):
+        """4.23.0 (Nicholas 2026-11-12 13:51: "I can't attach it to an effort easily"): this list's terms and meanings into
+        an effort's acronym list, with the merge's rules. Returns the merge's counts, or None."""
+        import acrimport as AI
+        import effort as E
+        s = self.page.session
+        rows = list_rows(s) if s is not None else []
+        if not rows:
+            self.host.status("Nothing to send yet: scan files first.")
+            return None
+        known = self.efforts()
+        if not known:
+            self.host.status("No effort on this PC yet: make one in Stationkeeper, then send the list.")
+            return None
+        if name is None:
+            name, ok = QInputDialog.getItem(self, "Send the list to an effort", f"{len(rows)} term(s) go into the acronym list of:",
+                                            sorted(known), 0, False)
+            if not ok:
+                return None
+        if name not in known:
+            self.host.status("That effort is not on this PC.")
+            return None
+        try:
+            L = E.EffortList(known[name], name).load()
+            n = AI.merge(L, [{"Term": t, "Definition": m} for t, m in rows], f"Acros & Abs Finder: {self.host.name}")
+        except PermissionError:
+            self.host.status("That effort's acronym list is open in Excel. Close it, then send again.")
+            return None
+        diag.activity("acronym_tool_sent", n=n["added"] + n["filled"])
+        self.host.status(f"Sent to {name}: {n['added']} new, {n['filled']} filled in, {n['same']} already there"
+                         + (f", {len(n['review'])} with another meaning there (theirs kept; yours under Other definitions)" if n["review"] else "")
+                         + ". Open the effort's Acros & Abs to see them.")
+        return n
 
     def new_list(self):
         s = self.page.session

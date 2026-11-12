@@ -322,7 +322,7 @@ DRAFTS BY VOLUME (4.4.0)
   - Acronyms checks each volume's draft against the effort's acronym list: used before it is spelled out, spelled out
     again, not in the list, and the volume's Acronyms table. Fix in a copy... works through one volume's findings into
     a copy as tracked changes. A term not in the list goes back to Shred > Acros & Abs marked From our drafts: <volume>,
-    and is listed here until it is decided there. In our drafts on Acros & Abs opens this tab.
+    and is listed here until it is decided there. In our drafts (Acros & Abs, More) opens this tab.
   - Settings > You now shows Appearance: Follow Windows, Light or Dark (it was missing from the Settings list).
   - Small fixes: the bar at the bottom names Matrix & Outline with its ampersand; Your next step for Matrix & Outline opens
     Place; Rules & Dates adds a rule with Add a rule... and sets one aside with Set it aside; the wording left from
@@ -489,8 +489,8 @@ ACRONYMS IN TWO TABS: ON THE PAGE AND THE LIST (3.93.0)
   - In typed text (Word, PowerPoint, Excel) the passage shows with every find as a link; select words with no find to
     add them.
   - The list: the effort's terms with their type, state, definition and source; filters as counts; the card with where
-    it goes and its sources, and Show on the page (the term's page, its finds selected). In our drafts is the main
-    button. A decision in either tab is the same decision.
+    it goes and its sources, and Show on the page (the term's page, its finds selected). Add a term is the main
+    button (4.23.0). A decision in either tab is the same decision.
   - Acronym Finder (its own window) keeps the list with the page beside it.
 
 SETUP FROM A WORKBOOK: CLICKS AND DRAG (3.92.2)
@@ -514,9 +514,14 @@ HEADINGS IN THE TEXT, AND MEETING NOTES (3.92.1)
     says Notes with the topic count; Effort Record > Meetings lists the same meeting.
 
 ACRONYMS ON THE PAGE (3.92.0)
-  - Three panes: the terms on the left (filters are counts you click: To decide, Needs a choice, No definition yet, On
-    pictures, In the list, Not a term), the customer's page or picture where the term was found in the middle, the
-    card on the right. One bar: Next to decide, Add a term, In our drafts; every scan and tool under More.
+  - Three panes: the terms on the left (two counts you click: To decide and In the list; the other filters, Needs a
+    choice, No definition yet, On pictures and Not a term, are under More as Show only), the customer's page or
+    picture where the term was found in the middle, the card on the right. One bar: Add a term; every scan and tool,
+    In our drafts and the report under More; Export makes the list, the whole effort or one per volume.
+  - Decide and move on (4.23.0): Add to effort list and Not a term each move to the next term to decide. There is no
+    Next to decide button and no Copy button on the card.
+  - Acros & Abs Finder: Send the list to an effort... puts its terms and meanings into an effort's acronym list; the
+    same meaning is not added twice.
   - Keys on the card: 1 to 4 pick a definition, Enter adds the term to the list with it, X says Not a term. A line joins
     the words that spell the term out on the page to the definition picked.
   - The card says when a find sits inside a longer term (DC in DC-RVM, with Use DC-RVM, one term); More > Letters

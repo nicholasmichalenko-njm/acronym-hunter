@@ -87,8 +87,7 @@ def build(page, t, kind_tone):
     fr.addWidget(D.label("Read here", "muted", wrap=False))
     page.find_text = QLineEdit(); page.find_text.setReadOnly(True)
     page.find_text.setPlaceholderText("The line the term was read in shows here when the preview opens")
-    fr.addWidget(page.find_text, 1)
-    fr.addWidget(D.button("Copy", "ghost", lambda: _copy(page.find_text.text())))
+    fr.addWidget(page.find_text, 1)                    # 4.23.0: no Copy button beside it (select the words to copy them)
     body.addLayout(fr)
     page.typed = QLineEdit(); page.typed.setPlaceholderText("Type a definition to add with it (right-click for subscript, superscript, symbols)")
     from . import symbols as SYM
@@ -106,7 +105,7 @@ def build(page, t, kind_tone):
     if getattr(page, "list_only", False):                              # 3.93.0: the page is the On the page tab
         for w_ in (page.find_text, page.use_sel):
             w_.setVisible(False)
-        fr.itemAt(0).widget().setVisible(False); fr.itemAt(2).widget().setVisible(False)
+        fr.itemAt(0).widget().setVisible(False)
         locs_view = []
     else:
         locs_view = locs

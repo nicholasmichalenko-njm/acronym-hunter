@@ -68,7 +68,7 @@ d2.rich([("The ZQX bench and the WVR log are kept weekly.", None)])
 p2 = os.path.join(F2, "Mgmt.docx"); d2.save(p2)
 DV.set_folder(w.ws, vols[0], F1); DV.set_folder(w.ws, vols[1], F2)
 
-ap.b_drafts.click(); app.processEvents()
+ap.b_drafts.trigger(); app.processEvents()
 pg = w.draftacr_page
 check("In our drafts on Acros & Abs opens Drafts > Acronyms", w.stack.currentWidget() is pg and w._tab_keys[:3] == ["drafts", "draftacr", "techedit"],
       w._tab_keys)

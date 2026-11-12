@@ -499,13 +499,35 @@ class AcronymPage(QWidget):
 
     def add(self, terms, definition=None):
         typed = definition if definition is not None else (self.typed.text().strip() if len(terms) == 1 and hasattr(self, "typed") else "")
+        after = self._after(terms)
         msg = self.session.add(terms, typed)
         diag.activity("qt_acronym_added", n=len(terms))
         self.host.toast(msg or "Added to the effort list")
         self.fill()
+        self._move_on(after)
         return msg
 
+    def _after(self, terms):
+        """4.23.0: the term to go to once these are decided: the next one still to decide after them, in the list's order
+        (Nicholas 13:51: Add to effort list moves on by itself, as Not a term does)."""
+        import acrpage as P
+        from . import acrlayout as AL
+        s, order = self.session, list(getattr(self, "terms", []) or [])
+        if s is None or len(terms) != 1 or terms[0] not in order:
+            return None
+        k = order.index(terms[0]) + 1
+        for t in order[k:] + order[:k - 1]:
+            d = s.results.get(t)
+            if d is not None and P.passes(d, "To decide", AL.kind_of(d)):
+                return t
+        return None
+
+    def _move_on(self, t):
+        if t is not None and t in getattr(self, "terms", []) and self.session is not None and t in self.session.results:
+            self.select(t)
+
     def set_status(self, terms, status, approver=""):
+        after = self._after(terms) if status == "Not a term" else None
         n = self.session.set_status(terms, status, approver)
         eff = self.session.effort
         if eff is None:                                     # the Acronym Finder window: Not a term hides it for this scan
@@ -513,6 +535,7 @@ class AcronymPage(QWidget):
         what = "not a term" if status == "Not a term" else "in the list"
         self.host.toast(f"Acronym list: {n} {what}" + ("" if eff is None or not eff.pending else ". NOT SAVED yet: close the list in Excel."))
         self.fill()
+        self._move_on(after)
         return n
 
     def exclude(self, terms, on=True):

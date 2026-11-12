@@ -40,8 +40,10 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1600, 980); w.show()
 w.open_effort("Kestrel")
 w.go("acronyms"); app.processEvents()
 ap = w.acronym_page
-check("The list's bar: Next to decide, Add a term, In our drafts (3.93.0: the main one)", ap.bar.main is ap.b_drafts
-      and len(ap.bar.commands) <= 5 and "Next to decide" in ap.bar.labels(), ap.bar.labels())
+check("4.23.0: the list's bar: Add a term is the main button; Next to decide is gone; In our drafts and the report are in More",
+      ap.bar.main is ap.b_addterm and len(ap.bar.commands) <= 5 and "Next to decide" not in ap.bar.labels()
+      and ap.bar.action("In our drafts") is not None and ap.bar.action("Export the report...") is not None
+      and ap.bar.labels().count("Add a term") == 1 and "Add a term..." not in ap.bar.labels(), ap.bar.labels())
 check("every scan and tool is in More", all(ap.bar.action(x) is not None for x in ("Scan the customer documents", "Scan files...",
       "Scan the library...", "Customer acronym lists...", "Letters joined by a hyphen are one term")))
 files = [os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")]
@@ -57,7 +59,8 @@ check("the counts on the page", ap.count_btns["To decide"].text() == f"To decide
 ap.count_btns["To decide"].click(); app.processEvents()
 check("a count clicked filters the list", ap.f_status.currentText() == "To decide" and ap.count_btns["To decide"].isChecked())
 check("the list shows the term, its type, state, definition and source", [c_ for c_ in range(ap.table.columnCount()) if not ap.table.isColumnHidden(c_)] == [0, 1, 5, 6, 9])
-t = ap.b_next.click() or ap.current(); app.processEvents()
+from skqt import acrlayout as _AL
+_AL.next_to_decide(ap); app.processEvents()
 t = ap.current()
 check("Next to decide selects a term to decide", t is not None and P.passes(s.results[t], "To decide", "other"), t)
 check("3.93.0: the customer's page is the On the page tab, not beside the list", ap.where_view is None and not ap.mid.isVisible()

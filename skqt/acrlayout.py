@@ -19,6 +19,7 @@ from .commandbar import CommandBar
 from .splitlines import SplitView
 
 KEEP_COLS = (0, 5, 6)                       # Term, Status, Definition; the rest stay in Export and Details
+SHOWN_COUNTS = ("To decide", "In the list")   # 4.23.0: what is left and what is done; the rest filter from More
 LIST_COLS = (0, 1, 5, 6, 9)                 # 3.93.0 The list: Term, Type, Status, Definition, Source (the tool: KEEP_COLS)
 
 
@@ -30,19 +31,22 @@ def install(page):
     # the bar
     bar = CommandBar(page)
     page.bar = bar
-    page.b_next = bar.add("Next to decide", lambda: next_to_decide(page), "The next term to decide, in the list's order")
-    bar.add("Add a term", lambda: __import__("skqt.acrextras", fromlist=["x"]).add_term(page),
-            "A term the scan did not find: select its words on the page, or type it")
-    page.b_drafts = bar.primary("In our drafts", lambda: open_drafts(page), "Each volume's draft against the list: first use, "
-                                "spelled out again, the volume's Acronyms table")
+    # 4.23.0 (Nicholas 2026-11-12 13:51): Add a term is the main button; Next to decide is gone (both decisions move to
+    # the next term by themselves); In our drafts and the report are in More
+    page.b_addterm = bar.primary("Add a term", lambda: __import__("skqt.acrextras", fromlist=["x"]).add_term(page),
+                                 "A term the scan did not find: select its words on the page, or type it")
+    page.b_drafts = bar.more("In our drafts", lambda: open_drafts(page), "Each volume's draft against the list: first use, "
+                             "spelled out again, the volume's Acronyms table")
+    bar.more_sep()
     for b in (page.b_cust, page.b_files, page.b_lib, page.b_again, page.b_paste, page.b_window):
         bar.more(b.text(), b.click, b.toolTip())
         b.setVisible(False)
     bar.more_sep()
     for b in __import__("skqt.acrextras", fromlist=["x"]).top_buttons(page):
-        bar.more(b.text(), b.click, b.toolTip())
+        if b.text() != "Add a term...":                    # 4.23.0: it is the bar's main button
+            bar.more(b.text(), b.click, b.toolTip())
     page.hyphen_act = bar.more("Letters joined by a hyphen are one term", lambda: set_hyphen(page), checkable=True)
-    bar.export("Export the report...", lambda: page.export())
+    bar.more("Export the report...", lambda: page.export(), "Exactly the rows shown, as a CSV that opens in Excel")
     _acro_list(page, bar)                                  # 4.1.0: the Acro List folded in: its view, Lists to submit, exports
     # the old rows of buttons and filters: hidden, still there for the tools
     for i in range(v.count()):
@@ -66,6 +70,14 @@ def install(page):
         b = QPushButton(name); b.setCheckable(True); b.setObjectName("chip"); b.setStyleSheet(chip)
         b.clicked.connect(lambda _c=False, n=name: pick_count(page, n))
         page.counts_row.addWidget(b); page.count_btns[name] = b
+        b.setVisible(name in SHOWN_COUNTS)                 # 4.23.0: the other filters are in More
+    page.count_acts = {}
+    bar.more_sep()
+    for name in P.COUNTS:
+        if name not in SHOWN_COUNTS:
+            act = bar.more(f"Show only: {name}", lambda n=name: pick_count(page, n))
+            act.setCheckable(True)                         # ticked when it is the filter (set in fill_counts)
+            page.count_acts[name] = act
     page.counts_row.addWidget(page.f_search)
     page.f_search.setVisible(True); page.f_search.setMinimumWidth(200)
     page.counts_row.addWidget(page.showing)                # 3.93.0: in The list, with its filters
@@ -124,6 +136,8 @@ def fill_counts(page):
     for name, b in page.count_btns.items():
         b.setText(f"{name} {c[name]}")
         b.setChecked(name == want)
+    for name, act in getattr(page, "count_acts", {}).items():
+        act.setText(f"Show only: {name} ({c[name]})"); act.setChecked(name == want)
     from . import acrtabs as TB
     TB.after_fill(page)                                    # 3.93.0: the tabs, and the page drawn again
     return c
@@ -182,17 +196,15 @@ def add_current(page):
     if t is None:
         return None
     dfn = page.typed.text().strip() or None
-    page.add([t], dfn)
-    nxt = next_to_decide(page)
-    return nxt or t
+    page.add([t], dfn)                                     # 4.23.0: the page moves to the next term itself
+    return page.current() or t
 
 
 def not_term_current(page):
     t = page.current()
     if t is None:
         return None
-    page.set_status([t], "Not a term")
-    next_to_decide(page)
+    page.set_status([t], "Not a term")                     # 4.23.0: the page moves to the next term itself
     return t
 
 
@@ -419,6 +431,7 @@ def _acro_list(page, bar):
     bar.more("Lists to submit, by volume", on(lambda lp: page.host.go("lists")),
              "Only the terms each volume uses, from the latest Submission check")
     bar.more("Import a list...", on(lambda lp: IV.import_list(lp)), "Any Excel or CSV list, merged into the effort's list")
-    for k, text in (("whole", "Acro list: the whole effort..."), ("volume", "Acro list: one per volume..."), ("both", "Acro list: both...")):
+    # 4.23.0: one export, the effort's list, whole or by volume ("both" is the two, one after the other; it left the menu)
+    for k, text in (("whole", "The list: the whole effort..."), ("volume", "The list: one per volume...")):
         bar.export(text, on(lambda lp, k=k: lp.export(scope=k)), "Word and Excel")
 

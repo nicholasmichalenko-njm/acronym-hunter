@@ -188,7 +188,7 @@ check("Page done marks the page and shows the next page with finds", PKEY in AG.
 
 # ---- The list
 ap.tabs.setCurrentIndex(1); app.processEvents()
-check("The list: In our drafts is its main button", ap.bars.currentWidget() is ap.bar and ap.bar.main is ap.b_drafts
+check("The list: Add a term is its main button (4.23.0; In our drafts is in More)", ap.bars.currentWidget() is ap.bar and ap.bar.main is ap.b_addterm
       and len(ap.bar.commands) <= 5, ap.bar.labels())
 ap.show_in_list("EPS"); app.processEvents()
 check("The list shows no page beside the card", getattr(ap, "where_view", None) is None and not ap.mid.isVisible())
