@@ -67,7 +67,7 @@ lp.select(d["id"]); app.processEvents()
 menu = [a.text() for a in DS.row_menu(lp, run=False).actions()]
 check("the right-click offers Replace the file..., Read it again (edited) and Delete...", "Replace the file..." in menu
       and "Read it again (the file was edited)" in menu and "Delete..." in menu, menu)
-plan = DI.plan(lib(), [inside])
+plan = DI.plan(lib(), [inside], edited="replace")
 check("added again, the edited file is the same document (replace), not Amendment 1", plan[0]["choice"] == "replace", plan[0]["choice"])
 DI.apply(l2 := lib(), plan, customer_dir=CD)
 check("... still one version", len(lib().docs[0]["versions"]) == 1)

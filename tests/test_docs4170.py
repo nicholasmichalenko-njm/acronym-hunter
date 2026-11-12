@@ -55,7 +55,9 @@ check("a new document is added as before", plan[0]["choice"] == "new" and os.pat
 open(inside, "wb").write(b"%PDF-1.4 version two, edited where it sits")
 reads[inside] = v2
 check("an edit where it sits is noticed", [x[0]["id"] for x in RP.changed_on_disk(lib)] == [d["id"]])
-plan = DI.plan(lib, [inside], reader=reader)
+plan = DI.plan(lib, [inside], reader=reader, edited="replace")
+watch = DI.plan(lib, [inside], reader=reader)
+check("... from the watch (the customer's newer file saved over it) it is the next version", watch[0]["choice"] == "version" and watch[0].get("replace_of") == d["id"])
 check("added again, it is offered as the same document, its file replaced", plan[0]["choice"] == "replace"
       and plan[0]["doc"] == d["id"], (plan[0]["choice"], plan[0]["doc"]))
 items = [{"id": "L-1", "file": "Section L.pdf", "text": "The Contractor shall deliver the Kestrel test plan within 30 days.",

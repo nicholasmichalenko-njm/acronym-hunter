@@ -64,9 +64,9 @@ rows = {r[0]: r for r in lp.status_now}
 check("a document that does not feed the matrix says No", rows["Feeds the matrix"][1] == "No")
 m = DS.row_menu(lp, run=False)
 acts = [a.text() for a in m.actions() if a.text()]
-check("the right-click menu: five things about the file, then what left the panel (4.6.0)", acts[:5] == ["Open", "Set type",
-      "Add a newer version...", "Leave out", "Show in folder"] and [a for a in acts[5:] if a != "Prepare a redline copy"]
-      == ["Initial and type...", "More about this document..."], acts)   # 4.8.0: Prepare a redline copy for a PDF
+check("the right-click menu: the things about the file, then what left the panel (4.6.0), then Delete... (4.17.0)", acts[:6] == ["Open", "Set type",
+      "Add a newer version...", "Replace the file...", "Leave out", "Show in folder"] and [a for a in acts[6:] if a != "Prepare a redline copy"]
+      == ["Initial and type...", "More about this document...", "Delete..."], acts)   # 4.8.0: Prepare a redline copy for a PDF
 check("... Set type holds the categories and Initial and type", "Initial and type..." in [a.text() for a in m.actions()[1].menu().actions()])
 check("... Open and Show in folder find the file", os.path.isfile(DS.open_file(lp, lp.lib.doc(dS["id"])))
       and os.path.isdir(DS.show_in_folder(lp, lp.lib.doc(dS["id"]))))
