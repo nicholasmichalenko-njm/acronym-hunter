@@ -707,7 +707,7 @@ class MainWindow(QMainWindow):
             self.status(f"Adding the {self.library_page.lib.category_name(cat) if self.library_page.lib else cat} files first; "
                         "Review again for the rest.")
         diag.activity("qt_watch_add", n=len(paths))
-        return self.library_page.add(paths, folders=rel, category=cat, choices=choices)
+        return self.library_page.add(paths, folders=rel, category=cat, choices=choices, edited="version")   # 4.17.0: the customer's
 
     def watch_set_aside(self):
         import watch as WA

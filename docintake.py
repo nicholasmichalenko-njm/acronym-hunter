@@ -58,7 +58,7 @@ def walk(folder):
     return out
 
 
-def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, category=None):
+def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, category=None, edited="version"):
     """For each new file: its text and the suggested match. Files are taken in the order given, so a later file can be
     matched to an earlier one in the same batch. Returns [entry]: {path, sha, dup, sents, cands, best, choice
     ('new', 'version' or 'skip'), doc, name, label}.
@@ -66,7 +66,10 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
     folders: {path: relative folder}; category: the category every file goes to (else guessed, customer when unsure);
     progress(fraction, text) per file; stop() True raises Stopped.
     2.97.0: a file marked above CUI raises Spill (sensitivity.guard) before anything is read on or copied; each entry
-    keeps the level found ("sensitivity", -1 when none)."""
+    keeps the level found ("sensitivity", -1 when none).
+    4.17.0: a file read before from this very place, changed since: edited "replace" (Documents' Add files: the person
+    edited it) offers it first as the same document with its file replaced; "version" (the watch: the customer's newer
+    file saved over the old) as its next version. Both are in the add table's choices."""
     out = []
     folders = folders or {}
     n = max(1, len(paths))
@@ -126,7 +129,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
         dtype = DV.guess_type(os.path.basename(p))                  # 2.68.0: the person confirms the type and initial
         taken = [e.get("initial", "") for e in out]
         out.append({"path": p, "sha": h, "sents": sents, "cands": cands, "best": best, "text_print": tp,
-                    "choice": "replace" if same_file else "version" if best and DV.Library.band(best[1]) == "strong" else "new",
+                    "choice": "replace" if same_file and edited == "replace" else "version" if (best and DV.Library.band(best[1]) == "strong") or same_file else "new",
                     "doc": same_file or (best[0]["id"] if best else None), "replace_of": came[0]["id"] if came else None, "name": DV.display_name(p), "label": "",
                     "type": dtype, "initial": lib.suggest_initial(dtype, taken) if cat == "customer" else "",
                     "category": cat, "folder": rel, "tags": DV.folder_tags(rel), "role": DV.suggest_role(cat, dtype),

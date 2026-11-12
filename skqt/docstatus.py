@@ -270,4 +270,4 @@ def newer_version(page, d, path=None):
         path, _f = QFileDialog.getOpenFileName(page, f"A newer version of {d['name']}", "")
         if not path:
             return None
-    return page.add([path], category=d.get("category", "customer"))
+    return page.add([path], category=d.get("category", "customer"), edited="version")   # 4.17.0: a newer version, as asked
