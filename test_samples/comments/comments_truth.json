@@ -1,0 +1,269 @@
+{
+ "C01_prose_commented.pdf": {
+  "base": "C01_prose.pdf",
+  "comments": [
+   {
+    "id": "hl_note",
+    "page": 1,
+    "want": "comment",
+    "words": "Kestrel test plan",
+    "note": "Which test plan revision?",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "reply",
+    "page": 1,
+    "want": "reply",
+    "to": "hl_note",
+    "note": "Revision C, per the draft.",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "status",
+    "page": 1,
+    "want": "done",
+    "to": "hl_note"
+   },
+   {
+    "id": "hl_lines",
+    "page": 1,
+    "want": "comment",
+    "words": "who witnesses each test, and how the results are reported to the Government",
+    "note": "Highlighted",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "strike",
+    "page": 1,
+    "want": "delete",
+    "words": "shall be",
+    "accepted": "All deliverables are reviewed",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "underline",
+    "page": 1,
+    "want": "comment",
+    "words": "monthly",
+    "note": "Monthly or quarterly?",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "accepted",
+    "page": 1,
+    "want": "reply",
+    "to": "underline",
+    "note": "Marked Accepted",
+    "author": "Priya Natarajan"
+   },
+   {
+    "id": "replace",
+    "page": 1,
+    "want": "replace",
+    "words": "two",
+    "insert": "three",
+    "accepted": "The offeror shall submit three copies of each volume",
+    "author": "Priya Natarajan"
+   },
+   {
+    "id": "hl_copied",
+    "page": 1,
+    "want": "comment",
+    "words": "program office",
+    "note": "Highlighted",
+    "author": "Priya Natarajan"
+   },
+   {
+    "id": "insert_end",
+    "page": 1,
+    "want": "insert",
+    "insert": "and J-5",
+    "accepted": "the format in Attachment J-4 and J-5.",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "insert",
+    "page": 1,
+    "want": "insert",
+    "insert": "revised",
+    "accepted": "The revised schedule is fixed",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "strike_letter",
+    "page": 1,
+    "want": "delete",
+    "words": "s",
+    "accepted": "The requirement of Section M",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "hl_twice",
+    "page": 1,
+    "want": "comment",
+    "words": "the requirements of this section",
+    "note": "Which section: L or M?",
+    "author": "Priya Natarajan",
+    "context": "apply to the format"
+   },
+   {
+    "id": "same_twice",
+    "page": 1,
+    "want": "comment",
+    "words": "Offerors may send questions about the Kestrel ground station",
+    "note": "Is e-mail the only way?",
+    "author": "Marcus Reyes",
+    "context": "Question period 2."
+   },
+   {
+    "id": "header",
+    "page": 1,
+    "want": "comment",
+    "note": "Header says RFP; the cover says draft RFP.",
+    "author": "Dana Whitfield",
+    "how": "position",
+    "near": "L.1 General Instructions"
+   },
+   {
+    "id": "sticky",
+    "page": 1,
+    "want": "comment",
+    "note": "Confirm 25 pages for Volume I.",
+    "author": "Dana Whitfield",
+    "how": "position",
+    "near": "Section L.3 sets the page limit"
+   },
+   {
+    "id": "callout",
+    "page": 1,
+    "want": "comment",
+    "note": "Wrong site: the survey is at Ridgeline North.",
+    "author": "Marcus Reyes",
+    "how": "position",
+    "words": "Ridgeline"
+   },
+   {
+    "id": "square",
+    "page": 1,
+    "want": "comment",
+    "note": "Check this against Attachment J-2.",
+    "author": "Priya Natarajan",
+    "how": "position",
+    "words": "Pages are 8.5 by 11 inches"
+   },
+   {
+    "id": "cell",
+    "page": 1,
+    "want": "comment",
+    "words": "Management approach",
+    "note": "Rename to Management volume?",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "cell_strike",
+    "page": 1,
+    "want": "delete",
+    "words": "No",
+    "note": "Price has a limit now.",
+    "author": "Priya Natarajan",
+    "accepted": "limit"
+   },
+   {
+    "id": "hl_last",
+    "page": 2,
+    "want": "comment",
+    "words": "Kestrel test plan",
+    "note": "Same plan as L.1.",
+    "author": "Dana Whitfield",
+    "context": "reviewed again at the critical design review"
+   },
+   {
+    "id": "stamp",
+    "page": 2,
+    "want": "comment",
+    "note": "Stamp: Approved",
+    "author": "Priya Natarajan",
+    "how": "position",
+    "near": "reviewed again at the critical design review"
+   }
+  ]
+ },
+ "S01_deck_commented.pdf": {
+  "base": "../fidelity/pdf_ppt/S01_deck_16x9.pdf",
+  "comments": [
+   {
+    "id": "s_title",
+    "page": 2,
+    "want": "delete",
+    "words": "Approach",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "s_hl",
+    "page": 2,
+    "want": "comment",
+    "words": "Reuse the Kestrel",
+    "note": "Is this still true for Block 2?",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "s_note",
+    "page": 2,
+    "want": "comment",
+    "note": "Chart needs a source line.",
+    "author": "Priya Natarajan",
+    "how": "position"
+   }
+  ]
+ },
+ "T01_cells_commented.pdf": {
+  "base": "../fidelity/pdf_word_tagged/F06_wrapped_cells.pdf",
+  "comments": [
+   {
+    "id": "t_wrap",
+    "page": 1,
+    "want": "comment",
+    "words": "plan for integrating legacy telemetry",
+    "note": "Name the legacy systems.",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "t_strike",
+    "page": 1,
+    "want": "delete",
+    "words": "carries",
+    "author": "Marcus Reyes"
+   },
+   {
+    "id": "t_cells",
+    "page": 1,
+    "want": "comment",
+    "words": "Management Key",
+    "note": "Two cells: one comment.",
+    "author": "Priya Natarajan"
+   }
+  ]
+ },
+ "T02_long_table_commented.pdf": {
+  "base": "../fidelity/pdf_word_tagged/F13_header_repeat.pdf",
+  "comments": [
+   {
+    "id": "t_page2",
+    "page": 2,
+    "want": "comment",
+    "words": "Kestrel spare part number 45",
+    "note": "Part 45 is out of stock.",
+    "author": "Dana Whitfield"
+   },
+   {
+    "id": "t_replace",
+    "page": 2,
+    "want": "replace",
+    "words": "7",
+    "insert": "8",
+    "accepted": "Kestrel spare part number 48",
+    "author": "Marcus Reyes"
+   }
+  ]
+ }
+}

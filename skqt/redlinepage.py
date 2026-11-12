@@ -2,8 +2,9 @@
 A menu item of its own below the six steps, with no number: redlining happens at any point (the draft RFP, Q&A, the
 final RFP's terms, amendments, a model contract). Authors redline in Word with Track Changes; the app does what Word
 does badly. Three tabs, each with one main button:
-- Prepare: the effort's customer PDFs with the date of each copy made; Make the Word copy (redlinecopy). More: Another
-  PDF..., Open the Redlines folder. Fix text in Shred first if the page needs it: the copy uses the text as fixed there.
+- Prepare: the effort's customer PDFs with the date of each copy made; Make the Word copy (redlinecopy; 4.16.0: the
+  PDF's comments come in as tracked changes and Word comments). More: Another PDF..., Make it as slides, Make it as a
+  document, Make it without the PDF's comments, Open the Redlines folder. Fix text in Shred first if the page needs it: the copy uses the text as fixed there.
 - Check: Check the copy against its PDF, word for word; Check the returned redline... (an edit made with Track Changes
   off). Each finding lists its page and the heading above it; double-click shows it on the page in Shred.
 - Exceptions: Read the redline's changes... (each tracked change a row); Export to Excel or Word.
@@ -78,6 +79,8 @@ class PreparePage(QWidget):
                       "behind, each box of text where it sits (a deck saved as PDF is made this way on its own)")
         self.bar.more("Make it as a document", lambda: self.make(layout="document"), "Running text, headings and tables, even "
                       "for a PDF that looks like slides")
+        self.bar.more("Make it without the PDF's comments", lambda: self.make(comments=False), "A clean copy: the reviewers' "
+                      "highlights, cross-outs, inserts and notes on the PDF left out")
         self.bar.more("Open the Redlines folder", lambda: _open(folder(self.host)))
         top.addWidget(self.bar)
         v.addWidget(D.label("Fix text in Shred first if the page needs it: the copy uses the text as fixed there.", "muted"))
@@ -110,9 +113,10 @@ class PreparePage(QWidget):
         self.refresh(select=doc_id)
         return any(d == doc_id for d, _n, _p in self.rows)
 
-    def make(self, other=False, pdf=None, layout=None):
+    def make(self, other=False, pdf=None, layout=None, comments=True):
         """Make the copy of the selected PDF (or another one). Returns the copy's path, or None. layout (4.15.0):
-        "slides" or "document"; left out, the PDF says which."""
+        "slides" or "document"; left out, the PDF says which. comments (4.16.0): the PDF's comments come in as tracked
+        changes and Word comments; False leaves them out."""
         import redlinecopy as RC
         if pdf is None and other:
             pdf, _f = QFileDialog.getOpenFileName(self, "A PDF to make a Word copy of", "", "PDF (*.pdf)")
@@ -127,7 +131,7 @@ class PreparePage(QWidget):
         f = folder(self.host) or os.path.dirname(pdf)
         out = os.path.join(f, RC.copy_name(pdf))
         try:
-            res = RC.build(pdf, out, layout=layout)
+            res = RC.build(pdf, out, layout=layout, comments=comments)
         except ValueError as e:
             self.host.status(str(e) + " Read its pages in Shred first.")
             return None
@@ -136,10 +140,25 @@ class PreparePage(QWidget):
             return None
         self.host.toast(f"Word copy made: {res['slides']} slide(s), {res['paragraphs']} paragraphs" if res.get("slides") else
                         f"Word copy made: {res['paragraphs']} paragraphs, {res['headings']} headings"
-                        + (f", {res['tables']} table(s)" if res.get("tables") else ""))
+                        + (f", {res['tables']} table(s)" if res.get("tables") else "") + said_comments(res))
         diag.activity("redline_copy_made", n=res["paragraphs"])
         self.refresh()
         return out
+
+
+def said_comments(res):
+    """4.16.0: what the PDF's comments became, for the message after Make the Word copy."""
+    recs = res.get("comments") or []
+    if not recs:
+        return ""
+    out = f". {len(recs)} comment(s) from the PDF: {res.get('changes', 0)} tracked change(s), {res.get('word_comments', 0)} Word comment(s)"
+    if res.get("by_position"):
+        out += f"; {res['by_position']} placed by position (Check lists them)"
+    return out
+
+
+HOW = {"words": "on its words", "position": "by position", "left out": "on a line the copy leaves out",
+       "nearby words": "on the nearest words", "not placed": "listed only"}
 
 
 class CheckPage(QWidget):
@@ -184,16 +203,23 @@ class CheckPage(QWidget):
         cand = os.path.join(os.path.dirname(copy), name)
         return cand if name and os.path.isfile(cand) else ""
 
-    def fill(self, rows, aside=()):
-        self.found = list(rows)
+    def fill(self, rows, aside=(), comments=()):
+        """The differences, then the lines set aside, then (4.16.0) each comment from the PDF: what it became, the
+        words it is on in the copy, its note, its page, the heading above."""
+        notes = [{"kind": f"PDF {c['kind']}, {HOW.get(c['how'], c['how'])}", "was": c.get("in_copy") or c.get("marked", ""),
+                  "now": f"{c.get('became', '')}: {c.get('note', '')} ({c.get('author', '')})".strip(), "page": c.get("page"),
+                  "heading": c.get("heading", "")} for c in comments]
+        self.found = list(rows) + [{"page": pg} for pg, _t in aside] + notes
         allrows = [(x["kind"], x["was"], x["now"], str(x["page"] or ""), x["heading"]) for x in rows] + \
-                  [("Set aside on purpose", t, "", str(pg), "") for pg, t in aside]
+                  [("Set aside on purpose", t, "", str(pg), "") for pg, t in aside] + \
+                  [(x["kind"], x["was"], x["now"], str(x["page"] or ""), x["heading"]) for x in notes]
         self.table.setRowCount(len(allrows))
         for r, vals in enumerate(allrows):
             for c, val in enumerate(vals):
                 it = QTableWidgetItem(val)
                 if c == 0:
-                    it.setForeground(D.color({"Dropped": "crit", "Added": "warn", "Changed": "warn"}.get(val, "muted")))
+                    it.setForeground(D.color({"Dropped": "crit", "Added": "warn", "Changed": "warn"}.get(
+                        val, "warn" if val.startswith("PDF") and not val.endswith("on its words") else "muted")))
                 self.table.setItem(r, c, it)
         self.table.resizeRowsToContents()
 
@@ -209,12 +235,15 @@ class CheckPage(QWidget):
             return None
         res = CK.faithful(pdf, copy)
         self.source = pdf
-        self.fill(res["differences"], res["set_aside"])
+        cms = res.get("comments") or []
+        self.fill(res["differences"], res["set_aside"], cms)
         n = len(res["differences"])
         self.say.setText((f"{n} difference(s) between the copy and its PDF." if n else "The copy holds every word of its PDF, in order.")
                          + (f" {len(res['set_aside'])} line(s) set aside on purpose in Fix text." if res["set_aside"] else "")
                          + (f" {res['tables']} table(s) were made as Word tables from where the PDF's columns sit: look at "
-                            "each beside the PDF (a cell that wrapped, a merged cell)." if res["tables"] else ""))
+                            "each beside the PDF (a cell that wrapped, a merged cell)." if res["tables"] else "")
+                         + (f" {len(cms)} comment(s) from the PDF are listed below the differences; look at the ones not "
+                            "placed on their own words." if cms else ""))
         diag.activity("redline_copy_checked", n=n)
         return res
 
@@ -291,7 +320,9 @@ class ExceptionsPage(QWidget):
             for c, col in enumerate(EX.COLS[:7]):
                 self.table.setItem(r, c, QTableWidgetItem(str(row.get(col, ""))))
         self.table.resizeRowsToContents()
-        self.say.setText(f"{len(self.rows)} tracked change(s) in {os.path.basename(path)}.")
+        k = sum(1 for r in self.rows if r.get("Kind") == "Comment")
+        self.say.setText(f"{len(self.rows) - k} tracked change(s)" + (f" and {k} comment(s)" if k else "")
+                         + f" in {os.path.basename(path)}.")
         diag.activity("redline_exceptions_read", n=len(self.rows))
         return self.rows
 

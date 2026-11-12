@@ -127,12 +127,57 @@ def layout_of(pdf):
         return "document"
 
 
-def build(pdf, out, name=None, layout=None):
-    """Write the clean copy to out (a .docx) and its sidecar. Returns {"path", "paragraphs", "headings", "set_aside"}.
+def build(pdf, out, name=None, layout=None, comments=True):
+    """Write the clean copy to out (a .docx) and its sidecar. Returns {"path", "paragraphs", "headings", "set_aside"}
+    and, when the PDF has comments (4.16.0), "comments": what each became. comments=False leaves them out.
     Raises ValueError for a PDF with no typed text (a scanned page): read it with OCR first (Fix text)."""
-    if (layout or layout_of(pdf)) == "slides":       # 4.15.0: one Word page a slide, its picture behind, text in frames
+    lay = layout or layout_of(pdf)
+    if lay == "slides":                               # 4.15.0: one Word page a slide, its picture behind, text in frames
         import redlineslides as SL
-        return SL.build(pdf, out, name, FORMAT)
+        res = SL.build(pdf, out, name, FORMAT)
+    else:
+        res = _build_document(pdf, out, name)
+    if comments:
+        res.update(bring_comments(pdf, out, name, lay))
+    return res
+
+
+def bring_comments(pdf, out, name=None, layout="document"):
+    """4.16.0: the PDF's comments into the copy as tracked changes, Word comments and replies (pdfcomments,
+    redlinemarks); the sidecar keeps what each became. {} when the PDF has none."""
+    import pdfcomments as PC
+    import redlinemarks as RM
+    try:
+        found = PC.read(pdf)
+    except Exception:  # noqa: BLE001  a PDF whose comments cannot be read is copied without them
+        import diag
+        diag.swallowed()
+        return {}
+    if not found:
+        return {}
+    if layout == "slides":
+        import redlineslides as SL
+        src = SL.plan(pdf, name)[1]
+        doc = None
+    else:
+        import redlinecheck as CK
+        src = CK.pdf_words(pdf, name)[0]
+        d = PS.doc_of(pdf)
+        extra, force = PS.decided(pdf, name or os.path.basename(pdf))
+        doc = {"pages": d["pages"], "_out": ((set(d.get("skip") or ()) - set(force)) | set(extra))}
+    pinned, stream = PC.pin(pdf, found, src, doc)
+    recs = RM.apply(out, pinned, stream, src)
+    side = sidecar(out) or {}
+    side["comments"] = recs
+    with open(out + SIDE, "w", encoding="utf-8") as f:
+        json.dump(side, f, indent=1, ensure_ascii=False)
+    became = [r["became"] for r in recs]
+    return {"comments": recs, "changes": sum(1 for b in became if b in ("deletion", "insertion", "replacement")),
+            "word_comments": sum(1 for b in became if b == "comment"),
+            "by_position": sum(1 for r in recs if r["how"] in ("position", "left out", "nearby words"))}
+
+
+def _build_document(pdf, out, name=None):
     import docxw
     import redlinedocx as RD
     import redlinelayout as RL

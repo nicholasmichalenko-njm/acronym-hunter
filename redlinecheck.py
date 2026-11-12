@@ -116,11 +116,12 @@ def faithful(pdf, copy, name=None):
     else:
         src, gone = pdf_words(pdf, name)
     a, wa = _index(src)
-    cp = [p for p in docx_paragraphs(copy) if p["text"].strip()]
-    b, wb = _index(cp)
+    cp = [p for p in docx_paragraphs(copy, reject=bool(side.get("comments"))) if p["text"].strip()]   # 4.16.0: the
+    b, wb = _index(cp)                                     # PDF's comments are tracked changes; read them undone
     diffs = _diff(a, b, lambda i: wa[i] if i < len(wa) else (0, ""), lambda j: wb[j] if j < len(wb) else (0, ""))
     tables = sum(1 for p in src if p.get("kind") == "table")
-    return {"differences": diffs, "set_aside": gone, "tables": tables, "words": (len(a), len(b))}
+    return {"differences": diffs, "set_aside": gone, "tables": tables, "words": (len(a), len(b)),
+            "comments": side.get("comments") or []}
 
 
 def returned(copy, redline):
