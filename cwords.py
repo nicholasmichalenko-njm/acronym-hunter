@@ -88,15 +88,31 @@ _LEAD = re.compile(r"^\s*(?:\(?[a-z0-9ivx]{1,4}[.)]\s*)?$", re.I)
 _JOIN = re.compile(r"^\s*(?:,\s*)?(?:(?:and|or|and/or)\s+)?(?:not\s+)?(?:also\s+|clearly\s+|fully\s+)?$", re.I)
 
 
-def segments(text, cfg=None):
-    """[(piece, is_compliance_word)] covering the whole text in order."""
+def _marks(it):
+    """4.18.0: a piece's own compliance language: (words marked on it, words the list marks that it says are not)."""
+    cl = (it or {}).get("cl") or {}
+    norm = lambda xs: [" ".join(str(x).split()).lower() for x in xs or () if str(x).strip()]      # noqa: E731
+    return norm(cl.get("add")), norm(cl.get("not"))
+
+
+def segments(text, cfg=None, add=(), drop=()):
+    """[(piece, is_compliance_word)] covering the whole text in order. 4.18.0: add, words marked on this piece (always
+    compliance language there); drop, words the list marks that this piece says are not."""
     cfg = cfg or load()
-    pat = pattern(cfg["words"])
+    add = [" ".join(str(w).split()).lower() for w in add or () if str(w).strip()]
+    drop = {" ".join(str(w).split()).lower() for w in drop or ()}
+    pat = pattern(list(dict.fromkeys(list(cfg["words"]) + add)))
     text = str(text or "")
     if not pat:
         return [(text, False)] if text else []
     hits, last = [], None
     for m in pat.finditer(text):
+        low = " ".join(m.group(0).split()).lower()
+        if low in drop and low not in add:
+            continue
+        if low in add:
+            hits.append(m); last = m
+            continue
         if m.group(0).lower() in VERBS:
             before = text[last.end():m.start()] if last is not None else None
             sent_start = _LEAD.match(text[:m.start()]) or re.search(r"[.;:]\s+(?:\(?[a-z0-9ivx]{1,4}[.)]\s*)?$", text[:m.start()], re.I)
@@ -137,9 +153,11 @@ def styled(cfg):
     return st["bold"] or st["italic"] or st["underline"] or bool(st["color"]) or bool(st["highlight"])
 
 
-def docx_parts(text, base=None, cfg=None):
-    """Runs for docxw.Doc.rich: the base format everywhere, the user's style added on compliance words."""
+def docx_parts(text, base=None, cfg=None, it=None):
+    """Runs for docxw.Doc.rich: the base format everywhere, the user's style added on compliance words (4.18.0: and on the
+    words marked on the piece it, not on the ones it says are not)."""
     cfg = cfg or load()
+    add, drop = _marks(it)
     base = dict(base or {})
     st = cfg["style"]
     word = dict(base)
@@ -153,14 +171,14 @@ def docx_parts(text, base=None, cfg=None):
         word["color"] = st["color"]
     if st["highlight"]:
         word["fill"] = st["highlight"]
-    return [(t, word if w else base) for t, w in segments(text, cfg)] or [("", base)]
+    return [(t, word if w else base) for t, w in segments(text, cfg, add, drop)] or [("", base)]
 
 
-def xlsx_value(text, cfg=None):
+def xlsx_value(text, cfg=None, it=None):
     """A rich-text cell value for openpyxl (Excel has no highlight per run, so highlight is left out there)."""
     cfg = cfg or load()
     text = str(text or "")
-    segs = segments(text, cfg)
+    segs = segments(text, cfg, *_marks(it))
     if not styled(cfg) or not any(w for _t, w in segs):
         return text
     from openpyxl.cell.rich_text import CellRichText, TextBlock
@@ -169,6 +187,36 @@ def xlsx_value(text, cfg=None):
     font = InlineFont(b=st["bold"] or None, i=st["italic"] or None, u="single" if st["underline"] else None,
                       color=("FF" + st["color"]) if st["color"] else None)
     return CellRichText(*[TextBlock(font, t) if w else t for t, w in segs])
+
+
+def html(text, cfg=None, it=None):
+    """4.18.0: the text as HTML for a label, compliance words in the user's style (on screen in Shred's piece pane)."""
+    import html as H
+    cfg = cfg or load()
+    st = cfg["style"]
+    css = ";".join(x for x in ("font-weight:700" if st["bold"] else "", "font-style:italic" if st["italic"] else "",
+                                "text-decoration:underline" if st["underline"] or not styled(cfg) else "",
+                                f"color:#{st['color']}" if st["color"] else "",
+                                f"background:#{st['highlight']}" if st["highlight"] else "") if x)
+    return "".join(f'<span style="{css}">{H.escape(t)}</span>' if w else H.escape(t) for t, w in segments(text, cfg, *_marks(it)))
+
+
+def mark(it, words, on=True):
+    """4.18.0: words on the piece it are compliance language (on) or are not (False: the list's mark taken off here)."""
+    w = " ".join(str(words).split()).strip(" .,;:()\"'")
+    if not w or len(w) > 120:
+        return False
+    cl = it.setdefault("cl", {})
+    a, n = [x for x in cl.get("add", []) if x.lower() != w.lower()], [x for x in cl.get("not", []) if x.lower() != w.lower()]
+    (a if on else n).append(w)
+    cl["add"], cl["not"] = a, n
+    if not a and not n:
+        it.pop("cl", None)
+    return True
+
+
+def clear(it):
+    return bool(it.pop("cl", None))
 
 
 def tk_font_options(cfg, family, size):

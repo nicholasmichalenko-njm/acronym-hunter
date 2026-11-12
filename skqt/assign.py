@@ -1677,6 +1677,8 @@ class AssignPage(QWidget):
             b = self.keys.get(key)
             if b is not None:
                 m.addAction(text, b.click).setEnabled(b.isEnabled())
+        from . import complmark as CLM                      # 4.18.0: the dragged words are compliance language
+        CLM.add_actions(self, m, iid)
         from . import leaveoutview as LOV                  # 4.3.0: Leave out of the matrix, on Place
         LOV.add_actions(self, m, rows)
         m.addSeparator()
@@ -2679,7 +2681,8 @@ class AssignPage(QWidget):
         idl = D.label(it["id"], "mono", wrap=False); th.addWidget(idl)
         self.add(top)
         self.kind_label = k
-        t = self.add(D.label(it.get("text", ""), "reading"))
+        t = self.add(D.label(__import__("skqt.complmark", fromlist=["x"]).card_html(it, self.host.config_dir), "reading"))
+        t.setTextFormat(Qt.RichText)                                  # 4.18.0: compliance language in its style
         t.setTextInteractionFlags(Qt.TextSelectableByMouse)
         if F:
             SF.flag(self, it)                                           # 4.5.0: Changed by <version>, New in <version>

@@ -1380,7 +1380,7 @@ class Matrix:
         for it in self.items:
             ws.append([clean_chars(("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
                        (owner(it) if owner and c == "Owner" else it.get(FIELD[c], ""))) for c in COLUMNS])
-            ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw)
+            ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw, it=it)
             f = fills.get(it["decision"])
             if f:
                 for c in ws[ws.max_row]:
@@ -1480,14 +1480,14 @@ def write_outline_docx(matrix, path, title=""):
         if rows:
             doc.table(["ID", "RFP reference", "Requirement"],
                       [[it["id"], " ".join(x for x in (it["section"], it["section_title"]) if x) or it["file"],
-                        cwords.docx_parts((it["lead"] + " " if it["lead"] else "") + it["text"], None, cw)] for it in rows],
+                        cwords.docx_parts((it["lead"] + " " if it["lead"] else "") + it["text"], None, cw, it=it)] for it in rows],
                       [1300, 2000, 6060])
     rest = [it for it in kept if not it["map"]]
     if rest:
         doc.heading("Kept requirements not mapped to the outline", 2)
         doc.table(["ID", "RFP reference", "Requirement"],
                   [[it["id"], " ".join(x for x in (it["section"], it["section_title"]) if x) or it["file"],
-                    cwords.docx_parts(it["text"], None, cw)] for it in rest],
+                    cwords.docx_parts(it["text"], None, cw, it=it)] for it in rest],
                   [1300, 2000, 6060])
     doc.save(path)
     return {"sections": len(matrix.outline), "mapped": sum(1 for it in kept if it["map"]), "unmapped": len(rest)}
@@ -1552,7 +1552,7 @@ def write_coverage_docx(matrix, path, title=""):
             if d == "Context" and not it.get("context_for"):
                 where = "" if it["map"] else where
             tag = f"   [{it['id']} · {dlab}" + (f" · {where}" if where else "") + "]"
-            doc.rich(cwords.docx_parts(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d in ("", "Drop") else None}, cw)
+            doc.rich(cwords.docx_parts(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d in ("", "Drop") else None}, cw, it=it)
                      + [(tag, {"size": 16, "color": "B91C1C" if where == "no section" else "475569"})])
     doc.save(path)
     return {"sentences": tot["total"], "undecided": tot[""], "needs_home": tot["needs_home"], "files": len(cov) - 1}

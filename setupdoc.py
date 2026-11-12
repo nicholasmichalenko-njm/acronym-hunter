@@ -909,7 +909,7 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
             if rows:
                 d.table(["Reference", "Requirement", "Owner"],
-                        [[ref_of(M, it, inh)[0] or it["id"], cwords.docx_parts(((it.get("lead") or "") + " " + it["text"]).strip(), None, cw),
+                        [[ref_of(M, it, inh)[0] or it["id"], cwords.docx_parts(((it.get("lead") or "") + " " + it["text"]).strip(), None, cw, it=it),
                           owner_of(M, it)] for it in rows], [1900, 5860, 1600])
         last_req = None
         for iid in P.get(lab, []):
@@ -931,14 +931,14 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
                 continue
             if kind_of(it) == "Customer":                 # 3.18.2: the customer's own sentence, for the writers, not answered
                 d.rich([("Customer's (not answered)" + (f" ({where})" if where else "") + ": ", {"color": "6B21A8", "bold": True})]
-                       + cwords.docx_parts(it["text"], {"color": "6B21A8"}, cw), indent=720, border="6B21A8", kind="customer")
+                       + cwords.docx_parts(it["text"], {"color": "6B21A8"}, cw, it=it), indent=720, border="6B21A8", kind="customer")
             elif kind_of(it) == "Context":
                 # 2.52.0: support language from the RFP: indented under the requirement it supports, a line down its left
                 # edge, and where it is in the customer document
                 links = C.cf_ids(it.get("context_for", ""))
                 lead_in = [("Support" + (f" for {links[0]}" if links else "") + (f" ({where})" if where else "") + ": ",
                             {"color": CONTEXT_BLUE, "bold": True})]
-                d.rich(lead_in + cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE}, cw), indent=720, border=CONTEXT_BLUE,
+                d.rich(lead_in + cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE}, cw, it=it), indent=720, border=CONTEXT_BLUE,
                        kind="support")
                 others = [r for r in links if r != last_req]
                 if len(links) > 1 and others:          # 2.35.0: shared Context names the other requirements it explains
@@ -946,11 +946,11 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             elif ("eval" if kind_of(it) == "Evaluation" else "req") in d.skip:   # 3.56.0: the Setup page's layer is off
                 continue
             elif it.get("type") == "Format":                 # 3.87.1: a format rule for the section prints in a box
-                d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw)
+                d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw, it=it)
                        + [("  (format rule" + (f", {where}" if where else "") + ")", {"color": "6B7280"})],
                        indent=360, border=PURPLE, kind="rfp", box=True)
             else:
-                d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw)
+                d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw, it=it)
                        + ([(f"  ({where})", {"color": "6B7280"})] if where else []), kind="rfp")
                 last_req = iid
             note = S["notes"].get(iid, "").strip()
@@ -1067,7 +1067,7 @@ def export_changes(M, path):
             d.heading(lab, 2); cur = lab
         if kind in ("Added", "Changed"):
             d.para(f"{kind}:", bold=True)
-            d.rich(cwords.docx_parts(text, {"color": PURPLE}, cw))
+            d.rich(cwords.docx_parts(text, {"color": PURPLE}, cw, it=next((x for x in M.items if x.get("id") == iid), None)))
             if S["notes"].get(iid, "").strip():
                 d.para(S["notes"][iid].strip(), color=GREEN)
         elif kind == "Removed":
