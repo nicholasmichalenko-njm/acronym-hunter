@@ -1,7 +1,7 @@
 """2.76.0 update packs and the security explanation in Qt, offscreen: Settings has Updates and About and security (why no
 admin password: asInvoker, its own folder, the sandbox only takes rights away, running is not approval); a signed pack
-shows what it changes, saves and closes the effort, installs and restarts; the user's data stays; Undo last update goes
-back; a pack someone else signed is refused and nothing changes; Check program files; Stationkeeper Training has the
+shows what it changes, saves and closes the effort, installs and restarts; the user's data stays; Roll back the update goes
+back; a pack someone else signed is refused and nothing changes; Verify program files; Stationkeeper Training has the
 same cards; --apply-update, --check-program and --undo-update work with no window (IT, and the release build's test)."""
 import os, sys, tempfile, shutil
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -85,7 +85,7 @@ texts = " ".join(l.text() for l in sp.findChildren(QLabel))
 check("Settings: Updates and About and security", "Install Stationkeeper once" in texts and "Why Stationkeeper runs without an administrator password" in texts)
 check("the explanation: asInvoker, its own folder, the sandbox only takes rights away, running is not approval",
       all(t in UP.WHY_NO_ADMIN for t in ("asInvoker", "writes only inside its own folder", "AppContainer", "takes rights away",
-                                          "Running does not mean approved", "AppLocker", "SECURITY.md", "Check program files")))
+                                          "Running does not mean approved", "AppLocker", "SECURITY.md", "Verify program files")))
 check("the version line", "Version 2.76.0" in sp.up.lbl.text(), sp.up.lbl.text())
 before = files()
 check("a pack someone else signed: refused, nothing changes", sp.install_update(BAD, answer="install", restart=lambda: None) is None
@@ -97,12 +97,37 @@ check("a signed pack: the effort saved and closed, program files 2.77.0, restart
       and w.ws is None and after["Stationkeeper.exe"] == b"exe 2.77", r)
 check("the user's database and settings stay", after["acronym_database.csv"] == before["acronym_database.csv"]
       and after["config/app_settings.json"] == before["config/app_settings.json"])
-check("the version line offers Undo", "Version 2.77.0" in sp.up.lbl.text() and "Undo last update goes back to 2.76.0" in sp.up.lbl.text(), sp.up.lbl.text())
+check("the version line offers Undo", "Version 2.77.0" in sp.up.lbl.text() and "Roll back the update goes back to 2.76.0" in sp.up.lbl.text(), sp.up.lbl.text())
 rc = UP.check_program(w, show=False)
-check("Check program files: all match", rc and not (rc["changed"] or rc["missing"] or rc["extra"]) and "All 4 program files match" in w.statusBar().currentMessage())
+check("Verify program files: all match", rc and not (rc["changed"] or rc["missing"] or rc["extra"]) and "All 4 program files match" in w.statusBar().currentMessage())
+# 4.23.2: the Updates card holds What's new and Verify program files; rolling back asks first and says what goes away
+from PySide6.QtWidgets import QPushButton as _QB, QScrollArea as _SA
+from skqt import helpcenter as HC
+import supportfile as SF
+ub = [b.text() for b in sp.up.findChildren(_QB)]
+check("the Updates card: Install, Roll back the update, Verify program files, What's new", ub[:4] == ["Install update pack...", "Roll back the update",
+      "Verify program files", "What's new"], ub)
+_sc = HC.support_card(w)
+check("Help and support no longer has What's new", "What's new" not in [b.text() for b in _sc.findChildren(_QB)])
+keep = dict(SF.WHATS_NEW)
+SF.WHATS_NEW.update({"2.77.0": ["Kestrel note %d of a long list of changes in this version, long enough to wrap to a second line." % i for i in range(60)]})
+rd = UP.rollback_dialog(w, {"from": "2.76.0", "to": "2.77.0"}, run=False)
+room = w.screen().availableGeometry().height()
+check("Roll back asks first: the version now, the version it goes back to", "You are on version 2.77.0" in rd.said.text()
+      and "opens version 2.76.0 again" in rd.said.text() and rd.b_go.text() == "Roll back to 2.76.0" and rd.b_stay.text() == "Stay on 2.77.0"
+      and rd.b_stay.isDefault())
+check("... and what goes away, in a list that scrolls", rd.notes and rd.notes[0][0] == "2.77.0" and len(rd.notes[0][1]) == 60 and rd.findChildren(_SA))
+check("... in a window that fits the screen", rd.height() <= 0.8 * room + 1 and rd.maximumHeight() <= 0.8 * room + 1, (rd.height(), room))
+import app_gui as _A
+real = _A.APP_VERSION; _A.APP_VERSION = "2.77.0"
+wn = HC.show_whats_new(w, last="2.76.0", run=False)
+_A.APP_VERSION = real
+check("What's new with 60 notes fits the screen and scrolls; OK is outside the list", wn is not None and wn.height() <= 0.8 * room + 1
+      and wn.area.widget().sizeHint().height() > wn.height() and wn.findChildren(_SA), wn and (wn.height(), wn.area.widget().sizeHint().height()))
+SF.WHATS_NEW.clear(); SF.WHATS_NEW.update(keep)
 w.open_effort("Heron")
 u = sp.undo_update(answer="undo", restart=lambda: restarted.append(2))
-check("Undo last update: 2.76.0 back, data untouched", u and u["to"] == "2.76.0" and files() == before and restarted == [1, 2])
+check("Roll back the update: 2.76.0 back, data untouched", u and u["to"] == "2.76.0" and files() == before and restarted == [1, 2])
 check("nothing more to undo", sp.undo_update(answer="undo", restart=lambda: None) is None)
 w.close()
 # Stationkeeper Training has the same cards on its Build step

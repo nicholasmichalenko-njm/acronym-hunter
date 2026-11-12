@@ -1962,7 +1962,7 @@ SEVERAL SENTENCES AT ONCE, GRAPHIC NEEDS, CUSTOM DICTIONARIES (3.0.4)
     your data folder's Dictionary exports. The backups carry them.
   - Effort Home fits a 1440-pixel-wide screen (and 1280) with no sideways scroll, in every role's layout. The page
     description wraps instead of widening the window, and a long task title wraps.
-  - Check program files lists a company logo you placed in _internal\assets\brand (logo_01.png ...) as your team's,
+  - Verify program files lists a company logo you placed in _internal\assets\brand (logo_01.png ...) as your team's,
     not as a file that is not part of the version. Update packs never remove it.
 
 START AN EFFORT IN ONE STEP, AND BUILT-IN COMPANY LOGOS (3.0.3)
@@ -2475,12 +2475,13 @@ FASTER MOVING BETWEEN PAGES (2.82.0)
 
 HELP WITHOUT SENDING DATA (2.81.0)
   - Settings > Help and support > Create a support file: one zip with versions, the content-free logs and the checks
-    (Check program files, effort health by kind, which settings are on), for whoever maintains Stationkeeper. It holds
+    (Verify program files, effort health by kind, which settings are on), for whoever maintains Stationkeeper. It holds
     no document text, terms, names, file names or folder paths; every value is checked before it goes in. You save it
     and decide who gets it.
   - Ctrl+K finds a page, an effort, a sentence (by its words or number) or a person, from anywhere. F1 lists the
     keyboard shortcuts.
-  - After an update, one card says what changed (also Settings > Help and support > What's new).
+  - After an update, one card says what changed (also Settings > Updates > What's new; 4.23.2: the window
+    fits the screen and scrolls).
   - Safe start: after two starts in a row that did not finish, Stationkeeper opens without the last effort and says
     why, so one damaged effort cannot keep the program from starting.
 
@@ -2559,7 +2560,7 @@ UPDATE PACKS: INSTALL ONCE, THEN UPDATE WITH ONE FILE (2.76.0)
     few MB instead of the 220 MB zip.
   - Signed: the publisher signs each pack; Stationkeeper refuses a pack that someone else made or that changed after it
     was made, and checks every file before anything changes. No internet: you pick the file, nothing checks online.
-  - Undo last update goes back to the version before. Check program files compares every program file with this
+  - Roll back the update goes back to the version before. Verify program files compares every program file with this
     version's list and names any that are changed, missing or not part of it.
   - IT can push a pack with no window: Stationkeeper.exe --apply-update <pack> (also --undo-update, --check-program);
     the result goes to logs\update.txt.
