@@ -2,19 +2,19 @@
 STUDIO = \
 ("studio", "Production", "Template Studio",
   "One volume's template in one place, read from where its parts live: the profile's cover, headers and footers, table "
-  "of contents, fonts, numbering and table looks; this effort's own formatting; the RFP's formatting rules; the parts and "
+  "of contents, fonts, numbering and table looks; this effort's own formatting; the RFP's formatting rules; the sections and "
   "numbering; and the field recipes.",
   "When you set up a volume's template, and before Final Check counts its pages.",
-  ["Pick the volume and the profile it is made from. Anatomy lists each part and the library item it uses (a newer "
+  ["Pick the volume and the profile it is made from. Anatomy lists each section and the library item it uses (a newer "
    "version says so); double-click a row to open the screen that owns it.",
-   "Parts and numbering: the volume's parts in order. For each: its page numbers (none, i, I, 1, or A-1 chapter-page with "
+   "Sections and numbering: the volume's sections in order. For each: its page numbers (none, i, I, 1, or A-1 chapter-page with "
    "its chapter style, Heading 7 for appendices), whether they restart, its header and footer, orientation and paper, "
    "and whether its pages count toward the limit (how many pages an 11x17 sheet counts as, whether blank pages count). "
-   "Use the usual parts starts from a cover, front matter in i, the response in 1 and appendices in A-1.",
+   "Use the usual sections starts from a cover, front matter in i, the response in 1 and appendices in A-1.",
    "Final Check counts pages by this plan when you have not ticked pages out by hand.",
-   "Read back: Read a file... reads a template or volume made from this volume's template and sets each part against "
+   "Read back: Read a file... reads a template or volume made from this volume's template and sets each section against "
    "its plan (page numbers, restart, chapter style, orientation, paper), the fields against the field recipes and "
-   "Heading 7 against Heading 1's list. Word draws each part shows the first page of each part as Word lays it out.",
+   "Heading 7 against Heading 1's list. Word draws each section shows the first page of each section as Word lays it out.",
    "A Customer form part is the customer's own form, kept as it is: name its file and the marking its pages carry. Fix a "
    "Copy and Apply in Word leave it alone; Final Check finds its pages and checks its marking.",
    "Save the part asks where it goes: this effort, every effort of this effort type, or every effort, with how many "

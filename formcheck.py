@@ -56,7 +56,7 @@ def check(texts, forms, line, PASS, FAIL, HUMAN):
     for f in forms or ():
         if not f.get("form"):
             lines.append(line("Customer forms", f"{f['name']} placed", HUMAN, "No form file set for this part "
-                              "(Template Studio > Parts and numbering). Check it by hand."))
+                              "(Template Studio > Sections and numbering). Check it by hand."))
             continue
         words = form_words(f["form"])
         if not words:

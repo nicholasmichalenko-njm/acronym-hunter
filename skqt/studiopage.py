@@ -1,7 +1,7 @@
 """Production > Template Studio (3.66.0): one volume's template in one place, read from where its parts live (never a
 second copy). Anatomy: each part of the profile (cover, title page, headers and footers per part, table of contents,
 fonts, theme, heading numbering, pagination, table looks) with the library item it uses, this effort's own formatting,
-and the RFP's formatting rules beside them; each opens the screen that owns it. Parts and numbering: the volume's parts
+and the RFP's formatting rules beside them; each opens the screen that owns it. Sections and numbering: the volume's parts
 in order with their page numbers, restarts, chapter style, header and footer, orientation, paper and what counts toward
 the limit (Final Check reads it). Read back (3.67.0): a made file against the plan. Field recipes open in Rules. claude/stationkeeper-studio-decisions-2026-11-06.md"""
 from PySide6.QtCore import Qt
@@ -30,12 +30,12 @@ class StudioPage(QWidget):
         top.addWidget(self.prof, 1)
         top.addWidget(D.button("Field recipes", "ghost", lambda: self.open_recipes(), "Rules > Field recipes: your field codes"))
         v.addWidget(D.label("Everything that makes this volume's template, read from where it lives: the libraries, the "
-                            "effort type's profile and this effort's formatting. Change a part where it lives; Parts and "
+                            "effort type's profile and this effort's formatting. Change each where it lives; Sections and "
                             "numbering is set here and Final Check reads it.", "muted"))
         self.tabs = QTabWidget(); v.addWidget(self.tabs, 1)
         # ---- anatomy
         aw = QWidget(); al = QVBoxLayout(aw); al.setContentsMargins(0, D.SPACE["s"], 0, 0)
-        self.anat = QTableWidget(0, 4); self.anat.setHorizontalHeaderLabels(["Part", "What", "Uses", "Where it lives"])
+        self.anat = QTableWidget(0, 4); self.anat.setHorizontalHeaderLabels(["Section", "What", "Uses", "Where it lives"])
         self.anat.verticalHeader().setVisible(False); self.anat.setEditTriggers(QTableWidget.NoEditTriggers)
         self.anat.setSelectionBehavior(QTableWidget.SelectRows); self.anat.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.anat.cellDoubleClicked.connect(lambda r, _c: self.open_owner(r))
@@ -49,10 +49,10 @@ class StudioPage(QWidget):
         self.rfp.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         al.addWidget(self.rfp, 1)
         self.tabs.addTab(aw, "Anatomy")
-        # ---- parts and numbering
+        # ---- sections and numbering
         pw = QWidget(); pl = QVBoxLayout(pw); pl.setContentsMargins(0, D.SPACE["s"], 0, 0)
         self.ptab = QTableWidget(0, 6)
-        self.ptab.setHorizontalHeaderLabels(["Part", "Kind", "Page numbers", "Header and footer", "Paper", "Toward the limit"])
+        self.ptab.setHorizontalHeaderLabels(["Section", "Kind", "Page numbers", "Header and footer", "Paper", "Toward the limit"])
         self.ptab.verticalHeader().setVisible(False); self.ptab.setEditTriggers(QTableWidget.NoEditTriggers)
         self.ptab.setSelectionBehavior(QTableWidget.SelectRows); self.ptab.setSelectionMode(QTableWidget.SingleSelection)
         self.ptab.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
@@ -62,17 +62,17 @@ class StudioPage(QWidget):
         br.addWidget(D.button("+ Part", None, lambda: self.add_part()))
         br.addWidget(D.button("Up", "ghost", lambda: self.move(-1))); br.addWidget(D.button("Down", "ghost", lambda: self.move(1)))
         br.addWidget(D.button("Remove", "danger", lambda: self.remove()))
-        br.addWidget(D.button("Use the usual parts", "ghost", lambda: self.usual(), "Cover, front matter in i, the response in 1, appendices A-1 on Heading 7"))
+        br.addWidget(D.button("Use the usual sections", "ghost", lambda: self.usual(), "Cover, front matter in i, the response in 1, appendices A-1 on Heading 7"))
         br.addStretch(1)
         f = QFormLayout(); f.setSpacing(D.SPACE["s"]); pl.addLayout(f)
-        self.e_name = QLineEdit(); f.addRow("Part", self.e_name)
+        self.e_name = QLineEdit(); f.addRow("Section", self.e_name)
         self.e_kind = QComboBox(); self.e_kind.addItems(PP.KINDS); f.addRow("Kind", self.e_kind)
         nr = QHBoxLayout()
         self.e_fmt = QComboBox()
         for k in PP.FORMATS:
             self.e_fmt.addItem(PP.FORMAT_SAYS[k], k)
         nr.addWidget(self.e_fmt, 2)
-        self.e_restart = QComboBox(); self.e_restart.addItems(["Continues from the part before", "Restarts at"]); nr.addWidget(self.e_restart, 2)
+        self.e_restart = QComboBox(); self.e_restart.addItems(["Continues from the section before", "Restarts at"]); nr.addWidget(self.e_restart, 2)
         self.e_start = QSpinBox(); self.e_start.setRange(1, 999); nr.addWidget(self.e_start)
         f.addRow("Page numbers", nr)
         cr = QHBoxLayout()
@@ -100,10 +100,10 @@ class StudioPage(QWidget):
         f.addRow("Its marking", self.e_marking)
         self.e_kind.currentTextChanged.connect(lambda k: [w.setEnabled(k == PP.LOCKED) for w in (self.e_form, self.e_marking)])
         sr = QHBoxLayout(); pl.addLayout(sr)
-        sr.addWidget(D.button("Save the part", "primary", lambda: self.save_part()))
+        sr.addWidget(D.button("Save the section", "primary", lambda: self.save_part()))
         sr.addStretch(1)
         self.sample = D.label("", "muted"); pl.addWidget(self.sample)
-        self.tabs.addTab(pw, "Parts and numbering")
+        self.tabs.addTab(pw, "Sections and numbering")
         from .readbackview import ReadBackView           # 3.67.0
         self.readback = ReadBackView(self); self.tabs.addTab(self.readback, "Read back")
 
@@ -182,8 +182,8 @@ class StudioPage(QWidget):
         if r is not None:
             ps = self.plan()
             src = "" if PP.own(r, self.vol.currentText()) else {"type": " (shared by its effort type)", "team": " (shared by every effort)"}.get(
-                PP.shared_from(self.host.config_dir, *self.ids()), " (the usual parts)")
-            rows.append(("Whole volume", "Parts and numbering", f"{len(ps)} part(s){src}: " + ", ".join(p["name"] for p in ps),
+                PP.shared_from(self.host.config_dir, *self.ids()), " (the usual sections)")
+            rows.append(("Whole volume", "Sections and numbering", f"{len(ps)} section(s){src}: " + ", ".join(p["name"] for p in ps),
                          "Template Studio", "studio:parts"))
         try:
             import fieldrecipes as FR
@@ -239,7 +239,7 @@ class StudioPage(QWidget):
             diag.swallowed()
         return True
 
-    # ------------------------------------------------------------ parts and numbering
+    # ------------------------------------------------------------ sections and numbering
     def fill_parts(self, keep=None):
         r = self.rec()
         if r is None:
@@ -326,7 +326,7 @@ class StudioPage(QWidget):
             n = PP.impact(eff, key, eid)
             what = f"{words}" + (f" ({ename})" if key == "type" else "") + f": {n['efforts']} effort(s) on this PC follow it"
             if n["keep"]:
-                what += f"; {n['keep']} with their own parts and numbering keep theirs"
+                what += f"; {n['keep']} with their own sections and numbering keep theirs"
             out.append((key, what))
         return out
 
@@ -335,9 +335,9 @@ class StudioPage(QWidget):
         ch = self.where_choices()
         if len(ch) == 1:
             return "effort"
-        dlg = QDialog(self); dlg.setWindowTitle("Save the parts and numbering")
+        dlg = QDialog(self); dlg.setWindowTitle("Save the sections and numbering")
         v = QVBoxLayout(dlg)
-        v.addWidget(D.label(f"Where should the parts and numbering of {self.vol.currentText()} be saved?", None))
+        v.addWidget(D.label(f"Where should the sections and numbering of {self.vol.currentText()} be saved?", None))
         btns = []
         for i, (k, words) in enumerate(ch):
             b = QRadioButton(words); b.setChecked(i == 0); v.addWidget(b); btns.append((k, b))

@@ -111,7 +111,7 @@ def count_pages(texts, exclude, sizes=None, foldout=1, drop=None):
 
 
 def plan_rules(ctx, name):
-    """The parts and numbering plan of the volume this file is (by its name), else None."""
+    """The sections and numbering plan of the volume this file is (by its name), else None."""
     import subreq as SR
     plans = (ctx or {}).get("part_plans") or {}
     key = next((k for k in plans if k == name or SR.match_volume(k, name)), None)
@@ -206,7 +206,7 @@ def run(volume, ctx=None):
         left = "; ".join(f"{dict(EXCLUDE + (('forms', 'Customer forms'),))[k].lower()} (page {_pages(v)})" for k, v in out.items())
         detail = f"{n} of {len(texts)} pages counted" + (f", leaving out {left}" if left else ", every page counted")
         if rules and not volume.get("exclude"):
-            detail += f" (by the parts and numbering of {rules['volume']})"
+            detail += f" (by the sections and numbering of {rules['volume']})"
         if not limit:
             lines.append(_line("Page limits", "Pages against the limit", HUMAN, detail + ". No page limit found for this volume."))
         else:

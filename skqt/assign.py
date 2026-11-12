@@ -943,7 +943,12 @@ class AssignPage(QWidget):
         here = self.file in done
         self.queue_lbl.setText(f"Document {files.index(self.file) + 1} of {len(files)}  ·  "
                                + (f"{len(left)} not shredded yet" if left else "all shredded"))
-        self.done_btn.setVisible(True); self.next_btn.setVisible(bool([f for f in left if f != self.file]))
+        self.next_btn.setVisible(bool([f for f in left if f != self.file]))
+        main = getattr(self, "shred_main", None)             # 4.20.0: one button marks the document; once marked, one
+        one = main is not None and getattr(self, "focus", None) == "shred"      # takes the mark off (they showed side by side)
+        self.done_btn.setVisible(here or not one)
+        if one:
+            main.setVisible(not here)
         self.done_btn.setText("Shredded \u2713" if here else "Mark shredded")
         self.done_btn.setToolTip(f"Marked shredded {done[self.file]}. Click to take the mark off." if here else
                                  "Every piece of this document is looked at")

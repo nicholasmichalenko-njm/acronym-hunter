@@ -1,6 +1,30 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ONE WORD FOR ONE THING (4.20.0)
+  - The words on every screen now follow one glossary. A piece is anything the shred holds; a piece with a type is
+    shredded; a piece in a section of our outline is placed. Shred is the page (it was Review in older text), Documents
+    is where the customer's documents are added (it was Library; the Library is still the effort's folders on disk),
+    Changes is where a new version's changes are decided (it was Compare), Acros & Abs names every page, tab and tile
+    for acronyms, abbreviations, units and symbols, and the team's tools are under Team (it was Production).
+  - The shred's count reads the same everywhere: the menu and Shred's stepper say "28 to shred", the bar under the page
+    and the Dashboard say "12 of 40 pieces shredded", Documents says "40 pieces, 28 to shred", and Shred's List says
+    "3 of 4 shredded" under each of the customer's headings.
+  - Your Tools' tiles carry today's page names: Shred, Documents, Changes, Acros & Abs, Acros & Abs Finder, Dashboard.
+    The quick shred is named Quick shred, so Requirements means one thing: Shred's first tab.
+  - Effort Formatting says Company Standards where it said Global, and Make it a standard where it said Make it
+    global (the menu under it still says which standard: the Company Standards, a profile or an effort type).
+  - A volume is made of sections: Effort Profiles and Template Studio say Sections and Sections and numbering where
+    they said Parts and Parts and numbering. Quick Parts and Standards > Parts keep their names.
+  - Shred shows one button to mark a document shredded; once marked, one button takes the mark off. Setup's line about
+    the template says which template is made with the setup and where its formatting and profile are.
+  - Not changed: names saved in files (the Library folders, column headings of the workbooks and CSV files the effort
+    keeps, style names), What's new for earlier releases, the color team's reviews, Word's own names, and a sentence
+    in Technical Edit, which is still a sentence. A decision (Keep, Context, Undecided) is still a decision.
+  - The Guide's pages use the new words. Some still describe steps from before 4.0 (reading a document into the shred
+    by a button, Sort mode); a Guide refresh rewrites those.
+  - The build holds the glossary: a retired word in any text the program shows stops the release (tools/glossary.py).
+
 OUR RESPONSE STRUCTURE: TWO DOORS TO ONE OUTLINE; SHRED'S LIST (4.19.0)
   - The customer prescribes it: in Shred, type the piece that sets the structure Structure (key O): "shall be organized
     as follows", the volumes, a required order. On Matrix & Outline (or Setup), Start our structure > Read the Structure

@@ -22,7 +22,7 @@ class ChangeDialog(QDialog):
     def __init__(self, parent, lib, slot, eid, current=None):
         super().__init__(parent)
         self.lib, self.slot, self.eid, self.current = lib, slot, eid, current
-        self.setWindowTitle("Change this part"); self.resize(600, 460)
+        self.setWindowTitle("Change this row"); self.resize(600, 460)
         v = QVBoxLayout(self)
         v.addWidget(D.label("Items tagged for this effort type, for every effort type, or not tagged yet; retired items are left "
                             "out. The profile keeps the version you pick: a newer one waits until you choose it.", "muted"))
@@ -47,7 +47,7 @@ class ChangeDialog(QDialog):
 
 
 class EffortProfilesPage(QWidget):
-    COLS = ["Part", "What", "In use", "Newer", ""]
+    COLS = ["Section", "What", "In use", "Newer", ""]
 
     def __init__(self, host):
         super().__init__()
@@ -84,7 +84,7 @@ class EffortProfilesPage(QWidget):
                                "This profile's content map, the fields its template asks for, and every font rule (allowed "
                                "fonts, smallest and largest sizes)")
         vr.addWidget(self.b_more)
-        card = D.Card("Parts", "One part per decision, filled from the libraries. Change... offers the items tagged for this effort type.")
+        card = D.Card("Sections", "One row per decision for each section of the volume, filled from the libraries. Change... offers the items tagged for this effort type.")
         rv.addWidget(card, 3)
         self.t = QTableWidget(0, len(self.COLS)); self.t.setHorizontalHeaderLabels(self.COLS)
         self.t.verticalHeader().setVisible(False); self.t.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -162,7 +162,7 @@ class EffortProfilesPage(QWidget):
         e = PRL.effort_type_of(self.data, eid)
         self.title.setText(f"{PRL.type_of(self.data, pid)['name']}  ({e['name'] if e else ''})")
         others = [n for n in EP.used_by(self.data, pid) if not e or n != e["name"]]
-        self.used.setText(("Also in: " + ", ".join(others) + ". Its parts and limits here are this effort type's own.") if others else "")
+        self.used.setText(("Also in: " + ", ".join(others) + ". Its sections and limits here are this effort type's own.") if others else "")
         self.vols.setText("; ".join(EP.volumes(self.data, eid, pid)))
         self.fill_parts(); self.fill_limits()
 

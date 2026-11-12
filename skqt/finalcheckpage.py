@@ -160,7 +160,7 @@ class FinalCheckPage(QWidget):
             ctx["other_names"] = [n for n in h.efforts.names() if n not in (h.effort_name, UF.NAME)]
         except Exception:  # noqa: BLE001
             diag.swallowed()
-        try:                                                         # 3.66.0: the parts and numbering plans, the field recipes
+        try:                                                         # 3.66.0: the sections and numbering plans, the field recipes
             import effortrec as RR, fieldrecipes as FR
             import partplan as PP                            # 3.68.0: shared plans for its effort type too
             ctx["part_plans"] = PP.for_effort(h.config_dir, h.ws)

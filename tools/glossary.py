@@ -38,6 +38,8 @@ RULES = [
      r"\b(not |all )?sorted\b", r"sorted (by|in|on|into)\b"),
     ("acronyms-page", "Acros & Abs (every page name); acronym list stays for the export the customer sees",
      r"\bAcronym (Finder|List)\b|^Acronyms$|Acronyms in our drafts", r"$^"),
+    ("volume-parts", "sections (what a volume is made of); Quick Parts and Standards > Parts keep their names",
+     r"[Pp]arts and numbering|usual parts", r"$^"),
     ("compare-page", "Changes (the page)",
      r"\bCompare\b", r"Compare (two|the two|with|each|it|them)\b"),
 ]

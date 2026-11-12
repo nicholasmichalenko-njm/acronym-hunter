@@ -4,7 +4,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "fixcopy": ("Fix a Copy", "Beta: check drafts against their profile; fixes go into a dated copy, never the original"),
           "audit": ("Check a Draft", "Check files against every standard that applies to them: read only, nothing changed"),
           "applyword": ("Apply in Word", "Beta: the team's banned phrases into a draft as tracked changes, on a copy or live in Word"),
-          "studio": ("Template Studio", "One volume's template in one place: its parts from where they live, its parts and numbering, and your field recipes"),
+          "studio": ("Template Studio", "One volume's template in one place: what it is made of, from where each lives; its sections and numbering; and your field recipes"),
           "formatstd": ("Standards", "The fundamentals every template is built from: theme, fonts, page setups, pagination, numbering, lists and styles; each named, tagged by effort type, every value editable"),
           "styles": ("Styles", "Every style you keep, one row each with its versions, a preview, and the sets it is in; bring styles in from a document"),
           "qpstd": ("Quick Parts", "Every Quick Part by your numbered categories: its gallery, whether it follows the template's fonts, the pages it fills, and Word's picture of it"),

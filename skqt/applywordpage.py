@@ -60,7 +60,7 @@ class ApplyWordPage(QWidget):
         return R.Record(self.host.ws.root) if self.host.ws is not None else None
 
     def parts_for(self, path):
-        """3.68.0: the volume's parts and numbering, when a plan is set for this file."""
+        """3.68.0: the volume's sections and numbering, when a plan is set for this file."""
         if self.host.ws is None:
             return None
         import partplan as PP

@@ -1,5 +1,5 @@
 """Template Studio > Read back (3.67.0): a template or volume made from the Studio read back from its XML and set against
-the volume's parts and numbering and the field recipes, one row per thing checked; Word draws the first page of each part
+the volume's sections and numbering and the field recipes, one row per thing checked; Word draws the first page of each part
 when Word is on this PC. readback holds the rules."""
 import os
 
@@ -22,11 +22,11 @@ class ReadBackView(QWidget):
         top = QHBoxLayout(); v.addLayout(top)
         top.addWidget(D.button("Read a file...", "primary", lambda: self.choose(), "A template or volume made from this volume's template"))
         self.b_again = D.button("Read it again", None, lambda: self.read(self.path)); top.addWidget(self.b_again)
-        self.b_draw = D.button("Word draws each part", None, lambda: self.draw(),
-                               "A hidden Word lays out a copy and the first page of each part is shown below")
+        self.b_draw = D.button("Word draws each section", None, lambda: self.draw(),
+                               "A hidden Word lays out a copy and the first page of each section is shown below")
         top.addWidget(self.b_draw)
         top.addStretch(1)
-        self.what = D.label("Read a template or volume to see each part against its plan: page numbers, restarts, the "
+        self.what = D.label("Read a template or volume to see each section against its plan: page numbers, restarts, the "
                             "chapter style, orientation and paper, then the fields against the field recipes.", "muted")
         v.addWidget(self.what)
         self.table = QTableWidget(0, 5); self.table.setHorizontalHeaderLabels(["Part", "Checked", "The plan says", "The file has", ""])
@@ -98,5 +98,5 @@ class ReadBackView(QWidget):
                 pic.setText("No page")
             bl.addWidget(pic); bl.addWidget(D.label(p["name"], "muted", wrap=False))
             self.sl.insertWidget(self.sl.count() - 1, box)
-        self.studio.host.toast(f"Word drew {len(self.pngs)} part(s) of {res.get('pages')} page(s)")
+        self.studio.host.toast(f"Word drew {len(self.pngs)} section(s) of {res.get('pages')} page(s)")
         return res

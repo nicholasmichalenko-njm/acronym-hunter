@@ -1,4 +1,4 @@
-"""Parts and numbering (3.66.0): for each volume, its parts in order and, for each, how its pages are numbered and
+"""Sections and numbering (3.66.0): for each volume, its parts in order and, for each, how its pages are numbered and
 counted. Page format (none, i, I, 1, A-1), where numbering restarts, the chapter style and separator for A-1 (Heading 7
 for appendices), the header and footer it uses, orientation and paper, and whether its pages count toward the limit
 (with how many pages a foldout counts as and whether blank pages count). Final Check reads the same plan.
@@ -126,7 +126,7 @@ def save_to(config_dir, rec, volume, parts, where="effort", eid=None, pid=None, 
         d["team"][pid] = parts
     _save_shared(config_dir, d)
     plans(rec).pop(volume, None)
-    rec.log("effort", f"Parts and numbering for {volume} saved for " + ("every effort of its effort type" if where == "type" and eid
+    rec.log("effort", f"Sections and numbering for {volume} saved for " + ("every effort of its effort type" if where == "type" and eid
                                                                           else "every effort"), who=who)
     rec.save()
     return parts
@@ -170,7 +170,7 @@ def _norm(x):
 
 def set_plan(rec, volume, parts, who=None):
     plans(rec)[volume] = [_norm(x) for x in parts]
-    rec.log("effort", f"Parts and numbering set for {volume}", who=who)
+    rec.log("effort", f"Sections and numbering set for {volume}", who=who)
     rec.save()
     return plans(rec)[volume]
 

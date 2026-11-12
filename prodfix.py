@@ -555,7 +555,7 @@ def default_plan(chk):
 # ------------------------------------------------------------------ the run
 def run(path, folder, std, plan, word=None, progress=None, open_list=PCY._ASK, when=None, before=None, parts=None):
     """Make the copy and run the plan on it. word: callable(copy path) -> {"ok", ...} that updates fields in Word
-    (prodword.update_fields), or None to skip. parts (3.68.0): the volume's parts and numbering; a fix that would change
+    (prodword.update_fields), or None to skip. parts (3.68.0): the volume's sections and numbering; a fix that would change
     a locked part (a customer form) is refused and the copy put back as it was before that fix. Returns the Job with
     steps, before and after checks."""
     std = PRL.engine_ready(copy.deepcopy(std))
