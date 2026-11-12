@@ -1,5 +1,5 @@
 """Delete a document, or one version of it, into the effort's Trash; and put it back (4.17.0;
-claude/stationkeeper-documents-replace-delete-plan-4.17.md). Asked 2026-11-11 17:42: "I need a way to delete or reupload
+claude/stationkeeper-documents-replace-delete-plan-4.17.html). Asked 2026-11-11 17:42: "I need a way to delete or reupload
 a specific doc ... move it to a trash can maintained by the app so nothing is truly lost".
 
 what_goes(lib, M, doc_id, vid): what a delete takes, for the question asked first: versions, files, shred pieces (and how

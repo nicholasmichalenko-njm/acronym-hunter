@@ -1,4 +1,4 @@
-"""The customer's headings, with their levels, in the shred (4.17.0; claude/stationkeeper-documents-replace-delete-plan-4.17.md).
+"""The customer's headings, with their levels, in the shred (4.17.0; claude/stationkeeper-documents-replace-delete-plan-4.17.html).
 Asked 2026-11-11 17:45: "where in the shred do I assign items as headings ... which items are headers, subheaders and such
 since this directly influences the reference where it was found in the compliance matrix and setup".
 

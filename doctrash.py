@@ -1,4 +1,4 @@
-"""The effort's Trash (4.17.0; claude/stationkeeper-documents-replace-delete-plan-4.17.md). Nothing Documents deletes or
+"""The effort's Trash (4.17.0; claude/stationkeeper-documents-replace-delete-plan-4.17.html). Nothing Documents deletes or
 replaces is lost: the files, the document's record and its shred pieces move into <effort data>\\trash\\<entry>, each
 entry with entry.json (what it was, when, who, what was in it). Restore puts an entry back; Empty the Trash removes
 entries for good, and only when asked. Rules only (No AI); nothing leaves the PC."""

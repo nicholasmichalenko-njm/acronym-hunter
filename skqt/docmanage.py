@@ -1,5 +1,5 @@
 """Documents: replace a document's file, read it again, delete a document or one version, and the Trash (4.17.0;
-claude/stationkeeper-documents-replace-delete-plan-4.17.md).
+claude/stationkeeper-documents-replace-delete-plan-4.17.html).
 
 - Replace the file... (a document's right-click and its More): the picked file takes the old one's place and name; it
   is the same document and the same version (docreplace). Read it again: the file was edited where it sits.

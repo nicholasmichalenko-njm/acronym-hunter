@@ -1,5 +1,5 @@
 """Replace a document's file, keeping it the same document and the same version (4.17.0;
-claude/stationkeeper-documents-replace-delete-plan-4.17.md). Asked 2026-11-11 17:42: "it's not clear how I can rescan the
+claude/stationkeeper-documents-replace-delete-plan-4.17.html). Asked 2026-11-11 17:42: "it's not clear how I can rescan the
 same doc and have the shred process identify it as the same and not a new version".
 
 - changed_on_disk(lib): the documents whose file was edited where it sits (its bytes are not the ones read).

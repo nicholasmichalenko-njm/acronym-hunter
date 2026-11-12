@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENTS: REPLACE A FILE, DELETE INTO THE TRASH; HEADINGS WITH LEVELS (4.17.0)
+  - A document's right-click (and its More): Replace the file... puts the picked file in place of the document's
+    file, under the same name. It stays the same document and the same version (no Amendment 1), and the shred reads
+    it again: pieces whose sentence stayed keep every decision, a changed sentence keeps its piece and decisions with
+    the new words (marked Changed when the file was replaced), new sentences arrive as new pieces, and pieces whose
+    sentence is gone go to the Trash. The old file goes to the Trash too.
+  - A file edited where it sits in Customer documents: the right-click says Read it again, and adding it again offers
+    "The same document, edited: replace the file" (chosen for you), not a new version.
+  - Delete... (a document) and Delete this version... (a version's right-click) ask first, naming the versions, files
+    and shred pieces that go with it, with Cancel the default. Everything moves to the effort's Trash; Undo (Ctrl+Z on
+    Documents) puts the last one back. Documents > More > Trash... lists what was deleted or replaced, with Restore and
+    Empty the Trash... (which asks, and is the only thing that removes files for good).
+  - Shred > Fix text > Heading: Heading, Subheading, Level 3, Level 4 or Not a heading. A heading gives every piece
+    below it, up to the next heading, its number and title (the matrix's Section and Section title). A heading with no
+    number reads under the section it is in ("L.2 Proposal Organization > Volume I"), or under the headings marked
+    above it. Start from > the RFP's own outline takes each marked heading in order, at its level, with its page.
+  - Shred says when the file open is an older version whose changed pieces wait in Documents > Changes.
+
 REDLINE: COMMENTS FROM THE PDF (4.16.0)
   - Make the Word copy brings in the comments reviewers left on the PDF in Acrobat, each on exactly the words it marks,
     under the reviewer's name and date:
