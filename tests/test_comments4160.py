@@ -91,9 +91,11 @@ for name, spec in truth.items():
         score["all"] += 1; score["right"] += bool(ok)
         check(f"{name}: {t['id']} ({t['want']})", ok, info)
     recs = res.get("comments") or []
-    for t in spec["comments"]:
-        if t.get("how") == "position":
-            pass
+    import zipfile
+    xml = zipfile.ZipFile(out).read("word/document.xml").decode("utf-8")
+    kids = [c for c in rb["comments"] if c["parent"]]
+    check(f"{name}: a reply is marked as Word marks one (after its comment's reference)", all(
+        xml.index(f'commentReference w:id="{c["parent"]}"') < xml.index(f'commentRangeEnd w:id="{c["id"]}"') for c in kids))
     check(f"{name}: every comment is listed with how it was placed", recs and all(r["how"] and r["became"] for r in recs), recs[:2])
     check(f"{name}: what was placed by position is said so", res.get("by_position", 0) >= sum(1 for t in spec["comments"] if t.get("how") == "position"),
           res.get("by_position"))
