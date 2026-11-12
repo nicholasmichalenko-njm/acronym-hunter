@@ -2,7 +2,7 @@
 Asked 2026-11-11 17:45: "where in the shred do I assign items as headings ... which items are headers, subheaders and such
 since this directly influences the reference where it was found in the compliance matrix and setup".
 
-mark(items, iid, level): the piece is a heading at that level (1 Heading, 2 Subheading, 3, 4). Its number and title come
+mark(items, iid, level): the piece is a heading at that level, H1 to H9. Its number and title come
 from its words (compliance.parse_header). A heading with no number takes its place under the nearest heading above it
 of a higher level: its reference reads "L.3 Page Limits > Technical Approach". Every piece after it in the same file,
 up to the next heading, takes its reference (Section and Section title in the matrix).
@@ -11,7 +11,7 @@ reference of the heading above. level_of(it): a heading's level, as marked or fr
 Rules only (No AI); nothing leaves the PC."""
 import compliance as C
 
-NAMES = [(1, "Heading"), (2, "Subheading"), (3, "Level 3"), (4, "Level 4")]
+NAMES = [(n, f"H{n}") for n in range(1, 10)]          # H1 to H9 (Nicholas 18:04: how the team says it)
 
 
 def level_of(it):

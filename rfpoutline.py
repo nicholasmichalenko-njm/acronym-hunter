@@ -29,7 +29,7 @@ def guess_level(num):
     num = (num or "").strip().rstrip(".")
     if not num:
         return 1
-    return min(6, len([p for p in num.split(".") if p]))
+    return min(9, len([p for p in num.split(".") if p]))
 
 
 def headers(M):
@@ -86,7 +86,7 @@ def auto_number(M, idx, level, file):
 
 
 def set_level(M, iid, level):
-    _S(M)["header_levels"][iid] = max(1, min(6, int(level)))
+    _S(M)["header_levels"][iid] = max(1, min(9, int(level)))      # 4.17.0: H1 to H9
     M.pending = True
 
 

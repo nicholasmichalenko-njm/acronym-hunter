@@ -1225,8 +1225,9 @@ class Matrix:
                     row["draft_cf"] = ""
                 row["page"] = _page(row["loc"])
                 row["key"] = row["key"] or text_key(row["text"])
-                if row.get("hlevel", "").isdigit():                # 4.17.0: a heading marked at a level
-                    row["hlevel"] = int(row["hlevel"])
+                lvl = row.get("hlevel", "").upper().lstrip("H")     # 4.17.0: a heading marked at a level, H1 to H9
+                if lvl.isdigit():
+                    row["hlevel"] = int(lvl)
                 else:
                     row.pop("hlevel", None)
                 if row.get("base"):
@@ -1388,7 +1389,7 @@ class Matrix:
             owner = lambda it: setupdoc.owner_of(self, it)
         for it in self.items:
             ws.append([clean_chars(("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
-                       "|".join(it.get("base") or []) if c == "Heading under" else str(it.get("hlevel") or "") if c == "Heading level" else
+                       "|".join(it.get("base") or []) if c == "Heading under" else (f"H{it['hlevel']}" if it.get("hlevel") else "") if c == "Heading level" else
                        (owner(it) if owner and c == "Owner" else it.get(FIELD[c], ""))) for c in COLUMNS])
             ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw)
             f = fills.get(it["decision"])
