@@ -43,12 +43,14 @@ def headers(M):
         if it.get("type") == "Heading":
             num = sec
             title = it.get("section_title", "") or it.get("text", "")
+            if it.get("base"):                            # 4.17.0: marked in Shred with no number: its own words
+                num, title = "", " ".join((it.get("text") or "").split()).strip(" .:")
             key = (f, num, title)
             if key in seen and num:
                 continue
             seen.add(key)
-            out.append({"id": it.get("id", ""), "num": num, "title": title, "file": f, "pos": i,
-                        "level": int(S["header_levels"].get(it.get("id", ""), guess_level(num)))})
+            out.append({"id": it.get("id", ""), "num": num, "title": title, "file": f, "pos": i, "page": it.get("page", ""),
+                        "level": int(S["header_levels"].get(it.get("id", ""), it.get("hlevel") or guess_level(num)))})
         elif sec and (f, sec) not in {(h["file"], h["num"]) for h in out}:
             key = (f, sec, it.get("section_title", ""))
             if key in seen:
@@ -165,8 +167,8 @@ def as_outline(M):
     out, seen = [], set()
     for h in headers(M):
         k = (h["num"], h["title"])
-        if k in seen or not (h["num"] or h["title"]):
+        if (k in seen and h["num"]) or not (h["num"] or h["title"]):
             continue
         seen.add(k)
-        out.append({"num": h["num"], "title": h["title"], "level": h["level"]})
+        out.append({"num": h["num"], "title": h["title"], "level": h["level"], **({"page": h["page"]} if h.get("page") else {})})
     return out

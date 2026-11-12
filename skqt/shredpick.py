@@ -57,6 +57,10 @@ def auto_tick(host):
         if st == getattr(host, "_auto_seen", None):
             return None
         host._auto_seen = st
+        from . import docmanage as DM                     # 4.17.0: a replaced file is read again first
+        w = DM.reread(host)
+        if w is not None:
+            return w
         waiting = pending(host)
         if waiting:
             return extract_paths(host, [p for _l, _d, p in waiting], go=False)

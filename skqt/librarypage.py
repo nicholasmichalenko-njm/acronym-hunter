@@ -91,11 +91,15 @@ class IntakeDialog(QDialog):
                     what.addItem(f"Add it anyway as a new version of {e['dup'][0]['name']}", ("version", e["dup"][0]["id"]))
             else:
                 what.addItem("A new document", ("new", None))
+                if e.get("replace_of"):                    # 4.17.0: read before from this very file
+                    rd = lib.doc(e["replace_of"])
+                    if rd is not None:
+                        what.addItem(f"The same document, edited: replace the file of {rd['name']}", ("replace", rd["id"]))
                 for d, _sc, how in e.get("cands", [])[:6]:
                     what.addItem(f"A new version of {d['name']}  ({how})", ("version", d["id"]))
                 what.addItem("Skip it", ("skip", None))
-                if e["choice"] == "version" and e.get("doc"):
-                    what.setCurrentIndex(max(0, next((k for k in range(what.count()) if what.itemData(k) == ("version", e["doc"])), 0)))
+                if e["choice"] in ("version", "replace") and e.get("doc"):
+                    what.setCurrentIndex(max(0, next((k for k in range(what.count()) if what.itemData(k) == (e["choice"], e["doc"])), 0)))
             cat = QComboBox()
             for k, n in lib.categories():
                 cat.addItem(n, k)
@@ -256,6 +260,8 @@ class LibraryPage(QWidget):
         self.bar.more("Add from another copy...", lambda: __import__("skqt.mergedialog", fromlist=["x"]).add_to_effort(self.host, self.host.effort_name),   # 3.70.0
                       "Merge another copy of this effort: its documents, acronyms, volumes and record")
         self.bar.more("+ Category...", lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
+        self.bar.more("Trash...", lambda: __import__("skqt.docmanage", fromlist=["x"]).show_trash(self),   # 4.17.0
+                      "What was deleted or replaced here, with Restore")
         top.addWidget(self.bar)
         self._b_folder_old.setVisible(False)
         self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)
@@ -368,6 +374,7 @@ class LibraryPage(QWidget):
                                   "the base document to get the conformed version")
         self.side.addWidget(self.b_conform)
         self.side.addWidget(D.label("Versions", "label", wrap=False))
+        __import__("skqt.docmanage", fromlist=["x"]).install(self)          # 4.17.0: Undo of a delete, a version's right-click
         self.d_versions = QListWidget(); self.d_versions.setMaximumHeight(130); self.side.addWidget(self.d_versions)
         self.hits_lbl = D.label("Found in the text", "label", wrap=False); self.side.addWidget(self.hits_lbl)
         self.d_hits = QListWidget(); self.d_hits.setWordWrap(True); self.d_hits.setMaximumHeight(200); self.side.addWidget(self.d_hits)
@@ -962,6 +969,9 @@ class LibraryPage(QWidget):
             m.addAction("Apply its instructions...", lambda: self.conform())
         m.addSeparator()
         m.addAction("Where its text went in the shred...", lambda: self.show_taken())
+        from . import docmanage as DM                                   # 4.17.0
+        m.addAction("Replace the file...", lambda: DM.replace_file(self, d))
+        m.addAction("Delete...", lambda: DM.delete(self, d))
         self._menu = m
         if run and at is not None:
             m.exec(at)

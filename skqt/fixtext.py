@@ -1,6 +1,7 @@
 """Fix text, a mode inside Shred (4.2.0; claude/stationkeeper-fix-text-decisions-2026-11-10.md, decisions 1 and 8).
 F2 (or the Fix text button) turns it on: a strip over the page holds the tools for text that came out wrong, on the
-same continuous page and the same Undo as the shred: Combine (J), Split (S), Make a sentence (Shift+S), Heading, Set
+same continuous page and the same Undo as the shred: Combine (J), Split (S), Make a sentence (Shift+S), Heading (4.17.0:
+Heading, Subheading, Level 3, Level 4 or Not a heading; the pieces below take its reference), Set
 aside (a page header, footer or banner; More: every line like it), Add missed text, and Page checked (Ctrl+Enter, the
 main button). The strip says how far the document is checked ("37 of 120 pages checked") and never holds the shred up.
 Text check is no longer a tab of Documents: go("verify") opens Shred in Fix text; the page-by-page check stays under
@@ -34,7 +35,8 @@ def install(page, bar, v):
     page.fix_tools = {}
     for name, fn, tip in (("Combine  J", lambda: page.do_combine(), "One piece from the selected ones, across pages too"),
                           ("Split  S", lambda: page.do_split(), "Split the selected piece at the word you clicked"),
-                          ("Heading", lambda: heading(page), "The selected piece is a heading of the customer's, not text to answer"),
+                          ("Heading", lambda: heading_menu(page), "The selected piece is a heading of the customer's: Heading, "
+                           "Subheading, Level 3 or 4, or Not a heading. The pieces below it take its reference"),
                           ("Set aside", lambda: set_aside(page), "A page header, footer, page number or banner: out of the shred, "
                            "still shown on the page"),
                           ("Add missed text", lambda: page.toggle_capture(), "Draw a box around text the reader missed")):
@@ -229,18 +231,59 @@ def undo_join(page):
 
 
 # ------------------------------------------------------------------ heading, set aside
-def heading(page):
+def heading(page, level=None):
+    """The selected pieces are headings of the customer's (4.17.0: at a level; None: the level their number gives).
+    Each piece below a heading, up to the next one, takes its reference (Section, Section title) at once."""
+    import headinglevels as HL
     rows = page.selected() if page.R is not None and page.cx is None else []
     if not rows:
         return page.host.status("Select the piece that is a heading first.")
     page.R.snap("a heading")
+    moved = 0
     for it in rows:
-        it.update(type="Heading", header="Yes", decision="Drop")
-        page.M.log(it["id"], "fix text: a heading")
+        lv = level or HL.level_of(it)
+        moved += len(HL.mark(page.M.items, it["id"], lv))
+        HL.register(page.M, it)                              # the outline's Start from takes it, with its page
+        __import__("rfpoutline").set_level(page.M, it["id"], lv)          # and the RFP's own outline, at its level
+        page.M.log(it["id"], f"fix text: a heading, level {lv}")
     page.M.pending = True
     page.host.changed()
-    page.after(f"{len(rows)} heading(s)")
+    page.after(f"{len(rows)} heading(s); {moved} piece(s) below now read " + HL.found_under(rows[-1]) if moved else
+               f"{len(rows)} heading(s)")
     return len(rows)
+
+
+def not_heading(page):
+    """4.17.0: the selected pieces are not headings: pieces to shred again, under the heading above."""
+    import headinglevels as HL
+    rows = page.selected() if page.R is not None and page.cx is None else []
+    if not rows:
+        return page.host.status("Select the piece first.")
+    page.R.snap("not a heading")
+    for it in rows:
+        HL.unmark(page.M.items, it["id"])
+        HL.unregister(page.M, it)
+        __import__("rfpoutline")._S(page.M)["header_levels"].pop(it["id"], None)
+        page.M.log(it["id"], "fix text: not a heading")
+    page.M.pending = True
+    page.host.changed()
+    page.after(f"{len(rows)} piece(s) back to shred")
+    return len(rows)
+
+
+def heading_menu(page, at=None, run=True):
+    """Heading, Subheading, Level 3, Level 4, Not a heading. Returns the menu."""
+    import headinglevels as HL
+    m = QMenu(page)
+    for lv, name in HL.NAMES:
+        m.addAction(name, lambda lv=lv: heading(page, lv))
+    m.addSeparator()
+    m.addAction("Not a heading", lambda: not_heading(page))
+    page._hmenu = m
+    if run:
+        b = page.fix_tools.get("Heading")
+        m.exec(at or (b.mapToGlobal(b.rect().bottomLeft()) if b is not None else None))
+    return m
 
 
 def _shape(t):

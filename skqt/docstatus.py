@@ -201,6 +201,10 @@ def row_menu(page, at=None, run=True):
     tm.addSeparator()
     tm.addAction("Initial and type...", lambda: page.identity())
     m.addAction("Add a newer version...", lambda: newer_version(page, d))
+    from . import docmanage as DM                                 # 4.17.0: the same version, its file replaced
+    m.addAction("Replace the file...", lambda: DM.replace_file(page, d))
+    if _edited(page, d):
+        m.addAction("Read it again (the file was edited)", lambda: DM.read_again(page, d))
     out = page.lib.role_of(d) == "not_needed"
     m.addAction("Put it back" if out else "Leave out", lambda: page.set_role("context" if out else "not_needed",
                                                                             why="put back" if out else "left out"))
@@ -208,10 +212,23 @@ def row_menu(page, at=None, run=True):
     if path_of(page, d).lower().endswith(".pdf"):                 # 4.8.0: made on Redline only
         m.addAction("Prepare a redline copy", lambda: (page.host.go("redline"), page.host.redline_page.select(d["id"])))
     __import__("skqt.docfocus", fromlist=["x"]).more_items(page, m, d)     # 4.6.0: what left the panel
+    m.addSeparator()
+    m.addAction("Delete...", lambda: DM.delete(page, d))                 # 4.17.0: into the effort's Trash
     page._menu = m
     if run and at is not None:
         m.exec(at)
     return m
+
+
+def _edited(page, d):
+    """4.17.0: the document's file was edited where it sits (its bytes are not the ones read)."""
+    try:
+        import docversions as DV
+        v = d["versions"][-1] if d and d.get("versions") else None
+        p = page.lib.path_of(v) if v else ""
+        return bool(p and os.path.isfile(p) and v.get("sha256") and DV.sha256_cached(p) != v["sha256"])
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def path_of(page, d):

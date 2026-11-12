@@ -118,11 +118,16 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
                           f"{int(round(ts * 100))}% of the text is the same" + ("; the name matches" if ns >= 0.9 else "")))
         cands.sort(key=lambda x: -x[1])
         best = cands[0] if cands and DV.Library.band(cands[0][1]) else None
+        same_file = None                                # 4.17.0: the very file a document was read from, edited where it
+        if came:                                        # sits: the same document and version, its file replaced
+            last = lib.latest(came[0])
+            if last is not None and DV.same_path(lib.path_of(last), p):
+                same_file = came[0]["id"]
         dtype = DV.guess_type(os.path.basename(p))                  # 2.68.0: the person confirms the type and initial
         taken = [e.get("initial", "") for e in out]
         out.append({"path": p, "sha": h, "sents": sents, "cands": cands, "best": best, "text_print": tp,
-                    "choice": "version" if best and DV.Library.band(best[1]) == "strong" else "new",
-                    "doc": best[0]["id"] if best else None, "name": DV.display_name(p), "label": "",
+                    "choice": "replace" if same_file else "version" if best and DV.Library.band(best[1]) == "strong" else "new",
+                    "doc": same_file or (best[0]["id"] if best else None), "replace_of": came[0]["id"] if came else None, "name": DV.display_name(p), "label": "",
                     "type": dtype, "initial": lib.suggest_initial(dtype, taken) if cat == "customer" else "",
                     "category": cat, "folder": rel, "tags": DV.folder_tags(rel), "role": DV.suggest_role(cat, dtype),
                     "suggested_role": DV.suggest_role(cat, dtype), "sensitivity": level,
@@ -175,6 +180,15 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
         if progress is not None:
             progress(len(made) / max(1, len(todo)), f"Adding {len(made) + 1} of {len(todo)}: {os.path.basename(e['path'])}")
         src = dest = e["path"]
+        if e["choice"] == "replace" and e.get("doc"):     # 4.17.0: the same version, its file replaced; the shred reads it again
+            import docreplace as RP
+            res = RP.replace(lib.data_dir, lib, e["doc"], new_path=src, reader=lambda _p, s=e["sents"]: s)
+            if res is not None:
+                made.append((res["doc"], res["version"]))
+                if log is not None:
+                    log("customer", f"{res['doc']['name']}: {res['version'].get('label', '')} replaced ({os.path.basename(src)}); "
+                        "the old file is in the Trash", {"version": res["version"]["id"]})
+            continue
         cat = e.get("category", "customer")
         if e["choice"] == "version" and e.get("doc") and not str(e["doc"]).startswith("batch:"):
             cat = (lib.doc(e["doc"]) or {}).get("category", cat)           # a new version goes where its document is

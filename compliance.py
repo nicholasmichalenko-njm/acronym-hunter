@@ -1048,14 +1048,34 @@ def sec_key(num):
 
 
 def outline_from_headings(headings, letter="L"):
-    """The RFP's numbered headings in one section (Section L by default), sorted by number: a starting outline."""
+    """The RFP's numbered headings in one section (Section L by default), sorted by number: a starting outline. 4.17.0:
+    a heading the person marked in Shred (Fix text > Heading) comes in at its level and with its page, a numbered one by
+    its number, one with no number right after the section it sits in (after the others marked there before it), or at
+    the end in the document's order when it sits in no numbered section."""
     seen, out = set(), []
-    for h in sorted(headings, key=lambda h: sec_key(h["num"])):
+    marked = [h for h in headings if h.get("mark")]
+    for h in sorted((h for h in headings if h.get("num")), key=lambda h: sec_key(h["num"])):
         num = h["num"]
         if num in seen or (letter and not num.startswith(letter + ".")):
             continue
         seen.add(num)
-        out.append({"num": num, "title": h["title"], "level": num.count(".") if num[0].isalpha() else num.count(".") + 1})
+        lv = int(h["level"]) if h.get("mark") and h.get("level") else (num.count(".") if num[0].isalpha() else num.count(".") + 1)
+        out.append({"num": num, "title": h["title"], "level": lv, **({"page": h["page"]} if h.get("page") else {})})
+    for h in marked:
+        if h.get("num"):
+            continue
+        o = {"num": "", "title": h["title"], "level": int(h.get("level") or 1), **({"page": h["page"]} if h.get("page") else {})}
+        base = h.get("base", "")
+        if base and letter and not base.startswith(letter + "."):
+            continue
+        at = next((k for k, x in enumerate(out) if base and x["num"] == base), None)
+        if at is None:
+            out.append(o)
+            continue
+        k = at + 1
+        while k < len(out) and (out[k]["level"] > out[at]["level"]) :
+            k += 1
+        out.insert(k, o)
     return out
 
 

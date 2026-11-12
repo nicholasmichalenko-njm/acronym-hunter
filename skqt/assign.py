@@ -1120,6 +1120,9 @@ class AssignPage(QWidget):
         self.canvas.ensure([0])
         self.build_boxes()
         self.note.setText("Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, or a middle-button drag, moves the page. Ctrl+wheel zooms.")
+        if f in (__import__("setupdoc").setup_of(self.M).get("superseded") or []):    # 4.17.0: say which version this is
+            self.note.setText("An older version: only its pieces that changed are here, waiting in Documents > Changes. "
+                              "Shred the latest version, the other file in the list.")
         self.mark_changes()                         # 2.98.0: what this version changed, outlined on the page
         QTimer.singleShot(0, self.view.fit)
         QTimer.singleShot(0, lambda: self.canvas.ensure() if getattr(self, "canvas", None) is not None else None)
