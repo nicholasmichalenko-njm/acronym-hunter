@@ -1548,7 +1548,7 @@ def extract_pdf(filepath, filename, status_callback, prefix, chunks):
                                     continue
                                 seen_images.add(key)
                                 if pil.mode not in ("RGB", "L"):
-                                    pil = pil.convert("RGB")
+                                    pil = __import__("imgops").on_white(pil)   # 4.22.0: no background: on white
                                 parts.append(read_image_bytes(_pil_png(pil)))
                             except ScanCancelled:
                                 raise

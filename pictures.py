@@ -15,7 +15,7 @@ PAD = 16                                                # white border added aro
 # Sources: every page or embedded picture in a file, as (label, loader -> PIL RGB image)
 # --------------------------------------------------------------------------------------
 def _img_from_bytes(data):
-    return Image.open(io.BytesIO(data)).convert("RGB")
+    return IO.on_white(Image.open(io.BytesIO(data)))        # 4.22.0: a picture with no background sits on white
 
 def _zip_read(path, member):
     with zipfile.ZipFile(path) as z:

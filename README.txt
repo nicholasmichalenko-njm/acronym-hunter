@@ -216,6 +216,8 @@ REDLINE (4.8.0)
   - Put its comments into my Word file...: for a Word file you already have with the same text as the PDF. The
     comments go into a dated copy of your file in the Redlines folder; your file is not changed, and comments it
     already holds are kept.
+  - A picture with no background (a see-through PNG) is read and shown on white everywhere (4.22.0): the acronym
+    review, the reader, Shred's page copy. Before, it was black where the picture had no background.
   - Right-click a row: Prepare it as slides, as a document, or without the comments; open the prepared file or its
     folder. A file outside the effort: Your Tools, Prepare it for redline (the Word file goes beside it).
   - Check: Check the copy compares it with its PDF word for word and lists every word added, dropped or changed, with

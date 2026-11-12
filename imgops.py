@@ -87,6 +87,19 @@ def _par(fn, n, rows_per_chunk, work=0):
 
 
 # ---------------------------------------------------------------- opening and saving pictures
+def on_white(im):
+    """4.22.0: a PIL picture as RGB with what is see-through laid on white paper. A PNG with no background kept only
+    its ink before (dropping the see-through layer leaves black where there was nothing), so dark letters on no
+    background came out black on black."""
+    from PIL import Image
+    if im.mode in ("RGBA", "LA", "PA") or (im.mode == "P" and "transparency" in im.info):
+        im = im.convert("RGBA")
+        paper = Image.new("RGB", im.size, (255, 255, 255))
+        paper.paste(im, mask=im.split()[3])
+        return paper
+    return im if im.mode == "RGB" else im.convert("RGB")
+
+
 def _pil_to_cv(im, mode):
     """mode: "color" (BGR uint8), "gray" (uint8), "unchanged" (gray, BGR, BGRA, or 16-bit as stored)."""
     if mode == "gray":
@@ -96,7 +109,7 @@ def _pil_to_cv(im, mode):
             return np.asarray(im)
         if im.mode in ("L", "1"):
             return np.asarray(im.convert("L")).copy()
-        rgb = np.asarray(im.convert("RGB")).astype(np.uint32)
+        rgb = np.asarray(on_white(im)).astype(np.uint32)       # 4.22.0: see-through is white paper
         r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
         if im.format == "PNG":                      # libpng's own grey (OpenCV asks libpng for it): truncated
             y = (r * 9797 + g * 19234 + b * 3737) >> 15
@@ -107,8 +120,8 @@ def _pil_to_cv(im, mode):
             a = (np.asarray(im, dtype=np.uint16) >> 8).astype(np.uint8)
             return np.ascontiguousarray(np.repeat(a[:, :, None], 3, axis=2))
         if im.mode in ("RGBA", "LA", "PA") or (im.mode == "P" and "transparency" in im.info):
-            im = im.convert("RGBA")
-            return np.ascontiguousarray(np.asarray(im)[:, :, 2::-1])   # OpenCV IMREAD_COLOR drops alpha
+            return np.ascontiguousarray(np.asarray(on_white(im))[:, :, ::-1])   # 4.22.0: on white paper (OpenCV drops
+            # the see-through layer, which leaves black where the picture has no background)
         im = im if im.mode == "RGB" else im.convert("RGB")
         return np.frombuffer(im.tobytes("raw", "BGR"), np.uint8).reshape(im.height, im.width, 3).copy()
     # unchanged

@@ -35,9 +35,23 @@ def _sha8(path):
     return h.hexdigest()[:10]
 
 
+def _see_through(path):
+    """True for a picture with no background of its own (a PNG with a see-through layer)."""
+    if not is_image(path):
+        return False
+    try:
+        from PIL import Image
+        with Image.open(path) as im:
+            return im.mode in ("RGBA", "LA", "PA") or (im.mode == "P" and "transparency" in im.info)
+    except Exception:  # noqa: BLE001  a picture that cannot be opened is named as before
+        return False
+
+
 def copy_path(path, folder):
+    """4.22.0: a see-through picture's copy has a name of its own (w: on white), so a copy made before, with black
+    where the picture had no background, is not used again."""
     stem = re.sub(r"[^A-Za-z0-9 _.-]+", "_", os.path.splitext(os.path.basename(path))[0])[:80]
-    return os.path.join(folder, f"{stem} (words) {_sha8(path)}.pdf")
+    return os.path.join(folder, f"{stem} (words) {_sha8(path)}{'w' if _see_through(path) else ''}.pdf")
 
 
 def scanned_pages(pdf):
@@ -65,7 +79,7 @@ def ocr_lines(img):
     import app_gui
     import numpy as np
     buf = io.BytesIO()
-    img.convert("RGB").save(buf, "PNG")
+    __import__("imgops").on_white(img).save(buf, "PNG")
     clean = app_gui.enhance_image_for_ocr(buf.getvalue())
     if clean is None:
         return []
@@ -172,7 +186,7 @@ def make(path, folder, lines_of=None, progress=None):
         for n, fr in enumerate(frames, 1):
             if progress:
                 progress(f"Picture page {n}/{len(frames)}")
-            fr = fr.convert("RGB")
+            fr = __import__("imgops").on_white(fr)          # 4.22.0: a picture with no background sits on white
             dpi = DPI
             try:
                 dpi = int(round(float((fr.info.get("dpi") or (DPI, DPI))[0]))) or DPI
