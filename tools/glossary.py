@@ -49,9 +49,17 @@ RULES = [(k, say, re.compile(bad), re.compile(ok)) for k, say, bad, ok in RULES]
 def files(only=None):
     if only:
         return [os.path.relpath(os.path.abspath(p), ROOT) for p in only]
+    try:                                    # the program's own files: what git tracks (a build PC also holds dist folders,
+        import subprocess                   # sandboxes and other programs' code beside them)
+        got = subprocess.run(["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True, timeout=60)
+        tracked = [os.path.normpath(x) for x in got.stdout.splitlines() if x.strip()] if got.returncode == 0 else []
+    except (OSError, ValueError, subprocess.SubprocessError):
+        tracked = []
+    if tracked:
+        return sorted(rel for rel in tracked if rel not in SKIP_FILES and not (set(rel.split(os.sep)[:-1]) & SKIP_DIRS))
     out = []
     for d, ds, fs in os.walk(ROOT):
-        ds[:] = sorted(x for x in ds if x not in SKIP_DIRS)
+        ds[:] = sorted(x for x in ds if x not in SKIP_DIRS and not x.startswith(("dist", "build", "_", ".")))
         for f in sorted(fs):
             rel = os.path.relpath(os.path.join(d, f), ROOT)
             if f.endswith(".py") and rel not in SKIP_FILES:
