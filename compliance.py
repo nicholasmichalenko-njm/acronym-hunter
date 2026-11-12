@@ -1162,8 +1162,8 @@ def suggest_map(item, outline, stats=None):
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
            "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read", "Place", "Lead place", "L/M",
-           "Area", "Piece", "Left out", "Heading level", "Heading under"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16, 6, 16, 14, 30, 8, 24]
+           "Area", "Piece", "Left out", "Heading level", "Heading under", "Compliance language"]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16, 6, 16, 14, 30, 8, 24, 30]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
@@ -1176,7 +1176,8 @@ FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": 
          "Area": "area",                                  # 3.19.0: the area text was added from ("2:72,140,540,168")
          "Piece": "piece",                                # 4.1.0: what the shred says the piece is (shredtypes)
          "Left out": "left_out",                          # 4.3.0: left out of the matrix on Place, with its reason (leaveout)
-         "Heading level": "hlevel", "Heading under": "base"}   # 4.17.0: a heading marked in Shred at a level (headinglevels)
+         "Heading level": "hlevel", "Heading under": "base",   # 4.17.0: a heading marked in Shred at a level (headinglevels)
+         "Compliance language": "cl"}                      # 4.18.0: words marked on the piece (cwords.mark), as JSON
 
 
 class Locked(Exception):
@@ -1233,6 +1234,12 @@ class Matrix:
                     row["base"] = row["base"].split("|", 1) + ([""] if "|" not in row["base"] else [])
                 else:
                     row.pop("base", None)
+                try:                                           # 4.18.0: compliance language marked on the piece
+                    row["cl"] = json.loads(row["cl"]) if row.get("cl", "").startswith("{") else None
+                except ValueError:
+                    row["cl"] = None
+                if not row.get("cl"):
+                    row.pop("cl", None)
                 self.items.append(row)
             if "Outline" in wb.sheetnames:
                 rows = list(wb["Outline"].iter_rows(values_only=True))[1:]
@@ -1389,6 +1396,7 @@ class Matrix:
         for it in self.items:
             ws.append([clean_chars(("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
                        "|".join(it.get("base") or []) if c == "Heading under" else str(it.get("hlevel") or "") if c == "Heading level" else
+                       (json.dumps(it["cl"], ensure_ascii=False) if it.get("cl") else "") if c == "Compliance language" else
                        (owner(it) if owner and c == "Owner" else it.get(FIELD[c], ""))) for c in COLUMNS])
             ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw, it=it)
             f = fills.get(it["decision"])
@@ -1405,7 +1413,7 @@ class Matrix:
         ws.add_data_validation(dv)
         dv.add(f"B2:B{max(2, ws.max_row) + 500}")
         for col in ("Context", "Key"):
-            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place", "Area", "Heading under")
+            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place", "Area", "Heading under", "Compliance language")
         ol = wb.create_sheet("Outline")
         ol.append(["Number", "Title", "Level", "Keep and Context rows placed", "Numbering", "From RFP section", "Part", "Builder"])
         import structparts as SP

@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SHRED: COMPLIANCE LANGUAGE ON ANY WORDS (4.18.0)
+  - In Shred, drag over any words of a piece and right-click: Compliance language: just here (kept on the piece),
+    Compliance language: everywhere (the words join the compliance words list every outline, matrix and setup reads),
+    or Not compliance language here (a word the list marks, taken off this piece). Clear this piece's compliance
+    language marks takes them all off. The piece keeps its type and decision; Undo takes a mark back.
+  - The marked words come out in the compliance style (bold by default, Settings sets it) in the Excel matrix, the
+    Word outline, the coverage report and the setup documents. The matrix keeps the marks (a hidden column).
+  - The piece pane shows the piece's words with its compliance language in that style, so what the list catches is
+    visible while you shred.
+
 DOCUMENTS: REPLACE A FILE, DELETE INTO THE TRASH; HEADINGS WITH LEVELS (4.17.0)
   - A document's right-click (and its More): Replace the file... puts the picked file in place of the document's
     file, under the same name. It stays the same document and the same version (no Amendment 1), and the shred reads
