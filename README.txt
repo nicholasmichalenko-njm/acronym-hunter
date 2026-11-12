@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+CAPTURED MEANS DELIVERED (4.21.0)
+  - Shred's pane says where a piece goes. Under the type chips, Goes to names the pages that read what you just said:
+    a Requirement goes to Place, then the Matrix and its section in the Setup; an Evaluation piece to Evaluation and
+    L to M; a Structure piece to the Outline; Information and Not applicable go nowhere, and the line says so.
+  - A page limit on a required heading is now the section's pages. Read the Structure pieces... reads "(not to exceed
+    15 pages)" onto a heading; Put in our outline sets those pages as the customer's, so the Matrix's page allocation
+    and Drafts > Status show them. Pages the team typed for a section stay. Check against the required structure does
+    the same for an outline made in 4.19.0 or 4.20.0.
+  - Submit > Report checks the required structure: a required heading renamed, taken out or moved shows under
+    Structure, with where the customer required it. It reports; it never blocks.
+  - Rules & Dates is honest about a piece typed Rule or Date: it says Listed here. Only a rule the reader found, or
+    one added with Add a rule..., checks Effort Formatting and Submit; those still say what uses them.
+
 THE GUIDE AND THE MESSAGES SAY TODAY'S STEPS (4.20.1)
   - The Guide (F1) reads in the menu's order: Getting started, Dashboard, Documents, Shred, Matrix & Outline, Setup,
     Drafts, Submit, Team, Settings, Your Tools. What Stationkeeper does, Documents, Extracting, Shred, Outline and

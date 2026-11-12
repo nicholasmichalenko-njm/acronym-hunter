@@ -1,0 +1,12 @@
+{
+ "format": 1,
+ "rules": [
+  {
+   "phrase": "proposals are limited to",
+   "cat": "L",
+   "why": "page limits are instructions",
+   "who": "root",
+   "added": "2026-11-12 00:19"
+  }
+ ]
+}

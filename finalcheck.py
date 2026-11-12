@@ -273,6 +273,17 @@ def run(volume, ctx=None):
         lines.append(_line("Structure", "Table of contents page numbers", FAIL if mm else (PASS if classify(texts)["toc"] else HUMAN),
                            "; ".join(f"{t} says {a}, on page {b}" for t, a, b in mm[:6]) if mm else
                            ("The page numbers match the PDF." if classify(texts)["toc"] else "No table of contents found in the PDF.")))
+    if M is not None:                                # 4.21.0: the customer's required structure, checked at the end too
+        try:
+            import setupdoc as SD
+            import structfrom as SF
+            if SD.setup_of(M).get("required"):
+                dr = SF.drift(M)
+                lines.append(_line("Structure", "The required structure", FAIL if dr else PASS,
+                                   "; ".join(t for _k, t in dr[:5]) + (" ..." if len(dr) > 5 else "") if dr else
+                                   "Our outline holds every required heading, by its name and in its order."))
+        except Exception as e:  # noqa: BLE001
+            lines.append(_line("Structure", "The required structure", HUMAN, f"Not checked ({type(e).__name__})."))
 
     # 5 acronyms
     qr = ctx.get("qa_report")

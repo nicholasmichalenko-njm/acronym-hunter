@@ -216,6 +216,8 @@ def check(page, show=True):
     """Check against the required structure. Returns the issues."""
     import structfrom as SF
     got = SF.drift(page.M) if page.M is not None else []
+    if page.M is not None and SF.deliver_limits(page.M):          # 4.21.0: limits read before 4.21.0 reach the page budget
+        page.host.changed()
     text = "\n".join(t for _k, t in got) if got else "Our outline holds every required heading, by its name and in its order."
     if show and not os.environ.get("AH_TEST"):
         QMessageBox.information(page, "Check against the required structure", text)

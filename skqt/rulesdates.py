@@ -105,9 +105,14 @@ def regroup(page):
                 gk = "format"
             else:
                 gk = bucket(it.toolTip(1) or it.text(1) or it.text(0))
-            it.setText(4, USED_BY[gk])
             from . import design as D
-            it.setForeground(4, D.color("accent"))
+            if label in ("Rules from the shred", "Dates from the shred"):     # 4.21.0: a typed piece is listed here; only a
+                it.setText(4, "Listed here")                                 # rule the reader found checks other pages
+                it.setToolTip(4, "A piece typed Rule or Date in Shred is listed here. Add a rule... makes it one that "
+                                 "Effort Formatting and Submit check.")
+            else:
+                it.setText(4, USED_BY[gk])
+                it.setForeground(4, D.color("accent"))
             main[gk].addChild(it)
             moved += 1
         t.takeTopLevelItem(t.indexOfTopLevelItem(g))

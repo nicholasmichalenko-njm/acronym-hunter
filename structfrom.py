@@ -178,8 +178,31 @@ def put(M, heads, replace=None):
         req.clear()
     req.extend({"title": e["title"], "num": e["num"], "level": e["level"], "req": e.get("req", ""), "ref": e.get("ref", "")}
                for e in ents)
+    deliver_limits(M)
     M.pending = True
     return ents
+
+
+def deliver_limits(M):
+    """4.21.0: a required heading's page limit is its section's pages in the page budget, set by the customer (the
+    Matrix's page allocation and Drafts > Status read the budget). Pages the team typed for the section stay. Returns
+    the labels set."""
+    import compliance as C
+    import pagebudget as PB
+    out = []
+    for o in M.outline:
+        n = o.get("limit")
+        if not n or not o.get("req"):
+            continue
+        lab = C.outline_label(o)
+        try:
+            if PB.pages(M, lab) is None or (PB.source(M, lab) == "rfp" and PB.pages(M, lab) != float(n)):
+                PB.set_pages(M, lab, n, "rfp")
+                out.append(lab)
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
+    return out
 
 
 def drift(M):

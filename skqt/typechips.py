@@ -48,6 +48,10 @@ def add(page, rows):
         fl.addWidget(b)
         page.type_chips[key] = b
     page.add(w)
+    import captureuse as CU                                  # 4.21.0: where what was said here goes
+    have = [k for k in ST.KEYS if all(ST.has(it, k) for it in rows)]
+    say = CU.line(have, {k: (types.get(k) or {}).get("name", k) for k in have})
+    page.goes_label = page.add(D.label(say, "muted")) if say else None
     if sug:
         why = ((page.sg.get(rows[-1]["id"]) or {}).get("why") or "")
         page.sug_label = page.add(D.label(f"Suggested: {types.get(sug, {}).get('name', sug)}" + (f", {why}" if why else "")
