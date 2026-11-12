@@ -1910,6 +1910,10 @@ def build_matcher():
         "common_words": common_words(),
         "symbol_defs": {},
         "abbrev_re": re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)'),
+        # 4.23.3: three shapes the scan passed over (the probe in tests/test_acrshapes4233.py)
+        "paren_short_re": re.compile(r'\(([A-Z][0-9]{1,2}|[0-9][A-Z])\)'),          # (C2), (J6), (5G): one letter and digits, given in brackets
+        "dotted_re": re.compile(r'(?<![\w.])((?:[A-Z]\.){2,5})(?![\w])'),            # U.S., U.K., D.C.
+        "lowlead_re": re.compile(r'(?<![\w-])([a-z]{1,2}[A-Z]{2,}[A-Za-z0-9]{0,6})(?![\w-])'),   # eMASS, iOS, eCFR
     }
 
 _HITS = None   # terms recorded in the chunk being matched (for first use)
@@ -2222,10 +2226,25 @@ def match_chunks(findings, chunks, m):
             record_candidate(findings, cand, "Acronym (Candidate)", loc_label,
                              caps_run=cand.isalpha() and in_caps_run(text, match.start(1), match.end(1)))
 
+        # 4.23.3: one letter and digits given in brackets after the words; initials with periods; a small letter before capitals
+        for key, kind in (("paren_short_re", "Acronym (Candidate)"), ("dotted_re", "Abbreviation (Candidate)"),
+                          ("lowlead_re", "Acronym (Candidate)")):
+            for match in m[key].finditer(text):
+                tok = match.group(1)
+                if in_code(match.span(1)) or tok in findings:
+                    continue
+                if tok in m['include_db']:
+                    record_included(findings, tok, loc_label, m['include_db'])
+                elif tok in m['exclude_db'] or tok.upper() in m['exclude_upper']:
+                    if tok in m['exclude_db']:
+                        record_excluded(findings, tok, loc_label, m['exclude_db'])
+                else:
+                    record_candidate(findings, tok, kind, loc_label)
+
         for match in m['unit_re'].finditer(text):
             ucand = match.group(1)
-            if in_code(match.span()):
-                continue   # "28V" inside PCU-28V is part of a code, not a measurement
+            if in_code(match.span()) or any(a <= match.start() < b for a, b in code_spans):
+                continue   # "28V" inside PCU-28V is part of a code, not a measurement; nor is the word after F-35 (4.23.3)
             if ucand in m['ocr_fixes']:
                 apply_ocr_fix(findings, ucand, m['ocr_fixes'][ucand], "Unit (Candidate)", loc_label, m['include_db'], m['exclude_db'])
                 continue
@@ -2249,6 +2268,8 @@ def match_chunks(findings, chunks, m):
                     acand.upper() in m['exclude_upper'] or base.upper() in m['exclude_upper']):
                 continue
             if acand.endswith('.') and '/' not in acand:
+                if base in findings:
+                    continue   # 4.23.3: "3 dB." ends a sentence: dB is already found
                 if len(base) >= 2 and base.isupper():
                     continue   # "CCB." is an acronym ending a sentence: the acronym rule already reports CCB
                 if base.lower() in m['common_words'] and base.lower() not in PERIOD_ABBREVIATIONS:
@@ -2425,7 +2446,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "4.23.2"            # keep in step with version_info.txt
+APP_VERSION = "4.23.3"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
