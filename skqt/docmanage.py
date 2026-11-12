@@ -151,7 +151,10 @@ def delete(page, d, vid=None, answer=None):
         host.changed()
     page.trashed_now = getattr(page, "trashed_now", []) + [eid]
     _log(host, f"{info['name']}: {'deleted' if info['whole'] else ', '.join(info['versions']) + ' deleted'}; in the Trash")
-    diag.activity("document_deleted" if info["whole"] else "document_version_deleted")
+    if info["whole"]:
+        diag.activity("document_deleted")
+    else:
+        diag.activity("document_version_deleted")
     try:
         page.refresh()
     except Exception:  # noqa: BLE001
