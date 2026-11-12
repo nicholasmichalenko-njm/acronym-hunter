@@ -527,6 +527,10 @@ ACRONYMS ON THE PAGE (3.92.0)
     carry the words selected on the page to either line. More: Not text, Part of a longer term, Add to the Wall of
     Truth... (a Term truth: how to write it, what it means here). A plural of a term in capitals is marked on the
     page (RFPs marks RFP).
+  - What the scan finds (4.23.3): besides capitals, mixed case (DoD), designators (PCU-28V), units after a number and
+    abbreviations, it now finds one letter and digits given in brackets (C2), initials with periods (U.S., D.C.) and a
+    small letter before capitals (eMASS). The word after a designator is no longer read as a unit (F-35 feed), and a
+    unit ending a sentence is listed once (dB, not dB. too).
   - Acros & Abs Finder: Send the list to an effort... puts its terms and meanings into an effort's acronym list; the
     same meaning is not added twice.
   - Keys on the card: 1 to 4 pick a definition, Enter adds the term to the list with it, X says Not a term. A line joins
