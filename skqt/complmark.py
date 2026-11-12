@@ -40,7 +40,7 @@ def mark(page, it, words, how):
     page.M.log(it.get("id", ""), f"compliance language: {words} ({how})")
     page.M.pending = True
     page.host.changed()
-    diag.activity("compliance_language_marked", how=how)
+    diag.activity("compliance_language_marked")
     page.host.status(msg)
     try:
         page.show_card(page.selected())
