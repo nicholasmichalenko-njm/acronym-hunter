@@ -122,6 +122,27 @@ row = next(r for r in range(dlg.table.rowCount()) if dlg.table.item(r, 1).text()
 dlg.restore(row); app.processEvents()
 check("... Restore puts it back", lib().docs and os.path.isfile(inside))
 check("Empty the Trash... asks, and Cancel keeps it", dlg.empty(answer=False) == 0 and T.entries(w.ws))
+# 4.23.2: Shred's document list follows a delete; a file that cannot be moved does not stop the delete
+w.go("assign"); pg.load_files_keep(); app.processEvents()
+names = lambda: [pg.files.itemText(i) for i in range(pg.files.count())]   # noqa: E731
+check("Shred lists the document while it is there", "Section L.pdf" in names(), names())
+w.go("library"); lp.refresh(); app.processEvents()
+import shutil as _sh
+real_move, real_copy = _sh.move, _sh.copy2
+def _gone(*a, **k):
+    raise FileNotFoundError(2, "No such file or directory")
+_sh.move = _gone; _sh.copy2 = _gone
+try:
+    eid = DM.delete(lp, lib().docs[0], answer=True); app.processEvents(); err = None
+except Exception as e:  # noqa: BLE001
+    eid, err = None, e
+_sh.move, _sh.copy2 = real_move, real_copy
+ent = T.entry(w.ws, eid) if eid else None
+check("a file that cannot be moved to the Trash: the delete finishes, nothing is raised", err is None and eid and not lib().docs, err)
+check("... the Trash entry says which file was not kept", ent and any(f.get("lost") for f in ent["files"]), ent and ent["files"])
+check("... and Shred no longer offers the deleted document", "Section L.pdf" not in names(), names())
+got = DM.restore(lp, eid); app.processEvents()
+check("Restore still brings the record back, without the lost file, and Shred lists what is back", got is not None and lib().docs, got)
 k = sum(checks)
 print(f"QT DOCS 4170 {'PASS' if k == len(checks) else 'FAIL'} ({k}/{len(checks)})")
 w.close(); app.quit()

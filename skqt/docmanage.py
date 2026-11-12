@@ -150,6 +150,7 @@ def delete(page, d, vid=None, answer=None):
     if M is not None:
         host.changed()
     page.trashed_now = getattr(page, "trashed_now", []) + [eid]
+    shred_list(host)
     _log(host, f"{info['name']}: {'deleted' if info['whole'] else ', '.join(info['versions']) + ' deleted'}; in the Trash")
     if info["whole"]:
         diag.activity("document_deleted")
@@ -166,6 +167,24 @@ def delete(page, d, vid=None, answer=None):
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return eid
+
+
+def shred_list(host):
+    """4.23.2: after a document is deleted or put back, Shred's document list is filled again, so it never offers a
+    document that is gone (it kept the names until the effort was opened again). When the document Shred had open is
+    the one that went, Shred opens afresh."""
+    ap = getattr(host, "assign_page", None)
+    if ap is None or not hasattr(ap, "files"):
+        return False
+    try:
+        cur = ap.files.currentText()
+        ap.load_files_keep()
+        if cur and ap.files.findText(cur) < 0:
+            ap.load()
+        return True
+    except Exception:  # noqa: BLE001  Shred fills its list when it opens next
+        diag.swallowed()
+        return False
 
 
 def install(page):
@@ -243,6 +262,7 @@ def restore(page, eid):
         return None
     if got is not None and M is not None:
         host.changed()
+    shred_list(host)
     _log(host, f"{e['name']}: put back from the Trash")
     diag.activity("trash_restored")
     try:
