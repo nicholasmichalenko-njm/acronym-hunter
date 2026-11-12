@@ -1,6 +1,6 @@
 """The Guide's Template Studio and Formatting Standards topics (3.66.0), Apply in Word (3.67.0) and Verify (3.84.0), put back in the menu's order by guidetopics. Text only."""
 STUDIO = \
-("studio", "Production", "Template Studio",
+("studio", "Team", "Template Studio",
   "One volume's template in one place, read from where its parts live: the profile's cover, headers and footers, table "
   "of contents, fonts, numbering and table looks; this effort's own formatting; the RFP's formatting rules; the sections and "
   "numbering; and the field recipes.",
@@ -23,7 +23,7 @@ STUDIO = \
   ["Nothing here is a second copy: change a style in Formatting Standards, a header in Layout, a pick in Effort Profiles."])
 
 FORMATSTD = \
-("formatstd", "Production", "Formatting Standards",
+("formatstd", "Team", "Formatting Standards",
   "The fundamentals every template is built from, as a library: theme and colors, font sets, page setups, pagination schemes, "
   "heading numbering, lists, and paragraph, character and table styles.",
   "When a new template or Word document comes in; when the team changes a style; before building an effort profile.",
@@ -46,7 +46,7 @@ FORMATSTD = \
    "Quick Parts and Layout get screens of their own in 3.50.0; Effort Profiles and Templates in 3.51.0."])
 
 APPLYWORD = \
-("applyword", "Production", "Apply in Word (Beta)",
+("applyword", "Team", "Apply in Word (Beta)",
   "Beta: the live step is still being proven in real Word. The team's banned phrases put into a draft as tracked "
   "changes, each with a comment naming the rule, so the author accepts or rejects them in Word.",
   "Before a color review, or when an author asks for the banned phrases fixed in their draft.",
@@ -132,16 +132,16 @@ STYLES = ("styles", "Team", "Styles", "Every style you keep, one row each, with 
   ["Each style keeps Word's own definition exactly as the file had it."])
 
 # 3.96.0: the menu as the effort's path, and Team. 4.0.0: six steps. 4.1.0: Shred's four tabs
-PATH = ("path", "Effort", "The effort's path",
+PATH = ("path", "Getting started", "The effort's path",
   "The menu is the effort's path: the Dashboard, then 1 Documents, 2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts and "
   "6 Submit. Each step says what is left on it (done, a count, next, or the due date).",
   "Whenever you are not sure what to do next.",
   ["Documents: the customer's package, complete, current and readable. Click a document to see what has been done to it and "
-   "its next thing; Changes shows what a new version changed; Text check reads every page right.",
+   "its next thing; Changes shows what a new version changed.",
    "Shred: what every piece of the customer's text is (Requirements, Rules & Dates, Evaluation, Acros & Abs; adding a document "
-   "extracts it). See it as shows Page, List or Sort. The Q&A button opens the Q&A log beside the page.",
+   "extracts it). See it as shows Page or List; Fix text checks that every page was read right. The Q&A button opens the Q&A log beside the page.",
    "Matrix & Outline: what we answer and where (Outline, Place, the Matrix, L to M, Coverage). Setup: who writes what, when and how long, and the "
-   "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acronyms). Submit: the last checks.",
+   "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acros & Abs). Submit: the last checks.",
    "The Dashboard is the map: one card per step, Your next step with one button, and this week's dates.",
    "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",
    "The effort switcher at the top of the menu holds another effort, All Efforts and Your Tools. Ctrl+K goes to any page or "
@@ -172,7 +172,7 @@ TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
    "acronym list is Lists\\Acronyms.csv and each dictionary a Word .dic file in Lists\\Dictionaries (4.7.1)."],
   ["A copy from another PC (Company Standards-PCNAME.xlsx) is reported, never read. Nothing is deleted."])
 
-REDLINE = ("redline", "Effort", "Redline",
+REDLINE = ("redline", "Documents", "Redline",
   "A clean Word copy of a customer PDF to redline in Word, checked word for word, and the exceptions table from the redline.",
   "When the customer issues a draft RFP, Q&A, the final RFP's terms, an amendment or a model contract to comment on.",
   ["Prepare: pick the PDF and press Make the Word copy. It goes to the effort's Redlines folder. Fix text in Shred first "
