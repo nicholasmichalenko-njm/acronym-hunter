@@ -30,7 +30,7 @@ STARTERS = (
      "style": "Heading 1", "note": "STYLEREF by its level number works in every language version of Office; "
                                     "STYLEREF \"Heading 1\" does the same in English."},
     {"name": "Page number", "where": "Page number", "codes": ["PAGE"],
-     "note": "Each section of the volume sets its own format and restart (Template Studio > Sections and numbering)."},
+     "note": "Each part's section sets its own format and restart (Template Studio > Parts and numbering)."},
 )
 _SW = re.compile(r"^\\[A-Za-z*#@!]$")
 

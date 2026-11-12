@@ -5,7 +5,7 @@ Two tabs, Customer and Ours, take the place of the category and folder tree: Cus
 (their documents, the bidders library, Q&A); Ours holds the rest (our documents, graphics, categories of our own). The
 header has Find, More (folders, watched folders, the Library folder...) and one main button, Add documents.... The
 table: Document (with "N versions" when there are more than one), Type, Governing version, and three progress chips:
-Text (pages checked), Shred (where its shred stands) and Terms (acros and abs found and to decide). The panel says what
+Text (pages checked), Shred (where its shred stands) and Acros & Abs (found and to decide). The panel says what
 has been done, lists the versions once and offers one next thing; More about this document, Initial and type, and See
 where its text went are on the row's right-click.
 
@@ -17,7 +17,7 @@ import diag
 
 CUSTOMER_SIDE = ("customer", "bidders", "qa")
 SIDES = (("customer", "Customer"), ("ours", "Ours"))
-COLUMNS = ["Document", "Type", "Governing version", "Text", "Shred", "Terms"]
+COLUMNS = ["Document", "Type", "Governing version", "Text", "Shred", "Acros & Abs"]
 
 
 def classic():
@@ -131,7 +131,7 @@ def shown(page, docs):
 
 # ------------------------------------------------------------------ the progress chips
 def chips(page, d, st=None, terms=None):
-    """{column: (text, tone)} for Text, Shred and Terms. tone: ok, warn, accent, faint."""
+    """{column: (text, tone)} for Text, Shred and Acros & Abs. tone: ok, warn, accent, faint."""
     from . import docstatus as DS
     out = {}
     if d.get("category", "customer") == "customer":
@@ -150,9 +150,9 @@ def chips(page, d, st=None, terms=None):
     t = (terms or {}).get((d.get("versions") or [{}])[-1].get("file", ""))
     if t:
         found, decide = t
-        out["Terms"] = (f"{decide} to decide" if decide else f"{found} found", "warn" if decide else "ok")
+        out["Acros & Abs"] = (f"{decide} to decide" if decide else f"{found} found", "warn" if decide else "ok")
     else:
-        out["Terms"] = ("", "faint")
+        out["Acros & Abs"] = ("", "faint")
     return out
 
 

@@ -201,6 +201,14 @@
    }
   ]
  },
+ "fieldrecipes.py": {
+  "volume-parts": [
+   {
+    "s": "Each part's section sets its own format and restart",
+    "why": "a starter value saved in the Company Standards workbook (Fields); it changes only with that file's format number"
+   }
+  ]
+ },
  "finalcheck.py": {
   "acronyms-page": [
    {
