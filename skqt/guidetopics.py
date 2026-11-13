@@ -781,15 +781,15 @@ TOPICS = [
   [], []),
 ]
 
-from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS, STYLES, TEAM, PATH, TEAMLIB, REDLINE, GRAPHICS      # 3.66.0: kept apart so this file stays under 800 lines
-TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, STYLES, VERIFY, DESIGNS, TEAM, TEAMLIB, PATH, REDLINE, GRAPHICS]     # 3.84.0: Verify; 3.96.0: Team, the path
+from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS, STYLES, TEAM, PATH, TEAMLIB, REDLINE, GRAPHICS, CALENDAR, TASKS      # 3.66.0: kept apart so this file stays under 800 lines
+TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, STYLES, VERIFY, DESIGNS, TEAM, TEAMLIB, PATH, REDLINE, GRAPHICS, CALENDAR, TASKS]     # 3.84.0: Verify; 3.96.0: Team, the path
 TOPICS.insert(next(i for i, t in enumerate(TOPICS) if t[0] == "fixcopy") + 1, APPLYWORD)   # 3.67.0
 for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' sections in their new homes
     for _t in TOPICS:
         if _t[0] == _k and isinstance(_t[5], list):
             _t[5].append(_line)
 # 3.75.0, 4.20.1: the Guide reads in the menu's order (the six steps; a tab's page after its menu item)
-_ORDER = ("path home deliverables record meetings exportall library read compare datacalls redline graphics assign verify requirements evalcrit "
+_ORDER = ("path home calendar tasks deliverables record meetings exportall library read compare datacalls redline graphics assign verify requirements evalcrit "
           "custqa acronyms acrlist lists structure matrix crosswalk prove impact setups effortfmt storyboards drafts techedit reviews truth "
           "finalcheck qa checks postsub keywords team formatstd styles qpstd layoutstd designs profiles templates studio "
           "rules audit applyword fixcopy refs settings efforts mywork tools shredreq shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path

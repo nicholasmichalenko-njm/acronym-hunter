@@ -43,15 +43,15 @@ def _WAU():
     return __import__("skqt.watchauto", fromlist=["x"])     # 4.25.1: the effort's own folder, watched
 
 
-RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5: under Documents
+RAIL = [("Effort", [("home", "Dashboard"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Team", [("team", "Team")]),
         ("Settings", [("settings", "Settings")])]
-STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics"))
+STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],   # 4.27.0
+TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.27.0, 4.27.1
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "List"), ("compare", "Changes"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
@@ -94,7 +94,7 @@ GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 
             for k, e in RAIL_OF.items()
             for n in [STEP_KEYS.index(e) if e in STEP_KEYS else 0]}          # 4.12.0: Redline sits among them, unnumbered
 GROUP_OF.update({k: "Deliverables" for k in ("redline", "rcheck", "exceptions")})   # 4.25.3: opened from a deliverable's tile
-GROUP_OF.update({"graphics": "Documents"}); RAIL_OF["graphics"] = "graphics"                     # 4.25.5
+GROUP_OF.update({"graphics": "Documents", "calendar": "The effort", "tasks": "The effort"}); RAIL_OF.update({k: k for k in ("graphics", "calendar", "tasks")})   # 4.25.5, 4.27.1
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
 GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Your Tools' own
 
@@ -340,7 +340,7 @@ class MainWindow(QMainWindow):
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
-                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "shredlist": self.shredlist_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}
+                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "shredlist": self.shredlist_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}; __import__("skqt.effortpages", fromlist=["x"]).install(self)     # 4.27.1: Tasks, Calendar, Activity
         for pg in dict.fromkeys(self.pages.values()):     # 4.3.0: Place, L to M and Coverage share the Shred page
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

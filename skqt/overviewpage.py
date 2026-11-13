@@ -78,7 +78,7 @@ class OverviewPage(QWidget):
         left.addWidget(self.truth)
         # ---- right
         self.cal = D.Card("Calendar", "The next dated things: due dates, questions due, stages, gate goals, tasks.",
-                          actions=[D.button("Open the calendar", None, lambda: self.open_calendar(), "The month, day by day, on All cards")])
+                          actions=[D.button("Open the calendar", None, lambda: self.open_calendar(), "The month, day by day")])
         self.cal_box = QVBoxLayout(); self.cal_box.setSpacing(2); self.cal.body.addLayout(self.cal_box)
         right.addWidget(self.cal, 1)
         self.cust = D.Card("Customer")
@@ -89,7 +89,7 @@ class OverviewPage(QWidget):
         self.cust.body.addWidget(self.cust_w); self.cust.body.addWidget(self.cust_fold, 0, Qt.AlignLeft)
         self.cust_open = False
         right.addWidget(self.cust)
-        self.act = D.Card("Latest activity", actions=[D.button("All activity", None, lambda: host.go("record"), "Everything that happened, on the Effort Record")])
+        self.act = D.Card("Latest activity", actions=[D.button("All activity", None, lambda: host.go("activity"), "Everything that happened, by day")])
         self.act_box = QVBoxLayout(); self.act_box.setSpacing(2); self.act.body.addLayout(self.act_box)
         bv.addWidget(self.act)
 
@@ -277,5 +277,5 @@ class OverviewPage(QWidget):
         return got
 
     def open_calendar(self):
-        """The month, day by day: the Dashboard's calendar card, on All cards (a menu entry of its own comes with Tasks)."""
-        return self.host.go("home")
+        """The month, day by day: the Calendar entry (4.27.1)."""
+        return self.host.go("calendar")

@@ -203,3 +203,22 @@ GRAPHICS = ("graphics", "Documents", "Graphics",
    "Add graphics... adds pictures of ours to Documents as Internal graphics. A graphic need: right-click for "
    "Needed, In work, Done."],
   ["Documents", "Acros & Abs"])
+
+CALENDAR = ("calendar", "The effort", "Calendar",
+  "Every dated thing in the effort on one page: the month with each such day marked, the list of the day you pick, "
+  "and the next dated things. The due date, questions due, stages, gate goals, tasks, reviews and meetings feed it "
+  "by themselves.",
+  "Daily. It is also the right column of the Overview.",
+  ["Click a day for its list. Today brings the month and the list back to today.",
+   "Set the due date by clicking it at the top of the Overview. A task's date is set on Tasks."],
+  ["The Dashboard's All cards tab keeps the calendar card with the calendar file (.ics)."])
+
+TASKS = ("tasks", "The effort", "Tasks",
+  "One page, two views. This effort lists its tasks by gate, late ones first. Mine, across efforts lists one person's "
+  "items in every effort on this PC as Late, Today, This week and Later.",
+  "Many times a day: what is mine, what is late, what to chase.",
+  ["Add a task... takes what, who, by when and what it is about.",
+   "Right-click a task for Not started, In progress, Done, or Remove the task.",
+   "Mine, across efforts: pick a name; double-click a row to open its effort."],
+  ["Tasks are kept in the effort record. A late task also counts on the Overview."])
+

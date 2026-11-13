@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TASKS, CALENDAR, ACTIVITY (4.27.1)
+  - Tasks, in the menu under the Dashboard. Two views on one page:
+      This effort: its tasks by gate, late ones first. Add a task... takes what, who, by when and what it is about.
+      Right-click a task: Not started, In progress, Done, Remove the task.
+      Mine, across efforts: pick a name and see that person's items in every effort on this PC as Late, Today,
+      This week and Later. Double-click a row to open its effort.
+  - Calendar, in the menu under the Dashboard: the month with every dated day marked, the list of the day you
+    pick, and what is coming up. Today brings today back.
+  - Activity, a tab of the Dashboard: everything that happened, by day, newest first. Filter by person, by kind and
+    by how far back. Double-click a row about a task, a graphic, a deliverable or a fact on the wall to open it.
+  - On the Overview, Open the calendar and All activity go to these, and the tasks late count opens Tasks.
+
 THE EFFORT ON ONE SCREEN (4.27.0)
   - The Dashboard entry opens the Overview. It fits one screen:
       Your next step, with one button, and the six steps under it with what is left on each. Click a step to open it.

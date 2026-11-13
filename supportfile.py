@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.27.1": ["Tasks is in the menu: this effort's tasks by gate, and yours across efforts as Late, Today, This week, Later.",
+               "Calendar is in the menu: the month, the day's list, and what is coming up.",
+               "Activity is a tab of the Dashboard: what happened, by day, with filters; a row opens its thing."],
     "4.27.0": ["The Dashboard entry opens the Overview: the effort on one screen.",
                "Your next step and the path, up to four counts that open where each is fixed, the deliverables, the Wall of Truth line.",
                "The calendar's next dated things, the customer, and the last three things that happened.",

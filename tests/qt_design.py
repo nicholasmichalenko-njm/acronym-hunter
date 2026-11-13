@@ -50,7 +50,7 @@ w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 
 rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the effort's path, then Team and Settings (4.0.0: six steps)", rail[:len(steps)] == steps
-      and steps == ["Dashboard", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Team", "Settings"], rail)
+      and steps == ["Dashboard", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Team", "Settings"], rail)
 w.go("prove"); app.processEvents()
 check("the top bar names the page: Coverage is a tab of Matrix & Outline (4.3.0)", w.page_title.text() == "Matrix & Outline"
       and w.stack.currentWidget() is w.assign_page and not w.stepper.isVisibleTo(w) and w.page_tabs.isVisibleTo(w)

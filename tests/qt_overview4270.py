@@ -30,7 +30,7 @@ T = datetime.date(2026, 11, 13)
 f = {"reqs": {"undecided": 28, "reqs": 12, "placed": 8}, "compare": 0, "acronyms": 5}
 nums = OV.numbers(f, late_tasks=3, graphics_left=2, questions=9)
 check("up to four counts, none that is zero, each with the page that fixes it", nums == [(28, "not shredded", "assign"), (4, "to place", "place"),
-                                                                                    (3, "tasks late", "home"), (5, "acros and abs undecided", "acronyms")], nums)
+                                                                                    (3, "tasks late", "tasks"), (5, "acros and abs undecided", "acronyms")], nums)
 check("nothing waiting: no counts", OV.numbers({"reqs": None}) == [])
 cal = {T: [("task", "Call the teammate"), ("event", "Deliverable added")], T + datetime.timedelta(days=1): [("questions", "Questions due 2:00 p.m.")],
        T + datetime.timedelta(days=3): [("done", "Kickoff held")], T + datetime.timedelta(days=12): [("due", "Proposal due")],
@@ -68,7 +68,7 @@ rec.save_contact({"name": "Pat Ray", "title": "Contracting Officer", "org": "OSC
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 check("the Dashboard's tabs: Overview first, then All cards, Deliverables, Effort Record, Meetings",
-      [k for k, _t in TABS["home"]] == ["overview", "home", "deliverables", "record", "meetings"] and dict(TABS["home"])["home"] == "All cards")
+      [k for k, _t in TABS["home"]] == ["overview", "home", "deliverables", "record", "meetings", "activity"] and dict(TABS["home"])["home"] == "All cards")
 w.open_effort("Osprey"); app.processEvents()
 w.rail_go("home"); app.processEvents()
 op = w.overview_page
