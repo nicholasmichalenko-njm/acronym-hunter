@@ -648,8 +648,7 @@ TOPICS = [
    "A file in a OneDrive or SharePoint folder: people editing it online can't be seen from here, so the copy is the "
    "version synced to this PC. Fix it when the writers are done.",
    "Each fix is one guarded change that may touch only what it declares; anything else is refused.",
-   "Fix a Copy and Make a .dotx template are Preview tools: off for the team until the proposal manager turns them on in "
-   "Settings > Roles and Preview tools."]),
+   "Fix a Copy and Make a .dotx template are Preview tools: off for the team until the proposal manager turns them on."]),
  ("refs", "Team", "Team References",
   "Every list the team keeps, in one place: banned phrases, this PC's acronym database, the Exclusion List, fixes for misread "
   "text, the team's Wall of Truth and the custom dictionaries for Word.",
@@ -680,19 +679,18 @@ TOPICS = [
   ["Press Export all... and choose where the dated folder goes."],
   ["Every export is dated and kept in the effort's folder. Nothing is overwritten."]),
  ("settings", "Settings", "Settings",
-  "This PC's settings: work mode, time zone, efforts, author list, stages and roles, folders and file names, document "
-  "types, custom dictionaries, branding, team pack, master database, backups, updates, and help.",
+  "This PC's settings in sections: Appearance, General, Efforts, People, Document types, Shred and responses, Team data "
+  "and training, Updates and help.",
   "Setting up the app, joining a team, or installing an update.",
-  ["Where Stationkeeper is used sets the work mode: Offline, Connected or SCIF-ready.",
+  ["General > Team folder: with one, backups and packages go there; with none, everything stays on this PC.",
+   "Efforts > Folders and file names: the folders a new effort gets (eleven numbered ones unless you set your own).",
+   "Document types: each type's initial is its short name (RFP, Sec L); Add a type... is the first line of every type box.",
    "Our data (3.22.0): Export our data... writes the team's foundational data (acronyms, dictionaries, phrases, "
    "standards, the template library, team lists) to one file; Import our data... brings it in on another PC, add-only, "
    "with Undo. Nothing about one effort goes in it, and it never goes on GitHub.",
    "Custom dictionaries keeps your team's words for Word: + Dictionary..., type words or Import a .dic..., Add the "
    "effort's acronyms, then Export for Word... and add the file in Word (File > Options > Proofing > Custom Dictionaries).",
    "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",
-   "Roles and Preview tools: your role and where it comes from (People in the effort, or your own choice in "
-   "Customize...), hide other roles' tools, and show the stage's tools at the top of the menu. The proposal manager turns "
-   "Preview tools (Fix a Copy, Make a .dotx template) on or off for the team; a team pack carries the choice.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",
    "In Updates, Install update pack... installs a new version from its .skupdate file. Roll back the update goes back one step.",
    "Help and support opens this Guide, the shortcuts, what's new, Issues and ideas, and the support file.",

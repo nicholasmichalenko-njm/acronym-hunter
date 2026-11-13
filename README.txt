@@ -1,6 +1,40 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SMALL THINGS FROM AN EVENING OF QUESTIONS (4.24.0)
+  - All Efforts: two buttons at the top, Efforts and Archived, take the place of Show archived. Right-click an archived
+    effort: Restore, or Delete from Stationkeeper.... Delete takes the effort off this PC's list and nothing more. Its
+    files stay where they are unless you tick "Also send its folder to the Recycle Bin", and that is offered only for
+    a folder that holds this effort and no other. An effort that is not archived cannot be deleted.
+  - Dashboard: click the due date (or "No due date set yet") to set it. The fold button stays in one place, at the
+    top right of the header, open or folded.
+  - Settings is in sections by subject: Appearance (light or dark, the logos), General (your time zone, the team
+    folder, backups, your data), Efforts (the effort, Folders and file names), People (the author list), Document
+    types, Shred and responses, Team data and training, Updates and help.
+  - Not shown for now, with their saved values and code kept: Stages, gates and roles, and Roles and Preview tools.
+    The pages set aside stay set aside.
+  - One work setting: the team folder (Settings > General). With one, backups and packages go there and the app says
+    who has an effort open; with none, everything stays on this PC. Stationkeeper no longer asks where the PC is used
+    at first start, and the Offline / Connected choice and the SCIF-ready switch are gone. The SCIF edition is its own
+    build; a copy made SCIF-ready before stays SCIF-ready.
+  - A new effort gets eleven numbered folders: 01_proposal (our volumes), 02_customer documents, 03_briefings and
+    approvals, 04_RFIs and white papers, 05_program management, 06_cost and pricing, 07_tech engineering,
+    08_operations and supply chain, 09_contracts, 10_proposal management (Response Setup, with Exports under it),
+    11_submission confirmation and results. Change them in Settings > Efforts > Folders and file names. A tree you
+    saved there is kept. An effort made before keeps its folders: Customer Documents, Volumes, Response Setup and
+    Exports are used where they are, and nothing is renamed or moved.
+  - Document types: the initial is the type's short name (RFP, SOW, SOO, PWS, Sec L, Sec M, Amd, QA, Att, CDRL), so a
+    reference reads RFP-L-4.2.1. It applies to documents added from now on; a document keeps the initial it has. The
+    first line of every type box is Add a type...: name it, and it joins the team's types. Other is no longer offered
+    (a document that has it keeps it). The Numbered column is gone: a second document of a type is numbered by
+    itself (RFP2), and amendments count from Amd1. An initial keeps its letters as typed; AMD1 and Amd1 are the same.
+  - The scan finds four more shapes: a digit before one capital (5G, 3D, 4K); a known unit with no number before it
+    (mA, pH, dBm); a hyphenated name (Wi-Fi); a small letter before one capital (xApp, iPad). Left alone: a label
+    (section 3B), a number and a unit written together (4A), a word with a prefix (Re-Do), a slip of the keys (tHe).
+  - A term with no definition is exported with an empty definition (unless Only terms with a definition is ticked).
+  - Prepare for Redline: a cover's large lines (the title, the date) are plain paragraphs that look the same, not
+    headings, so they stay out of Word's navigation pane and a table of contents.
+
 CAPTURED MEANS DELIVERED (4.21.0)
   - Shred's pane says where a piece goes. Under the type chips, Goes to names the pages that read what you just said:
     a Requirement goes to Place, then the Matrix and its section in the Setup; an Evaluation piece to Evaluation and
@@ -878,7 +912,8 @@ SETUP FROM AN OUTLINE WORKBOOK, AND THE SETUP'S OWN STYLES (3.71.0)
 ARCHIVE EFFORTS, AND MERGE ANOTHER COPY OF AN EFFORT (3.70.0)
   - All Efforts: right-click an effort for Open, Add to this effort..., and Archive.... Archive asks "Are you sure?"
     (Yes or No). An archived effort leaves All Efforts and the effort lists; its files stay where they are. Show
-    archived lists archived efforts; right-click one and Restore. Nothing in the app deletes an effort.
+    archived lists archived efforts; right-click one and Restore. Nothing in the app deletes an effort. (4.24.0: the
+    Archived button shows them, and an archived effort can be deleted from Stationkeeper; see the top of this file.)
   - Add to this effort... (All Efforts' right-click, the Effort Dashboard, or the Library's Add from another copy...):
     bring work in from another copy of the same effort: someone else's, an earlier one, or one on another PC. From
     another effort on this PC (archived ones too), an effort's folder, or an effort package. The other copy is only read.
@@ -1068,7 +1103,8 @@ FINAL CHECK (3.58.0)
 FOCUS AND FILE SAFETY (3.57.0)
   - Authoring and its tracking live in SharePoint, so the menu focuses on production. Set aside for now: My Work,
     Draft Status, Wall of Truth, Storyboards, Data calls, Color Reviews and the Structure Builder's Kickoff packets.
-    Their work is kept; Settings > Roles and Preview tools > Show the pages set aside brings them back.
+    Their work is kept; Settings > Roles and Preview tools > Show the pages set aside brings them back (4.24.0: that
+    card is not shown for now).
   - Final Checks > Leftovers: what must not go out in a Word volume. The setup's reference text and file properties,
     hidden text, white text on a light page, comments, tracked changes and placeholders, each with why it matters.
     Export... writes the list to Excel. Drop a Word file on Your Tools and pick Check for leftovers for the same.
@@ -2049,7 +2085,9 @@ CUSTOMER Q&A, KEY DATES AND WHAT CHANGED (2.98.0)
     page opens the previous version's page with the old sentence highlighted. Hide changes takes the outlines off.
 
 SENSITIVITY, TRAINING AND SCIF-READY (2.97.0)
-  - Three work modes (Settings > Where Stationkeeper is used; the chip in the top bar shows it):
+  - 4.24.0: the mode is no longer chosen. A PC with a team folder (Settings > General) is Connected, one without is
+    Offline, and the SCIF edition is its own build. What each mode keeps is as below.
+  - Three work modes (the title bar shows it):
       Offline: this PC on its own, for testing and everyday work on General business, Proprietary and CUI documents.
       Content-free logs and the training lines you save stay on this PC. (PCs set to Secured before 2.97 are Offline.)
       Connected: Microsoft 365 with OneDrive and SharePoint, as before.
@@ -2136,6 +2174,7 @@ PAGE-LIMITED AND FORMATTING REQUIREMENTS, DOCUMENT TYPES, WATCHED FOLDERS (2.94.
     "Not specified in the documents". + Add... a rule the documents set that the app did not find (headers and
     footers, page numbering); Not required hides one the documents do not really require (it stays in Submission
     rules).
+  - (4.24.0: the initials are the types' short names, RFP, Amd1, SOW; the Numbered column is gone.)
   - Settings > Document types: the kinds of customer document and the initial each starts with (RFP R, Amendment A1,
     A2..., SOW S...). Add your own (Pricing Instructions PI), with words in a file name that suggest it (pricing, cost
     volume), whether its documents are numbered, and whether it builds the matrix by default. A renamed type keeps
@@ -2504,6 +2543,7 @@ YOUR DATA IN ITS OWN FOLDER, AND EFFORT HEALTH (2.80.0)
   - Saves wait a moment when OneDrive or a virus scanner holds a file, instead of failing.
 
 WORK MODES AND HAND-OFFS EXACTLY AS YOU SEE THEM (2.79.0)
+  - (4.24.0: nothing is asked at first start; the team folder in Settings > General is the one setting.)
   - At first start Stationkeeper asks where the PC is used; Settings > Where Stationkeeper is used changes it. The
     title bar shows the mode. Stationkeeper works offline and never connects in either mode.
   - Secured (a SCIF or any closed network): backups and packages go to a local folder or your site's approved transfer

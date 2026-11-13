@@ -74,7 +74,7 @@ class SettingsPage(QWidget):
         self.doctypes_card = DocTypesCard(host)
         v.addWidget(self.doctypes_card)
         # 3.77.0: the custom dictionaries and the master database live in Team References (one home per function)
-        from .brandview import BrandingCard              # 2.88.0: the company logos at the top of the menu
+        from .brandcard import BrandingCard              # 2.88.0: the company logos at the top of the menu
         self.branding_card = BrandingCard(host)
         v.addWidget(self.branding_card)
         from .roleview import RolesCard                  # 3.13.0: roles and Preview tools
@@ -189,7 +189,6 @@ class SettingsPage(QWidget):
         self.host.status(f"Data copied to {new}. Restart Stationkeeper to use it; the old folder can be deleted afterwards.")
         return new
 
-    # 4.24.0 (Nicholas, 2026-11-12): sections by subject. Each card has one home.
     SECTIONS = (("Appearance", ("look_card", "branding_card")),
                 ("General", ("tz_card", "mode", "bk", "data")),
                 ("Efforts", ("eff", "folders_card")),
@@ -252,11 +251,7 @@ class SettingsPage(QWidget):
         return card
 
     def focus_process(self):
-        """4.24.0: Stages, gates and roles is set aside; nothing to show."""
-        if "process_card" in self.SET_ASIDE:
-            return None
-        self.process_card.fill()
-        return self.jump(self.process_card)
+        return None                                  # 4.24.0: Stages, gates and roles is set aside; nothing to show
 
     def focus_authors(self):
         self.authors.fill()

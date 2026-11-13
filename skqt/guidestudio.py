@@ -153,7 +153,7 @@ TEAM = ("team", "Team", "Team",
   "References, shown to the roles that use them.",
   "When you change what every effort is built from, or check a draft against it.",
   ["Click a tile to open the tool. Its own tabs are under its title, as before."],
-  ["A tool for another role is not shown; Settings > Roles and Preview tools says who it is for."])
+  ["A tool for another role is not shown; the page shown in its place says who it is for."])
 
 TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
   "The Company Standards (Default) as files you can edit outside the app: their values in Company Standards.xlsx, and the "
