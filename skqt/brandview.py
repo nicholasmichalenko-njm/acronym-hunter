@@ -139,9 +139,14 @@ class EffortBanner(QFrame):
                                  "essentials at the top")                 # 3.20.3: an arrow, and a smooth, slower fold
         self.cond_btn.setFixedWidth(36)
         tg.addWidget(self.cond_btn)
+        self.cond_btn.setVisible(False)                  # 4.24.0: one fold button, in one place (fold_btn, top right)
         # the countdown
         right = QFrame(); right.setObjectName("countdown"); h.addWidget(right, 0, Qt.AlignTop)
-        rv = QVBoxLayout(right); rv.setContentsMargins(D.SPACE["l"], D.SPACE["m"], D.SPACE["l"], D.SPACE["m"]); rv.setSpacing(0)
+        rv = QVBoxLayout(right); rv.setContentsMargins(D.SPACE["l"], D.SPACE["m"] + 22, D.SPACE["l"], D.SPACE["m"]); rv.setSpacing(0)
+        # 4.24.0 (Nicholas 17:00): the due date is set right here: click it (no trip through Edit details)
+        right.setCursor(Qt.PointingHandCursor)
+        right.setToolTip("Click to set the customer's due date and time")
+        right.mouseReleaseEvent = lambda _e: self.due_dialog()
         self.due_head = QLabel("DUE IN"); self.due_head.setObjectName("cdHead"); rv.addWidget(self.due_head, 0, Qt.AlignRight)
         self.days = QLabel(""); self.days.setObjectName("cdDays"); rv.addWidget(self.days, 0, Qt.AlignRight)
         self.clock = QLabel(""); self.clock.setObjectName("cdClock"); rv.addWidget(self.clock, 0, Qt.AlignRight)
@@ -166,6 +171,13 @@ class EffortBanner(QFrame):
         self.exp_btn = D.button("\u25BC", "ghost", lambda: self.set_condensed(False, animate=True), "Expand: show the full header")
         self.exp_btn.setFixedWidth(36)
         ch.addWidget(self.exp_btn)
+        self.exp_btn.setVisible(False)
+        ch.addSpacing(40)                                # room for the one fold button
+        # 4.24.0 (Nicholas 16:45): the button that folds and unfolds the header stays in one place, the top right corner
+        # (it sat left of the middle when open and at the far right when folded)
+        self.fold_btn = D.button("\u25B2", "ghost", lambda: self.set_condensed(not self.condensed, animate=True),
+                                 "Fold or unfold the header")
+        self.fold_btn.setParent(self); self.fold_btn.setFixedSize(34, 26); self.fold_btn.raise_()
         self.condensed = False
         self.compact.setVisible(False)
         self.timer = QTimer(self, interval=1000, timeout=self.tick)
@@ -175,6 +187,10 @@ class EffortBanner(QFrame):
         """3.12.0: the condensed header keeps the effort's name, days to the due date, client, sensitivity and stage.
         3.20.3: from the arrows it folds and unfolds smoothly (450 ms, eased) instead of jumping."""
         self.condensed = bool(on)
+        if getattr(self, "fold_btn", None) is not None:
+            self.fold_btn.setText("\u25BC" if self.condensed else "\u25B2")
+            self.fold_btn.setToolTip("Unfold: show the full header" if self.condensed else "Fold: keep only the essentials at the top")
+            self._place_fold()
         if animate and self.isVisible():
             self._fold(self.condensed)
         else:
@@ -191,6 +207,45 @@ class EffortBanner(QFrame):
             else:
                 diag.activity("qt_banner_expanded")
         return self.condensed
+
+    def _place_fold(self):
+        b = getattr(self, "fold_btn", None)
+        if b is not None:
+            b.move(max(0, self.width() - b.width() - 8), 6); b.raise_()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._place_fold()
+
+    def due_dialog(self, answer=None):
+        """4.24.0: the customer's due date and time, set from the header itself. answer (tests): an ISO date and time, or
+        "" to clear it. Returns True when it was saved."""
+        if self.host.ws is None:
+            return False
+        if answer is None:
+            from PySide6.QtCore import QDate, QTime
+            from PySide6.QtWidgets import QDateEdit, QTimeEdit
+            import effortrec as _R
+            due = self.due_iso or ""
+            dd = _R.parse_date(due[:10]) if due else None
+            d = QDialog(self); d.setWindowTitle("The customer's due date"); f = QFormLayout(d)
+            date = QDateEdit(); date.setCalendarPopup(True); date.setDisplayFormat("MMM d, yyyy")
+            date.setDate(QDate(dd.year, dd.month, dd.day) if dd else QDate.currentDate())
+            time = QTimeEdit(); time.setDisplayFormat("h:mm AP")
+            hm = due[11:16] if len(due) > 15 else "14:00"
+            time.setTime(QTime(int(hm[:2]), int(hm[3:5])))
+            row = QHBoxLayout(); row.addWidget(date); row.addWidget(time); row.addStretch(1)
+            f.addRow("Due", row)
+            f.addRow("", D.label("The official deadline, in the submission's time zone (Edit details sets the zone).", "muted"))
+            bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+            clear = bb.addButton("No due date yet", QDialogButtonBox.ResetRole)
+            got = {"v": None}
+            clear.clicked.connect(lambda: (got.update(v=""), d.accept()))
+            bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); f.addRow(bb)
+            if d.exec() != QDialog.Accepted:
+                return False
+            answer = got["v"] if got["v"] is not None else date.date().toPython().isoformat() + "T" + time.time().toString("HH:mm")
+        return self.save_details({"due": answer})
 
     def _fold(self, condense):
         from PySide6.QtCore import QPropertyAnimation, QEasingCurve
@@ -337,7 +392,7 @@ class EffortBanner(QFrame):
                                 "(Settings > Your time zone).")
         else:
             self.due.setText(("Due " + R.due_text(self.due_iso, rec.data.get("zone", ""))) if self.due_iso else
-                             "No due date set yet. Set it in Edit details.")
+                             "No due date set yet. Click here to set it.")
         self.tick()
         if self.due_iso and not self.timer.isActive():
             self.timer.start()

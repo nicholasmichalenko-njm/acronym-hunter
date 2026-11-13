@@ -173,6 +173,21 @@ check("Condense and Expand are arrows", bn.cond_btn.text() == "▲" and bn.exp_b
 bn.set_condensed(True, save=False, animate=True)
 check("condensing glides (an animation, not a jump)", getattr(bn, "_fold_anim", None) is not None)
 bn.set_condensed(False, save=False)
+# 4.24.0: one fold button in one place; the due date set from the header
+app.processEvents()
+x_open = bn.width() - bn.fold_btn.x(); t_open = bn.fold_btn.text()
+bn.set_condensed(True, save=False); app.processEvents()
+check("4.24.0: the fold button stays in one place, the top right, open or folded", bn.width() - bn.fold_btn.x() == x_open and bn.fold_btn.y() == 6
+      and x_open <= 60 and (t_open, bn.fold_btn.text()) == ("\u25b2", "\u25bc") and bn.cond_btn.isHidden() and bn.exp_btn.isHidden(),
+      (x_open, bn.fold_btn.x(), bn.width()))
+bn.fold_btn.click(); app.processEvents()
+check("... and it unfolds from the same button", not bn.condensed)
+bn.set_condensed(False, save=False)
+import effortrec as _ER
+check("4.24.0: with no due date the header says to click it", "Click here to set it" in bn.due.text() or _ER.Record(w.ws.root).data.get("due"), bn.due.text())
+check("the due date is set from the header", bn.due_dialog("2027-01-15T14:00") and _ER.Record(w.ws.root).data.get("due", "").startswith("2027-01-15T14:00")
+      and "Due " in bn.due.text(), bn.due.text())
+check("... and cleared from there", bn.due_dialog("") and not _ER.Record(w.ws.root).data.get("due") and "Click here to set it" in bn.due.text(), bn.due.text())
 
 print(f"QT REVIEW 3.20.3 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 w.close()

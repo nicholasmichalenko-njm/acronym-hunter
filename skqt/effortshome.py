@@ -127,8 +127,14 @@ class EffortsHome(QWidget):
         top.addWidget(D.button("Open an effort from its folder...", None, lambda: self.open_folder(),       # 3.68.0
                                "Pick an effort's folder (or its Effort List): it opens wherever the folder now lives"))
         top.addStretch()
-        self.show_arch = QCheckBox("Show archived"); self.show_arch.toggled.connect(lambda _on: self.refresh())   # 3.70.0
-        top.addWidget(self.show_arch)
+        # 4.24.0 (Nicholas 2026-11-12 16:59): two views, Efforts and Archived, in place of the small Show archived box
+        self.show_live = D.button("Efforts", None, lambda: self.show_arch.setChecked(False), "The efforts in use")
+        self.show_live.setCheckable(True); self.show_live.setChecked(True)
+        self.show_arch = D.button("Archived", None, None, "The archived efforts: right-click one to restore it, or to delete it "
+                                  "from Stationkeeper")
+        self.show_arch.setCheckable(True)
+        self.show_arch.toggled.connect(lambda _on: self.refresh())           # 3.70.0
+        top.addWidget(self.show_live); top.addWidget(self.show_arch)
         self.count = D.label("", "muted", wrap=False); top.addWidget(self.count)
         # Unfiled work
         self.uf_card = D.Card("Unfiled work", "Documents and results not in an effort yet. File them when you know where they belong.")
@@ -168,12 +174,14 @@ class EffortsHome(QWidget):
         for s in rows:
             c = EffortCard(self, s, current=(s["name"] == h.effort_name))
             if arch:
-                c.setEnabled(True); c.setToolTip("Archived. Right-click to restore it."); c.setStyleSheet(c.styleSheet() + " QFrame#ecard QLabel{color:gray;}")
+                c.setEnabled(True); c.setToolTip("Archived. Right-click to restore it, or to delete it from Stationkeeper."); c.setStyleSheet(c.styleSheet() + " QFrame#ecard QLabel{color:gray;}")
             self.cards[s["name"]] = c
             self.flow.addWidget(c)
         self.empty.setVisible(not rows and not arch)
         n_arch = len(ES.all_efforts(reg, archived=True))
-        self.show_arch.setText(f"Show archived ({n_arch})")
+        self.show_arch.setText(f"Archived ({n_arch})")
+        self.show_live.blockSignals(True); self.show_live.setChecked(not arch); self.show_live.blockSignals(False)
+        self.show_live.setText(f"Efforts ({len(ES.all_efforts(reg))})")
         self.count.setText((f"{len(rows)} archived effort(s)" if arch else f"{len(rows)} effort(s)") if rows else ("No archived efforts" if arch else ""))
         c = UF.counts(reg)
         self.uf_counts = c
@@ -210,6 +218,8 @@ class EffortsHome(QWidget):
         m = QMenu(self)
         if (self.host.efforts.get(name) or {}).get("archived"):
             m.addAction("Restore", lambda: self.restore(name))
+            m.addSeparator()
+            m.addAction("Delete from Stationkeeper...", lambda: self.delete(name))     # 4.24.0
         else:
             m.addAction("Open", lambda: self.open(name))
             m.addAction("Add to this effort...", lambda: self.add_to(name))
@@ -223,8 +233,8 @@ class EffortsHome(QWidget):
         if answer is None:
             from PySide6.QtWidgets import QMessageBox
             answer = QMessageBox.question(self, "Archive this effort?", f"Are you sure you want to archive {name}?\n\nIt leaves All "
-                                          "Efforts and the effort lists. Its files stay where they are, and Show archived lets "
-                                          "you restore it any time.", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
+                                          "Efforts and the effort lists. Its files stay where they are, and the Archived view "
+                                          "lets you restore it any time.", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
         if not answer:
             return False
         h = self.host
@@ -234,9 +244,51 @@ class EffortsHome(QWidget):
         EA.archive(h.efforts, name, getattr(h, "my_name", None) or None)
         diag.activity("effort_archived")
         h.fill_efforts()
-        h.toast(f"{name} archived. Show archived lists it; right-click to restore.")
+        h.toast(f"{name} archived. The Archived view lists it; right-click to restore.")
         self.refresh()
         return True
+
+    def delete(self, name, answer=None):
+        """4.24.0: an archived effort leaves Stationkeeper. Asks first and says what goes and what stays. Its files stay
+        on disk unless the box is ticked (then its folder goes to the Recycle Bin). answer (tests): None asks; False
+        cancels; "list" takes it off the list; "files" also sends the folder to the Recycle Bin. Returns what was done:
+        "", "list" or "files"."""
+        import effortarchive as EA
+        h = self.host
+        info = h.efforts.get(name) or {}
+        if not info.get("archived"):
+            h.status("Archive the effort first: only an archived effort can be deleted from Stationkeeper.")
+            return ""
+        folder = EA.folder_to_remove(h.efforts, name)
+        if answer is None:
+            from PySide6.QtWidgets import QCheckBox as _CB, QMessageBox
+            box = QMessageBox(QMessageBox.Warning, "Delete this effort from Stationkeeper?",
+                              f"{name} leaves Stationkeeper: All Efforts, the Archived view and every list. This cannot be undone "
+                              "from the app.\n\n" + (f"Its files stay where they are:\n{folder}\n\nOpen an effort from its folder... "
+                              "brings it back later." if folder else "Its files stay where they are."), parent=self)
+            tick = _CB("Also send its folder to the Recycle Bin") if folder and EA.can_recycle() else None
+            if tick is not None:
+                box.setCheckBox(tick)
+            yes = box.addButton("Delete from Stationkeeper", QMessageBox.DestructiveRole)
+            no = box.addButton(QMessageBox.Cancel)
+            box.setDefaultButton(no); box.setEscapeButton(no)
+            box.exec()
+            answer = False if box.clickedButton() is not yes else ("files" if tick is not None and tick.isChecked() else "list")
+        if not answer:
+            return ""
+        done = "list"
+        if answer == "files" and folder:
+            if EA.recycle(folder):
+                done = "files"
+            else:
+                h.status("The folder could not be sent to the Recycle Bin (a file in it is open). The effort left the list; "
+                         "its files are still there.")
+        EA.delete(h.efforts, name)
+        diag.activity("effort_deleted", n=1 if done == "files" else 0)
+        h.fill_efforts()
+        h.toast(f"{name} deleted from Stationkeeper." + (" Its folder is in the Recycle Bin." if done == "files" else " Its files are where they were."))
+        self.refresh()
+        return done
 
     def restore(self, name):
         import effortarchive as EA

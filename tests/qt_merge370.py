@@ -50,11 +50,27 @@ w.open_effort("Kestrel (Pat)")
 check("Yes archives it: the open effort is closed first, and it leaves All Efforts", eh.archive("Kestrel (Pat)", answer=True)
       and w.ws is None and set(eh.cards) == {"Kestrel"} and E.Registry(os.path.join(cfg, "efforts.json")).get("Kestrel (Pat)")["archived"]
       and os.path.isfile(paths["Kestrel (Pat)"]))
-check("Show archived (1)", eh.show_arch.text() == "Show archived (1)")
+check("Archived (1): a view of its own (4.24.0)", eh.show_arch.text() == "Archived (1)" and eh.show_live.isChecked())
 check("the effort picker leaves it out", "Kestrel (Pat)" not in [w.effort_box.itemText(i) for i in range(w.effort_box.count())])
 eh.show_arch.setChecked(True); app.processEvents()
-check("Show archived lists it; its menu restores it", set(eh.cards) == {"Kestrel (Pat)"}
-      and [a.text() for a in eh.card_menu("Kestrel (Pat)").actions() if a.text()] == ["Restore"])
+check("The Archived view lists it; its menu restores it, or deletes it from Stationkeeper (4.24.0)", set(eh.cards) == {"Kestrel (Pat)"}
+      and [a.text() for a in eh.card_menu("Kestrel (Pat)").actions() if a.text()] == ["Restore", "Delete from Stationkeeper..."]
+      and not eh.show_live.isChecked())
+# 4.24.0: delete an archived effort from Stationkeeper
+import effortarchive as EA
+check("an effort in use cannot be deleted: archive it first", eh.delete("Kestrel", answer="list") == "" and reg.get("Kestrel"))
+check("Cancel at the question changes nothing", eh.delete("Kestrel (Pat)", answer=False) == "" and E.Registry(os.path.join(cfg, "efforts.json")).get("Kestrel (Pat)"))
+fold = EA.folder_to_remove(E.Registry(os.path.join(cfg, "efforts.json")), "Kestrel (Pat)")
+check("the folder offered is the effort's own, never one another effort sits in", fold == os.path.dirname(paths["Kestrel (Pat)"])
+      or fold == "", (fold, paths["Kestrel (Pat)"]))
+import copy as _copy
+keep = _copy.deepcopy(E.Registry(os.path.join(cfg, "efforts.json")).data)
+check("Delete from Stationkeeper: off this PC's list, its files where they were", eh.delete("Kestrel (Pat)", answer="list") == "list"
+      and E.Registry(os.path.join(cfg, "efforts.json")).get("Kestrel (Pat)") is None and os.path.isfile(paths["Kestrel (Pat)"])
+      and "Kestrel (Pat)" not in eh.cards)
+r2 = E.Registry(os.path.join(cfg, "efforts.json")); r2.data = keep; r2.save()      # back, for the checks after
+w.efforts = E.Registry(os.path.join(cfg, "efforts.json")) if hasattr(w, "efforts") else None
+eh.refresh(); app.processEvents()
 eh.restore("Kestrel (Pat)"); eh.show_arch.setChecked(False); app.processEvents()
 check("Restore brings it back", set(eh.cards) == {"Kestrel", "Kestrel (Pat)"} and not E.Registry(os.path.join(cfg, "efforts.json")).get("Kestrel (Pat)").get("archived"))
 # ---- Add to this effort
