@@ -52,7 +52,7 @@ check("a card says how the effort stands without opening it", o["days"] in (4, 5
       and o["questions"] == 1 and o["stage"] == "Intake", o)
 check("the effort open in this window is marked", "Osprey" == w.effort_name)
 hp.open("Heron"); app.processEvents()
-check("click a card: the effort opens on Effort Home", w.effort_name == "Heron" and w.stack.currentWidget() is w.home_page)
+check("click a card: the effort opens on its Overview (4.27.0)", w.effort_name == "Heron" and w.stack.currentWidget() is w.overview_page)
 # Unfiled
 w.go("efforts"); app.processEvents()
 hp.open_unfiled(); app.processEvents()
