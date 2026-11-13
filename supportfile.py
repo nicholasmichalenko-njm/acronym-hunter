@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.29.2": ["The marks read Redlined Deliverable and Filled-in Deliverable. The mark and its tile on Deliverables stay in step.",
+               "A file dropped in the customer's folder is added by itself, For the shred. Redlines sits under 01_proposal.",
+               "Graphics lists every picture the reader saw. A graphic need links to the picture that answers it.",
+               "The Effort list shows the customer's page beside the selected term."],
     "4.29.1": ["Acronyms: Ignore here on the page, Ignore in this effort on the lists. No Next bar under a step.",
                "Settings > Appearance > Colors: Station navy, Slate and teal, or My colors by hex value, with Reset.",
                "Calendar has Add a date. Template Studio is a tab of Setup. Making a template is on for everyone.",
