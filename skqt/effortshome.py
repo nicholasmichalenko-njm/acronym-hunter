@@ -206,7 +206,7 @@ class EffortsHome(QWidget):
             from .starteffort import start_effort
             return start_effort(self.host, values)
         if self.host.ws is None:
-            self.host.go("overview")
+            self.host.go("home")                    # the Start an effort form is on All cards while no effort is open
             self.host.home_page.start.name.setFocus()
             return None
         from .starteffort import start_dialog
