@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.29.3": ["The Overview shows the effort's picture, its name in large type and the large due date again.",
+               "Shred: the bar at the selection wraps and can be dragged by its grip. Capture and Ask a question are on it.",
+               "Acronyms: how many finds are left shows large and follows each decision. Scan again is on the bar.",
+               "Fixed: correcting a reading to a term already added no longer sends that term back to undecided."],
     "4.29.2": ["The marks read Redlined Deliverable and Filled-in Deliverable. The mark and its tile on Deliverables stay in step.",
                "A file dropped in the customer's folder is added by itself, For the shred. Redlines sits under 01_proposal.",
                "Graphics lists every picture the reader saw. A graphic need links to the picture that answers it.",
