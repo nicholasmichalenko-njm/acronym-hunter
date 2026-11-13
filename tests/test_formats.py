@@ -104,7 +104,10 @@ TLB.sync_scores(cfg, _W(), {"team_library": os.path.join(tmp, "teamlib")})
 check("suggestion scores", json.load(open(os.path.join(cfg, "suggestion_scores.json")))["format"] == F.number("suggestion scores") == TLB.SCORES_FORMAT
       and all(json.load(open(os.path.join(d, f)))["format"] == F.number("suggestion scores")
               for d, _ds, fs in os.walk(os.path.join(tmp, "teamlib")) for f in fs if f.endswith(".json")))
-check("every kind is checked here", len(F.FORMATS) == 26, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
+import globalstd as GS                                                   # 4.30.0
+GS.take(cfg, 1, GS.DRAFT)
+check("global standards", json.load(open(os.path.join(cfg, GS.FILE)))["format"] == F.number("global standards") == GS.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 27, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

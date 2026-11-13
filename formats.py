@@ -38,6 +38,7 @@ FORMATS = {
     "redline copy": ("redlinecopy.build -> <copy>.skredline.json beside the Word copy in the Redlines folder", "format", 1),   # 4.8.0
     "effort data": ("effortdata.publish -> Stationkeeper Data\\manifest.json in the effort's folder (Stationkeeper Macros reads it)",
                     "schema_version", "1.0"),   # 4.9.0: contract stationkeeper.effort-data
+    "global standards": ("globalstd.take -> global_standards.json in the config folder", "format", 1),   # 4.30.0: the version this PC is on
     "re-shred queue": ("reshred.Queue.save -> changes/reshred.json in the effort's working folder", "format", 1),   # 4.1.0
 }
 

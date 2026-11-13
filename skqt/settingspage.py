@@ -84,6 +84,7 @@ class SettingsPage(QWidget):
         self.team_card = TeamCard(host)
         v.addWidget(self.team_card)
         from .teamlibview import card as _team_lib_card       # 4.7.0: Company Standards.xlsx and the Word files beside it
+        __import__("skqt.globalview", fromlist=["x"]).add_card(self, v)      # 4.30.0: the foundation's version on this PC
         self.tl_card = _team_lib_card(self)
         v.addWidget(self.tl_card)
         self.ourdata = D.Card("Our data (the team's data file)", "One file with the team's foundational data, used the same way in "  # 3.22.0
@@ -195,7 +196,7 @@ class SettingsPage(QWidget):
                 ("People", ("authors",)),
                 ("Document types", ("doctypes_card",)),
                 ("Shred and responses", ("ri_card", "re_card", "un_card", "sg_card")),
-                ("Team data and training", ("tl_card", "ourdata", "tr")),
+                ("Team data and training", ("gs_card", "tl_card", "ourdata", "tr")),
                 ("Updates and help", ("up", "sec", "help")))
     MOVED = ("team_card",)                       # 4.28.2 (answer 12): Team defaults is on the Team page
     SET_ASIDE = ("process_card", "roles_card")   # 4.24.0: not shown for now; the code, the saved values and the tests stay
@@ -282,7 +283,7 @@ class SettingsPage(QWidget):
         h = self.host
         info = (h.efforts.get(h.effort_name) or {}) if h.ws is not None else {}
         try:                                                # 3.22.0
-            self.show_ourdata()
+            self.show_ourdata(); __import__("skqt.globalview", fromlist=["x"]).show(self)
         except Exception:
             diag.swallowed()
         try:                                                # 3.18.0
