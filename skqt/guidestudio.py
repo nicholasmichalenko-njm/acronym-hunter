@@ -177,7 +177,8 @@ REDLINE = ("redline", "Documents", "Prepare for Redline",
   "changes and Word comments; checked word for word; and the exceptions table from the redline.",
   "When the customer issues a draft RFP, Q&A, the final RFP's terms, an amendment or a model contract to comment on, "
   "or a reviewer sends back a commented PDF.",
-  ["Prepare: every PDF and picture in Documents is a row. Press Prepare on its row. The Word file keeps the pictures, "
+  ["Prepare: every document marked Return it, redlined is a row (Documents, right-click > Used for). It opens from "
+   "the document's tile on Deliverables. Press Prepare on its row. The Word file keeps the pictures, "
    "the headers and footers, the fonts and the tables, as text that flows; it goes to the effort's Redlines folder. "
    "Fix text in Shred first if a page needs it.",
    "A PDF with a reviewer's comments: each cross-out, insert and replacement becomes a tracked change, each highlight "
