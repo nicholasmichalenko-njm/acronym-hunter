@@ -123,8 +123,8 @@ op.doc_pick.setCurrentIndex(0); app.processEvents()
 
 # ---- the bar: one find
 op.fill(); op.go(PKEY); op.wait(); app.processEvents()
-vis = [i for i, x in enumerate(op.items) if x["term"] == "TT8C"]
-op.select(vis[:1]); app.processEvents()
+vis = [i for i in range(len(op.items)) if op.visible(i)]             # the PC's reader reads the picture; here it is not read,
+op.select(vis[:1]); app.processEvents()                              # so take whatever find is first
 SB.keep_part(op); app.processEvents()                    # it was read with doubt: "It reads right: decide it"
 t1 = op.selected()[0]["term"]
 labs = labels(op.bar)
@@ -156,8 +156,13 @@ check("Not a term everywhere: the whole effort, as before", s.results[t1].get("e
 op.undo_last(); app.processEvents()
 
 # ---- the bar: two finds, combined
-vis = [next(i for i, x in enumerate(op.items) if x["term"] == t) for t in ("TT8C", "DC")]
+seen_, vis = set(), []
+for i in range(len(op.items)):
+    if op.visible(i) and op.items[i]["term"] not in seen_ and len(vis) < 2:
+        seen_.add(op.items[i]["term"]); vis.append(i)
 op.select(vis); app.processEvents()
+if op.bar is None or getattr(op.bar, "whole", None) is None:
+    SB.keep_part(op); app.processEvents()
 two = [x["term"] for x in op.selected()]
 bar = op.bar
 check("two finds: Combine into, with the one term they spell", getattr(bar, "whole", None) is not None and bar.whole.text() == AP.combined(op.selected())
