@@ -85,7 +85,7 @@ check("the sentence's menu maps its heading to the target", any(t.startswith("Ma
 check("Map to: the heading is mapped", pl.map_selected() == 1 and HS.home(M, mg)["label"] == "1.2 Management Approach"
       and HS.home(M, mg)["kind"] == "map")
 pl.show_left()
-check("what is left: not decided, not placed, headings answered", "not decided" in pl.left_lbl.text() and "not placed" in pl.left_lbl.text()
+check("what is left: not shredded (4.26.0), not placed, headings answered", "not shredded" in pl.left_lbl.text() and "not placed" in pl.left_lbl.text()
       and "customer headings answered" in pl.left_lbl.text(), pl.left_lbl.text())
 check("a link selects them", pl.select_left("undecided") > 0)
 more = [a.text() for a in ap.fill_more_menu().actions()]
