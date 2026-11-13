@@ -40,7 +40,7 @@ w.open_effort("Kestrel"); app.processEvents()
 
 # ---------------------------------------------------------------- the menu
 heads = [g for g, _i in RAIL]
-check("the menu is the effort's path, then Team and Settings (3.96.0)", heads == ["Effort", "Team", "Settings"], heads)
+check("the menu is the effort's path, then Team and Settings (3.96.0)", heads == ["Effort", "Templates", "Team", "Settings"], heads)
 r = RR.Record(w.ws.root)
 # 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color
 cur_stage = r.stages[r.index()]["name"]

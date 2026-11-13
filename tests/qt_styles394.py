@@ -32,7 +32,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1600, 980); w.show()
 w.go("styles"); app.processEvents()
 sp = w.styles_page
-check("Styles is a tab of Standards", ("styles", "Styles") in __import__("skqt.mainwin", fromlist=["x"]).TABS["formatstd"])
+check("Styles is a tab of Standards", ("styles", "Styles") in dict(__import__("skqt.mainwin", fromlist=["x"]).RAIL)["Templates"])   # 4.28.0: a menu entry of Templates
 check("empty: one way in", sp.empty.isVisible() and not sp.rows.isVisible())
 check("one bar: New style, Bring in from a document... (the main one)", sp.bar.main is sp.b_bring and len(sp.bar.commands) <= 5)
 DOC = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")

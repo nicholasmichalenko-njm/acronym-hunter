@@ -34,7 +34,7 @@ DL.add(RR.Record(ws0.root), "Volume I Technical", "Volume")
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("Template Studio is in the Team space (3.75.0)", "studio" in __import__("skqt.mainwin", fromlist=["x"]).TEAM and "studio" in w.team_page.refresh())
+check("Template Studio is in the Team space (3.75.0)", "studio" in [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["templates"]])   # 4.28.0: a tab of Template
 w.go("studio"); app.processEvents()
 st = w.studio_page
 check("the volume list holds the effort's volumes", "Volume I Technical" in [st.vol.itemText(i) for i in range(st.vol.count())])

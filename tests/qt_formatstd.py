@@ -33,13 +33,13 @@ d["types"][0]["style_defs"] = {"Body Text": {"size": 12}}
 PRL.save(cfg, d)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Standards leads the Team group, with Quick Parts and Layout as its tabs (3.75.0)", list(__import__("skqt.mainwin", fromlist=["x"]).TEAM)[:1] == ["formatstd"])
+check("Standards leads the Team group, with Quick Parts and Layout as its tabs (3.75.0)", ("formatstd", "Page Layout") in dict(__import__("skqt.mainwin", fromlist=["x"]).RAIL)["Templates"])   # 4.28.0
 w.go("formatstd"); app.processEvents()
 fp = w.formatstd_page
 check("the first time it opens, the standards become library items", fp.converted and fp.converted["new"] > 5 and "library items" in fp.note.text())
 cats = [fp.cats.item(r).text() for r in range(fp.cats.count())]
-check("the categories, each with its count (3.98.0: paragraph and character styles are on Styles)", [c.split(" (")[0] for c in cats]
-      == [t for k_, t, _ks in LC.CATEGORIES["formatting"] if k_ not in ("para_styles", "char_styles")] and fp.moved_note.isVisibleTo(w), cats)
+check("the categories, each with its count (3.98.0: paragraph and character styles are on Styles)", {t for k_, t, _ks in LC.CATEGORIES["formatting"] if k_ not in ("para_styles", "char_styles")} <= {c.split(" (")[0] for c in cats}
+      and "Paragraph styles" not in [c.split(" (")[0] for c in cats] and fp.moved_note.isVisibleTo(w), cats)   # 4.28.0: in Page Layout's one list
 fp.select_category("para_styles"); app.processEvents()
 names = [fp.t.item(r, 0).text() for r in range(fp.t.rowCount())]
 check("a category lists its items with effort types, status, version and where each came from",
@@ -100,7 +100,7 @@ lib = TL.Library(cfg)
 added = ib.report["added"] if ib.report else []
 check("Take the ticked: new items land in their categories, Draft, for the effort type chosen", added and len(lib.items) == before + len(added) + len(ib.report["versions"])
       and all(LC.status(lib.get(i)) == "draft" and LC.effort_types(lib.get(i)) == ["rfp"] for i in added), (ib.note.text(), len(lib.items), before, len(added)))
-check("the screen shows them at once", sum(int(fp.cats.item(r).text().split("(")[-1].rstrip(")")) for r in range(fp.cats.count())) >= 1)
+check("the screen shows them at once", sum(int(fp.cats.item(r).text().split("(")[-1].rstrip(")")) for r in range(fp.cats.count()) if "(" in fp.cats.item(r).text()) >= 1)
 ib.reject()
 fp.fill_more()
 undo_menu = next(a.menu() for a in fp.more_menu.actions() if a.menu())

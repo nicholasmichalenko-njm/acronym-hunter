@@ -34,7 +34,7 @@ from skqt import modes as _modes
 _modes.save(show_set_aside=False, hide_other_roles=False)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1440, 900); w.show(); app.processEvents()
 check("4.27.2: thirteen entries: the Dashboard with Calendar and Tasks, six steps, Graphics under Documents, Quick tools, Team, Settings", [b.text() for b in w.step_btns.values()] ==
-      ["Dashboard", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Quick tools", "Team", "Settings"],
+      ["Dashboard", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Styles", "Quick Parts", "Page Layout", "Template", "Quick tools", "Team", "Settings"],
       [b.text() for b in w.step_btns.values()])
 check("the steps are numbered 1 to 6", [b.circle.text() for k, b in w.step_btns.items() if k not in ("redline", "graphics", "calendar", "tasks")][1:7] == ["1", "2", "3", "4", "5", "6"])
 check("the effort switcher is there with nothing open", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text().startswith("No effort open"))
@@ -116,8 +116,8 @@ check("Your next step's button opens it", w.stack.currentWidget() is w.library_p
 w.rail_go("team"); app.processEvents()
 check("Team: one page of tiles", w.stack.currentWidget() is w.team_page and set(w.team_page.shown()[0]) == set(MW.TEAM)
       and not w.next_bar.isVisibleTo(w))
-w.team_page.tiles["formatstd"].click(); app.processEvents()
-check("a tile opens its tool; the menu stays on Team", w.stack.currentWidget() is w.formatstd_page and w.step_btns["team"].isChecked()
+w.team_page.tiles["rules"].click(); app.processEvents()
+check("a tile opens its tool; the menu stays on Team", w.stack.currentWidget() is w.pages["rules"] and w.step_btns["team"].isChecked()
       and w.page_crumb.text() == "Team")
 check("Ctrl+K finds Team", any(r[1] == "Team" for r in __import__("skqt.helpcenter", fromlist=["x"]).open_finder(w, run=False).entries))
 print(f"QT NAV 400 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

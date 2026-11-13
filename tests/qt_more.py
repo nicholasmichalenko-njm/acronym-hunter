@@ -53,7 +53,7 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("the menu by job: Effort, then Customer Documents and Shred (3.15.0; 3.53.0 spaces)", [g for g, _i in RAIL] == ["Effort", "Team", "Settings"])
+check("the menu by job: Effort, then Customer Documents and Shred (3.15.0; 3.53.0 spaces)", [g for g, _i in RAIL] == ["Effort", "Templates", "Team", "Settings"])
 w.open_effort("Osprey")
 w.read_page.read([PDF], os.path.join(EDIR, "Osprey_Compliance_Matrix.xlsx"))
 check("read", wait(lambda: w.review is not None))
