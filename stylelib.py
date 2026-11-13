@@ -65,12 +65,16 @@ def bring_in(lib, picks, path, set_of=None, tags=None, who=None):
         for p in picks:
             if not p.get("keep"):
                 continue
+            sid = (set_of or {}).get(p["name"])
+            choice = p.get("choice") if (sid and p.get("clash")) else ""      # 4.30.2: asked only where the set has the name
+            if choice == "mine":
+                counts["kept"] = counts.get("kept", 0) + 1                    # the set's own stays; the file's is not brought in
+                continue
             values = dict(p["values"], _xml=p.get("xml", ""), _from=os.path.basename(path))
             item, st = lib.add("style", p["name"], values, tags=tags, source=path, summary=TL._summary_style(p["values"]), who=who)
             counts[st] += 1
-            sid = (set_of or {}).get(p["name"])
             if sid:
-                add_to_set(lib, sid, [item["id"]])
+                add_to_set(lib, sid, [item["id"]], both=(choice == "both"))
     return counts
 
 
@@ -205,9 +209,9 @@ def rename_set(lib, sid, name=None, color=None):
     return True
 
 
-def add_to_set(lib, sid, ids):
-    """The versions go into the set; a set holds one version of a style, so another version of the same style comes out.
-    Returns the ids it replaced."""
+def add_to_set(lib, sid, ids, both=False):
+    """The versions go into the set; a set holds one version of a style, so another version of the same style comes out
+    (both=True, 4.30.2: it stays; the person chose to keep both). Returns the ids it replaced."""
     k = lib.kit(sid)
     if k is None:
         return []
@@ -218,7 +222,7 @@ def add_to_set(lib, sid, ids):
             continue
         for other in list(k["items"]):
             o = lib.get(other)
-            if o is not None and other != iid and o.get("family") == it.get("family"):
+            if not both and o is not None and other != iid and o.get("family") == it.get("family"):
                 k["items"].remove(other); gone.append(other)
         if iid not in k["items"]:
             k["items"].append(iid)

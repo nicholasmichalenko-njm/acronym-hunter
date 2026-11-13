@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
 
 import diag
 import stylelib as SL
+import styleown as SO
 import templatelib as TL
 from . import design as D
 from .adaptive import FlowLayout
@@ -191,6 +192,7 @@ class StylesPage(QWidget):
                                         "Only the styles of a Word file or template: tick the ones you keep (the file is only read)")
         self.bar.more("New set...", lambda: self.new_set())
         self.bar.more("Rename this set...", lambda: self.rename_set())
+        self.bar.more("What this set is used for...", lambda: self.used_for(), "The kind of effort it is for: RFP, RFI, program documents")
         self.bar.more("Take this set away", lambda: self.remove_set())
         self.bar.more_sep()                                   # 4.7.0: the values as a workbook, edited in Excel or here
         self.bar.more("Open the Company Standards workbook", lambda: __import__("skqt.teamlibview", fromlist=["x"])._open(
@@ -203,7 +205,7 @@ class StylesPage(QWidget):
         self.sets = SetList(self)
         self.sets.currentItemChanged.connect(lambda cur, _p: self.pick_set(cur.data(Qt.UserRole) if cur is not None else None))
         left.addWidget(self.sets, 1)
-        left.addWidget(D.label("Drag styles onto a set to add them. A style can be in many sets, one version in each.", "muted"))
+        left.addWidget(D.label("Drag styles onto a set to add them. A set owns its styles: two sets can each have a style of the same name with its own values.", "muted"))
         body.addLayout(left)
         mid = QVBoxLayout(); mid.setSpacing(D.SPACE["s"])
         self.notice = QFrame(); self.notice.setObjectName("pinStrip")
@@ -245,7 +247,8 @@ class StylesPage(QWidget):
         it = QListWidgetItem(f"Every style    {n_all}"); it.setData(Qt.UserRole, None)
         self.sets.addItem(it)
         for k in SL.sets(self.lib):
-            x = QListWidgetItem(dot(k.get("color") or "#64748B"), f"{k['name']}    {len(k['items'])}")
+            x = QListWidgetItem(dot(k.get("color") or "#64748B"), f"{k['name']}    {len(k['items'])}"
+                                + (f"\n{k['used_for']}" if k.get("used_for") else ""))
             x.setData(Qt.UserRole, k["id"])
             self.sets.addItem(x)
         self.sets.setCurrentRow(next((i for i in range(self.sets.count()) if self.sets.item(i).data(Qt.UserRole) == keep), 0))
@@ -257,7 +260,8 @@ class StylesPage(QWidget):
         self.fill_rows()
 
     def fill_rows(self):
-        rows = __import__("skqt.styleedit", fromlist=["x"]).keep_kind(self, SL.rows(self.lib, self.sid, self.find.text(), self.shown_ver))
+        rows = __import__("skqt.styleedit", fromlist=["x"]).keep_kind(self, SO.rows(self.lib, self.sid, self.find.text(), self.shown_ver))
+        self.earlier = {r["shown"]: r["earlier"] for r in rows if r.get("earlier")}      # 4.30.2: versions no row shows
         self.rows.clear()
         self.row_ids = []
         for r in rows:
@@ -280,7 +284,7 @@ class StylesPage(QWidget):
         w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(8, 6, 8, 6); h.setSpacing(0)
         c0 = QWidget(); c0.setFixedWidth(NAME_W); cv = QVBoxLayout(c0); cv.setContentsMargins(0, 0, 8, 0); cv.setSpacing(3)
         nm = D.label(f"<b>{self.lib.base_of(it)}</b>", None, wrap=False); nm.setTextFormat(Qt.RichText); cv.addWidget(nm)
-        if versions and len(versions) > 1:                # 3.94.0 (19:16): the versions are tabs on the row
+        if versions and len(versions) > 1:                # 4.30.2: only where this set holds two of the name (Keep both)
             tabs = QWidget(); tf = FlowLayout(tabs, 3)
             t = D.tokens()
             for x in versions:
@@ -295,9 +299,14 @@ class StylesPage(QWidget):
             self.ver_tabs = getattr(self, "ver_tabs", {}); self.ver_tabs[it.get("family")] = tabs
         kind = D.label(("Character" if SL.kind_of(v) == "character" else "Paragraph") + " style", "faint", wrap=False)   # 4.30.1
         kind.setObjectName("styleKind"); cv.addWidget(kind)
-        cv.addWidget(D.label(SL.version_words(self.lib, it, v), "muted"))
+        src = SO.source_words(self.lib, it, v, version=bool(versions and len(versions) > 1))
+        if src:
+            cv.addWidget(D.label(src, "muted"))
         chips = QWidget(); cf = FlowLayout(chips, 4)
-        for k in SL.sets_of(self.lib, it["id"]):
+        in_sets = SL.sets_of(self.lib, it["id"])
+        if not in_sets:                                    # 4.30.2: a style no set uses says so
+            none = D.label("In no set", "faint", wrap=False); none.setObjectName("noSet"); cf.addWidget(none)
+        for k in in_sets:
             ch = QLabel(k["name"]); ch.setObjectName("setChip")
             ch.setStyleSheet(f"QLabel#setChip{{border:1px solid {k.get('color') or '#64748B'};border-radius:9px;padding:0 7px;font-size:11px}}")
             cf.addWidget(ch)
@@ -318,15 +327,16 @@ class StylesPage(QWidget):
         return calm(w)
 
     def fill_notice(self):
-        nv = [(a, b) for a, b in (SL.newer(self.lib, self.sid) if self.sid else []) if (self.sid, a["id"], b["id"]) not in self.kept_newer]
+        nv = [(a, b) for a, b in (SO.newer(self.lib, self.sid) if self.sid else []) if (self.sid, a["id"], b["id"]) not in self.kept_newer]
         self.newer_now = nv[0] if nv else None
         if not nv:
             self.notice.hide()
             return None
         a, b = nv[0]
-        self.notice_lab.setText(f"A newer version: {self.lib.base_of(b)} v{b['version']} came in ({SL.version_words(self.lib, b)}). "
-                                f"This set uses v{a['version']}." + (f" ({len(nv) - 1} more)" if len(nv) > 1 else ""))
-        self.b_move.setText(f"Move this set to v{b['version']}"); self.b_keep.setText(f"Keep v{a['version']}")
+        self.notice_lab.setText(f"{self.lib.base_of(b)} was changed outside this set ({SO.source_words(self.lib, b) or 'a newer one'}) "
+                                "and no set uses the change yet. This set keeps its own unless you move it."
+                                + (f" ({len(nv) - 1} more)" if len(nv) > 1 else ""))
+        self.b_move.setText("Move this set to the changed one"); self.b_keep.setText("Keep this set's")
         self.notice.show()
         return nv
 
@@ -364,6 +374,12 @@ class StylesPage(QWidget):
             m.addAction("See or change...").triggered.connect(lambda: self.review(ids[0]))        # 4.30.1; a double-click too
             m.addAction("Duplicate...").triggered.connect(lambda: self.duplicate(ids[0]))
             m.addAction("Name this version...").triggered.connect(lambda: self.label_version(ids[0]))
+            old = getattr(self, "earlier", {}).get(ids[0]) or []
+            if old:                                           # 4.30.2: versions no set uses, off the rows
+                em = m.addMenu("Earlier versions")
+                for x in reversed(old):
+                    em.addAction(SO.source_words(self.lib, x, version=True)).triggered.connect(
+                        lambda _c=False, f=x.get("family"), i=x["id"]: self.show_version(f, i))
             m.addAction("Every value...").triggered.connect(lambda: self.every_value(ids[0]))      # 3.98.0
         m.addSeparator()
         m.addAction("Remove from the library").triggered.connect(lambda: self.remove(ids))
@@ -402,6 +418,25 @@ class StylesPage(QWidget):
         self.fill_sets(); self.fill_rows()
         return ok
 
+    def used_for(self, word=None):
+        """4.30.2: the kind of effort the set is for, shown under its name (word: tests, no dialog)."""
+        k = SL.get_set(self.lib, self.sid) if self.sid else None
+        if k is None:
+            self.host.status("Pick a set on the left first.")
+            return False
+        if word is None:
+            opts = [""] + list(SO.USED_FOR)
+            cur = k.get("used_for", "")
+            if cur not in opts:
+                opts.append(cur)
+            word, ok = QInputDialog.getItem(self, "What this set is used for", "The kind of effort (or type your own; empty for none):",
+                                            opts, opts.index(cur), True)
+            if not ok:
+                return False
+        SO.set_used_for(self.lib, k["id"], word)
+        self.fill_sets()
+        return True
+
     def remove_set(self):
         k = SL.get_set(self.lib, self.sid) if self.sid else None
         if k is None:
@@ -417,7 +452,7 @@ class StylesPage(QWidget):
         gone = SL.add_to_set(self.lib, sid, ids)
         k = SL.get_set(self.lib, sid)
         diag.activity("style_set_added", n=len(ids))
-        self.host.toast(f"{len(ids)} style(s) in {k['name']}" + (f"; {len(gone)} other version(s) of them taken out" if gone else ""))
+        self.host.toast(f"{len(ids)} style(s) in {k['name']}" + (f"; {len(gone)} of the same name it had came out" if gone else ""))
         self.fill_sets(); self.fill_rows()
         return gone
 
@@ -431,7 +466,7 @@ class StylesPage(QWidget):
             return False
         a, b = self.newer_now
         ok = SL.move(self.lib, self.sid, a["id"], b["id"])
-        self.host.toast(f"This set now uses {self.lib.base_of(b)} v{b['version']}.")
+        self.host.toast(f"This set now uses the changed {self.lib.base_of(b)}.")
         self.fill_sets(); self.fill_rows()
         return ok
 
@@ -472,8 +507,12 @@ class StylesPage(QWidget):
                 return None
             _n, _t, look, _m = dlg.result_values()
         new, st = SL.change_style(self.lib, iid, look)
+        k = SL.get_set(self.lib, self.sid) if self.sid else None
+        if k is not None and iid in k["items"] and new["id"] != iid:      # 4.30.2: changed inside a set, it is that set's
+            SL.move(self.lib, k["id"], iid, new["id"])
         self.shown_ver[new.get("family")] = new["id"]
-        self.host.toast(f"{self.lib.base_of(it)} v{new['version']}: " + ("kept beside the others" if st == "version" else "the same look as a version you have"))
+        self.host.toast(f"{self.lib.base_of(it)}: " + (("changed for " + k["name"] if k is not None and new["id"] in k["items"] else "changed; no set uses "
+                        "the change yet") if st == "version" else "the same look as one you have"))
         self.fill_sets(); self.fill_rows(); self.select(new["id"])
         return new
 

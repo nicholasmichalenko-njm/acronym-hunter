@@ -2,6 +2,12 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.30.2": ["Styles: a set owns its styles. Two sets can each have a style of the same name with its own values; neither replaces the other.",
+               "An identical style used by several sets is one style, shown once with the sets that use it.",
+               "Bringing styles into a set asks only where that set already has the name with other values: keep the set's, take the "
+               "file's, or keep both. A v1 / v2 switch shows only where a set keeps both.",
+               "Changing a style from inside a set changes it for that set only, unless you pick every set that uses it.",
+               "A set can say what it is used for (RFP, RFI, program documents): More > What this set is used for."],
     "4.30.1": ["The app's own working folders are out of sight in File Explorer: each effort's app data folder and the program's "
                "_internal and _local_sandbox. The folders you work in are untouched.",
                "Effort Record > More > Open the backups folder reaches the effort's backups whatever File Explorer shows.",

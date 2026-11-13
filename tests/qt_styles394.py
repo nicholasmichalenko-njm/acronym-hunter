@@ -56,7 +56,7 @@ dlg2 = sp.bring_in(DOC, run=False)
 same = [r["name"] for r in dlg2.rows if r["state"] == "same"]
 check("met again: the three kept are Already have it; 4.30.1: shown and ticked, so they can join a set", sorted(same) == ["Heading 1", "Heading 2", "Normal"]
       and all(r["name"] in [x["name"] for x in dlg2.shown] and r["keep"] for r in dlg2.rows if r["state"] == "same")
-      and dlg2.chips["same"].text() == "Already have it 3", (same, dlg2.chips["same"].text()))
+      and dlg2.chips["same"].text() == "Identical to one you have 3", (same, dlg2.chips["same"].text()))
 dlg2.chips["same"].setChecked(True); app.processEvents()
 check("... shown when asked, with yours beside the file's", len(dlg2.shown) == len(dlg2.rows) and dlg2.table.cellWidget(0, 2) is not None
       or any(dlg2.table.cellWidget(i, 2) is not None for i in range(dlg2.table.rowCount())))
@@ -67,16 +67,12 @@ rows = SL.against(sp.lib, [s for s in SL.read_styles(DOC) if s["name"] == "Headi
 rows[0]["values"] = dict(rows[0]["values"], size=18.0); rows = SL.against(sp.lib, rows)
 SL.bring_in(sp.lib, rows, DOC)
 sp.refresh(); app.processEvents()
-check("one row per style: two versions of Heading 1 are still one row", len(sp.row_ids) == 3)
-tabs = sp.ver_tabs.get(h1["family"])
-btns = tabs.findChildren(QPushButton) if tabs else []
-check("its versions are tabs on the row, the newest shown", [b.text() for b in btns] == ["v1", "v2"] and btns[1].isChecked())
-btns[0].click(); app.processEvents()
-check("a tab clicked shows that version", h1["id"] in sp.row_ids)
+check("4.30.2: the set's Heading 1 and the changed one no set uses are two rows", len(sp.row_ids) == 4 and h1["id"] in sp.row_ids)
+check("... and no row carries a version switch", not any(sp.rows.itemWidget(sp.rows.item(i)).findChildren(QPushButton, "verTab") for i in range(sp.rows.count())))
 # a set's view: the version it uses, and the newer one
 sp.sets.setCurrentRow(1); app.processEvents()
 check("a set's rows show the version it uses", sp.sid == rfp["id"] and h1["id"] in sp.row_ids and len(sp.row_ids) == 2)
-check("... and say a newer version came in", sp.notice.isVisible() and "v2" in sp.notice_lab.text() and sp.b_move.text() == "Move this set to v2")
+check("... and say a newer version came in", sp.notice.isVisible() and "Heading 1 was changed outside this set" in sp.notice_lab.text() and sp.b_move.text() == "Move this set to the changed one")
 sp.move_newer(); app.processEvents()
 h1v2 = sp.lib.latest(h1["id"])
 check("Move this set to v2", h1v2["id"] in SL.get_set(sp.lib, rfp["id"])["items"] and not sp.notice.isVisible())
@@ -93,7 +89,7 @@ check("the row's menu: Add to set, Take out of this set, See or change (4.30.1),
       all(x in acts for x in ("Add to set", "Take out of this set", "See or change...", "Duplicate...", "Name this version...",
                               "Remove from the library")), acts)
 sp.label_version(h1v2["id"], "large")
-check("Name this version shows on its tab", any(b.text() == "v2 large" for b in sp.ver_tabs[h1["family"]].findChildren(QPushButton)))
+check("Name this version shows under the style's name", "large" in __import__("styleown").source_words(sp.lib, sp.lib.get(h1v2["id"])))
 check("a style in a set is not removed", sp.remove([h1v2["id"]]) == 0)
 sp.sets.setCurrentRow(0); app.processEvents()
 pl = sp.new_set(name="Page-limited RFP")

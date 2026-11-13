@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
 
 import diag
 import stylelib as SL
+import styleown as SO
 from . import design as D
 
 KINDS = (("", "Every style"), ("paragraph", "Paragraph styles"), ("character", "Character styles"))
@@ -74,8 +75,28 @@ class StyleEdit(QDialog):
         for w in [self.font, self.size, self.color, self.font_own] + list(self.marks.values()):
             sig = getattr(w, "currentIndexChanged", None) or getattr(w, "valueChanged", None) or getattr(w, "toggled", None)
             sig.connect(lambda *_a: self.redraw())
-        f.addRow(D.label("Saved as a new style." if name_edit else "Saved as a new version; the version you started from stays, and so do "
-                         "the sets that use it.", "muted"))
+        self.scope = None                                     # 4.30.2: whose style the change is
+        if not name_edit:
+            sets_ = SL.sets_of(page.lib, it["id"])
+            here = SL.get_set(page.lib, page.sid) if getattr(page, "sid", None) else None
+            others = [k["name"] for k in sets_ if not here or k["id"] != here["id"]]
+            if here is not None and any(k["id"] == here["id"] for k in sets_) and others:
+                self.scope = QComboBox()
+                self.scope.addItem(f"{here['name']} only", False)
+                self.scope.addItem(f"Every set that uses it ({here['name']}, {', '.join(others)})", True)
+                f.addRow("Change it for", self.scope)
+                tail = f"{', '.join(others)} keep{'s' if len(others) == 1 else ''} the style as it is unless you pick every set."
+            elif here is not None and any(k["id"] == here["id"] for k in sets_):
+                tail = f"The change is {here['name']}'s; no other set uses this style."
+            elif sets_:
+                self.scope = QComboBox()
+                self.scope.addItem("No set yet: each set is asked when it is shown", False)
+                self.scope.addItem(f"Every set that uses it ({', '.join(k['name'] for k in sets_)})", True)
+                f.addRow("Change it for", self.scope)
+                tail = "The style as it was stays for any set that keeps it."
+            else:
+                tail = "No set uses this style yet."
+        f.addRow(D.label("Saved as a new style." if name_edit else tail, "muted"))
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Make the copy" if name_edit else "Save the changes")
         bb.button(QDialogButtonBox.Cancel).setText("Cancel" if name_edit else "Close")
@@ -100,8 +121,9 @@ class StyleEdit(QDialog):
         self.sample_box.addWidget(self.sample)
 
 
-def review(page, iid, values=None):
-    """Open the style's form (values: tests, no dialog). Returns the new version, or None when nothing was saved."""
+def review(page, iid, values=None, every=None):
+    """Open the style's form (values, every: tests, no dialog). Saved from inside a set, the change is that set's alone
+    unless every set is picked (4.30.2). Returns the changed style, or None when nothing was saved."""
     it = page.lib.get(iid)
     if it is None:
         return None
@@ -111,11 +133,13 @@ def review(page, iid, values=None):
         if dlg.exec() != QDialog.Accepted:
             return None
         values = dlg.values()
-    new, st = SL.save_edit(page.lib, iid, values)
+        every = bool(dlg.scope.currentData()) if dlg.scope is not None else False
+    new, st, moved = SO.save(page.lib, iid, values, sid=getattr(page, "sid", None), every=bool(every))
     if new is None:
         return None
     page.shown_ver[new.get("family")] = new["id"]
-    page.host.toast(f"{page.lib.base_of(it)} v{new['version']}: " + ("saved beside the others" if st == "version" else "nothing changed"))
+    page.host.toast(f"{page.lib.base_of(it)}: " + ("nothing changed" if st != "version" else
+                    (f"changed for {', '.join(moved)}" if moved else "changed; no set uses the change yet")))
     diag.activity("style_edited")
     page.fill_sets(); page.fill_rows(); page.select(new["id"])
     return new
