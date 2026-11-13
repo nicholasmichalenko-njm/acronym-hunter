@@ -2,7 +2,7 @@
 open up and review or modify the style ... I need to be able to do that within the styles pane", "not able to right-click
 and duplicate", "differentiate between the character and paragraph styles").
 
-Double-click a row (or right-click > Review or change...): the style's font, size, color and character marks, and for a
+Double-click a row (or right-click > See or change...): the style's font, size, color and character marks, and for a
 paragraph style its alignment, space before and after, and keep with next, with how it looks as you set it. Save keeps it
 as a new version; the version it came from stays. Duplicate... makes a new style under its own name with the same
 values. A style brought in from Word keeps everything else Word wrote (numbering, tabs, borders). The list shows each

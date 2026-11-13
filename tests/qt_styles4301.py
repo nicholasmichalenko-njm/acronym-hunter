@@ -40,7 +40,7 @@ check("... or only paragraph styles", pg.row_ids == [body["id"]])
 pg.kind_f.setCurrentIndex(0); app.processEvents()
 pg.select(body["id"])
 acts = [a.text() for a in pg.row_menu(run=False).actions() if a.text()]
-check("right-click a style: Review or change... and Duplicate...", "Review or change..." in acts and "Duplicate..." in acts, acts)
+check("right-click a style: See or change... and Duplicate...", "See or change..." in acts and "Duplicate..." in acts, acts)
 dlg = SE.StyleEdit(pg, pg.lib.get(body["id"]), pg.lib.values(pg.lib.get(body["id"])))
 check("the form shows the style's font, size and characters, and a paragraph style's alignment, space and keep with next",
       dlg.font_own.isChecked() and dlg.size.value() == 11 and set(dlg.marks) == {"bold", "italic", "underline", "caps", "hidden"}

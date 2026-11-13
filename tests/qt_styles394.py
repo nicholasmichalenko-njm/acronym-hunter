@@ -89,8 +89,8 @@ check("Make a copy to change: a new version, shown on the row; the first stays",
       and sp.lib.get(it["id"]) is not None and new["id"] in sp.row_ids or new["id"] in [r["shown"] for r in SL.rows(sp.lib, None)])
 sp.select(h1v2["id"]); app.processEvents()
 acts = [a.text() for a in sp.row_menu(run=False).actions()]
-check("the row's menu: Add to set, Take out of this set, Review or change (4.30.1), Duplicate, Name this version, Remove",
-      all(x in acts for x in ("Add to set", "Take out of this set", "Review or change...", "Duplicate...", "Name this version...",
+check("the row's menu: Add to set, Take out of this set, See or change (4.30.1), Duplicate, Name this version, Remove",
+      all(x in acts for x in ("Add to set", "Take out of this set", "See or change...", "Duplicate...", "Name this version...",
                               "Remove from the library")), acts)
 sp.label_version(h1v2["id"], "large")
 check("Name this version shows on its tab", any(b.text() == "v2 large" for b in sp.ver_tabs[h1["family"]].findChildren(QPushButton)))

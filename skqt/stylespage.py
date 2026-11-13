@@ -361,7 +361,7 @@ class StylesPage(QWidget):
         if self.sid:
             m.addAction("Take out of this set").triggered.connect(lambda: self.take_out(ids))
         if len(ids) == 1:
-            m.addAction("Review or change...").triggered.connect(lambda: self.review(ids[0]))        # 4.30.1; a double-click too
+            m.addAction("See or change...").triggered.connect(lambda: self.review(ids[0]))        # 4.30.1; a double-click too
             m.addAction("Duplicate...").triggered.connect(lambda: self.duplicate(ids[0]))
             m.addAction("Name this version...").triggered.connect(lambda: self.label_version(ids[0]))
             m.addAction("Every value...").triggered.connect(lambda: self.every_value(ids[0]))      # 3.98.0
