@@ -599,7 +599,8 @@ class LibraryPage(QWidget):
 
     def selected_ids(self):
         rows = sorted({ix.row() for ix in self.table.selectionModel().selectedRows()})
-        return [self.table.item(r, 0).data(Qt.UserRole) for r in rows if self.table.item(r, 0)]
+        ids = [self.table.item(r, 0).data(Qt.UserRole) for r in rows if self.table.item(r, 0)]
+        return list(dict.fromkeys(i for i in ids if i))      # 4.25.4: a group line has none; a version line is its document
 
     def select(self, doc_id):
         for r in range(self.table.rowCount()):

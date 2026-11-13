@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENTS: PACKAGES (4.25.4)
+  - Once an effort has an amendment, Documents is in groups: As issued, each amendment in the order issued, then
+    Internal. Each group's line counts its documents. Before the first amendment the list is one list, as before.
+  - A document is As issued until you say otherwise. Right-click a customer document > Package and pick the
+    amendment that brought it. Several rows can be set at once. The amendment is always in its own package.
+  - A document with more than one version shows the earlier ones on lines under it, newest first. A click on one
+    selects the document.
+  - With Find in use the groups are off, so the hits read as one list. A filter keeps the groups.
+
 DOCUMENTS: WHAT GOES BACK TO THE CUSTOMER (4.25.3)
   - Mark a customer document Return it, redlined or Return it, filled in (Documents, right-click > Used for) and it
     gets a tile on Deliverables: a Customer file, linked to the document, with no owner until someone takes it. The

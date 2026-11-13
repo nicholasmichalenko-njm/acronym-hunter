@@ -290,12 +290,12 @@ def fill_row(page, r, d, st, terms, item):
 
 
 def fill(page, docs, item):
-    """Fills the focused table; returns True when it did (the classic fill runs otherwise)."""
+    """Fills the focused table; returns True when it did (the classic fill runs otherwise). 4.25.4: the rows are built by
+    skqt/docgroups (packages as groups, a document's earlier versions under it)."""
     if not getattr(page, "focus", False):
         return False
-    page.table.setRowCount(len(docs))
-    for r, d in enumerate(docs):
-        fill_row(page, r, d, None, None, item)
+    from . import docgroups as DG
+    DG.fill(page, docs, item)
     return True
 
 
@@ -307,6 +307,7 @@ def more_items(page, m, d):
     m.addSeparator()
     if d.get("category", "customer") == "customer":
         m.addAction("Initial and type...", lambda: page.identity())
+        __import__("skqt.docgroups", fromlist=["x"]).menu(page, m, d)
     m.addAction("More about this document...", lambda: page.doc_menu(page.table.viewport().mapToGlobal(
         page.table.visualRect(page.table.currentIndex()).bottomLeft())))
     try:

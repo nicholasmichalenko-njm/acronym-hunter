@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.25.4": ["Documents is in packages once an amendment is in: As issued, each amendment in the order issued, then Internal.",
+               "A document's earlier versions sit on lines under it.",
+               "Right-click a customer document > Package to say which amendment brought it."],
     "4.25.3": ["A document marked Return it, redlined or Return it, filled in gets a tile on Deliverables, linked both ways, with no owner until someone takes it.",
                "Prepare for Redline left the menu: it opens from that tile and lists only documents marked Return it, redlined.",
                "Pages still to look at stop a redline and nothing else. Right-click the row: Prepare it anyway.",
