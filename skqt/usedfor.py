@@ -36,7 +36,7 @@ def toggle(page, key, ids=None):
         return 0
     first = lib.doc(ids[0])
     on = not has(lib, first, key)
-    n = 0
+    n = tiles = 0
     for i in ids:
         d = lib.doc(i)
         if d is None:
@@ -50,14 +50,46 @@ def toggle(page, key, ids=None):
             new = cur + [key] if on and key not in cur else [k for k in cur if k != key or on]
             if new != cur:
                 n += bool(lib.set_returns(i, new))
+            if on:
+                tiles += bool(_tile(page, lib, lib.doc(i), key))
     diag.activity("library_used_for_set", n=n)
-    page.host.toast(f"{n} document(s): " + ("" if on else "not ") + dict(MARKS)[key])
+    more = ""
+    if key in ("redline", "fill"):       # 4.25.3: the tile on Deliverables
+        more = (f". {tiles} tile(s) made on Deliverables" if tiles else "") if on else ". Its tile stays on Deliverables; delete it there"
+    page.host.toast(f"{n} document(s): " + ("" if on else "not ") + dict(MARKS)[key] + more)
     page.fill_tree(); page.fill()
     try:
         page.host.assign_page.fill_files() if hasattr(page.host.assign_page, "fill_files") else None
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return n
+
+
+def _tile(page, lib, d, key):
+    """The document's tile on Deliverables (4.25.3). True when one was made now."""
+    try:
+        import docreturn as DR
+        import effortrec as RR
+        _t, made = DR.ensure_tile(RR.Record(page.host.ws.root), lib, d, key)
+        return made
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return False
+
+
+def open_tile(page, d):
+    """Deliverables, on the document's tile."""
+    import docreturn as DR
+    import effortrec as RR
+    t = DR.tile_of(RR.Record(page.host.ws.root), d["id"])
+    if t is None:
+        return None
+    page.host.go("deliverables")
+    try:
+        page.host.deliverables_page.pick(t["id"])
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return t["id"]
 
 
 MARKS = (("shred", "For the shred"), ("reference", "Reference"), ("redline", "Return it, redlined"), ("fill", "Return it, filled in"))
@@ -71,6 +103,8 @@ def menu(page, m, d):
         a = um.addAction(n, lambda k=k: toggle(page, k)); a.setCheckable(True); a.setChecked(has(lib, d, k))
         if k == "reference":
             um.addSeparator()
+    if lib.returns_of(d):
+        m.addAction("Open its deliverable", lambda: open_tile(page, d))
     sm = m.addMenu("Source")
     cust = d.get("category", "customer") in ("customer", "bidders", "qa")
     for key, n in (("customer", "Customer"), ("ours", "Internal")):

@@ -22,6 +22,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "effortfmt": ("Effort Formatting", "This effort's formatting on top of the Company Standards (Default): its own fonts, sizes, margins and parts, and the RFP's rules"),
           "shredacc": ("Accuracy", "How well the shred finds requirements, on your own set of public RFPs with answer keys you labeled in Shred"),
           "redline": ("Prepare for Redline", "A Word file of a PDF or a picture that reads like it, with a reviewer's comments placed where they were made"),
+          "markups": ("Reviewer markups", "A reviewer's commented PDF of one of our drafts, turned into tracked changes and Word comments"),
           "rcheck": ("Redline", "The copy against its PDF, word for word; a returned redline's edits made with Track Changes off"),
           "exceptions": ("Redline", "Each tracked change of a redline as a row: the customer's number, the original and our text, the comment"),
           "finalcheck": ("Final Check", "One ready-to-send report per volume on its Word file and its PDF: compliance, page limits, format, structure, acronyms, leftovers, markings, files"),

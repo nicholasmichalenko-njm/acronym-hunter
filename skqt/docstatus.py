@@ -205,7 +205,7 @@ def row_menu(page, at=None, run=True):
         m.addAction("Read it again (the file was edited)", lambda: DM.read_again(page, d))
     m.addAction("Show in folder", lambda: show_in_folder(page, d))
     if __import__("redlineprep").kind(path_of(page, d)):          # 4.22.0: a PDF or a picture (4.8.0: a PDF)
-        m.addAction("Prepare for redline", lambda: (page.host.go("redline"), page.host.redline_page.select(d["id"])))
+        m.addAction("Prepare for redline", lambda: prepare_redline(page, d))
     __import__("skqt.docfocus", fromlist=["x"]).more_items(page, m, d)     # 4.6.0: what left the panel
     m.addSeparator()
     m.addAction("Delete...", lambda: DM.delete(page, d))                 # 4.17.0: into the effort's Trash
@@ -213,6 +213,16 @@ def row_menu(page, at=None, run=True):
     if run and at is not None:
         m.exec(at)
     return m
+
+
+def prepare_redline(page, d):
+    """4.25.3 (answer 25): Prepare for Redline lists what is marked Return it, redlined. Asking for it here marks the
+    document (and makes its tile), then opens it there."""
+    from . import usedfor as UF
+    if "redline" not in page.lib.returns_of(d):
+        UF.toggle(page, "redline", ids=[d["id"]])
+    page.host.go("redline")
+    return page.host.redline_page.select(d["id"])
 
 
 def _edited(page, d):

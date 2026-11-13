@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.25.3": ["A document marked Return it, redlined or Return it, filled in gets a tile on Deliverables, linked both ways, with no owner until someone takes it.",
+               "Prepare for Redline left the menu: it opens from that tile and lists only documents marked Return it, redlined.",
+               "Pages still to look at stop a redline and nothing else. Right-click the row: Prepare it anyway.",
+               "An amendment shows on the tile: the source changed, the old redline is kept, prepare a new one.",
+               "Drafts > Reviewer markups: a reviewer's commented PDF of a draft, into a copy of your Word file."],
     "4.25.2": ["Documents: Used for. Right-click a document > Used for and tick For the shred, Reference, Return it, redlined, Return it, filled in. Several may be ticked.",
                "The marks take the place of Role. Shred extracts only what is marked For the shred.",
                "The filter beside Find shows what is For the shred or Returned to the customer, or one folder.",

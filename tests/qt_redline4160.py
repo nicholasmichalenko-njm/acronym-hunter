@@ -32,12 +32,14 @@ src = os.path.join(A.BASE_DIR, "test_samples", "comments", "C01_prose_commented.
 P = os.path.join(CD, "Kestrel_Section_L_reviewed.pdf"); shutil.copy2(src, P)
 lib0 = DV.Library(ws.p("documents")).load()
 lib0.add(P, DI.read(P), doc_name="Section L reviewed", role="matrix", initial="L", dtype="Section L")
+for _d in lib0.all:                                   # 4.25.3: Prepare for Redline lists what is marked Return it, redlined
+    lib0.set_returns(_d["id"], ["redline"])
 app = QApplication([]); theme.apply(app)
 toasts = []
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
 w.toast = lambda msg, *a, **k: toasts.append(msg)
-w.rail_go("redline"); app.processEvents()
+w.go("redline"); app.processEvents()
 pp = w.redline_page
 pp.refresh(); app.processEvents()
 check("4.22.0: no More menu; the bar has one command, for a Word file you already have", not pp.bar.more_menu.actions()

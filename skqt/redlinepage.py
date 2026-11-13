@@ -83,8 +83,10 @@ class PreparePage(QWidget):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(lambda pos: self.row_menu(self.table.rowAt(pos.y()), self.table.viewport().mapToGlobal(pos)))
         v.addWidget(self.table, 1)
-        self.empty = D.EmptyState("No PDFs or pictures yet", "Add them in Documents. Each PDF and each picture there is listed "
-                                  "here, ready to become a Word file to redline.", "Go to Documents", lambda: self.host.go("library"))
+        self.empty = D.EmptyState("Nothing is marked Return it, redlined", "In Documents, right-click a PDF or a picture the "
+                                  "customer wants back redlined: Used for > Return it, redlined. It gets a tile on "
+                                  "Deliverables and is listed here, ready to become a Word file.", "Go to Documents",
+                                  lambda: self.host.go("library"))
         v.addWidget(self.empty); self.empty.hide()
         self.rows = []
 
@@ -117,8 +119,8 @@ class PreparePage(QWidget):
         if self.rows and select is None:
             self.table.selectRow(keep if 0 <= keep < len(self.rows) else 0)
         self.table.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows); self.bar.setVisible(bool(self.rows))
-        self.say.setText(f"{len(self.rows)} PDF(s) and picture(s) in Documents, {done} prepared. Prepared files go to the "
-                         "effort's Redlines folder." if self.rows else "")
+        self.say.setText(f"{len(self.rows)} document(s) marked Return it, redlined, {done} prepared. Prepared files go to "
+                         "the effort's Redlines folder." if self.rows else "")
 
     def select(self, doc_id):
         self.refresh(select=doc_id)
@@ -139,7 +141,8 @@ class PreparePage(QWidget):
             return None
         from PySide6.QtWidgets import QMenu
         st = RP.state(folder(self.host), row[2])
-        acts = [("Prepare it as slides", lambda: self.prepare(r, layout="slides")),
+        acts = [("Prepare it anyway (pages still to look at)", lambda: self.prepare(r, anyway=True)),
+                ("Prepare it as slides", lambda: self.prepare(r, layout="slides")),
                 ("Prepare it as a document", lambda: self.prepare(r, layout="document")),
                 ("Prepare it without the comments", lambda: self.prepare(r, comments=False))]
         if st["copy"]:
@@ -153,14 +156,33 @@ class PreparePage(QWidget):
         m.exec(pos)
         return None
 
-    def prepare(self, r=None, layout=None, comments=True, path=None):
-        """Prepare a row's document (or a file given by path). Returns the prepared file's path, or None."""
+    def to_look_at(self, path):
+        """Pages of the document the text check still wants looked at (0 when none, or not known)."""
+        try:
+            import verifystate as VS
+            h = self.host
+            pdf = h.verify_page.pdf_of(path, make=False)
+            return VS.counts(pdf, VS.Store(h.ws.root), os.path.basename(path))["look"] if pdf else 0
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return 0
+
+    def prepare(self, r=None, layout=None, comments=True, path=None, anyway=False):
+        """Prepare a row's document (or a file given by path). Returns the prepared file's path, or None. 4.25.3
+        (answer 2): the text check stops only a redline. A document with pages still to look at is not prepared until
+        they are looked at, because the Word file is made from that reading; anyway=True (the row's right-click)
+        prepares it as read."""
         import redlineprep as RP
         if path is None:
             row = self._row(r)
             if row is None:
                 return None
             path = row[2]
+            look = 0 if anyway else self.to_look_at(path)
+            if look:
+                self.host.status(f"{row[1]} has {look} page(s) to look at first: the Word file is made from that reading. "
+                                 "Look at them in Shred (Fix text), or right-click the row: Prepare it anyway.")
+                return None
         elif not self.rows and self.host.ws is not None:
             self.refresh()
         f, cf = self._folders()

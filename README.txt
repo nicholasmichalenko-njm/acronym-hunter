@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENTS: WHAT GOES BACK TO THE CUSTOMER (4.25.3)
+  - Mark a customer document Return it, redlined or Return it, filled in (Documents, right-click > Used for) and it
+    gets a tile on Deliverables: a Customer file, linked to the document, with no owner until someone takes it. The
+    document's right-click has Open its deliverable; the tile has Open its document. A deliverable you fill on a
+    customer document marks that document the same way.
+  - Prepare for Redline left the menu. It lists only documents marked Return it, redlined, and opens from the tile
+    (Prepare for Redline) or from the document's right-click (Prepare for redline, which marks it first).
+  - The text check stops only a redline: a document with pages still to look at is not prepared until they are
+    looked at, because the Word file is made from that reading. Right-click the row: Prepare it anyway.
+  - An amendment shows on the tile. A redline: "the source changed", the redline made on the earlier version is
+    kept, and you prepare a new one. A form: fill the new version; the old one stays for the record.
+  - Drafts > Reviewer markups: a reviewer's commented PDF of one of our drafts. Put a PDF's comments into my Word
+    file... writes a dated copy of your Word file with each comment as a tracked change or a Word comment. Make a
+    Word file from the PDF... is for when you do not have the Word file. Nothing is added to Documents.
+
 DOCUMENTS: USED FOR, AND FOLDERS (4.25.2)
   - Every document says what it is used for. Right-click it > Used for and tick the marks; a document may carry
     several: For the shred or Reference, and Return it, redlined or Return it, filled in. With no mark it is left

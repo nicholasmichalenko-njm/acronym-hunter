@@ -39,8 +39,13 @@ from .settingspage import SettingsPage
 # current and readable; Shred says what every piece of the customer's text is; Matrix & Outline decides what we answer and
 # where; Setup, Drafts (the team writes in Word; the app reads the drafts back) and Submit. Pages not yet rebuilt sit in
 # the step they belong to (3.96.0: the menu is the effort's path; All Efforts, My Work and Your Tools are in the switcher).
+def _WAU():
+    return __import__("skqt.watchauto", fromlist=["x"])     # 4.25.1: the effort's own folder, watched
+
+
 RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"),
-                    ("redline", "Prepare for Redline"),      # 4.22.0 (was Redline); 4.12.0: under Documents (4.8.0: below the six steps, no number)
+                    # 4.25.3 (answer 2): Prepare for Redline left the menu. It opens from the Deliverables tile of a
+                    # document marked Return it, redlined; reviewer markups on our drafts are a tab of Drafts.
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Team", [("team", "Team")]),
@@ -61,7 +66,7 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
                    ("prove", "Coverage")],                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
         "drafts": [("drafts", "Status"), ("draftacr", "Acros & Abs"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
-                   ("truth", "Wall of Truth")],                # 4.4.0: Acronyms, each volume's draft against the list
+                   ("truth", "Wall of Truth"), ("markups", "Reviewer markups")],   # 4.25.3: a reviewer's commented PDF of a draft                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.8.0
@@ -82,7 +87,7 @@ RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups
                 "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
 RAIL_OF.update({"prodstd": "team", "qpstd": "team"})
-RAIL_OF.update({"redline": "redline", "rcheck": "redline", "exceptions": "redline"})   # 4.8.0     # 3.98.0: a Quick Part's details open from Parts
+RAIL_OF.update({"redline": "home", "rcheck": "home", "exceptions": "home"})   # 4.25.3: opened from Deliverables (the Dashboard's tab)   # 4.8.0     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 VIEWS = {}                     # 3.90.0 views of Review's maps; 4.3.0: place, crosswalk and prove are the Shred page (placemode)
@@ -90,7 +95,7 @@ BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools
 GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of {len(STEP_KEYS) - 1}")
             for k, e in RAIL_OF.items()
             for n in [STEP_KEYS.index(e) if e in STEP_KEYS else 0]}          # 4.12.0: Redline sits among them, unnumbered
-GROUP_OF.update({k: "Documents" for k in ("redline", "rcheck", "exceptions")})   # 4.12.0: a part of Documents, no step number
+GROUP_OF.update({k: "Deliverables" for k in ("redline", "rcheck", "exceptions")})   # 4.25.3: opened from a deliverable's tile
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
 GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Your Tools' own
 
@@ -290,6 +295,8 @@ class MainWindow(QMainWindow):
         self.datacalls_page = DataCallsPage(self)      # 3.39.0: internal data calls
         from .redlinepage import CheckPage, ExceptionsPage, PreparePage      # 4.8.0: Redline
         self.redline_page, self.rcheck_page, self.exceptions_page = PreparePage(self), CheckPage(self), ExceptionsPage(self)
+        from .markupspage import MarkupsPage              # 4.25.3: a reviewer's commented PDF of one of our drafts
+        self.markups_page = MarkupsPage(self)
         from .rulespage import RulesPage
         self.rules_page = RulesPage(self)              # 3.38.0: every production rule in one list
         from .libscreen import FormattingStandardsPage, LayoutPage, QuickPartsPage
@@ -328,7 +335,7 @@ class MainWindow(QMainWindow):
                       "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page, "redline": self.redline_page, "rcheck": self.rcheck_page,
-                      "exceptions": self.exceptions_page,
+                      "exceptions": self.exceptions_page, "markups": self.markups_page,
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
@@ -649,16 +656,8 @@ class MainWindow(QMainWindow):
         if self.ws is None:
             return None
         lib, _rec = self.watch_lib_rec()
-        found = WA.check(lib, self.ws.root, self.watch_customer_dir(), **self.watch_where())
+        found = WA.check(lib, self.ws.root, self.watch_customer_dir(), **_WAU().where(self))
         return self.watch_show(found)
-
-    def watch_where(self):
-        """4.25.1: the effort's own folder and what is left out of it (watchauto)."""
-        try:
-            return __import__("skqt.watchauto", fromlist=["x"]).where(self)
-        except Exception:
-            diag.swallowed()
-            return {}
 
     def watch_show(self, found):
         try:                                        # 4.25.1: what came into the effort's folder is added by itself
@@ -683,7 +682,7 @@ class MainWindow(QMainWindow):
         if self.ws is None or (not force and not self._watch_on()) or (self._wa_thread is not None and self._wa_thread.is_alive()):
             return None
         root, cust, docs, name = self.ws.root, self.watch_customer_dir(), self.ws.p("documents"), self.effort_name
-        more = self.watch_where()
+        more = _WAU().where(self)
         self._wa_last = time.monotonic()
 
         def run():
@@ -719,7 +718,7 @@ class MainWindow(QMainWindow):
         for p, c in items:
             cats.setdefault(c, []).append(p)
         cat, paths = next(iter(cats.items()))
-        rel = WA.relative_folders(paths, self.ws.root, self.watch_customer_dir(), self.watch_where().get("effort_root", ""))
+        rel = WA.relative_folders(paths, self.ws.root, self.watch_customer_dir(), _WAU().where(self).get("effort_root", ""))
         self.go("library")
         if len(cats) > 1:
             self.status(f"Adding the {self.library_page.lib.category_name(cat) if self.library_page.lib else cat} files first; "

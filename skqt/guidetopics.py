@@ -161,7 +161,8 @@ TOPICS = [
    "A file you put into the effort's folder is added by itself, for reference, where it sits. A file in the customer's "
    "folder or a folder you watch shows at the top of Documents: Add to Documents... or Ignore.",
    "Used for says what a document is for: right-click it > Used for, and tick For the shred, Reference, Return it, "
-   "redlined, or Return it, filled in (several may be ticked). Status is empty unless the document needs you.",
+   "redlined, or Return it, filled in (several may be ticked). A document that goes back gets a tile on Deliverables; "
+   "Prepare for Redline opens from that tile.",
    "The same document, edited: adding it again offers Replace the file. The document and its version stay, it is read "
    "again and its pieces keep their types. Right-click a document for Replace the file..., Read it again and "
    "Delete..., which moves it to the effort's Deleted folder (More > Trash... puts it back or empties it).",

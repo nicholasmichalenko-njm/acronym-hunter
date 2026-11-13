@@ -44,6 +44,8 @@ dW, _v = lib0.add(DOCX, DI.read(DOCX), doc_name="Section L in Word", role="conte
 dI, _v = lib0.add(PIC, [], doc_name="A page as a picture", role="reference", category="graphics")
 ocrpdf.make(lib0.path_of(dI["versions"][-1]), ws.p("page copies"),
             lines_of=lambda img: [t + (1.0,) for t in ocrpdf.typed_lines(BASE, 1, 200 / 72)])   # the reader's lines, as Shred makes them
+for _d in lib0.all:                                   # 4.25.3: Prepare for Redline lists what is marked Return it, redlined
+    lib0.set_returns(_d["id"], ["redline"])
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 toasts, said = [], []
@@ -51,12 +53,12 @@ w.open_effort("Kestrel"); app.processEvents()
 w.toast = lambda msg, *a, **k: toasts.append(msg)
 w.status = lambda msg, *a, **k: said.append(msg)
 rail = [t for _k, t in MW.RAIL[0][1]]
-check("the menu says Prepare for Redline, under Documents", rail[rail.index("Documents") + 1] == "Prepare for Redline"
-      and MW.GROUP_OF["redline"] == "Documents")
-w.rail_go("redline"); app.processEvents()
+check("4.25.3: Prepare for Redline is off the menu, and opens from Deliverables", "Prepare for Redline" not in rail
+      and MW.GROUP_OF["redline"] == "Deliverables")
+w.go("redline"); app.processEvents()
 pp = w.redline_page; pp.refresh(); app.processEvents()
 names = [pp.table.item(r, 0).text() for r in range(pp.table.rowCount())]
-check("every PDF and picture in Documents is a row; a Word file is not", sorted(names) == ["A page as a picture", "Section L, reviewed"], names)
+check("every PDF and picture marked Return it, redlined is a row; a Word file is not", sorted(names) == ["A page as a picture", "Section L, reviewed"], names)
 check("each row says Not prepared and has its own Prepare button", all(pp.table.item(r, 2).text() == "Not prepared"
       and pp.table.cellWidget(r, 3).text() == "Prepare" for r in range(pp.table.rowCount())))
 check("no More menu and no main button in the bar: one command", not pp.bar.more_menu.actions() and pp.bar.main is None

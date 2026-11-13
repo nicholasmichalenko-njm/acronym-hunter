@@ -143,6 +143,11 @@ class Detail(QScrollArea):
         row.addWidget(D.button("Done for this stage", None, lambda: pg.mark_stage(c["id"])))
         if c["file"]:
             row.addWidget(D.button("Check this volume", None, lambda: pg.check_volume(c["id"]), "Submission check on its file"))
+        if c.get("doc_id"):                                  # 4.25.3: the customer document this goes back as
+            if c.get("returns") == "redline":
+                row.addWidget(D.button("Prepare for Redline", None, lambda: pg.prepare_redline(c["doc_id"]),
+                                       "A Word file of the customer's document to redline, with a reviewer's comments placed"))
+            row.addWidget(D.button("Open its document", "ghost", lambda: pg.open_document(c["doc_id"]), "Show it in Documents"))
         # missing
         self.v.addWidget(D.SectionTitle("What is missing" if c["missing"] else "Nothing missing"))
         t = D.tokens()

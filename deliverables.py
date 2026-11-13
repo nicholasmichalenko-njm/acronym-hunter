@@ -274,7 +274,10 @@ def state(d, rows=(), lib=None, volumes=(), rec=None):
             out["form"] = {"doc": doc["name"], "latest": latest["label"], "latest_id": latest["id"],
                            "working": working["label"] if working else "", "newer": bool(working) and working["id"] != latest["id"],
                            "versions": [(v["id"], v["label"], v["added"][:10], v.get("sha256", "")) for v in doc["versions"]]}
-            if out["form"]["newer"]:
+            if out["form"]["newer"] and d.get("returns") == "redline":     # 4.25.3 (answer 32)
+                out["changed"].append(f"the source changed: {latest['label']} (the redline made on {working['label']} is kept; "
+                                      "prepare a new one)")
+            elif out["form"]["newer"]:
                 out["changed"].append(f"new form version: {latest['label']} (fill it; {working['label']} stays for the record)")
     if rec is not None:
         out["done_here"] = rec.data["stage"] in d.get("stages_done", {})

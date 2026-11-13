@@ -33,13 +33,15 @@ src = os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", "Section_L_print.pdf"
 P = os.path.join(CD, "Kestrel_Section_L.pdf"); shutil.copy2(src, P)
 lib0 = DV.Library(ws.p("documents")).load()
 dL, _v = lib0.add(P, DI.read(P), doc_name="Section L", role="matrix", initial="L", dtype="Section L")
+for _d in lib0.all:                                   # 4.25.3: Prepare for Redline lists what is marked Return it, redlined
+    lib0.set_returns(_d["id"], ["redline"])
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
-check("Redline is in the menu under Documents (4.12.0), with no step number", "redline" in w.step_btns and "redline" not in MW.STEP_KEYS
-      and [k for k, _t in MW.RAIL[0][1]].index("redline") == [k for k, _t in MW.RAIL[0][1]].index("library") + 1
-      and MW.GROUP_OF["redline"] == "Documents" and MW.GROUP_OF["assign"] == "Step 2 of 6")
-w.rail_go("redline"); app.processEvents()
+check("4.25.3: Prepare for Redline is off the menu; it opens from Deliverables", "redline" not in w.step_btns and "redline" not in MW.STEP_KEYS
+      and "redline" not in [k for k, _t in MW.RAIL[0][1]] and MW.RAIL_OF["redline"] == "home"
+      and MW.GROUP_OF["redline"] == "Deliverables" and MW.GROUP_OF["assign"] == "Step 2 of 6")
+w.go("redline"); app.processEvents()
 check("its tabs: Prepare, Check, Exceptions", w._tab_keys == ["redline", "rcheck", "exceptions"] and w.page_title.text() == "Prepare for Redline",
       (w._tab_keys, w.page_title.text()))
 check("every role sees it", all(RA.allowed(r, k) for r in ("Production", "Author", "Reviewer", "Capture") for k in ("redline", "rcheck", "exceptions")))

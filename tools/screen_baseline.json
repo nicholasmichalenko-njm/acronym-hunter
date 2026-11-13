@@ -59,5 +59,6 @@
  "templates": 8,
  "tools": 8,
  "truth": 9,
- "verify": 0
+ "verify": 0,
+ "markups": 2
 }

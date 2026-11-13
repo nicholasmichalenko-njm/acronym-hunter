@@ -49,7 +49,8 @@ def card(d, rows=(), lib=None, vols=(), rec=None, M=None, ctx_counts=None, await
            "status": d.get("status", "Not started"), "limit": st["limit"], "pages": st["pages"], "over": st["over"],
            "changed": list(st["changed"]), "form": st["form"], "file": d.get("file", ""), "done_here": st["done_here"],
            "volume": "", "sections": [], "reqs": 0, "owned": 0, "awaiting": [], "changed_reqs": [], "context": 0,
-           "first_use": 0, "banned": 0, "list_open": 0, "checked": False, "missing": []}
+           "first_use": 0, "banned": 0, "list_open": 0, "checked": False, "missing": [],
+           "doc_id": d.get("doc_id", ""), "returns": d.get("returns", "")}        # 4.25.3: the customer document it goes back as
     if M is not None:
         import outline_ops as O
         import setupdoc as SD

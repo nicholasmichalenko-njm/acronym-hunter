@@ -1064,6 +1064,19 @@ class DeliverablesPage(QWidget):
         from . import delivextras as DX
         DX.show_view(self, i)
 
+    def prepare_redline(self, doc_id):
+        """4.25.3: Prepare for Redline, from the tile of a document that goes back redlined."""
+        self.host.go("redline")
+        return self.host.redline_page.select(doc_id)
+
+    def open_document(self, doc_id):
+        self.host.go("library")
+        try:
+            self.host.library_page.select(doc_id)
+        except Exception:
+            diag.swallowed()
+        return doc_id
+
     def pick(self, did):
         self.picked = did
         c = next((x for x in self.cards if x["id"] == did), None)
@@ -1118,6 +1131,10 @@ class DeliverablesPage(QWidget):
             return
         self.ctx = c = Ctx(h)
         rec = c.rec
+        try:                                             # 4.25.3: documents that go back to the customer have their tiles
+            __import__("docreturn").sync(rec, c.lib)
+        except Exception:
+            diag.swallowed()
         rows = c.reg.rows()
         vols = c.volumes()
         ds = DL.items(rec)

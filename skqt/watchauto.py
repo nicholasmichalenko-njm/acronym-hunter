@@ -12,7 +12,15 @@ import diag
 
 
 def where(win):
-    """{"effort_root", "skip", "not_in"} for watch.check; {} with no effort open."""
+    """{"effort_root", "skip", "not_in"} for watch.check; {} with no effort open or when it cannot be worked out."""
+    try:
+        return _where(win)
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return {}
+
+
+def _where(win):
     if getattr(win, "ws", None) is None or not win.effort_path:
         return {}
     import effortfolders as EF

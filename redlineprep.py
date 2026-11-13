@@ -18,11 +18,15 @@ def kind(path):
     return "pdf" if low.endswith(".pdf") else ("picture" if ocrpdf.is_image(low) else "")
 
 
-def sources(lib):
-    """[(doc id, name, path, kind)] of every document whose latest version is a PDF or a picture on this PC."""
+def sources(lib, marked=True):
+    """[(doc id, name, path, kind)] of every document whose latest version is a PDF or a picture on this PC. 4.25.3
+    (answer 25: "I only run redlines on things we mark as a Redlined Deliverable"): only those marked Return it,
+    redlined, unless marked is False."""
     out = []
     for d in lib.all:
         if not d.get("versions"):
+            continue
+        if marked and "redline" not in (d.get("returns") or []):
             continue
         p = lib.path_of(d["versions"][-1])
         if p and kind(p) and os.path.isfile(p):
