@@ -126,7 +126,7 @@ class HomePage(QWidget):
         self.for_name = QLabel(""); self.for_name.setObjectName("forName"); fb.addWidget(self.for_name, 1)
         fb.addWidget(D.button("Show everyone", None, lambda: (self.who.setCurrentText("Everyone"), self.refresh())))
         t0 = D.tokens()
-        self.for_box.setStyleSheet(f"QFrame#forBox{{background:{t0['accent_soft']};border-radius:{D.RADIUS['card']}px;}}"
+        D.themed(self.for_box, lambda t0: f"QFrame#forBox{{background:{t0['accent_soft']};border-radius:{D.RADIUS['card']}px;}}"
                                    f"QLabel#forName{{font-size:18pt;font-weight:700;color:{t0['accent']};background:transparent;}}")
         self.for_box.setVisible(False)
         v.addWidget(self.for_box)
@@ -233,7 +233,7 @@ class HomePage(QWidget):
         self.sections.update(self.sub_tab_pages)
         t0 = D.tokens()
         for st in self.strips.values():
-            st.setStyleSheet(f"QFrame#pinStrip{{background:{t0['surface']};border:1px solid {t0['border']};border-radius:{D.RADIUS['card']}px;}}"
+            D.themed(st, lambda t0: f"QFrame#pinStrip{{background:{t0['surface']};border:1px solid {t0['border']};border-radius:{D.RADIUS['card']}px;}}"
                              f"QFrame#pinStrip QLabel{{background:transparent;}}")
 
     # ------------------------------------------------------------ the effort

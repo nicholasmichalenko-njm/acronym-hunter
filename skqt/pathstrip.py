@@ -13,7 +13,7 @@ class PathStrip(QFrame):
         self.host = host
         self.setObjectName("pathStrip")
         t = D.tokens()
-        self.setStyleSheet(f"QFrame#pathStrip{{background:{t['surface']};border:1px solid {t['border']};border-radius:{D.RADIUS['card']}px;}}"
+        D.themed(self, lambda t: f"QFrame#pathStrip{{background:{t['surface']};border:1px solid {t['border']};border-radius:{D.RADIUS['card']}px;}}"
                            f"QFrame#pathStrip QLabel{{background:transparent;}}")
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); v.setSpacing(D.SPACE["s"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)

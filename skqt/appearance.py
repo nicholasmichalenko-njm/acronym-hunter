@@ -1,5 +1,6 @@
 """Settings > Appearance (3.91.0): Follow Windows, Light or Dark, kept on this PC (settings "appearance") and used at
-once. The customer's pages and Word previews stay white in both."""
+once. The customer's pages and Word previews stay white in both. 4.27.3: used at once everywhere: design.apply writes
+every widget's own style again (design.themed, design.retheme); the menu is one navy in light and dark."""
 from PySide6.QtWidgets import QApplication, QComboBox, QHBoxLayout
 
 import diag
@@ -29,6 +30,13 @@ def set_look(page, key):
     save(appearance=key)
     dark = D.apply(QApplication.instance(), None if key == "windows" else key)
     diag.activity("qt_appearance_set")
-    page.look_note.setText(("Dark" if dark else "Light") + " now. A page you have open takes every color when you open it "
-                           "again; restart Stationkeeper to see it everywhere at once.")
+    page.look_note.setText(("Dark" if dark else "Light") + " now, on every page. The menu keeps its navy in both.")
+    host = getattr(page, "host", None)               # 4.27.3: every style written again; the page in view drawn again
+    try:
+        if host is not None:
+            host.refresh_access()
+            for w in QApplication.topLevelWidgets():
+                w.update()
+    except Exception:                                # noqa: BLE001  the colors are set; a redraw must not stop that
+        diag.swallowed()
     return dark

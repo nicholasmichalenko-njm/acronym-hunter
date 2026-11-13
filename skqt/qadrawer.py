@@ -24,7 +24,7 @@ class Drawer(QFrame):
         self.w = w
         self.setObjectName("qaDrawer")
         t = D.tokens()
-        self.setStyleSheet(f"QFrame#qaDrawer{{background:{t['surface']};border-left:1px solid {t['border_strong']};}}")
+        D.themed(self, lambda t: f"QFrame#qaDrawer{{background:{t['surface']};border-left:1px solid {t['border_strong']};}}")
         self.setFixedWidth(WIDTH)
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["m"], D.SPACE["m"], D.SPACE["m"], D.SPACE["m"]); v.setSpacing(D.SPACE["s"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)

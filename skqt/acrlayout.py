@@ -68,11 +68,10 @@ def install(page):
     # the filters as counts
     page.counts_row = FlowLayout(); page.counts_row.setSpacing(D.SPACE["s"])
     page.count_btns = {}
-    t = D.tokens()
-    chip = (f"QPushButton{{border:1px solid {t['border_strong']};border-radius:12px;padding:3px 10px;background:{t['surface']};color:{t['text']}}}"
-            f"QPushButton:checked{{border:2px solid {t['accent']};background:{t['accent_soft']};color:{t['accent']};font-weight:600}}")
+    chip = lambda t: (f"QPushButton{{border:1px solid {t['border_strong']};border-radius:12px;padding:3px 10px;background:{t['surface']};color:{t['text']}}}"   # noqa: E731
+                      f"QPushButton:checked{{border:2px solid {t['accent']};background:{t['accent_soft']};color:{t['accent']};font-weight:600}}")
     for name in P.COUNTS:
-        b = QPushButton(name); b.setCheckable(True); b.setObjectName("chip"); b.setStyleSheet(chip)
+        b = QPushButton(name); b.setCheckable(True); b.setObjectName("chip"); D.themed(b, chip)
         b.clicked.connect(lambda _c=False, n=name: pick_count(page, n))
         page.counts_row.addWidget(b); page.count_btns[name] = b
         b.setVisible(name in SHOWN_COUNTS)                 # 4.23.0: the other filters are in More

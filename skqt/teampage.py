@@ -33,7 +33,7 @@ class TeamPage(QWidget):
             for x in (nm, wt):
                 x.setAttribute(Qt.WA_TransparentForMouseEvents); bl.addWidget(x)
             bl.addStretch(1)
-            b.setStyleSheet(f"QFrame#teamTile{{background:{t['surface']};border:1px solid {t['border']};border-radius:10px;}}"
+            D.themed(b, lambda t: f"QFrame#teamTile{{background:{t['surface']};border:1px solid {t['border']};border-radius:10px;}}"
                             f"QFrame#teamTile:hover{{border:1px solid {t['accent']};}}"
                             f"QLabel#tileName{{font-size:15px;font-weight:600;color:{t['text']};background:transparent;}}"
                             f"QLabel#tileWhat{{color:{t['muted']};background:transparent;}}")

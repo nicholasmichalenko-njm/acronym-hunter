@@ -53,10 +53,10 @@ class ClickFrame(QFrame):
 
 def _circle(n, state, t):
     if state == "done":
-        return f"background:{t['ok']};color:#FFFFFF;border:none;"
+        return f"background:{t['rail_done']};color:{t['rail_done_text']};border:none;"
     if state == "now":
-        return f"background:{t['rail_sel_bar']};color:#06101F;border:none;"
-    return f"background:transparent;color:{t['rail_text']};border:2px solid #3A4B66;"
+        return f"background:{t['rail_sel_bar']};color:{t['rail_now_text']};border:none;"
+    return f"background:transparent;color:{t['rail_text']};border:2px solid {t['rail_ring']};"
 
 
 SUB = {"redline": "Documents", "graphics": "Documents", "calendar": "the Dashboard", "tasks": "the Dashboard"}   # 4.25.5: Graphics; 4.27.1           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
@@ -93,7 +93,7 @@ class StepButton(QPushButton):
                                       "font-size:11px;font-weight:700;background:transparent;}")
         else:
             self.circle.setStyleSheet("QLabel#railStepNo{border-radius:12px;font-size:11px;font-weight:700;" + _circle(self.n, state, t) + "}")
-        col = {"done": t["ok"], "now": t["warn"]}.get(state, "#8796AB")
+        col = {"done": t["rail_ok"], "now": t["rail_warn"]}.get(state, t["rail_dim"])
         self.badge.setText(badge or "")
         self.badge.setVisible(bool(badge))
         self.badge.setStyleSheet(f"QLabel#railBadge{{color:{col};font-size:11px;background:transparent;}}")
@@ -103,13 +103,13 @@ def build(w, rv, rail, beta):
     """The menu's entries into the rail's layout; w.step_btns maps each entry to its button."""
     w.steps_now = []
     head = QLabel("THE EFFORT'S PATH"); head.setObjectName("railPathHead")
-    head.setStyleSheet("QLabel#railPathHead{color:#9FB1C9;font-size:11px;letter-spacing:1px;padding:10px 6px 2px 6px;background:transparent;}")
+    head.setStyleSheet(f"QLabel#railPathHead{{color:{D.tokens()['rail_group']};font-size:11px;letter-spacing:1px;padding:10px 6px 2px 6px;background:transparent;}}")
     rv.addWidget(head)
     w.group_heads, w.group_items = {}, {}
     for gi, (group, items) in enumerate(rail):
         if gi == 1:
             rv.addStretch(1)
-            rule = QFrame(); rule.setFixedHeight(1); rule.setStyleSheet("background:#22344F;"); rv.addWidget(rule)
+            rule = QFrame(); rule.setFixedHeight(1); rule.setStyleSheet(f"background:{D.tokens()['rail_rule']};"); rv.addWidget(rule)
         w.group_heads[group] = head if gi == 0 else None
         w.group_items[group] = []
         for key, text in items:
@@ -323,7 +323,7 @@ class NextBar(QFrame):
         self.w = w
         self.setObjectName("nextBar"); self.setFixedHeight(54)
         t = D.tokens()
-        self.setStyleSheet(f"QFrame#nextBar{{background:{t['surface']};border-top:1px solid {t['border']};}}")
+        D.themed(self, lambda t: f"QFrame#nextBar{{background:{t['surface']};border-top:1px solid {t['border']};}}")
         h = QHBoxLayout(self); h.setContentsMargins(D.SPACE["xl"], 0, D.SPACE["xl"], 0); h.setSpacing(D.SPACE["m"])
         self.left = D.label("", "muted"); self.left.setMinimumWidth(80); h.addWidget(self.left, 1)
         self.when = D.label("When this is done", "muted", wrap=False); h.addWidget(self.when)

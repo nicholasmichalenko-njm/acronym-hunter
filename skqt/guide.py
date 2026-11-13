@@ -14,11 +14,16 @@ from .guidetopics import TOPICS                   # 3.53.0
 TOPIC = {t[0]: t for t in TOPICS}
 
 
+def MUTED():
+    from . import design as D           # 4.27.3: the colors in use, light or dark
+    return D.tokens()["muted"]
+
+
 def topic_html(key):
     t = TOPIC.get(key) or TOPIC["start"]
     k, group, title, what, when, steps, tips = t
     e = html.escape
-    out = [f"<p style='color:#6b7686;font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:0'>{e(group)}</p>",
+    out = [f"<p style='color:{MUTED()};font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:0'>{e(group)}</p>",
            f"<h1 style='margin:2px 0 8px 0;font-size:24px'>{e(title)}</h1>",
            f"<p style='font-size:15px;margin:0 0 10px 0'>{e(what)}</p>",
            f"<p style='margin:0 0 12px 0'><b>Use it when:</b> {e(when)}</p>"]
@@ -26,7 +31,7 @@ def topic_html(key):
         from .helpcenter import SHORTCUTS
         out.append("<table cellpadding='5' style='border-collapse:collapse'>")
         for where, key_, does in SHORTCUTS:
-            out.append(f"<tr><td style='color:#6b7686'>{e(where)}</td><td><b>{e(key_)}</b></td><td>{e(does)}</td></tr>")
+            out.append(f"<tr><td style='color:{MUTED()}'>{e(where)}</td><td><b>{e(key_)}</b></td><td>{e(does)}</td></tr>")
         out.append("</table>")
     if steps:
         out.append("<h3 style='margin:14px 0 6px 0'>Steps</h3><ol style='margin-top:0'>")

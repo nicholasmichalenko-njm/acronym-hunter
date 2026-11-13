@@ -273,7 +273,7 @@ class TrainerPage(QWidget):
             cl = QVBoxLayout(card); cl.setContentsMargins(D.SPACE["s"], D.SPACE["xs"], D.SPACE["s"], D.SPACE["xs"]); cl.setSpacing(2)
             note = "already on the ignore list" if on_list else ("the scanner keeps this" if kept else "the scanner ignores this")
             lab = QLabel(f"{n}.  Read: {text}   ({conf:.2f}, {note})"); lab.setWordWrap(True)
-            lab.setStyleSheet(f"color:{'#6B7280' if on_list else '#15803D' if kept else '#DC2626'};font-weight:600;")
+            lab.setStyleSheet(f"color:{D.tokens()['muted' if on_list else 'ok' if kept else 'crit']};font-weight:600;")
             cl.addWidget(lab)
             ent = QLineEdit(text); cl.addWidget(ent)
             rowl = QHBoxLayout(); grp = QButtonGroup(card)

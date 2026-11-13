@@ -44,7 +44,7 @@ class PictureDrop(QToolButton):
         else:
             self.setIcon(QIcon()); self.setText("+\nEffort image\n\nclick or drop\na picture here")
             self.setToolTip("A picture that stands for the effort: a mission patch, a logo or a cover image")
-            self.setStyleSheet(f"QToolButton{{border:2px dashed {t['border_strong']};border-radius:14px;background:{t['surface2']};"
+            D.themed(self, lambda t: f"QToolButton{{border:2px dashed {t['border_strong']};border-radius:14px;background:{t['surface2']};"
                                f"color:{t['muted']};font-weight:600;}} QToolButton:hover{{border-color:{t['accent']};color:{t['accent']};}}")
 
     def choose(self, path=None):
@@ -90,7 +90,7 @@ class StartEffort(QFrame):
         self.done = done
         self.setObjectName("startEffort")
         t = D.tokens()
-        self.setStyleSheet(f"QFrame#startEffort{{background:{t['surface']};border:1px solid {t['border']};border-radius:{D.RADIUS['card']}px;}}")
+        D.themed(self, lambda t: f"QFrame#startEffort{{background:{t['surface']};border:1px solid {t['border']};border-radius:{D.RADIUS['card']}px;}}")
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
         head = QLabel("Start an effort"); head.setStyleSheet("font-size:20pt;font-weight:700;background:transparent;")
         outer.addWidget(head)

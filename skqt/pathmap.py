@@ -59,10 +59,10 @@ class PathMap(QWidget):
         low = QHBoxLayout(); low.setSpacing(D.SPACE["m"]); v.addLayout(low)
         t = D.tokens()
         self.next_box = QFrame(); self.next_box.setObjectName("nextBox")
-        self.next_box.setStyleSheet(f"QFrame#nextBox{{background:{t['surface']};border:1px solid {t['border_strong']};border-radius:10px;}}"
+        D.themed(self.next_box, lambda t: f"QFrame#nextBox{{background:{t['surface']};border:1px solid {t['border_strong']};border-radius:10px;}}"
                                     f"QFrame#nextBox QLabel{{background:transparent;}}")
         nv = QVBoxLayout(self.next_box); nv.setContentsMargins(20, 16, 20, 16); nv.setSpacing(8)
-        cap = QLabel("YOUR NEXT STEP"); cap.setStyleSheet(f"color:{t['accent']};font-size:11px;font-weight:700;letter-spacing:1px;")
+        cap = QLabel("YOUR NEXT STEP"); D.themed(cap, lambda t: f"color:{t['accent']};font-size:11px;font-weight:700;letter-spacing:1px;")
         nv.addWidget(cap)
         self.next_title = QLabel(""); self.next_title.setStyleSheet("font-size:20px;font-weight:600;"); self.next_title.setWordWrap(True)
         nv.addWidget(self.next_title)

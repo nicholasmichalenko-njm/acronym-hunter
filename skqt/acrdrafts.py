@@ -148,13 +148,13 @@ class DraftsCheck(QDialog):
             return
         t, dfn = html.escape(f["term"]), html.escape(f["definition"])
         if f["kind"] == "before":
-            fix = (f"<p>At its first use (paragraph {f['para']}): <span style='color:#1F5FAD;text-decoration:underline'>{dfn} (</span>"
-                   f"{t}<span style='color:#1F5FAD;text-decoration:underline'>)</span></p>"
-                   + ("<p>Where it is spelled out later: <span style='color:#B91C1C;text-decoration:line-through'>"
-                      f"{dfn} (</span>{t}<span style='color:#B91C1C;text-decoration:line-through'>)</span></p>" if f["spelled"] else ""))
+            fix = (f"<p>At its first use (paragraph {f['para']}): <span style='color:{D.tokens()['accent']};text-decoration:underline'>{dfn} (</span>"
+                   f"{t}<span style='color:{D.tokens()['accent']};text-decoration:underline'>)</span></p>"
+                   + ("<p>Where it is spelled out later: <span style='color:{D.tokens()['crit']};text-decoration:line-through'>"
+                      f"{dfn} (</span>{t}<span style='color:{D.tokens()['crit']};text-decoration:line-through'>)</span></p>" if f["spelled"] else ""))
         elif f["kind"] == "again":
-            fix = ("".join(f"<p>Paragraph {i + 1}: <span style='color:#B91C1C;text-decoration:line-through'>{dfn} (</span>{t}"
-                           f"<span style='color:#B91C1C;text-decoration:line-through'>)</span></p>" for i, _a, _b in f["spelled"]))
+            fix = ("".join(f"<p>Paragraph {i + 1}: <span style='color:{D.tokens()['crit']};text-decoration:line-through'>{dfn} (</span>{t}"
+                           f"<span style='color:{D.tokens()['crit']};text-decoration:line-through'>)</span></p>" for i, _a, _b in f["spelled"]))
         else:
             fix = "<p>Not in the effort's list. Add it on the Acronyms page (select its words there), or leave it.</p>"
         self.card.setHtml(f"<h2>{t}</h2><p><b>{KIND[f['kind']]}</b></p><p style='color:gray'>…{html.escape(f['where'])}…</p>"

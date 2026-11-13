@@ -128,7 +128,7 @@ class LibraryView(QWidget):
         body.addWidget(self.views, 1)
         self.preview = QLabel(); self.preview.setWordWrap(True); self.preview.setMinimumHeight(70)    # 3.23.0
         self.preview.setTextFormat(Qt.RichText)
-        self.preview.setStyleSheet(f"background:{D.tokens()['surface2']};border:1px solid {D.tokens()['border']};padding:8px;")
+        D.themed(self.preview, lambda t: f"background:{t['surface2']};border:1px solid {t['border']};padding:8px;")
         v.addWidget(self.preview)
         self.where = D.label("", "muted"); v.addWidget(self.where)          # 3.44.0: the standards that carry it
         self.t.currentCellChanged.connect(lambda *_a: self.show_preview())

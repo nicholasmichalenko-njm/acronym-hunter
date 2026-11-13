@@ -26,6 +26,8 @@ LIGHT = {
     "accent": "#1F5FAD", "accent_hover": "#184E90", "accent_fg": "#FFFFFF", "accent_soft": "#E2ECF8",
     "rail": "#0F1E33", "rail_text": "#C7D3E3", "rail_active": "#1F5FAD", "rail_active_text": "#FFFFFF",
     "rail_group": "#9FB1C9", "rail_rule": "#22344F", "rail_sel_bg": "#1C3A63", "rail_sel_bar": "#5B9BEB", "rail_card": "#13253F",
+    "rail_done": "#187A40", "rail_done_text": "#FFFFFF", "rail_now_text": "#06101F", "rail_ring": "#3A4B66", "rail_dim": "#8796AB",
+    "rail_ok": "#4ADE80", "rail_warn": "#FBBF24",        # 4.27.3: a step's state on the navy, the same in light and dark
     "ok": "#146C36", "ok_soft": "#DCF3E4", "warn": "#9A4508", "warn_soft": "#FCEFD9", "crit": "#B91C1C", "crit_soft": "#FBE2E2",
     "req": "#146C36", "req_soft": "#DCF3E4", "ctx": "#1D4ED8", "ctx_soft": "#DFE8FB", "cust": "#7E22CE", "cust_soft": "#EFE1FA", "cui": "#502B85", "cui_soft": "#EDE6F6",
     "head": "#334155", "head_soft": "#E5E9EF", "focus": "#2E7BE0", "page": "#DCE3EC",
@@ -35,13 +37,12 @@ DARK = {
     "bg": "#0B1220", "surface": "#121B2C", "surface2": "#172235", "border": "#26344B", "border_strong": "#3A4B66",
     "text": "#E6ECF5", "muted": "#A3B1C4", "faint": "#8796AB",
     "accent": "#5B9BEB", "accent_hover": "#76ADF0", "accent_fg": "#06101F", "accent_soft": "#1A2C47",
-    "rail": "#070D18", "rail_text": "#AFC0D6", "rail_active": "#2A5FA3", "rail_active_text": "#FFFFFF",
-    "rail_group": "#8EA2BD", "rail_rule": "#1B2A40", "rail_sel_bg": "#16304F", "rail_sel_bar": "#5B9BEB", "rail_card": "#0E1A2D",
     "ok": "#4ADE80", "ok_soft": "#123323", "warn": "#FBBF24", "warn_soft": "#3A2A0B", "crit": "#F87171", "crit_soft": "#3B1414",
     "req": "#4ADE80", "req_soft": "#133524", "ctx": "#7FA8F5", "ctx_soft": "#172A4D", "cust": "#C59AF5", "cust_soft": "#2C1A44", "cui": "#C4B0EC", "cui_soft": "#2A1D42",
     "head": "#B3C0D2", "head_soft": "#1E293B", "focus": "#76ADF0", "page": "#1A2436",
     "border_soft": "#243248", "accent_line": "#2E4F7C", "accent_tint": "#15233A",
 }
+DARK.update({k: v for k, v in LIGHT.items() if k.startswith("rail")})   # 4.27.3: the menu is one navy, light and dark
 # what each decision is called and how it is tagged in the page margin (colors come from the tokens)
 DECISIONS = {"Keep": ("req", "Compliance requirement", "REQ"), "Context": ("ctx", "Supporting context", "SUPPORTS"),
              "Customer": ("cust", "The customer's (identified, not answered)", "CUSTOMER'S"),
@@ -75,6 +76,36 @@ _current = {"t": LIGHT, "dark": False}
 
 def tokens():
     return _current["t"]
+
+
+# 4.27.3: a widget's own style is written again when light or dark changes. themed(w, fn): fn(t) gives the sheet from the
+# tokens; _RESTYLE holds the components (Pill, Tile, Chip) that write their own in retheme().
+import weakref as _weakref
+_THEMED = _weakref.WeakKeyDictionary()
+_RESTYLE = _weakref.WeakSet()
+
+
+def themed(w, fn):
+    """Set w's style from fn(tokens) now and again on every change of light or dark. fn must not hold w."""
+    _THEMED[w] = fn
+    w.setStyleSheet(fn(tokens()))
+    return w
+
+
+def retheme():
+    """Every registered style written again from the tokens in use. Returns how many."""
+    n = 0
+    for w, fn in list(_THEMED.items()):
+        try:
+            w.setStyleSheet(fn(tokens())); n += 1
+        except RuntimeError:                         # the widget is gone
+            pass
+    for w in list(_RESTYLE):
+        try:
+            w.retheme(); n += 1
+        except RuntimeError:
+            pass
+    return n
 
 
 def is_dark():
@@ -237,6 +268,7 @@ def apply(app, choice=None):
     f = QFont(UI_FONT, TYPE["body"])
     app.setFont(f)
     app.setStyleSheet(qss(t))
+    retheme()                                        # 4.27.3: every widget's own style follows
     if not getattr(app, "_sk_tuner", None):         # 2.86.0: compact tables, resizable columns, scrolling left and right
         from .adaptive import install
         install(app)
@@ -334,6 +366,10 @@ class Pill(QLabel):
         self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.set_tone(tone)
         self.setText(text)
+        _RESTYLE.add(self)
+
+    def retheme(self):
+        self.set_tone(self._tone)
 
     def setText(self, text):
         self._plain = text or ""
@@ -366,12 +402,11 @@ class Chip(QFrame):
 
     def __init__(self, text, tone="req", on_remove=None, on_jump=None, remove_tip="Take it out"):
         super().__init__()
-        t = tokens()
         self.setObjectName("chip")
-        self.setStyleSheet(f"QFrame#chip{{background:{t.get(tone + '_soft', t['accent_soft'])};border-radius:{RADIUS['chip']}px;"
-                           f"border:1px solid {t.get(tone, t['accent'])};}} QLabel{{background:transparent;color:{t['text']};}}"
-                           f"QToolButton{{border:none;background:transparent;color:{t['muted']};font-weight:600;padding:0 4px;}}"
-                           f"QToolButton:hover{{color:{t['crit']};}}")
+        themed(self, lambda t: f"QFrame#chip{{background:{t.get(tone + '_soft', t['accent_soft'])};border-radius:{RADIUS['chip']}px;"
+               f"border:1px solid {t.get(tone, t['accent'])};}} QLabel{{background:transparent;color:{t['text']};}}"
+               f"QToolButton{{border:none;background:transparent;color:{t['muted']};font-weight:600;padding:0 4px;}}"
+               f"QToolButton:hover{{color:{t['crit']};}}")
         h = QHBoxLayout(self)
         h.setContentsMargins(SPACE["m"], 2, SPACE["xs"], 2)
         self.label = QLabel(text)
@@ -455,6 +490,11 @@ class Tile(QFrame):
         if tip:
             self.setToolTip(tip)
         self.set(value, caption, tone)
+        _RESTYLE.add(self)
+
+    def retheme(self):
+        self._pt = None
+        self.set(self.value.text())
 
     def set(self, value, caption=None, tone=None):
         t = tokens()

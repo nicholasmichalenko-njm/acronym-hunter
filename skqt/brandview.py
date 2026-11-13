@@ -76,7 +76,7 @@ class PictureBox(QToolButton):
             from PySide6.QtGui import QIcon
             self.setIcon(QIcon()); self.setText("+\nEffort image\n\nclick or drop\na picture")
             self.setToolTip("Add a picture that stands for the effort (a mission patch, a logo or a cover image): click, or drop a picture file here")
-            self.setStyleSheet(f"QToolButton{{border:2px dashed {t['border_strong']};border-radius:14px;background:{t['surface2']};"
+            D.themed(self, lambda t: f"QToolButton{{border:2px dashed {t['border_strong']};border-radius:14px;background:{t['surface2']};"
                                f"color:{t['muted']};font-weight:600;}} QToolButton:hover{{border-color:{t['accent']};color:{t['accent']};}}")
 
     def menu(self):

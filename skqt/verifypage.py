@@ -184,8 +184,8 @@ class VerifyPage(QWidget):
         # ---- the bar beside the selection
         self.rolebar = QFrame(); self.rolebar.setObjectName("cardhead")
         self.rolebar.setAutoFillBackground(True)
-        self.rolebar.setStyleSheet("QFrame#cardhead { background: %s; border: 1px solid %s; border-radius: 6px; }"
-                                   % (D.tokens()["surface"], D.tokens()["border_strong"]))
+        D.themed(self.rolebar, lambda t: "QFrame#cardhead { background: %s; border: 1px solid %s; border-radius: 6px; }"
+                                   % (t["surface"], t["border_strong"]))
         rb = QVBoxLayout(self.rolebar); rb.setContentsMargins(6, 4, 6, 4); rb.setSpacing(4)
         self.bar_msg = D.label("", "muted", wrap=False); rb.addWidget(self.bar_msg)
         self.roles_row = QWidget(); self.roles_lay = FlowLayout(self.roles_row, 4); rb.addWidget(self.roles_row)

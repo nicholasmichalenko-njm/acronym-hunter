@@ -25,7 +25,7 @@ class UnfiledStrip(QWidget):
         on = h.ws is not None and UF.is_unfiled(h.efforts, h.effort_name)
         c = UF.counts(h.efforts) if on else {}
         t = D.tokens()
-        self.setStyleSheet(f"QWidget#unfiledStrip{{background:{t['warn_soft']};}} QWidget#unfiledStrip QLabel{{color:{t['text']};}}")
+        D.themed(self, lambda t: f"QWidget#unfiledStrip{{background:{t['warn_soft']};}} QWidget#unfiledStrip QLabel{{color:{t['text']};}}")
         if on:
             self.text.setText("<b>Working unfiled.</b> " + ("Holds " + UF.summary_text(c) + ". File it into an effort when you know "
                               "where it belongs." if not UF.empty(c) else "Use any tool; file the work into an effort when you know "

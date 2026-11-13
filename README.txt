@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+APPEARANCE AND PEOPLE (4.27.3)
+  - Light and dark, everywhere at once. Settings > Appearance changes every page the moment you pick. No restart, and
+    no page keeps the other look's colors.
+  - The menu is one navy in light and dark. A step's number and its note (done, next) read the same in both.
+  - Colors that were fixed in the code now follow the look: a status in Drafts, the Guide's small print, a marked
+    phrase in Tech edit, a fix shown in Acronyms for drafts, the reader trainer's lines.
+  - Settings > People: the author list has a Role column for the open effort. A name that shows in the effort has
+    its role on its row; pick one or type one, and it is saved at once. It is the same role Effort Record > Team shows.
+  - The customer's pages and Word previews stay white in both, as before.
+
 THE TOP BAR AND QUICK TOOLS (4.27.2)
   - Quick note. The top bar's button opens the note at once (Ctrl+Shift+N). Issue or idea left the bar: it is in
     Settings > Updates and help (Issues and ideas...) and on Ctrl+Shift+I.

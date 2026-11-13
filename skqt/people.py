@@ -4,6 +4,7 @@ picker offers only the names set to show in the open effort; with no effort open
 """
 import os
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QPlainTextEdit, QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout,
                                QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
                                QRadioButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
@@ -258,17 +259,19 @@ class EffortsDialog(QDialog):
 class AuthorListCard(D.Card):
     def __init__(self, host):
         super().__init__("Author list", "The only place names come from. Author, section lead, contributor and owner "
-                         "drop-downs show the names set to show in the open effort. To offer more people, add them here "
+                         "drop-downs show the names set to show in the open effort; each of those has a role on it, picked on "
+                         "its row. To offer more people, add them here "
                          "or import an updated list: names already on the list stay as they are; only new names are added.",
                          actions=[D.button("Export the list...", None, lambda: self.export()),
                                   D.button("Import a list...", None, lambda: self.import_list()),
                                   D.button("Add names...", "primary", lambda: self.add_names())])
         self.host = host
         self.banner = self.add(D.label("", "crit")); self.banner.setWordWrap(True)
-        self.table = QTableWidget(0, 3); self.table.setHorizontalHeaderLabels(["Name", "Shows in", "Added"])
+        self.table = QTableWidget(0, 4); self.table.setHorizontalHeaderLabels(["Name", "Role on this effort", "Shows in", "Added"])
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows); self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.verticalHeader().setVisible(False); self.table.horizontalHeader().setStretchLastSection(False)
-        self.table.setColumnWidth(0, 240); self.table.setColumnWidth(1, 380); self.table.setColumnWidth(2, 110)
+        self.table.setColumnWidth(0, 220); self.table.setColumnWidth(1, 220); self.table.setColumnWidth(2, 320); self.table.setColumnWidth(3, 110)
+        self.table.verticalHeader().setDefaultSectionSize(34); self.table.setProperty("sk_rows_fixed", True)
         self.table.setMinimumHeight(220)
         self.table.doubleClicked.connect(lambda _i: self.choose_efforts())
         self.add(self.table)
@@ -300,14 +303,47 @@ class AuthorListCard(D.Card):
         self.banner.setVisible(bool(self.banner.text()))
         t = self.table
         t.setRowCount(0)
+        from .rolesview import role_combo
+        import process as PR
+        rec = self.rec
+        roles = PR.load(self.host.config_dir)["roles"] if rec is not None else []
+        in_here = {AL.key(n) for n in self.L.for_effort(_eff(self.host))} if rec is not None else set()
+        t.horizontalHeaderItem(1).setText(f"Role on {_eff(self.host)}" if rec is not None else "Role on this effort")
         for p in sorted(self.L.people, key=lambda p: p["name"].casefold()):
             r = t.rowCount(); t.insertRow(r)
             t.setItem(r, 0, QTableWidgetItem(p["name"]))
-            t.setItem(r, 1, QTableWidgetItem(AL.efforts_text(p["efforts"])))
-            t.setItem(r, 2, QTableWidgetItem(p.get("added", "")))
+            t.setItem(r, 2, QTableWidgetItem(AL.efforts_text(p["efforts"])))
+            t.setItem(r, 3, QTableWidgetItem(p.get("added", "")))
+            if rec is not None and AL.key(p["name"]) in in_here:      # 4.27.3: the person's role on the open effort, on the row
+                cb = role_combo(roles, rec.role_of(p["name"]))
+                cb.activated.connect(lambda _k, name=p["name"], c=cb: self.save_role(name, c.currentText()))
+                cb.lineEdit().editingFinished.connect(lambda name=p["name"], c=cb: self.save_role(name, c.currentText()))
+                t.setCellWidget(r, 1, cb)
+            else:
+                it = QTableWidgetItem("" if rec is None else "Not in this effort"); it.setForeground(QColor(D.tokens()["faint"])); t.setItem(r, 1, it)
         here = _eff(self.host)
         n_here = len(self.L.for_effort(here)) if here else 0
         self.info.setText(f"{len(self.L.people)} name(s) on the list" + (f"; {n_here} show in {here}." if here else "."))
+
+    @property
+    def rec(self):
+        import effortrec as R
+        return R.Record(self.host.ws.root) if getattr(self.host, "ws", None) and _eff(self.host) else None
+
+    def save_role(self, name, role):
+        """4.27.3: one person's role on the open effort, saved the moment it is picked or typed. True when it changed."""
+        r = self.rec
+        if r is None or not r.set_role(name, role):
+            return False
+        diag.activity("qt_role_set")
+        self.host.status(f"{name}: {role or 'no role'} on {_eff(self.host)}")
+        return True
+
+    def role_box(self, name):
+        for i in range(self.table.rowCount()):
+            if self.table.item(i, 0).text() == name:
+                return self.table.cellWidget(i, 1)
+        return None
 
     def selected(self):
         rows = sorted({i.row() for i in self.table.selectedIndexes()})

@@ -20,6 +20,8 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.27.3": ["Light and dark change every page at once. The menu is one navy in both.",
+               "Settings > People: each person's role on the open effort is on their row of the author list."],
     "4.27.2": ["The top bar's button is Quick note. Undo left the bar: Ctrl+Z, a line at the foot, and History.",
                "Quick tools is at the bottom of the menu.",
                "Unfiled is a list on Quick tools, not an effort to switch to."],

@@ -212,4 +212,8 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 4.27.2 | The top bar holds Quick note only (it opens the note); Issue or idea is in Settings > Updates and help and Ctrl+Shift+I. Undo is off the bar: Ctrl+Z, a line at the foot that says what it would put back, and History (skqt/undoline) | Nicholas's recording 07:05 to 07:30 |
 | 4.27.2 | Your Tools is named Quick tools and is a menu entry at the bottom, above Team; it left the effort switcher | Nicholas's recording 05:25; the plan board's menu |
 | 4.27.2 | Unfiled is a list on Quick tools, not an effort to switch to and not a card on All Efforts. Underneath it is still kept as it was (Stationkeeper Data, Efforts, Unfiled), so nothing unfiled is lost and every tool still works with no effort open | Nicholas 2026-11-12 21:25, answer 4 |
+| 4.27.3 | The menu is one navy in light and dark: every menu color (the "rail" colors in skqt/design) is one value for both | Nicholas 2026-11-12 21:25, answer 5 |
+| 4.27.3 | A widget that sets its own style from the colors does it with design.themed (or is a Pill, Chip or Tile), so a change of light or dark writes it again. qt_theme4273 opens every page, switches three times and fails on a color left from the other look | Nicholas's recording: the menu and parts of pages kept the other look |
+| 4.27.3 | A person's role on the open effort is on their row of Settings > People's author list (the same value as Effort Record > Team). No second list | Nicholas 2026-11-12 17:33 |
+| 4.27.3 | New palettes wait for Nicholas's pick on a board; this release changes no color he sees except the menu in dark | The recording plan: palettes on a board first |
 

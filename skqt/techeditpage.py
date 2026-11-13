@@ -239,7 +239,7 @@ class TechEditPage(QWidget):
         f = sel[0]
         sent = html.escape(f["sentence"])
         if f["hit"]:
-            sent = sent.replace(html.escape(f["hit"]), f"<span style='background:#FCEFD9'>{html.escape(f['hit'])}</span>", 1)
+            sent = sent.replace(html.escape(f["hit"]), f"<span style='background:{D.tokens()['warn_soft']}'>{html.escape(f['hit'])}</span>", 1)
         self.detail.setHtml(f"<p><b>{html.escape(f['title'])}</b> ({f['level']}, {html.escape(f['group'])})</p>"
                             f"<p style='color:gray'>{html.escape(f['section'])}</p><p>{sent}</p>"
                             f"<p><b>Suggested:</b> {html.escape(f['fix'] or '')}</p><p style='color:gray'>{html.escape(f['why'])}</p>")

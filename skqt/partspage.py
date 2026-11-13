@@ -82,7 +82,7 @@ class PartsPage(QWidget):
         side = QWidget(); sv = QVBoxLayout(side); sv.setContentsMargins(0, 0, 0, 0); sv.setSpacing(D.SPACE["s"])
         self.title = D.label("", "title"); sv.addWidget(self.title)
         self.thumb = QLabel(); self.thumb.setFixedSize(230, 300); self.thumb.setAlignment(Qt.AlignCenter); self.thumb.setWordWrap(True)
-        self.thumb.setStyleSheet("QLabel { border: 1px solid %s; background: white; color: #111111; padding: 8px; }" % D.tokens()["border"])
+        D.themed(self.thumb, lambda t: "QLabel { border: 1px solid %s; background: white; color: #111111; padding: 8px; }" % t["border"])
         self.thumb_note = D.label("", "muted")
         sv.addWidget(self.thumb); sv.addWidget(self.thumb_note)
         self.fills_lab = D.label("What fills it", "label"); sv.addWidget(self.fills_lab)

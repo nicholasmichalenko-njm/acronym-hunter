@@ -53,8 +53,8 @@ class DecideBar(QFrame):
         self.why_text = ""
         self.setObjectName("cardhead")
         self.setAutoFillBackground(True)
-        self.setStyleSheet("QFrame#cardhead { background: %s; border: 1px solid %s; border-radius: 6px; }"
-                           % (D.tokens()["surface"], D.tokens()["border_strong"]))
+        D.themed(self, lambda t: "QFrame#cardhead { background: %s; border: 1px solid %s; border-radius: 6px; }"
+                           % (t["surface"], t["border_strong"]))
         v = QVBoxLayout(self); v.setContentsMargins(8, 6, 8, 6); v.setSpacing(4)
         self.title = D.label("", "label"); v.addWidget(self.title)
         self.words = D.label("", None); self.words.setTextFormat(Qt.RichText); v.addWidget(self.words)

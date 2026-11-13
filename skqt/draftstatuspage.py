@@ -16,8 +16,12 @@ import diag
 import setupread as SR
 from . import design as D
 
-STATUS_COLOR = {"Not started": "#64748b", "Under way": "#2563eb", "Near budget": "#0f766e", "Over budget": "#b91c1c",
-                "Heading not found": "#b45309"}
+STATUS_TONE = {"Not started": "muted", "Under way": "ctx", "Near budget": "ok", "Over budget": "crit", "Heading not found": "warn"}
+
+
+def status_color(status):
+    """4.27.3: a status in its meaning color, from the colors in use (light or dark)."""
+    return D.tokens()[STATUS_TONE.get(status, "text")]
 
 
 def _table(cols, stretch, h=200):
@@ -244,7 +248,7 @@ class DraftStatusPage(QWidget):
                 if c >= 3:
                     it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 if c == 5 and got and n["over"]:
-                    it.setForeground(QColor(STATUS_COLOR["Over budget"]))
+                    it.setForeground(QColor(status_color("Over budget")))
                 t.setItem(i, c, it)
         t.blockSignals(False)
 
@@ -271,7 +275,7 @@ class DraftStatusPage(QWidget):
             for c, val in enumerate(vals):
                 it = QTableWidgetItem(val)
                 if c == 1:
-                    it.setForeground(QColor(STATUS_COLOR.get(val, "#1f2937")))
+                    it.setForeground(QColor(status_color(val)))
                 if c in (2, 3, 4, 5, 6):
                     it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 t.setItem(i, c, it)
