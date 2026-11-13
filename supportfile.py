@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.29.1": ["Acronyms: Ignore here on the page, Ignore in this effort on the lists. No Next bar under a step.",
+               "Settings > Appearance > Colors: Station navy, Slate and teal, or My colors by hex value, with Reset.",
+               "Calendar has Add a date. Template Studio is a tab of Setup. Making a template is on for everyone.",
+               "Add files once an amendment is in and one question asks which package brought them."],
     "4.29.0": ["Names: the Dashboard is the Overview. Rules & Dates is Submission Checklist. L to M is Crosswalk.",
                "Changes is Amendments. Acros & Abs is Acronyms. Theme tags is Themes. Evaluation is Evaluation Criteria.",
                "Piece types: Content Instruction, Format & Submission, Key Date, Evaluation Criterion, Response Structure."],
