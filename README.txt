@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENTS: THE EFFORT'S FOLDER (4.25.1)
+  - Documents names the effort's folder above the list; click the path to open it.
+  - Put a file into the effort's folder and it is added to Documents by itself the next time the folders are checked
+    (when the effort opens, every few minutes, or Watched folders... > Check now). It is one of your own documents,
+    marked Reference only, of any kind of file, and it stays where you put it: nothing is copied. A line at the foot
+    of the window says what came in. Its folder in the effort is its folder in Documents.
+  - Left out: our volumes (01_proposal), Response Setup and Exports (10_proposal management), Redlines, Deleted, the
+    app's own data, and the files that sit beside the effort list.
+  - The customer's folder works as before: a new file there is offered with its table, because a customer document
+    needs its type and its initial.
+  - What was already in the folder of an effort that has documents is left alone the first time. More than 25 new
+    files at once are offered at the top of Documents (Add to Documents... or Ignore), not added by themselves.
+  - A file that is already in the effort's folder is never copied when you add it, whatever it is.
+  - The Trash is a folder you can see: Deleted, in the effort's folder. Stationkeeper never reads it as documents,
+    and only More > Trash... > Empty removes anything from it. What an earlier version kept in its own data is still
+    listed and restored.
+  - A pasted picture (Acros & Abs, Ctrl+V) is saved in the effort's folder, in Library > Graphics > Pasted pictures.
+
 DOCUMENTS: ONE LIST (4.25.0)
   - Documents is one list. Three chips above it, All, Customer and Internal, show every document, the customer's, or
     your own (Internal is the new word for Ours). The Customer and Ours tabs are gone; the first tab is List.

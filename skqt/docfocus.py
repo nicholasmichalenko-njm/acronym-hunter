@@ -83,6 +83,12 @@ def install(page, side="all"):
     page.type_f.currentIndexChanged.connect(lambda _i: page.fill())
     _bar_of(page).addWidget(page.type_f)
     page.search.setPlaceholderText("Find: names, tags and the text of every document")
+    # 4.25.1 (Nicholas 16:49): the effort's folder, front and center: where it is, and that a file dropped in is added
+    from PySide6.QtWidgets import QHBoxLayout
+    frow = QHBoxLayout()
+    page.folder_lbl = D0.label("", "muted"); page.folder_lbl.setWordWrap(True); frow.addWidget(page.folder_lbl, 1)
+    page.folder_lbl.linkActivated.connect(lambda _h: page.host.open_effort_folder())      # the path opens the folder
+    page.search.parentWidget().layout().insertLayout(0, frow)
     # a click on "N role(s) to confirm" shows those documents
     page.p_und.setCursor(__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.PointingHandCursor)
     page.p_und.mousePressEvent = lambda _e: _only_undecided(page)
@@ -134,6 +140,7 @@ def fill_types(page):
     """The type filter: Every type, then the side's categories."""
     if not page.focus or page.lib is None:
         return
+    effort_line(page)
     keep = page.type_f.currentData()
     page.type_f.blockSignals(True)
     page.type_f.clear()
@@ -143,6 +150,20 @@ def fill_types(page):
             page.type_f.addItem(n, k)
     page.type_f.setCurrentIndex(max(0, page.type_f.findData(keep or "")))
     page.type_f.blockSignals(False)
+
+
+def effort_line(page):
+    """The line over the list: where the effort's folder is."""
+    try:
+        import effortfolders as EF
+        root = EF.root(page.host.effort_path) if page.host.effort_path else ""
+    except Exception:  # noqa: BLE001
+        root = ""
+    import html
+    page.folder_lbl.setText(f"Effort folder: <a href='open'>{html.escape(root)}</a>. A file you put in it is added here by "
+                            "itself; what you delete here goes to its Deleted folder." if root else "")
+    page.folder_lbl.setVisible(bool(root))
+    return root
 
 
 def shown(page, docs):

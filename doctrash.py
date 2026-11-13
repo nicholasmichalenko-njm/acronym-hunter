@@ -5,9 +5,40 @@ entries for good, and only when asked. Rules only (No AI); nothing leaves the PC
 import datetime, getpass, json, os, shutil, uuid
 
 
-def folder(ws):
-    """<effort data>\\trash; ws is the effort's workspace or its data folder."""
+VISIBLE = "Deleted"       # 4.25.1: the effort's Trash is a folder a person can see, in the effort's folder
+
+
+def old_folder(ws):
+    """<effort data>\\trash: where the Trash was kept before 4.25.1. Entries made there are still read."""
     return ws.p("trash") if hasattr(ws, "p") else os.path.join(ws, "trash")
+
+
+def folder(ws):
+    """4.25.1 (Nicholas 2026-11-12 16:49, answer 8): <effort>\\Deleted, a folder the person can see. Stationkeeper never
+    reads it as documents, and only Empty the Trash, in the app, removes anything from it. An effort whose folder is
+    not known keeps the Trash in its app data, as before."""
+    data = ws.root if hasattr(ws, "root") else ws
+    try:
+        import docpaths
+        er = docpaths.effort_root_of(data)
+    except Exception:  # noqa: BLE001
+        er = ""
+    return os.path.join(er, VISIBLE) if er and os.path.isdir(er) else old_folder(ws)
+
+
+NOTE = "About this folder.txt"
+NOTE_TEXT = ("What you deleted or replaced in Stationkeeper's Documents is kept here, one folder per delete.\r\n\r\n"
+             "Documents > More > Trash... puts an entry back, or empties the Trash. Stationkeeper does not read this\r\n"
+             "folder as documents. Do not delete from here by hand: Restore would have nothing to bring back.\r\n")
+
+
+def _dir_of(ws, eid):
+    """The entry's own folder: in Deleted, or in the older place."""
+    for base in dict.fromkeys((folder(ws), old_folder(ws))):
+        d = os.path.join(base, eid)
+        if os.path.isdir(d):
+            return d
+    return os.path.join(folder(ws), eid)
 
 
 def put(ws, kind, name, payload, files=()):
@@ -15,6 +46,13 @@ def put(ws, kind, name, payload, files=()):
     eid = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f-") + uuid.uuid4().hex[:4]     # newest sorts last
     d = os.path.join(folder(ws), eid)
     os.makedirs(os.path.join(d, "files"), exist_ok=True)
+    note = os.path.join(folder(ws), NOTE)
+    if os.path.basename(folder(ws)) == VISIBLE and not os.path.isfile(note):
+        try:
+            with open(note, "w", encoding="utf-8") as f:
+                f.write(NOTE_TEXT)
+        except OSError:
+            pass
     kept = []
     for k, p in enumerate(dict.fromkeys(f for f in files if f)):
         rec = {"orig": os.path.abspath(p), "kept": ""}
@@ -47,17 +85,18 @@ def put(ws, kind, name, payload, files=()):
 
 
 def entries(ws):
-    """Every entry, newest first."""
+    """Every entry, newest first (4.25.1: those in Deleted and those an older version kept in the app data)."""
     out = []
-    base = folder(ws)
-    if not os.path.isdir(base):
-        return out
-    for n in sorted(os.listdir(base), reverse=True):
-        try:
-            with open(os.path.join(base, n, "entry.json"), encoding="utf-8") as f:
-                out.append(json.load(f))
-        except (OSError, ValueError):
+    for base in dict.fromkeys((folder(ws), old_folder(ws))):
+        if not os.path.isdir(base):
             continue
+        for n in os.listdir(base):
+            try:
+                with open(os.path.join(base, n, "entry.json"), encoding="utf-8") as f:
+                    out.append(json.load(f))
+            except (OSError, ValueError):
+                continue
+    out.sort(key=lambda e: e.get("id", ""), reverse=True)
     return out
 
 
@@ -71,7 +110,7 @@ def take_back(ws, eid):
     e = entry(ws, eid)
     if e is None:
         return None
-    d = os.path.join(folder(ws), eid)
+    d = _dir_of(ws, eid)
     back = {}
     for rec in e["files"]:
         if not rec.get("kept"):
@@ -96,17 +135,18 @@ def empty(ws, eid=None):
     n = 0
     for e in entries(ws):
         if eid is None or e["id"] == eid:
-            shutil.rmtree(os.path.join(folder(ws), e["id"]), ignore_errors=True)
+            shutil.rmtree(_dir_of(ws, e["id"]), ignore_errors=True)
             n += 1
     return n
 
 
 def size(ws):
     total = 0
-    for root, _dirs, files in os.walk(folder(ws)):
-        for f in files:
-            try:
-                total += os.path.getsize(os.path.join(root, f))
-            except OSError:
-                pass
+    for base in dict.fromkeys((folder(ws), old_folder(ws))):
+        for root, _dirs, files in os.walk(base):
+            for f in files:
+                try:
+                    total += os.path.getsize(os.path.join(root, f))
+                except OSError:
+                    pass
     return total

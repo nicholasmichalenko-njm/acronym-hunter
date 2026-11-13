@@ -158,13 +158,13 @@ TOPICS = [
   ["One list holds every document. All, Customer and Internal above it show every one, the customer's, or your own.",
    "Press Add documents... (Add a folder... is under More). Stationkeeper suggests the type, its "
    "initial (RFP, Amd1, TO1) and whether it is a new version of a document you have.",
-   "Watched folders... checks the customer folder and any folder you add for new, changed and missing files. New files "
-   "show at the top of Documents: Add to Documents... or Ignore. The same words are never added twice.",
+   "A file you put into the effort's folder is added by itself, for reference, where it sits. A file in the customer's "
+   "folder or a folder you watch shows at the top of Documents: Add to Documents... or Ignore.",
    "Status is empty unless a document needs you: pages to look at, changes to review, a file edited. Select a "
    "document: the panel says what has been done and offers the next step.",
    "The same document, edited: adding it again offers Replace the file. The document and its version stay, it is read "
    "again and its pieces keep their types. Right-click a document for Replace the file..., Read it again and "
-   "Delete..., which moves it to the effort's Trash (More > Trash... puts it back).",
+   "Delete..., which moves it to the effort's Deleted folder (More > Trash... puts it back or empties it).",
    "For an amendment that says what to change, press Apply its instructions... to make the Conformed version."],
   ["Initial and type... and Rename... fix a document's details. The customer's files are never changed.",
    "A document marked above CUI is refused on a regular install. Follow your site's spill procedure."]),

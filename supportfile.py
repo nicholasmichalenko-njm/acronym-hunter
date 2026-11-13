@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.25.1": ["Put a file into the effort's folder and it is added to Documents by itself, for reference, where it sits. Any kind of file. A line says what came in.",
+               "Documents names the effort's folder above the list; click the path to open it.",
+               "The Trash is a folder you can see: Deleted, in the effort's folder. Only Empty the Trash, in the app, removes anything from it.",
+               "A pasted picture is saved in the effort's folder, with its graphics.",
+               "Left out of the watch: our volumes, Response Setup, Exports, Redlines, Deleted. The customer's folder keeps its table."],
     "4.25.0": ["Documents is one list. All, Customer and Internal (the new word for Ours) are chips above it; the two tabs are gone.",
                "The columns: Document, Type, Source, Version, Status. Status is empty unless a document needs you.",
                "Pages to look at no longer stand before the shred: the panel offers Shred it first.",

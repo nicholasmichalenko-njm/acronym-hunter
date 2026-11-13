@@ -433,6 +433,13 @@ def in_pictures(d):
 def pasted_folder(page):
     ws = page.host.ws
     root = ws.p("pasted pictures") if ws is not None else os.path.join(page.host.config_dir, "pasted pictures")
+    try:                                         # 4.25.1 (Nicholas 16:49): a pasted picture is a file in the effort's
+        import effortlib as EL                   # folder, with the effort's graphics, where a person can find it
+        er = EL.root(page.host.effort_path) if ws is not None and page.host.effort_path else ""
+        if er and os.path.isdir(er):
+            root = os.path.join(er, EL.TOPS["graphics"], "Pasted pictures")
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
     os.makedirs(root, exist_ok=True)
     return root
 

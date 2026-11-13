@@ -161,6 +161,16 @@ def check(lib, entries):
     return out
 
 
+def in_effort(lib, path):
+    """4.25.1: the file sits in the effort's own folder (and not in the app's data): it is not copied anywhere."""
+    er = getattr(lib, "effort_root", "") or ""
+    if not er:
+        return False
+    p = os.path.normcase(os.path.abspath(path))
+    data = os.path.normcase(os.path.abspath(lib.data_dir))
+    return p.startswith(os.path.normcase(os.path.abspath(er)) + os.sep) and not p.startswith(data + os.sep)
+
+
 def library_dir(lib, category, folder=""):
     """2.83.0: where a document that is not a customer document is copied: <effort data>\\library\\<category>\\<folder>;
     3.78.0: <effort>\\Library\\<top folder>\\<folder> once the library knows its effort (effortlib.attach)."""
@@ -200,9 +210,10 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
             tags0 = DV.folder_tags(e.get("folder", ""))
             e = dict(e, folder=EL.clean_folder(lib, cat, e.get("folder", "")), tags=list(dict.fromkeys(list(e.get("tags", [])) + tags0)))
         cd = customer_dir if cat == "customer" else library_dir(lib, cat, e.get("folder", ""))
-        if cat != "customer":
+        if cat != "customer" and not in_effort(lib, src):
             os.makedirs(cd, exist_ok=True)
         inside = cd and os.path.normcase(os.path.abspath(src)).startswith(os.path.normcase(os.path.abspath(cd)) + os.sep)
+        inside = inside or in_effort(lib, src)             # 4.25.1: a file already in the effort's folder stays where it sits
         if cd and os.path.isdir(cd) and not inside:        # 2.94.0: a file already in the folder (or a subfolder) stays put
             dest = os.path.join(cd, os.path.basename(src))
             if os.path.exists(dest) and DV.sha256(dest) != e["sha"]:

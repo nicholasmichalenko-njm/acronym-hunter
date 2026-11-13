@@ -649,10 +649,22 @@ class MainWindow(QMainWindow):
         if self.ws is None:
             return None
         lib, _rec = self.watch_lib_rec()
-        found = WA.check(lib, self.ws.root, self.watch_customer_dir())
+        found = WA.check(lib, self.ws.root, self.watch_customer_dir(), **self.watch_where())
         return self.watch_show(found)
 
+    def watch_where(self):
+        """4.25.1: the effort's own folder and what is left out of it (watchauto)."""
+        try:
+            return __import__("skqt.watchauto", fromlist=["x"]).where(self)
+        except Exception:
+            diag.swallowed()
+            return {}
+
     def watch_show(self, found):
+        try:                                        # 4.25.1: what came into the effort's folder is added by itself
+            __import__("skqt.watchauto", fromlist=["x"]).came_in(self, found)
+        except Exception:
+            diag.swallowed()
         self.watch_found = found
         self.watch_strip.show_found(found)
         try:                                        # 3.16.0: the Library shows the new files too, with Add and Ignore
@@ -671,12 +683,13 @@ class MainWindow(QMainWindow):
         if self.ws is None or (not force and not self._watch_on()) or (self._wa_thread is not None and self._wa_thread.is_alive()):
             return None
         root, cust, docs, name = self.ws.root, self.watch_customer_dir(), self.ws.p("documents"), self.effort_name
+        more = self.watch_where()
         self._wa_last = time.monotonic()
 
         def run():
             import docversions as DV
             try:
-                self._wa_result = (name, WA.check(DV.Library(docs).load(), root, cust))
+                self._wa_result = (name, WA.check(DV.Library(docs).load(), root, cust, **more))
             except Exception:
                 diag.swallowed()
         self._wa_thread = bgwork.start(run, "stationkeeper-watch")
@@ -706,7 +719,7 @@ class MainWindow(QMainWindow):
         for p, c in items:
             cats.setdefault(c, []).append(p)
         cat, paths = next(iter(cats.items()))
-        rel = WA.relative_folders(paths, self.ws.root, self.watch_customer_dir())
+        rel = WA.relative_folders(paths, self.ws.root, self.watch_customer_dir(), self.watch_where().get("effort_root", ""))
         self.go("library")
         if len(cats) > 1:
             self.status(f"Adding the {self.library_page.lib.category_name(cat) if self.library_page.lib else cat} files first; "

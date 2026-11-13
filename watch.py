@@ -31,7 +31,7 @@ def load(data_dir):
     d = W.read_json(os.path.join(data_dir, FILE), None) or {}
     return {"folders": [f for f in d.get("folders", []) if isinstance(f, dict) and f.get("path")],
             "seen": d.get("seen", {}) if isinstance(d.get("seen"), dict) else {},
-            "last": d.get("last", "")}
+            "last": d.get("last", ""), "root_seen": bool(d.get("root_seen"))}
 
 
 def save(data_dir, st):
@@ -57,30 +57,48 @@ def remove_folder(data_dir, path):
     return len(st["folders"]) < n
 
 
-def folders(data_dir, customer_dir=""):
-    """[(path, category, built in)]: the Customer Documents folder first, then the ones added."""
+def folders(data_dir, customer_dir="", effort_root=""):
+    """[(path, category, built in)]: the Customer Documents folder first, then the ones added, then (4.25.1) the
+    effort's own folder, whose new files are added by themselves."""
     out = []
     if customer_dir:
         out.append((os.path.abspath(customer_dir), "customer", True))
     for f in load(data_dir)["folders"]:
         if not any(_key(f["path"]) == _key(p) for p, _c, _b in out):
             out.append((f["path"], f.get("category", "customer"), False))
+    if effort_root and not any(_key(effort_root) == _key(p) for p, _c, _b in out):
+        out.append((os.path.abspath(effort_root), AUTO, True))
     return out
+
+
+AUTO = "ours"            # 4.25.1: a file dropped into the effort's folder is one of our own documents, kept for reference
+AUTO_MOST = 25           # more new files than this at once are offered, not added by themselves
+# In the effort's folder any kind of file is a document to keep (answer: "reference files of any type"), except what
+# programs leave behind and Stationkeeper's own files.
+NOT_DOCUMENTS = (".tmp", ".lnk", ".ini", ".db", ".url", ".skeffort", ".skpkg", ".skupdate", ".sktrain", ".skredline.json",
+                 ".bak", ".crdownload", ".partial", ".ds_store", ".lock")
 
 
 def _skip(name):
     return name.startswith("~$") or name.startswith(".") or name.lower().endswith((".tmp", ".part.pdf"))
 
 
-def walk(folder, data_dir=""):
-    """Every document under the folder, subfolders included; the app's own folders are left out."""
+def walk(folder, data_dir="", skip=(), any_kind=False, not_in=()):
+    """Every document under the folder, subfolders included; the app's own folders are left out. 4.25.1: skip: folders
+    left out with all they hold; any_kind: every kind of file but what programs leave behind; not_in: folders whose own
+    files are left out (their subfolders are still walked)."""
     out = []
-    skip_dirs = {_key(data_dir)} if data_dir else set()
+    skip_dirs = ({_key(data_dir)} if data_dir else set()) | {_key(x) for x in skip if x}
+    own = {_key(x) for x in not_in if x}
     for root, dirs, files in os.walk(folder):
         dirs[:] = [d for d in dirs if not d.startswith(".") and _key(os.path.join(root, d)) not in skip_dirs
                    and not d.endswith((" - app data", "- readable copy (Stationkeeper)")) and "readable copy" not in d.lower()]
+        if _key(root) in own:
+            continue
         for f in files:
-            if not _skip(f) and f.lower().endswith(KINDS):
+            if _skip(f):
+                continue
+            if f.lower().endswith(KINDS) or (any_kind and not f.lower().endswith(NOT_DOCUMENTS)):
                 out.append(os.path.join(root, f))
     return sorted(out)
 
@@ -90,15 +108,25 @@ def _inside(p, roots):
     return any(k == r or k.startswith(r + os.sep) for r in roots)
 
 
-def check(lib, data_dir, customer_dir="", sha=None):
-    """{"new": [(path, category)], "changed": [(path, doc, version)], "missing": [(doc, version, path)]} for the watched
-    folders. Updates the size and time cache (so the next check fingerprints only what changed)."""
+def check(lib, data_dir, customer_dir="", sha=None, effort_root="", skip=(), not_in=()):
+    """{"new": [(path, category)], "changed": [(path, doc, version)], "missing": [(doc, version, path)], "auto":
+    [(path, category)]} for the watched folders. Updates the size and time cache (so the next check fingerprints only
+    what changed).
+
+    4.25.1 (answer 9): effort_root is the effort's own folder. A file that appears in it, outside the customer's
+    folder and the folders given in skip (our volumes, Response Setup, Exports, Redlines, Deleted), is in "auto": the
+    window adds it by itself as one of our documents, for reference, where it sits. What was already in the folder of
+    an effort that has documents, the first time it is checked, is left alone (it was never dropped in to be added), and more than AUTO_MOST
+    new files at once are offered in "new" instead."""
     import docversions as DV
     sha = sha or DV.sha256
     st = load(data_dir)
     seen = st["seen"]
-    watched = folders(data_dir, customer_dir)
+    watched = folders(data_dir, customer_dir, effort_root)
     roots = [_key(p) for p, _c, _b in watched if os.path.isdir(p)]
+    er = _key(effort_root) if effort_root else ""
+    first_root = bool(er) and not st.get("root_seen") and bool(lib.all)     # a new effort has nothing "from before"
+    auto = []
     shas = {v.get("sha256") for d in lib.all for v in d["versions"]}
     latest = {}                                   # file path -> (doc, version) of each document's latest version
     sources = {}                                  # 3.15.1: where a latest version came from, outside the effort
@@ -110,12 +138,13 @@ def check(lib, data_dir, customer_dir="", sha=None):
                 latest[_key(p)] = (d, v)
             if v.get("source") and not v.get("source_gone"):
                 sources[_key(v["source"])] = (d, v)
-    out = {"new": [], "changed": [], "missing": []}
+    out = {"new": [], "changed": [], "missing": [], "auto": []}
     found = set()
     for folder, cat, _b in watched:
         if not os.path.isdir(folder):
             continue
-        for p in walk(folder, data_dir):
+        is_root = bool(er) and _key(folder) == er
+        for p in (walk(folder, data_dir, skip, True, not_in) if is_root else walk(folder, data_dir)):
             k = _key(p)
             if k in found:
                 continue
@@ -138,7 +167,13 @@ def check(lib, data_dir, customer_dir="", sha=None):
                 if h != v.get("sha256") and h not in shas and seen[k]["state"] != "ignored":
                     out["changed"].append((p, d, v))
                 continue
-            if h in shas or seen[k]["state"] == "ignored":
+            if h in shas or seen[k]["state"] in ("ignored", "before"):
+                continue
+            if is_root:
+                if first_root:
+                    seen[k]["state"] = "before"      # here before the effort's folder was watched: left alone
+                else:
+                    auto.append((p, AUTO))
                 continue
             rel = os.path.relpath(os.path.dirname(p), folder).replace(os.sep, "/").strip("./")
             out["new"].append((p, cat or DV.guess_category(rel + "/" + os.path.basename(p), "customer")))
@@ -154,6 +189,9 @@ def check(lib, data_dir, customer_dir="", sha=None):
             out["missing"].append((d, v, v["source"]))
     for k in [k for k in seen if k not in found]:            # forget files that are gone (missing documents are in the library)
         seen.pop(k, None)
+    if er and os.path.isdir(effort_root):
+        st["root_seen"] = True
+    out["auto" if len(auto) <= AUTO_MOST else "new"] += auto
     st["last"] = _now()
     save(data_dir, st)
     return out
@@ -235,9 +273,9 @@ def found_at(lib, rec, doc_id, path, who=None, was=None):
     return True
 
 
-def relative_folders(found_paths, data_dir, customer_dir=""):
+def relative_folders(found_paths, data_dir, customer_dir="", effort_root=""):
     """{path: its folder relative to the watched folder it is in} (the folder names become tags)."""
-    roots = sorted((p for p, _c, _b in folders(data_dir, customer_dir)), key=len, reverse=True)
+    roots = sorted((p for p, _c, _b in folders(data_dir, customer_dir, effort_root)), key=len, reverse=True)
     out = {}
     for p in found_paths:
         for r in roots:
@@ -257,4 +295,6 @@ def summary(found):
         parts.append(f"{len(found['changed'])} changed file(s)")
     if found["missing"]:
         parts.append(f"{len(found['missing'])} document file(s) missing")
+    if found.get("auto"):
+        parts.append(f"{len(found['auto'])} file(s) came into the effort's folder")
     return ", ".join(parts)
