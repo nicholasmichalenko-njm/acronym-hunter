@@ -163,12 +163,14 @@ class ToolsHome(QWidget):
         self.uf_list = QListWidget(); self.uf_list.setMinimumHeight(110); self.uf_list.setMaximumHeight(200); self.uf_card.add(self.uf_list)
         self.uf_list.itemDoubleClicked.connect(lambda _it: self.open_unfiled())
         ur = FlowLayout(None, D.SPACE["s"]); self.uf_card.body.addLayout(ur)
-        self.uf_open = D.button("Open", None, lambda: self.open_unfiled(), "Work on what is unfiled with any page")
-        self.uf_make = D.button("Make it an effort...", "primary", lambda: self.host.make_unfiled_effort(), "Unfiled becomes a named effort with its own folder")
-        self.uf_add = D.button("Add to an effort...", None, lambda: self.host.efforts_page.add_unfiled_to(), "Chosen documents and the terms join an effort you have")
-        self.uf_clear = D.button("Clear...", "ghost", lambda: (self.host.efforts_page.clear_unfiled(), self.refresh()), "Empty it (a copy is kept)")
-        for b in (self.uf_open, self.uf_make, self.uf_add, self.uf_clear):
-            ur.addWidget(b)
+        from PySide6.QtWidgets import QMenu      # 4.27.2: one button; the list's row opens on a double-click
+        self.uf_file = D.button("File it", None, None, "Open what is unfiled, make it an effort, add it to one, or clear it")
+        m = QMenu(self.uf_file); self.uf_file.setMenu(m)
+        self.uf_open = m.addAction("Open", lambda: self.open_unfiled())
+        self.uf_make = m.addAction("Make it an effort...", lambda: self.host.make_unfiled_effort())
+        self.uf_add = m.addAction("Add to an effort...", lambda: self.host.efforts_page.add_unfiled_to())
+        self.uf_clear = m.addAction("Clear...", lambda: (self.host.efforts_page.clear_unfiled(), self.refresh()))
+        ur.addWidget(self.uf_file)
         v.addWidget(self.uf_card)
         v.addStretch(1)
         self.pins = []
