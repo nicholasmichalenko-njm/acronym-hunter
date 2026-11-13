@@ -97,13 +97,15 @@ check("Submit, the last step: no next button", w.next_bar.isVisibleTo(w) and not
       and w._tab_keys == ["finalcheck", "qa", "checks", "postsub", "keywords"])
 # the Dashboard
 w.rail_go("home"); app.processEvents()
+check("4.27.0: the Dashboard entry opens the Overview", w.stack.currentWidget() is w.overview_page and w.step_btns["home"].isChecked())
+w.go("home"); app.processEvents()                       # All cards: the Dashboard as it was
 hp = w.home_page
 check("the Dashboard: six step cards", [c.name.text() for c in hp.map.cards.values()] ==
       ["Documents", "Shred", "Matrix & Outline", "Setup", "Drafts", "Submit"]
       and hp.map.cards["library"].cap.text() == "1  NOW" and hp.map.isVisibleTo(w))
 check("... Your next step with one button", hp.map.next_title.text() == "Add the customer's documents" and "Open Documents" in hp.map.next_btn.text())
 check("... This week", hp.map.week.isVisibleTo(w))
-check("... Deliverables, the Effort Record and Meetings are its tabs", w._tab_keys[:4] == ["home", "deliverables", "record", "meetings"])
+check("... Overview, All cards, Deliverables, the Effort Record and Meetings are its tabs", w._tab_keys[:5] == ["overview", "home", "deliverables", "record", "meetings"])
 check("... no bar at the bottom of the Dashboard", not w.next_bar.isVisibleTo(w))
 hp.map.cards["assign"].click(); app.processEvents()
 check("a card opens its step", w.step_btns["assign"].isChecked())
