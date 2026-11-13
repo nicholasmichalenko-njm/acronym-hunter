@@ -43,14 +43,13 @@ def _WAU():
     return __import__("skqt.watchauto", fromlist=["x"])     # 4.25.1: the effort's own folder, watched
 
 
-RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"),
-                    # 4.25.3 (answer 2): Prepare for Redline left the menu. It opens from the Deliverables tile of a
-                    # document marked Return it, redlined; reviewer markups on our drafts are a tab of Drafts.
+RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5: under Documents
+                    # 4.25.3 (answer 2): Prepare for Redline left the menu (it opens from a Deliverables tile).
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Team", [("team", "Team")]),
         ("Settings", [("settings", "Settings")])]
-STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k != "redline")
+STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics"))
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
@@ -96,6 +95,7 @@ GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 
             for k, e in RAIL_OF.items()
             for n in [STEP_KEYS.index(e) if e in STEP_KEYS else 0]}          # 4.12.0: Redline sits among them, unnumbered
 GROUP_OF.update({k: "Deliverables" for k in ("redline", "rcheck", "exceptions")})   # 4.25.3: opened from a deliverable's tile
+GROUP_OF.update({"graphics": "Documents"}); RAIL_OF["graphics"] = "graphics"                     # 4.25.5
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
 GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Your Tools' own
 
@@ -297,6 +297,7 @@ class MainWindow(QMainWindow):
         self.redline_page, self.rcheck_page, self.exceptions_page = PreparePage(self), CheckPage(self), ExceptionsPage(self)
         from .markupspage import MarkupsPage              # 4.25.3: a reviewer's commented PDF of one of our drafts
         self.markups_page = MarkupsPage(self)
+        self.graphics_page = __import__("skqt.graphicspage", fromlist=["x"]).GraphicsPage(self)     # 4.25.5
         from .rulespage import RulesPage
         self.rules_page = RulesPage(self)              # 3.38.0: every production rule in one list
         from .libscreen import FormattingStandardsPage, LayoutPage, QuickPartsPage
@@ -335,7 +336,7 @@ class MainWindow(QMainWindow):
                       "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page, "redline": self.redline_page, "rcheck": self.rcheck_page,
-                      "exceptions": self.exceptions_page, "markups": self.markups_page,
+                      "exceptions": self.exceptions_page, "markups": self.markups_page, "graphics": self.graphics_page,
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,

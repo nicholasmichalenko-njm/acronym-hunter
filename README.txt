@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+GRAPHICS (4.25.5)
+  - Graphics is in the menu under Documents. One row per graphic, the customer's and ours: a picture in Documents,
+    a picture inside a document that the scan found terms in, and each graphic need you tag in Shred.
+  - Each row says, for its current version, two things: Words read (Not read; Read, not confirmed; Confirmed) and
+    Acros and abs (Not scanned; N to decide; Swept). Right-click to tick Words read: confirmed, or Acros and abs:
+    swept. Swept is the same mark as Page done on Acros & Abs.
+  - Both marks are kept by the file, so a new version of a graphic starts with neither.
+  - Double-click a row to open the picture in Acros & Abs with the words the reader found. Add graphics... adds
+    pictures of ours to Documents as Internal graphics. The filter shows Customer, Internal, Needs or Left to do.
+  - A graphic need: right-click for Needed, In work, Done.
+
 DOCUMENTS: PACKAGES (4.25.4)
   - Once an effort has an amendment, Documents is in groups: As issued, each amendment in the order issued, then
     Internal. Each group's line counts its documents. Before the first amendment the list is one list, as before.

@@ -26,6 +26,7 @@ STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and you
                "setups": ("Setup", "Who writes what, when and how long; the setup in Word"),
                "drafts": ("Drafts", "The team's drafts read back: where each section stands"),
                "finalcheck": ("Submit", "The last checks, then what happens after"),
+               "graphics": ("Graphics", "Every graphic, the customer's and ours: its version, its words read, its acros and abs swept"),
                "redline": ("Prepare for Redline", "A Word file of each PDF and picture in Documents, with a reviewer's comments placed as tracked changes; checked word for word; the exceptions table")}
 
 
@@ -55,7 +56,7 @@ def _circle(n, state, t):
     return f"background:transparent;color:{t['rail_text']};border:2px solid #3A4B66;"
 
 
-SUB = {"redline": "Documents"}           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
+SUB = {"redline": "Documents", "graphics": "Documents"}   # 4.25.5: Graphics           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
 
 
 class StepButton(QPushButton):

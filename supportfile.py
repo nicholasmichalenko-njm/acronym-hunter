@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.25.5": ["Graphics is a page of its own, under Documents: one row per graphic, the customer's and ours.",
+               "Each row says, for its current version, whether its words are read and its acros and abs are swept.",
+               "A graphic need tagged in Shred is a row there too, with its status."],
     "4.25.4": ["Documents is in packages once an amendment is in: As issued, each amendment in the order issued, then Internal.",
                "A document's earlier versions sit on lines under it.",
                "Right-click a customer document > Package to say which amendment brought it."],
