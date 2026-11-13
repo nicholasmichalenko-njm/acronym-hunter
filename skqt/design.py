@@ -256,6 +256,13 @@ def apply(app, choice=None):
     if want in ("light", "dark"):
         dark = want == "dark"
     t = DARK if dark else LIGHT
+    try:                                             # 4.29.1: Slate and teal, or the person's own three colors
+        from . import palette as _P
+        from .modes import settings as _settings
+        got = _P.colors_of(_settings() or {})
+        t = _P.tokens(t, got, dark) if got else t
+    except Exception:                                # noqa: BLE001  a bad saved color never stops the app opening
+        t = DARK if dark else LIGHT
     _current.update(t=t, dark=dark)
     pal = QPalette()
     for role, key in ((QPalette.Window, "bg"), (QPalette.WindowText, "text"), (QPalette.Base, "surface"),

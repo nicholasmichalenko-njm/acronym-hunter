@@ -78,8 +78,7 @@ check("Fix a Copy is a Preview tool, off until turned on", w.stack.currentWidget
 np.do_action(); app.processEvents()
 check("the proposal manager turns it on, and it opens", RA.preview_on(cfg, "fixcopy") and w.stack.currentWidget() is w.fixcopy_page)
 w.go("prodstd"); app.processEvents()
-check("Make a template waits until it is turned on", w.prodstd_page.make_template("", wait=True) is None and w.stack.currentWidget() is np
-      and "Make a .dotx template is in Preview" in np.card.title.text())
+check("4.29.1: Make a template does not wait: it is on for everyone", RA.preview_on(cfg, "template") and w.stack.currentWidget() is not np)
 
 # ---------------------------------------------------------------- roles
 w.home_page.customize({"role": "Author", "order": __import__("branding").preset("Author")["order"],

@@ -209,7 +209,8 @@ CALENDAR = ("calendar", "The effort", "Calendar",
   "and the next dated things. The due date, questions due, stages, gate goals, tasks, reviews and meetings feed it "
   "by themselves.",
   "Daily. It is also the right column of the Overview.",
-  ["Click a day for its list. Today brings the month and the list back to today.",
+  ["Click a day for its list. Today brings the month and the list back to today. Add a date... adds a due date, a "
+   "meeting, a review or a milestone on the day picked.",
    "Set the due date by clicking it at the top of the Overview. A task's date is set on Tasks."],
   ["The Overview's All cards tab keeps the calendar card with the calendar file (.ics)."])
 

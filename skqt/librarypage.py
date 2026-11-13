@@ -1047,6 +1047,7 @@ class LibraryPage(QWidget):
         if not paths:
             return None
         self.lib = DV.Library(self.lib.folder).load()     # 3.15.1: plan against the library as saved now, never a stale copy
+        self._ask_pkg = choices is None                   # 4.29.1: the person's own add asks which package; a folder's does not
         lib, rd = self.lib, reader or DI.read
         self._choices = choices
         # 4.17.0: edited "replace": Add files and a drop (the person edited the file); the watch passes "version"
@@ -1139,6 +1140,8 @@ class LibraryPage(QWidget):
         self.refresh()
         if made:
             self.show_added([d["id"] for d, _v in made])
+            if getattr(self, "_ask_pkg", False) or getattr(self, "package_answer", None):    # 4.29.1: asked once per add
+                __import__("skqt.docgroups", fromlist=["x"]).ask_package(self, made, getattr(self, "package_answer", None))
 
     def show_added(self, ids):
         """3.15.1: what was just added, in view: every filter off, All documents, the new documents selected."""

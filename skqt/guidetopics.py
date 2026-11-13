@@ -692,7 +692,7 @@ TOPICS = [
    "with Undo. Nothing about one effort goes in it, and it never goes on GitHub.",
    "Custom dictionaries keeps your team's words for Word: + Dictionary..., type words or Import a .dic..., Add the "
    "effort's acronyms, then Export for Word... and add the file in Word (File > Options > Proofing > Custom Dictionaries).",
-   "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",
+   "Appearance > Colors: Station navy, Slate and teal, or My colors (an accent, a menu and a page color as hex values). A line says what would be hard to read; Reset goes back. Branding shows the built-in logos.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",
    "In Updates, Install update pack... installs a new version from its .skupdate file. Roll back the update goes back one step.",
    "Help and support opens this Guide, the shortcuts, what's new, Issues and ideas, and the support file.",

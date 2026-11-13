@@ -61,8 +61,7 @@ dlg.goes_in.add_set(k["id"]); app.processEvents()
 check("a style set picked is kept at once and shown on the row", NT.get(cfg, t["id"])["sets"]["style_sets"] == [k["id"]]
       and pg.t.item(0, 1).text() == "Styles: RFP volume", pg.t.item(0, 1).text())
 dlg.close()
-check("Making templates is a Preview tool until it is turned on", pg.make() is None)
-RA.set_preview(cfg, "template", True) if hasattr(RA, "set_preview") else None
+check("4.29.1: making templates is on for everyone, with nothing to turn on", RA.preview_on(cfg, "template"))
 pg._allowed = lambda: True
 job = pg.make()
 check("Make it writes the .dotx and the row says Ready", job is not None and os.path.isfile(job.copy) and pg.t.item(0, 2).text() == NT.READY

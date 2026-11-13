@@ -85,3 +85,44 @@ def menu(page, m, d):
     for k, n in DP.packages(lib):
         a = pm.addAction(n, lambda k=k: set_package(page, k)); a.setCheckable(True); a.setChecked(k == now)
     return pm
+
+
+def new_in(lib, made):
+    """Of what was just added [(document, version)]: the customer's new documents (not a new version of one already in,
+    not an amendment) with no package set, once the effort has an amendment."""
+    if lib is None or not DP.amendments(lib):
+        return []
+    out = []
+    for d0, _v in made or []:
+        d = lib.doc(d0["id"]) or d0                  # the page's own copy (the add ran on another)
+        if (d.get("category", "customer") in DP.CUSTOMER_SIDE and not DP.is_amendment(d) and not d.get("package")
+                and len(d.get("versions") or []) == 1 and d not in out):
+            out.append(d)
+    return out
+
+
+def ask_package(page, made, package=None):
+    """4.29.1 (Nicholas 2026-11-13 answer 5): files added after an amendment is in: ask once which package brought them.
+    The amendment just added with them is offered first, else the latest. package (tests): the key, no question.
+    Returns how many were put in a package (0: As issued, or nothing to ask)."""
+    lib = page.lib
+    docs = new_in(lib, made)
+    if not docs:
+        return 0
+    packs = DP.packages(lib)
+    if package is None:
+        from PySide6.QtWidgets import QInputDialog
+        just = [d["id"] for d, _v in made if DP.is_amendment(d) and d["id"] in dict(packs)]
+        first = just[-1] if just else packs[-1][0]
+        names = [n for _k, n in packs]
+        n = len(docs)
+        got, ok = QInputDialog.getItem(page, "Which package brought these?",
+                                       (f"{docs[0]['name']} is new." if n == 1 else f"{n} documents are new.")
+                                       + " Which package brought " + ("it" if n == 1 else "them") + "?",
+                                       names, [k for k, _n in packs].index(first), False)
+        if not ok:
+            return 0
+        package = packs[names.index(got)][0]
+    if package == DP.ISSUED:
+        return 0
+    return set_package(page, package, [d["id"] for d in docs])

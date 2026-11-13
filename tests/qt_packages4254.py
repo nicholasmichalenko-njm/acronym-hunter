@@ -109,6 +109,30 @@ check("with Find in use the groups are off: the hits read as one list", not any(
 pg.search.setText(""); pg.fill(); app.processEvents()
 pg.type_f.setCurrentIndex(pg.type_f.findData("use:shred")); app.processEvents()
 check("a filter keeps the groups and counts what it shows", any(x.startswith("As issued") and x.endswith("1 document") for x in col0()), col0())
+# ---- 4.29.1 (answer 5 of 2026-11-13): files added after an amendment is in: asked once which package brought them
+pg.type_f.setCurrentIndex(0); pg.fill(); app.processEvents()
+from PySide6.QtWidgets import QInputDialog
+PQ = pdf("Osprey_Wage_Table.pdf", ["WAGE TABLE", "Rates by labor category."])
+PR2 = pdf("Osprey_Site_Map.pdf", ["SITE MAP", "The ground station."])
+lib = pg.lib
+dQ, vQ = lib.add(PQ, DI.read(PQ), doc_name="Wage Table", role="reference", initial="Att2", dtype="Attachment")
+dR, vR = lib.add(PR2, DI.read(PR2), doc_name="Site Map", role="reference", initial="Att3", dtype="Attachment")
+_d, vL3 = lib.add(pdf("Osprey_Section_L_Amd2.pdf", ["L.3 VOLUMES", "Volume I shall not exceed 45 pages."]), DI.read(P2), doc_id=dL["id"], label="later")
+made = [(dQ, vQ), (dR, vR), (lib.doc(dL["id"]), vL3)]
+check("what is asked about: the customer's new documents; a new version of one already in keeps its package",
+      [d["name"] for d in DG.new_in(lib, made)] == ["Wage Table", "Site Map"], [d["name"] for d in DG.new_in(lib, made)])
+asked = []
+QInputDialog.getItem = staticmethod(lambda parent, title, text, names, cur, edit: (asked.append((title, text, list(names), names[cur])) or (names[cur], True)))
+n = DG.ask_package(pg, made)
+check("one question for the whole add, naming how many, the latest amendment offered first", len(asked) == 1 and "2 documents are new" in asked[0][1]
+      and asked[0][2] == ["As issued", "Amendment 1"] and asked[0][3] == "Amendment 1", asked)
+check("... both go in the package picked", n == 2 and DP.of(pg.lib, pg.lib.doc(dQ["id"])) == dA["id"] and DP.of(pg.lib, pg.lib.doc(dR["id"])) == dA["id"])
+check("... asked once: nothing left to ask about", DG.ask_package(pg, made) == 0 and len(asked) == 1)
+PT = pdf("Osprey_Travel_Rules.pdf", ["TRAVEL", "Travel is reimbursed at cost."])
+dT, vT = pg.lib.add(PT, DI.read(PT), doc_name="Travel Rules", role="reference", initial="Att4", dtype="Attachment")
+QInputDialog.getItem = staticmethod(lambda *a: ("", False))
+check("Cancel leaves it As issued", DG.ask_package(pg, [(dT, vT)]) == 0 and DP.of(pg.lib, pg.lib.doc(dT["id"])) == DP.ISSUED)
+check("an Internal file is never asked about", DG.new_in(pg.lib, [(pg.lib.doc(dN["id"]), None)]) == [])
 w.close()
 print(f"QT PACKAGES 4254 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)
