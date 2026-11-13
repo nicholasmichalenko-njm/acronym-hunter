@@ -1,5 +1,5 @@
 """4.25.3 offscreen: a customer document that goes back to the customer (Documents board 2026-11-12, step C; answers
-2, 25, 32). Marking a document Return it, redlined makes a tile on Deliverables with no owner, linked both ways; a
+2, 25, 32). Marking a document Redlined Deliverable makes a tile on Deliverables with no owner, linked both ways; a
 deliverable filled on a customer document marks that document; Prepare for Redline lists only what is marked, opens
 from the tile, and is off the menu; asking for it on a document marks it; pages still to look at stop a redline and
 nothing else, with Prepare it anyway on the row; an amendment says the source changed and keeps the old redline;
@@ -44,16 +44,40 @@ w.open_effort("Kestrel"); app.processEvents()
 w.status = lambda msg, *a, **k: said.append(msg)
 w.go("redline"); pp = w.redline_page; pp.refresh(); app.processEvents()
 check("nothing marked: Prepare for Redline lists nothing and says how to mark one", pp.table.rowCount() == 0 and pp.empty.isVisibleTo(w)
-      and "Return it, redlined" in pp.empty.findChildren(type(pp.say))[0].text() + " ".join(x.text() for x in pp.empty.findChildren(type(pp.say))))
+      and "Redlined Deliverable" in pp.empty.findChildren(type(pp.say))[0].text() + " ".join(x.text() for x in pp.empty.findChildren(type(pp.say))))
 w.go("library"); lp = w.library_page; lp.refresh(); lp.select(dC["id"]); app.processEvents()
 UF.toggle(lp, "redline"); app.processEvents()
 rec = RR.Record(ws.root)
 t = DR.tile_of(rec, dC["id"])
-check("Return it, redlined makes a tile on Deliverables: a customer file, linked to the document, with no owner", t is not None
+check("Redlined Deliverable makes a tile on Deliverables: a customer file, linked to the document, with no owner", t is not None
       and t["kind"] == "Customer file" and t["name"] == "Model contract" and t["owner"] == "" and t["returns"] == "redline"
       and t["form_version"] == dC["versions"][-1]["id"], t)
-UF.toggle(lp, "redline"); UF.toggle(lp, "redline"); app.processEvents()
-check("ticking it again does not make a second tile; unticking leaves the tile", len([x for x in DL.items(RR.Record(ws.root)) if x.get("doc_id") == dC["id"]]) == 1)
+# 4.29.2 (answer 4 of 2026-11-13): the mark and the tile stay in step
+tiles = lambda: [x for x in DL.items(RR.Record(ws.root)) if x.get("doc_id") == dC["id"]]   # noqa: E731
+check("the mark reads Redlined Deliverable (not Return it)", dict(UF.MARKS)["redline"] == "Redlined Deliverable" and dict(UF.MARKS)["fill"] == "Filled-in Deliverable"
+      and UF._tiles_lost(lp, lp.lib, [dC["id"]], "redline") == ["Model contract"])
+check("untick it and answer Cancel: the mark and the tile both stay", UF.toggle(lp, "redline", answer=False) == 0
+      and "redline" in lp.lib.returns_of(lp.lib.doc(dC["id"])) and len(tiles()) == 1)
+check("untick it and Proceed: the mark is off and the tile leaves Deliverables", UF.toggle(lp, "redline", answer=True) == 1
+      and not lp.lib.returns_of(lp.lib.doc(dC["id"])) and tiles() == [] and any(x["id"] == t["id"] for x in DL.removed(RR.Record(ws.root))))
+UF.toggle(lp, "redline"); UF.toggle(lp, "fill"); app.processEvents()
+check("tick it again: one tile again; a second mark makes no second tile", len(tiles()) == 1)
+check("untick one of two marks: nothing to ask, the tile stays and says the mark left", UF._tiles_lost(lp, lp.lib, [dC["id"]], "fill") == []
+      and UF.toggle(lp, "fill") == 1 and len(tiles()) == 1 and tiles()[0]["returns"] == "redline")
+w.go("deliverables"); app.processEvents()
+import skqt.delivdelete as DD
+dpg = w.deliverables_page
+tid = tiles()[0]["id"]
+check("delete the tile on Deliverables: the question says the document loses its mark", "no longer marked as a deliverable" in DD.question(dpg, DL.get(dpg.ctx.rec, tid)))
+check("... and the document's mark comes off with it", DD.delete(dpg, tid, answer=True) and not DV.Library(ws.p("documents")).load().returns_of(DV.Library(ws.p("documents")).load().doc(dC["id"])))
+check("Undo puts the tile back, and the mark with it", DD.undo(dpg) and len(tiles()) == 1
+      and DV.Library(ws.p("documents")).load().returns_of(DV.Library(ws.p("documents")).load().doc(dC["id"])) != [])
+w.go("library"); app.processEvents()
+lp.refresh(); app.processEvents()
+if "redline" not in lp.lib.returns_of(lp.lib.doc(dC["id"])):
+    lp.lib.set_returns(dC["id"], ["redline"])
+rec = RR.Record(ws.root)
+t = DR.tile_of(rec, dC["id"])
 lp.select(dC["id"]); app.processEvents()
 acts = [a.text() for a in DS.row_menu(lp, run=False).actions() if a.text()]
 check("the document's right-click opens its deliverable", "Open its deliverable" in acts and UF.open_tile(lp, lp.lib.doc(dC["id"])) == t["id"]
@@ -85,7 +109,7 @@ for x in list(DL.items(rec)):
         DL.items(rec).remove(x)
 rec.save()
 did = DL.add(rec, "Pricing form, filled", kind="Form", doc_id=dF["id"], form_version=dF["versions"][-1]["id"])
-check("both ways: a deliverable filled on a customer document marks it Return it, filled in", DR.sync(rec, lib) == (0, 1)
+check("both ways: a deliverable filled on a customer document marks it Filled-in Deliverable", DR.sync(rec, lib) == (0, 1)
       and lib.returns_of(lib.doc(dF["id"])) == ["fill"] and DR.sync(rec, lib) == (0, 0))
 # an amendment
 P2 = os.path.join(CD, "Kestrel_Model_Contract_A1.pdf"); shutil.copy2(os.path.join(S, "rfp_walk", "Section_L_print.pdf"), P2)

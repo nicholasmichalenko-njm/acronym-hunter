@@ -9,6 +9,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 os.environ["AH_TEST"] = "1"
 import docversions as DV, docintake as DI, doctrash as T, effortlib as EL, watch as WA, workspace as W
+WA.CUSTOMER_AUTO = False       # 4.29.2: these checks are of the table; a later file in the customer's folder adding by itself is in qt_effortfolder4251
 
 checks = []
 

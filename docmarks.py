@@ -6,7 +6,7 @@ ways it goes back to the customer, and whose it is. Standard library only."""
 ROLES = (("matrix", "For the shred"), ("context", "Reference"), ("reference", "Reference"), ("not_needed", "No mark"))
 ROLE_NAMES = dict(ROLES)
 USES = (("matrix", "For the shred"), ("reference", "Reference"), ("not_needed", "No mark"))        # the choices offered
-RETURNS = (("redline", "Return it, redlined"), ("fill", "Return it, filled in"))    # a document may carry these as well
+RETURNS = (("redline", "Redlined Deliverable"), ("fill", "Filled-in Deliverable"))    # a document may carry these as well
 RETURN_NAMES = dict(RETURNS)
 SOURCE_NAMES = {"customer": "Customer", "bidders": "Customer (bidders library)", "qa": "Customer (Q&A)", "ours": "Internal",
                 "graphics": "Internal (graphics)"}

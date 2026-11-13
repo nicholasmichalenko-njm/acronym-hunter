@@ -6,6 +6,7 @@ without it, or marks the document withdrawn; the app's own folders are left out;
 import os, sys, tempfile, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import docversions as DV, docintake as DI, watch as WA, effortrec as RR
+WA.CUSTOMER_AUTO = False       # 4.29.2: these checks are of the table; a later file in the customer's folder adding by itself is in qt_effortfolder4251
 
 checks = []
 

@@ -90,6 +90,24 @@ check("a delete goes to the effort's Deleted folder, which a person can see; the
       and len(T.entries(w.ws)) == 1 and not os.path.exists(a), os.listdir(root))
 f4 = w.watch_now()
 check("... and the watch does not bring it back from there", not any("Deleted" in p for p, _c in f4["auto"] + f4["new"]))
+# ---- 4.29.2 (answer 2 of 2026-11-13): a file dropped in the customer's folder is added by itself, For the shred
+cd = w.watch_customer_dir()
+os.makedirs(cd, exist_ok=True)
+f0 = w.watch_now()                                       # the folder's first check: what it holds then goes through the table
+wait(lambda: not lp.running())
+check("the effort has a customer's folder", bool(cd) and os.path.isdir(cd), cd)
+n0 = len(DV.Library(w.ws.p("documents")).load().all)
+lp.package_answer = None
+g = put(os.path.join(cd, "Heron Amendment 2.txt"), "AMENDMENT 2. Section L.3 is replaced. Volume I shall not exceed 40 pages.")
+f5 = w.watch_now()
+check("... a line says what came in and what it is for", "1 file(s) came into the customer's folder and was added to Documents for the shred" in w.last_came_in
+      and "Heron Amendment 2.txt" in w.last_came_in and wait(lambda: not lp.running()), w.last_came_in)
+lib = DV.Library(w.ws.p("documents")).load()
+dg = next((d for d in lib.all if d["category"] == "customer"), None)
+check("... as the customer's, For the shred", len(lib.all) == n0 + 1 and dg is not None and dg["category"] == "customer" and lib.role_of(dg) == "matrix",
+      (n0, [(d["name"], d["category"], lib.role_of(d)) for d in lib.all], lp.panel.title.text(), [x.text() for x in lp.panel.findChildren(type(lp.panel.title))][:6]))
+f6 = w.watch_now()
+check("... once: checked again, nothing more comes in", not f6["auto"] and not any(os.path.basename(p) == "Heron Amendment 2.txt" for p, _c in f6["new"]), f6)
 w.close()
 n = sum(checks)
 print(f"QT EFFORT FOLDER 4251 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

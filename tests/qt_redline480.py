@@ -33,7 +33,7 @@ src = os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", "Section_L_print.pdf"
 P = os.path.join(CD, "Kestrel_Section_L.pdf"); shutil.copy2(src, P)
 lib0 = DV.Library(ws.p("documents")).load()
 dL, _v = lib0.add(P, DI.read(P), doc_name="Section L", role="matrix", initial="L", dtype="Section L")
-for _d in lib0.all:                                   # 4.25.3: Prepare for Redline lists what is marked Return it, redlined
+for _d in lib0.all:                                   # 4.25.3: Prepare for Redline lists what is marked Redlined Deliverable
     lib0.set_returns(_d["id"], ["redline"])
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()

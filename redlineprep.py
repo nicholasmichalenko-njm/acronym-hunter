@@ -20,8 +20,8 @@ def kind(path):
 
 def sources(lib, marked=True):
     """[(doc id, name, path, kind)] of every document whose latest version is a PDF or a picture on this PC. 4.25.3
-    (answer 25: "I only run redlines on things we mark as a Redlined Deliverable"): only those marked Return it,
-    redlined, unless marked is False."""
+    (answer 25: "I only run redlines on things we mark as a Redlined Deliverable"): only those marked Redlined
+    Deliverable, unless marked is False."""
     out = []
     for d in lib.all:
         if not d.get("versions"):

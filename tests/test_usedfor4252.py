@@ -1,6 +1,6 @@
 """4.25.2: Used for and folders (Documents board 2026-11-12, step B; answers 4 and 6). A document's marks in words; the
 saved role words are unchanged, so an older effort reads the same; context reads Reference; a document may carry Return
-it, redlined and Return it, filled in as well; a folder brought in keeps its nested folders and takes any kind of file.
+it, redlined and Filled-in Deliverable as well; a folder brought in keeps its nested folders and takes any kind of file.
 Fictional content."""
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +33,7 @@ check("the saved words are the ones every effort already holds", (d1["role"], d2
 check("in words: For the shred; context reads Reference", lib.marks_of(d1) == ["For the shred"] and lib.marks_of(d2) == ["Reference"]
       and DV.use_key("context") == "reference" and DV.use_key("matrix") == "matrix")
 check("a document may carry several marks", lib.set_returns(d1["id"], ["redline", "fill", "nonsense"])
-      and lib.marks_of(lib.doc(d1["id"])) == ["For the shred", "Return it, redlined", "Return it, filled in"]
+      and lib.marks_of(lib.doc(d1["id"])) == ["For the shred", "Redlined Deliverable", "Filled-in Deliverable"]
       and DV.Library(os.path.join(tmp, "documents")).load().returns_of(DV.Library(os.path.join(tmp, "documents")).load().doc(d1["id"])) == ["redline", "fill"])
 check("no mark: left out", lib.set_role(d2["id"], "not_needed") and lib.marks_of(lib.doc(d2["id"])) == [])
 check("taking the return marks off leaves no key behind", lib.set_returns(d1["id"], []) and "returns" not in lib.doc(d1["id"]))

@@ -160,8 +160,8 @@ TOPICS = [
    "initial (RFP, Amd1, TO1) and whether it is a new version of a document you have.",
    "A file you put into the effort's folder is added by itself, for reference, where it sits. A file in the customer's "
    "folder or a folder you watch shows at the top of Documents: Add to Documents... or Ignore.",
-   "Used for says what a document is for: right-click it > Used for, and tick For the shred, Reference, Return it, "
-   "redlined, or Return it, filled in (several may be ticked). A document that goes back gets a tile on Deliverables; "
+   "Used for says what a document is for: right-click it > Used for, and tick For the shred, Reference, Redlined "
+   "Deliverable, or Filled-in Deliverable (several may be ticked). A document that goes back gets a tile on Deliverables; "
    "Prepare for Redline opens from that tile.",
    "The same document, edited: adding it again offers Replace the file. The document and its version stay, it is read "
    "again and its pieces keep their types. Right-click a document for Replace the file..., Read it again and "

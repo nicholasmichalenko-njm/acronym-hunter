@@ -15,6 +15,7 @@ tmp = tempfile.mkdtemp()
 A.CONFIG_DIR = os.path.join(tmp, "appconfig"); os.makedirs(A.CONFIG_DIR)
 A.SETTINGS_FILE = os.path.join(tmp, "settings.json"); A.CHOICES_FILE = os.path.join(tmp, "choices.json")
 import effort as E, effortrec as RR, docversions as DV, docintake as DI, doctypes as DT, teampack as TP, watch as WA, workspace as W
+WA.CUSTOMER_AUTO = False       # 4.29.2: these checks are of the table; a later file in the customer's folder adding by itself is in qt_effortfolder4251
 import office_pdf as OP
 OP.available = lambda: False
 from PySide6.QtWidgets import QApplication, QMessageBox

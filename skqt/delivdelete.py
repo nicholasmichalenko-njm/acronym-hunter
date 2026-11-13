@@ -19,6 +19,8 @@ def install(page):
 def question(page, d):
     bits = DL.what_goes(d)
     goes = (" It goes with " + ", ".join(bits) + ".") if bits else ""
+    if d.get("doc_id"):                        # 4.29.2: the tile and the document's mark go together
+        goes += " Its document in Documents is no longer marked as a deliverable."
     return (f"Delete {d['name']}?{goes}\n\nUndo (Ctrl+Z on the Deliverables page) puts it back, with everything it held, "
             "until you close Stationkeeper.")
 
@@ -42,6 +44,10 @@ def delete(page, did, answer=None):
     if not DL.remove(page.ctx.rec, did):
         return False
     page.removed_now.append(did)
+    try:
+        __import__("docreturn").unmark(page.ctx.lib, d)
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
     diag.activity("deliverable_deleted")
     if page.stack.currentWidget() is page.one:
         page.close_deliverable()

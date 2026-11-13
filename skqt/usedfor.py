@@ -1,6 +1,6 @@
 """Used for and Source on Documents (4.25.2; claude/stationkeeper-documents-board-2026-11-12.html, step B; answers 4
 and 6). A document says what it is used for with marks, and may carry several: For the shred or Reference, and Return
-it, redlined or Return it, filled in. No mark at all leaves it out. Source says whose it is, Customer or Internal; it
+it, redlined or Filled-in Deliverable. No mark at all leaves it out. Source says whose it is, Customer or Internal; it
 comes from the folder the file is in and can be changed for one file. The marks drive the other screens: Shred offers
 the documents marked For the shred to extract, and the rest to read beside.
 
@@ -26,7 +26,7 @@ def text_of(lib, d):
     return ", ".join(lib.marks_of(d))
 
 
-def toggle(page, key, ids=None):
+def toggle(page, key, ids=None, answer=None):
     """Tick or untick a mark on the selected documents. For the shred and Reference take each other's place; unticking
     the one a document has leaves it with no mark of that kind (left out of the shred and of search as context).
     Returns how many documents changed."""
@@ -36,7 +36,11 @@ def toggle(page, key, ids=None):
         return 0
     first = lib.doc(ids[0])
     on = not has(lib, first, key)
-    n = tiles = 0
+    n = tiles = gone = 0
+    if not on and key in ("redline", "fill"):      # 4.29.2: the mark and the tile go together, asked first
+        lose = _tiles_lost(page, lib, ids, key)
+        if lose and not _proceed(page, lose, answer):
+            return 0
     for i in ids:
         d = lib.doc(i)
         if d is None:
@@ -52,10 +56,12 @@ def toggle(page, key, ids=None):
                 n += bool(lib.set_returns(i, new))
             if on:
                 tiles += bool(_tile(page, lib, lib.doc(i), key))
+            else:
+                gone += bool(_drop(page, lib, i))
     diag.activity("library_used_for_set", n=n)
     more = ""
     if key in ("redline", "fill"):       # 4.25.3: the tile on Deliverables
-        more = (f". {tiles} tile(s) made on Deliverables" if tiles else "") if on else ". Its tile stays on Deliverables; delete it there"
+        more = (f". {tiles} tile(s) made on Deliverables" if tiles else "") if on else (f". {gone} removed from Deliverables" if gone else "")
     page.host.toast(f"{n} document(s): " + ("" if on else "not ") + dict(MARKS)[key] + more)
     page.fill_tree(); page.fill()
     try:
@@ -63,6 +69,46 @@ def toggle(page, key, ids=None):
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return n
+
+
+def _rec(page):
+    import effortrec as RR
+    return RR.Record(page.host.ws.root)
+
+
+def _tiles_lost(page, lib, ids, key):
+    """The names of the documents whose tile would leave Deliverables: this is their only mark, and they have a tile."""
+    try:
+        import docreturn as DR
+        rec = _rec(page)
+        return [d["name"] for d in (lib.doc(i) for i in ids)
+                if d is not None and lib.returns_of(d) == [key] and DR.tile_of(rec, d["id"]) is not None]
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return []
+
+
+def _proceed(page, names, answer=None):
+    """This removes it from Deliverables. Proceed? answer (tests): True or False, no question."""
+    if answer is not None:
+        return bool(answer)
+    from PySide6.QtWidgets import QMessageBox
+    what = f"{names[0]}: this removes it from Deliverables." if len(names) == 1 else f"This removes {len(names)} documents from Deliverables."
+    box = QMessageBox(QMessageBox.Warning, "Remove from Deliverables", what + " Proceed?", parent=page)
+    yes = box.addButton("Proceed", QMessageBox.AcceptRole)
+    no = box.addButton(QMessageBox.Cancel)
+    box.setDefaultButton(no); box.setEscapeButton(no)
+    box.exec()
+    return box.clickedButton() is yes
+
+
+def _drop(page, lib, doc_id):
+    try:
+        import docreturn as DR
+        return DR.drop_tile(_rec(page), lib, doc_id)
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return False
 
 
 def _tile(page, lib, d, key):
@@ -92,7 +138,7 @@ def open_tile(page, d):
     return t["id"]
 
 
-MARKS = (("shred", "For the shred"), ("reference", "Reference"), ("redline", "Return it, redlined"), ("fill", "Return it, filled in"))
+MARKS = (("shred", "For the shred"), ("reference", "Reference"), ("redline", "Redlined Deliverable"), ("fill", "Filled-in Deliverable"))
 
 
 def menu(page, m, d):

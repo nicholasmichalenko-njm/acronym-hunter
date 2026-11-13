@@ -1,7 +1,9 @@
 """The effort's own folder, watched (4.25.1; Nicholas 2026-11-12 16:49 and 17:08, answers 8 and 9). A file dropped into
 the effort's folder is added to Documents by itself: one of our own documents, kept for reference, where it sits (it is
-not copied anywhere), in any kind of file. A line says what came in. The customer's folder keeps its table (a customer
-document needs its type and initial), and so do the folders a person chose to watch.
+not copied anywhere), in any kind of file. A line says what came in. 4.29.2 (answer 2 of 2026-11-13): a file dropped
+into the customer's folder is added by itself too, as the customer's, For the shred, with its type and initial read from
+its name (change them on its row); what the folder holds at its first check still goes through the table. The folders a
+person chose to watch keep the table.
 
 Left out of the effort's folder: our volumes, Response Setup, Exports, Redlines, Deleted (the Trash), the app's own
 data, and the files beside the effort list. What was already in the folder the first time it is checked is left alone.
@@ -61,13 +63,18 @@ def came_in(win, found):
     if page.lib is None or page.running():
         return []
     import watch as WA
-    paths = [p for p, _c in fresh]
+    cust = [p for p, c in fresh if c == WA.CUSTOMER]     # 4.29.2 (answer 2): the customer's folder, For the shred
+    paths = cust or [p for p, _c in fresh]
+    if cust and len(cust) < len(fresh):                  # one kind at a time: the rest is found again at the next check
+        found["auto"] = [(p, c) for p, c in fresh if c != WA.CUSTOMER]
     tried.update(os.path.normcase(p) for p in paths)
     rel = WA.relative_folders(paths, win.ws.root, win.watch_customer_dir(), where(win).get("effort_root", ""))
     names = ", ".join(os.path.basename(p) for p in paths[:4]) + ("..." if len(paths) > 4 else "")
-    win.last_came_in = (f"{len(paths)} file(s) came into the effort's folder and " + ("was" if len(paths) == 1 else "were")
-                        + f" added to Documents for reference: {names}")
+    win.last_came_in = (f"{len(paths)} file(s) came into the " + ("customer's" if cust else "effort's") + " folder and "
+                        + ("was" if len(paths) == 1 else "were") + " added to Documents "
+                        + ("for the shred" if cust else "for reference") + f": {names}")
     win.status(win.last_came_in)
     diag.activity("qt_watch_came_in", n=len(paths))
-    got = page.add(paths, folders=rel, category=WA.AUTO, choices=_Same(role="reference"), edited="version")
+    got = page.add(paths, folders=rel, category=WA.CUSTOMER if cust else WA.AUTO,
+                   choices=_Same(role="matrix" if cust else "reference"), edited="version")
     return paths if got is not None else []

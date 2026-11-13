@@ -83,8 +83,8 @@ class PreparePage(QWidget):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(lambda pos: self.row_menu(self.table.rowAt(pos.y()), self.table.viewport().mapToGlobal(pos)))
         v.addWidget(self.table, 1)
-        self.empty = D.EmptyState("Nothing is marked Return it, redlined", "In Documents, right-click a PDF or a picture the "
-                                  "customer wants back redlined: Used for > Return it, redlined. It gets a tile on "
+        self.empty = D.EmptyState("Nothing is marked Redlined Deliverable", "In Documents, right-click a PDF or a picture the "
+                                  "customer wants back redlined: Used for > Redlined Deliverable. It gets a tile on "
                                   "Deliverables and is listed here, ready to become a Word file.", "Go to Documents",
                                   lambda: self.host.go("library"))
         v.addWidget(self.empty); self.empty.hide()
@@ -119,7 +119,7 @@ class PreparePage(QWidget):
         if self.rows and select is None:
             self.table.selectRow(keep if 0 <= keep < len(self.rows) else 0)
         self.table.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows); self.bar.setVisible(bool(self.rows))
-        self.say.setText(f"{len(self.rows)} document(s) marked Return it, redlined, {done} prepared. Prepared files go to "
+        self.say.setText(f"{len(self.rows)} document(s) marked Redlined Deliverable, {done} prepared. Prepared files go to "
                          "the effort's Redlines folder." if self.rows else "")
 
     def select(self, doc_id):

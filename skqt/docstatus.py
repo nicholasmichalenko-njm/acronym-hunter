@@ -216,7 +216,7 @@ def row_menu(page, at=None, run=True):
 
 
 def prepare_redline(page, d):
-    """4.25.3 (answer 25): Prepare for Redline lists what is marked Return it, redlined. Asking for it here marks the
+    """4.25.3 (answer 25): Prepare for Redline lists what is marked Redlined Deliverable. Asking for it here marks the
     document (and makes its tile), then opens it there."""
     from . import usedfor as UF
     if "redline" not in page.lib.returns_of(d):

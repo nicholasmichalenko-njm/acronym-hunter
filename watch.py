@@ -31,7 +31,7 @@ def load(data_dir):
     d = W.read_json(os.path.join(data_dir, FILE), None) or {}
     return {"folders": [f for f in d.get("folders", []) if isinstance(f, dict) and f.get("path")],
             "seen": d.get("seen", {}) if isinstance(d.get("seen"), dict) else {},
-            "last": d.get("last", ""), "root_seen": bool(d.get("root_seen"))}
+            "last": d.get("last", ""), "root_seen": bool(d.get("root_seen")), "cust_seen": bool(d.get("cust_seen"))}
 
 
 def save(data_dir, st):
@@ -72,6 +72,8 @@ def folders(data_dir, customer_dir="", effort_root=""):
 
 
 AUTO = "ours"            # 4.25.1: a file dropped into the effort's folder is one of our own documents, kept for reference
+CUSTOMER = "customer"     # 4.29.2: a file dropped into the customer's folder, after its first check, is the customer's, For the shred
+CUSTOMER_AUTO = True      # tests of the table (what a folder holds at its first check, a chosen folder) turn this off
 AUTO_MOST = 25           # more new files than this at once are offered, not added by themselves
 # In the effort's folder any kind of file is a document to keep (answer: "reference files of any type"), except what
 # programs leave behind and Stationkeeper's own files.
@@ -117,7 +119,11 @@ def check(lib, data_dir, customer_dir="", sha=None, effort_root="", skip=(), not
     folder and the folders given in skip (our volumes, Response Setup, Exports, Redlines, Deleted), is in "auto": the
     window adds it by itself as one of our documents, for reference, where it sits. What was already in the folder of
     an effort that has documents, the first time it is checked, is left alone (it was never dropped in to be added), and more than AUTO_MOST
-    new files at once are offered in "new" instead."""
+    new files at once are offered in "new" instead.
+
+    4.29.2 (Nicholas 2026-11-13 answer 2): a file that appears in the customer's folder after that folder's first check
+    is in "auto" too, as the customer's (CUSTOMER): the window adds it by itself, For the shred. What is in the folder
+    at its first check is offered in "new", as before: those are read with the table, where each gets its type."""
     import docversions as DV
     sha = sha or DV.sha256
     st = load(data_dir)
@@ -126,6 +132,8 @@ def check(lib, data_dir, customer_dir="", sha=None, effort_root="", skip=(), not
     roots = [_key(p) for p, _c, _b in watched if os.path.isdir(p)]
     er = _key(effort_root) if effort_root else ""
     first_root = bool(er) and not st.get("root_seen") and bool(lib.all)     # a new effort has nothing "from before"
+    ck = _key(customer_dir) if customer_dir else ""
+    cust_later = CUSTOMER_AUTO and bool(ck) and bool(st.get("cust_seen"))    # 4.29.2: after its first check, the customer's folder adds by itself
     auto = []
     shas = {v.get("sha256") for d in lib.all for v in d["versions"]}
     latest = {}                                   # file path -> (doc, version) of each document's latest version
@@ -176,6 +184,9 @@ def check(lib, data_dir, customer_dir="", sha=None, effort_root="", skip=(), not
                     auto.append((p, AUTO))
                 continue
             rel = os.path.relpath(os.path.dirname(p), folder).replace(os.sep, "/").strip("./")
+            if cust_later and _key(folder) == ck:
+                auto.append((p, CUSTOMER))           # 4.29.2 (answer 2): added by itself, For the shred
+                continue
             out["new"].append((p, cat or DV.guess_category(rel + "/" + os.path.basename(p), "customer")))
     for k, (d, v) in latest.items():
         if d.get("withdrawn") or v.get("missing_kept"):
@@ -191,6 +202,8 @@ def check(lib, data_dir, customer_dir="", sha=None, effort_root="", skip=(), not
         seen.pop(k, None)
     if er and os.path.isdir(effort_root):
         st["root_seen"] = True
+    if ck and os.path.isdir(customer_dir):
+        st["cust_seen"] = True
     out["auto" if len(auto) <= AUTO_MOST else "new"] += auto
     st["last"] = _now()
     save(data_dir, st)
