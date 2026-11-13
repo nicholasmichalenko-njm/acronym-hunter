@@ -46,6 +46,7 @@ def _WAU():
 RAIL = [("Effort", [("home", "Dashboard"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
+        ("Templates", [("styles", "Styles"), ("designs", "Quick Parts"), ("formatstd", "Page Layout"), ("templates", "Template")]),   # 4.28.0
         ("Team", [("tools", "Quick tools"), ("team", "Team")]),      # 4.27.2: Quick tools at the bottom of the menu
         ("Settings", [("settings", "Settings")])]
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))
@@ -68,15 +69,13 @@ TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.8.0
-        "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("layoutstd", "Layout"),
-                      ("designs", "Parts")],     # 3.98.0: Quick Parts are in Parts  # 3.95.0: Parts  # 3.94.0: Styles  # 3.75.0: tabs
-        "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
+        "templates": [("templates", "Templates"), ("profiles", "Effort Profiles"), ("studio", "Template Studio")],   # 4.28.0: the Templates group
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
 REVIEW_VIEWS = ("shredlist",)          # 4.19.0: Page and List; the quick shred, Accuracy and Theme tags are Quick tools
 TOOL_PAGES = ("shredreq", "shredacc", "sort")
-TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
+TEAM, TEMPLATES = ("rules", "audit", "refs"), ("styles", "designs", "formatstd", "templates")   # 4.28.0: the standards have their own group
 # the menu entry each page lights up
 RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
@@ -84,7 +83,7 @@ RAIL_OF.update({k: "tools" for k in TOOL_PAGES})                 # 4.19.0
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
                 "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
-RAIL_OF.update({"prodstd": "team", "qpstd": "team"})
+RAIL_OF.update({**{k: t for t in TEMPLATES for k in [k for k, _t in TABS.get(t, [(t, "")])]}, "prodstd": "team", "qpstd": "designs", "layoutstd": "formatstd"})
 RAIL_OF.update({"redline": "home", "rcheck": "home", "exceptions": "home"})   # 4.25.3: opened from Deliverables (the Dashboard's tab)   # 4.8.0     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
@@ -96,6 +95,7 @@ GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 
 GROUP_OF.update({k: "Deliverables" for k in ("redline", "rcheck", "exceptions")})   # 4.25.3: opened from a deliverable's tile
 GROUP_OF.update({"graphics": "Documents", "calendar": "The effort", "tasks": "The effort"}); RAIL_OF.update({k: k for k in ("graphics", "calendar", "tasks")})   # 4.25.5, 4.27.1
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
+GROUP_OF.update({k: "Templates" for k, e in RAIL_OF.items() if e in TEMPLATES})   # 4.28.0
 GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Quick tools' own
 
 
@@ -300,12 +300,12 @@ class MainWindow(QMainWindow):
         self.graphics_page = __import__("skqt.graphicspage", fromlist=["x"]).GraphicsPage(self)     # 4.25.5
         from .rulespage import RulesPage
         self.rules_page = RulesPage(self)              # 3.38.0: every production rule in one list
-        from .libscreen import FormattingStandardsPage, LayoutPage, QuickPartsPage
-        self.formatstd_page = FormattingStandardsPage(self)   # 3.49.0: the first library screen
+        from .libscreen import PageLayoutPage, QuickPartsPage
+        self.formatstd_page = PageLayoutPage(self)            # 4.28.0: Formatting and Layout on one screen
         self.qpstd_page = QuickPartsPage(self)                # 3.50.0
         from .stylespage import StylesPage
         self.styles_page = StylesPage(self)                   # 3.94.0
-        self.layoutstd_page = LayoutPage(self)
+        self.layoutstd_page = self.formatstd_page             # 4.28.0: one screen; the old name still reaches it
         from .partspage import PartsPage                  # 3.95.0: Parts, the library of pages and Quick Parts (3.87.0 Section designs)
         self.designs_page = PartsPage(self)
         from .techeditpage import TechEditPage
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page, "redline": self.redline_page, "rcheck": self.rcheck_page,
                       "exceptions": self.exceptions_page, "markups": self.markups_page, "graphics": self.graphics_page, "overview": self.overview_page,
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
-                      "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
+                      "qpstd": self.qpstd_page, "styles": self.styles_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
                       "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "shredlist": self.shredlist_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}; __import__("skqt.effortpages", fromlist=["x"]).install(self)     # 4.27.1: Tasks, Calendar, Activity
         for pg in dict.fromkeys(self.pages.values()):     # 4.3.0: Place, L to M and Coverage share the Shred page
@@ -1089,7 +1089,7 @@ class MainWindow(QMainWindow):
             if ok is not False:
                 self.assign_page.show_view(VIEWS[step])
             return ok
-        step = {"format": "fixcopy", "dashboard": "home", "setup": "setups", "structure": "setups",
+        step = {"format": "fixcopy", "dashboard": "home", "setup": "setups", "structure": "setups", "layoutstd": "formatstd",
                 "read": "assign"}.get(step, step)   # 3.74.0: one Setup page; 3.9.0, 3.12.0, 3.30.0; 4.1.0: no Extract tab
         if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has
             step = next((k for k in members(step)[1:] if self.blocked(k) is None), step)

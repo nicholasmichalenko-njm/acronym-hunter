@@ -558,7 +558,7 @@ TOPICS = [
    "Keep its own fonts (the value as_built): yes keeps the Quick Part exactly as built; otherwise it follows the template's fonts "
    "and sizes when a template is made."],
   ["Word is never started by itself: only Draw with Word starts it."]),
- ("layoutstd", "Team", "Layout",
+ ("layoutstd", "Templates", "Layout (in Page Layout)",
   "The pieces a template is assembled from: covers, title pages, back covers, headers and footers, sections and section designs, "
   "table looks, captions and the TOC.",
   "When a new cover or footer comes in; when a part's header or footer changes.",
@@ -567,7 +567,7 @@ TOPICS = [
    "Draw with Word: Word draws covers, title pages, back covers, headers and footers and the TOC as they will print, and the "
    "picture is kept until the item changes."],
   ["Table looks (fills and borders by row role) are here; Word table styles are in Formatting Standards."]),
- ("profiles", "Team", "Effort Profiles",
+ ("profiles", "Templates", "Effort Profiles",
   "Each effort type's profiles (Technical Volume, Management Volume, Orals...), built by picking from the libraries: one part "
   "per decision, filled from Formatting Standards, Quick Parts and Layout, with the RFP's size limits checked as you pick.",
   "When you set up how a kind of effort's volumes look, before templates are made; again when the library changes.",
@@ -580,7 +580,7 @@ TOPICS = [
    "size the profile gives that text."],
   ["A profile in several effort types keeps its own parts and limits in each.",
    "An effort's own changes stay in Effort Formatting, on top of its profile."]),
- ("templates", "Team", "Templates",
+ ("templates", "Templates", "Template",
   "Every Word template the Effort Profiles make, one row per effort type, profile and volume: Ready, Needs review, Blocked or "
   "Not made yet, and why.",
   "After changing a profile or the libraries, and before an effort's volumes are started.",
@@ -791,7 +791,7 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
 # 3.75.0, 4.20.1: the Guide reads in the menu's order (the six steps; a tab's page after its menu item)
 _ORDER = ("path home calendar tasks deliverables record meetings exportall library read compare datacalls redline graphics assign verify requirements evalcrit "
           "custqa acronyms acrlist lists structure matrix crosswalk prove impact setups effortfmt storyboards drafts techedit reviews truth "
-          "finalcheck qa checks postsub keywords tools team formatstd styles qpstd layoutstd designs profiles templates studio "
+          "finalcheck qa checks postsub keywords styles designs qpstd formatstd layoutstd templates profiles studio tools team "
           "rules audit applyword fixcopy refs settings efforts mywork shredreq shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):

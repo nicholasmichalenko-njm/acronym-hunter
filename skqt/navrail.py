@@ -107,10 +107,12 @@ def build(w, rv, rail, beta):
     rv.addWidget(head)
     w.group_heads, w.group_items = {}, {}
     for gi, (group, items) in enumerate(rail):
-        if gi == 1:
+        if group == "Templates":                                   # 4.28.0: the second path, under the effort's
+            th = QLabel("TEMPLATES"); th.setObjectName("railPathHead"); th.setStyleSheet(head.styleSheet()); rv.addWidget(th)
+        if group == "Team" or (gi == 1 and group != "Templates"):
             rv.addStretch(1)
             rule = QFrame(); rule.setFixedHeight(1); rule.setStyleSheet(f"background:{D.tokens()['rail_rule']};"); rv.addWidget(rule)
-        w.group_heads[group] = head if gi == 0 else None
+        w.group_heads[group] = head if gi == 0 else th if group == "Templates" else None
         w.group_items[group] = []
         for key, text in items:
             n = NS_NUM.get(key)
@@ -177,6 +179,9 @@ def refresh_access(w, rail_of, members):
         b.style().unpolish(b); b.style().polish(b)
         b.setToolTip("" if ok else f"For {', '.join(RA.roles_for(key))}. Your role here: {prof}.")
         b.setVisible((ok or not hide) and key not in aside)
+    th = getattr(w, "group_heads", {}).get("Templates")              # 4.28.0: its heading goes when none of its entries show
+    if th is not None:
+        th.setVisible(any(not b.isHidden() for b in w.group_items["Templates"]))
     refresh_stage_tools(w, rail_of, prof)
     refresh_steps(w)
     return prof

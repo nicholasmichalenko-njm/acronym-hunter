@@ -1,5 +1,5 @@
 """Team (3.96.0; canvas "Navigation", board 3): the team's own tools on one page of tiles, shown to the roles that use
-them: Standards, Effort Profiles, Template Studio, Rules, Check a Draft, Team References. Each tile says what it is for
+them: Rules, Check a Draft, Team References (4.28.0: the standards and templates are the menu's Templates group). Each tile says what it is for
 and opens it. Nothing leaves the PC."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QLabel, QVBoxLayout, QWidget
@@ -7,10 +7,7 @@ from PySide6.QtWidgets import QGridLayout, QLabel, QVBoxLayout, QWidget
 from . import design as D
 from .navrail import ClickFrame
 
-TILES = (("formatstd", "Standards", "Styles, Formatting, Layout and Parts (with the Quick Parts): what every template is built from"),
-         ("profiles", "Effort Profiles", "Each kind of effort's formatting, and the templates made from it"),
-         ("studio", "Template Studio", "One volume's template in one place"),
-         ("rules", "Rules", "Every production rule in one list"),
+TILES = (("rules", "Rules", "Every production rule in one list"),
          ("audit", "Check a Draft", "Check files against every standard that applies to them: read only"),
          ("refs", "Team References", "The lists the team keeps: dictionaries, banned phrases, the acronym database"))
 

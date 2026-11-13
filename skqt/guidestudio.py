@@ -1,6 +1,6 @@
 """The Guide's Template Studio and Formatting Standards topics (3.66.0), Apply in Word (3.67.0) and Verify (3.84.0), put back in the menu's order by guidetopics. Text only."""
 STUDIO = \
-("studio", "Team", "Template Studio",
+("studio", "Templates", "Template Studio",
   "One volume's template in one place, read from where its parts live: the profile's cover, headers and footers, table "
   "of contents, fonts, numbering and table looks; this effort's own formatting; the RFP's formatting rules; the sections and "
   "numbering; and the field recipes.",
@@ -23,9 +23,9 @@ STUDIO = \
   ["Nothing here is a second copy: change a style in Formatting Standards, a header in Layout, a pick in Effort Profiles."])
 
 FORMATSTD = \
-("formatstd", "Team", "Formatting Standards",
-  "The fundamentals every template is built from, as a library: theme and colors, font sets, page setups, pagination schemes, "
-  "heading numbering, lists, and paragraph, character and table styles.",
+("formatstd", "Templates", "Page Layout",
+  "The page and what sits on it, in one list (4.28.0: Formatting and Layout are one screen). The page: page setups, pagination, "
+  "headers and footers, sections, the contents. Text and tables: theme, font sets, heading numbering, lists, table styles, table looks, captions.",
   "When a new template or Word document comes in; when the team changes a style; before building an effort profile.",
   ["Three panes: the categories with their counts; the category's items with their effort types, status, version and where each "
    "came from; the selected item's picture and every value it holds.",
@@ -104,7 +104,7 @@ VERIFY = \
    "A verified page is a record that a person checked it, not a guarantee. Reopen this page... sends one back."])
 
 DESIGNS = \
-("designs", "Team", "Parts",
+("designs", "Templates", "Quick Parts",
   "The library of parts built in Word and kept whole: covers, marking (CUI) pages, title pages, front matter (contents, "
   "acronyms, units), back covers and Quick Parts. Each kind is a tab; each part is one row with its versions as tabs and "
   "the part sets it is in. Setup and Make templates pick from here.",
@@ -123,7 +123,7 @@ DESIGNS = \
    "A Quick Part's picture, fonts and the pages it fills are on the Quick Parts tab (right-click: Details on the Quick Parts tab)."])
 
 # 3.94.0: the Styles library
-STYLES = ("styles", "Team", "Styles", "Every style you keep, one row each, with a preview and the sets it is in.",
+STYLES = ("styles", "Templates", "Styles", "Every style you keep, one row each, with a preview and the sets it is in.",
   "When a file has styles you want to keep; when you group styles for a kind of effort; when a style needs another look.",
   ["Bring in from a document... reads only a Word file's styles: New, Different from yours (a new version) or Already have it, "
    "side by side; tick what you keep and pick its set. A style's versions are tabs on its row. Drag rows onto a set on the left; "

@@ -77,6 +77,7 @@ class LibraryScreen(QWidget):
         self.t.currentCellChanged.connect(lambda *_a: self.show_item())
         mv.addWidget(self.t, 1)
         arw = QWidget(); ar = FlowLayout(arw, D.SPACE["s"]); mv.addWidget(arw)      # wraps on a narrow window
+        self.row_actions = arw
         ar.addWidget(D.button("Rename...", None, lambda: self.rename()))
         ar.addWidget(D.button("Effort types...", None, lambda: self.tag_effort_types(), "The effort types the selected items are for"))
         st = QToolButton(); st.setText("Status"); st.setPopupMode(QToolButton.InstantPopup)
@@ -576,3 +577,78 @@ class LayoutPage(LibraryScreen):
         self.moved_note = D.label("Covers, title pages and back covers are in Parts (the next tab). Headers, "
                                   "footers and page setup stay here.", "muted")
         self.layout().insertWidget(1, self.moved_note)
+
+
+class PageLayoutPage(FormattingStandardsPage):
+    """4.28.0 (answer 21): Page Layout. Formatting and Layout are one screen with one list at the left: the page first
+    (page setups, pagination, headers and footers, sections, the contents), then the text and tables (theme, fonts,
+    heading numbering, lists, table styles, table looks, captions). Each row knows which library holds it; the items,
+    the import and the pictures are the same as before. Styles are on Styles; covers and title pages on Quick Parts."""
+    moved = FormattingStandardsPage.moved + LayoutPage.moved
+    GROUPS = (("The page", (("formatting", "page_setup"), ("formatting", "pagination"), ("layout", "hf"), ("layout", "sections"), ("layout", "toc"))),
+              ("Text and tables", (("formatting", "theme"), ("formatting", "fonts"), ("formatting", "heading_numbering"), ("formatting", "lists"),
+                                   ("formatting", "table_styles"), ("layout", "table_looks"), ("layout", "captions"))))
+    LIB = Qt.UserRole + 1
+
+    def __init__(self, host):
+        self._library = "formatting"
+        super().__init__(host)
+        self.moved_note.setText("Paragraph and character styles are on Styles; covers, title pages and back covers are on Quick Parts. "
+                                "Right-click an item to rename it, set its status, compare it or draw it with Word.")
+        self.row_actions.hide(); self.ver_btn.hide(); self.revert_btn.hide()     # one Save; the rest on a right-click
+        self.t.setContextMenuPolicy(Qt.CustomContextMenu); self.t.customContextMenuRequested.connect(self.row_menu)
+
+    @property
+    def library(self):
+        it = self.cats.currentItem() if hasattr(self, "cats") else None
+        return (it.data(self.LIB) if it is not None else None) or self._library
+
+    @library.setter
+    def library(self, v):
+        self._library = v
+
+    def row_menu(self, pos=None, run=True):
+        """One Save on the face; everything else about the selected items is on a right-click."""
+        m = QMenu(self)
+        m.addAction("Rename...", lambda: self.rename())
+        m.addAction("Effort types...", lambda: self.tag_effort_types())
+        sm = m.addMenu("Status")
+        for k, t in TL.STATUSES:
+            sm.addAction(t, lambda kk=k: self.set_status(kk))
+        m.addAction("Compare...", lambda: self.compare())
+        m.addAction("Put in a standard...", lambda: self.put_in())
+        m.addAction("Take out", lambda: self.take_out())
+        m.addSeparator()
+        m.addAction("Draw the selected items with Word", lambda: self.draw_word())
+        m.addAction("Draw every item in this category with Word", lambda: self.draw_word(every=True))
+        m.addAction("Allowed styles...", lambda: self.style_rules())
+        m.addSeparator()
+        a = m.addAction("Save as a new version", lambda: self.save_version()); a.setEnabled(self.ver_btn.isEnabled())
+        a = m.addAction("Undo changes", lambda: self.show_item()); a.setEnabled(self.revert_btn.isEnabled())
+        for a in m.actions()[:6]:
+            a.setEnabled(bool(self.selected_ids()))
+        if run:
+            m.exec(self.t.viewport().mapToGlobal(pos) if pos is not None else self.cursor().pos())
+        return m
+
+    def fill_cats(self):
+        cur = self.category()
+        eid, st, active = self.filters()
+        titles = {(lb, k): t for lb in ("formatting", "layout") for k, t in LC.categories(self.lib, lb)}
+        groups = [(g, list(rows)) for g, rows in self.GROUPS]
+        listed = {r for _g, rows in groups for r in rows}
+        for lb, k in titles:                              # a category added later still shows; a style opened from Styles too
+            if (lb, k) not in listed and (k not in self.moved or k == self.reveal):
+                groups[-1][1].append((lb, k))
+        self.cats.blockSignals(True); self.cats.clear()
+        for g, rows in groups:
+            head = QListWidgetItem(g.upper()); head.setFlags(Qt.NoItemFlags); head.setForeground(D.color("muted")); self.cats.addItem(head)
+            for lb, k in rows:
+                if (lb, k) not in titles:
+                    continue
+                n = sum(1 for i in LC.items_in(self.lib, lb, k, eid, st) if not (active and LC.status(i) == "retired"))
+                it = QListWidgetItem(f"{titles[(lb, k)]} ({n})"); it.setData(Qt.UserRole, k); it.setData(self.LIB, lb); self.cats.addItem(it)
+        self.cats.blockSignals(False)
+        row = next((r for r in range(self.cats.count()) if cur and self.cats.item(r).data(Qt.UserRole) == cur), 1)
+        self.cats.setCurrentRow(row if self.cats.count() > 1 else -1)
+        self.fill()

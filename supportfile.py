@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.28.0": ["Templates is its own group in the menu: Styles, Quick Parts, Page Layout, Template.",
+               "Formatting and Layout are one screen, Page Layout. Parts is named Quick Parts.",
+               "Team keeps Rules, Check a Draft and Team References."],
     "4.27.3": ["Light and dark change every page at once. The menu is one navy in both.",
                "Settings > People: each person's role on the open effort is on their row of the author list."],
     "4.27.2": ["The top bar's button is Quick note. Undo left the bar: Ctrl+Z, a line at the foot, and History.",

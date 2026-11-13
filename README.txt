@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TEMPLATES IN THE MENU (4.28.0)
+  - Templates is its own group in the menu, under the effort's steps: Styles, Quick Parts, Page Layout, Template.
+    None of them needs an effort open.
+  - Page Layout is Formatting and Layout on one screen, with one list at the left. The page first: page setups,
+    pagination, headers and footers, sections, the contents. Then text and tables: theme, font sets, heading
+    numbering, lists, table styles, table looks, captions.
+  - Page Layout has one Save on its face. Right-click an item for the rest: Rename, Effort types, Status, Compare,
+    Put in a standard, Take out, Draw with Word, Allowed styles, Save as a new version, Undo changes.
+  - Quick Parts is the page that was Parts: covers, marking pages, title pages, front matter, back covers and
+    Quick Parts.
+  - Template holds Templates, Effort Profiles and Template Studio as tabs.
+  - Team keeps Rules, Check a Draft and Team References.
+
 APPEARANCE AND PEOPLE (4.27.3)
   - Light and dark, everywhere at once. Settings > Appearance changes every page the moment you pick. No restart, and
     no page keeps the other look's colors.

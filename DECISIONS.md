@@ -216,4 +216,7 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 4.27.3 | A widget that sets its own style from the colors does it with design.themed (or is a Pill, Chip or Tile), so a change of light or dark writes it again. qt_theme4273 opens every page, switches three times and fails on a color left from the other look | Nicholas's recording: the menu and parts of pages kept the other look |
 | 4.27.3 | A person's role on the open effort is on their row of Settings > People's author list (the same value as Effort Record > Team). No second list | Nicholas 2026-11-12 17:33 |
 | 4.27.3 | New palettes wait for Nicholas's pick on a board; this release changes no color he sees except the menu in dark | The recording plan: palettes on a board first |
+| 4.28.0 | Templates is a second menu group under the effort's steps: Styles, Quick Parts, Page Layout, Template. Team keeps Rules, Check a Draft and Team References | Nicholas 2026-11-12, answer 21; the recording 06:25 |
+| 4.28.0 | Formatting and Layout are one screen, Page Layout (libscreen.PageLayoutPage): one list, the page first, then text and tables; each row knows its library. The page keys formatstd and layoutstd both reach it. One Save on its face, the rest on a right-click | Answer 21; the Templates board |
+| 4.28.0 | Parts is named Quick Parts on screen (the page key stays designs) | Answer 21 |
 
