@@ -20,10 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
-    "4.30.1": ["A small window says Stationkeeper is opening while it starts, so there is no need to click again."],
-    "4.30.0": ["Global Standards: the foundation every effort starts from is one set with a version number.",
-               "Settings > Team data says which version this PC is on, where it came from and what changed here since.",
-               "Nothing you do changes yet. Publishing, linking a folder and installing a version come next."],
+    "4.30.0": ["Global Standards: the foundation every effort starts from is one set with a version number (Settings > Team data).",
+               "A small window says Stationkeeper is opening while it starts, so there is no need to click again.",
+               "Styles: double-click a style to see or change it. Right-click > Duplicate. Paragraph and character styles are told apart.",
+               "Bringing styles in: every style is ticked, one box sets the set, and a style you already have joins the set."],
     "4.29.3": ["The Overview shows the effort's picture, its name in large type and the large due date again.",
                "Shred: the bar at the selection wraps and can be dragged by its grip. Capture and Ask a question are on it.",
                "Acronyms: how many finds are left shows large and follows each decision. Scan again is on the bar.",
