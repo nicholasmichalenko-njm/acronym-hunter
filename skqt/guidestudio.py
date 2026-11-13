@@ -189,3 +189,16 @@ REDLINE = ("redline", "Documents", "Prepare for Redline",
    "the edits made with Track Changes off. Double-click a finding to see it on the page.",
    "Exceptions: Read the redline's changes... then Export to Excel or Word."],
   ["Authors redline in Word with Track Changes; there is no editor here."])
+
+GRAPHICS = ("graphics", "Documents", "Graphics",
+  "One row per graphic, the customer's and ours: a picture in Documents, a picture inside a document that the scan "
+  "found terms in, and each graphic need tagged in Shred. Each row says, for its current version, whether its words "
+  "are read and its acros and abs are swept.",
+  "When you want to know that every graphic was read and swept, and again when a new version of one arrives.",
+  ["Words read: Not read; Read, not confirmed; Confirmed. Acros and abs: Not scanned; a count to decide; Swept.",
+   "Right-click a row to tick Words read: confirmed, or Acros and abs: swept. Swept is the same mark as Page done "
+   "on Acros & Abs. A new version starts with neither mark.",
+   "Double-click a row to open the picture in Acros & Abs with the words the reader found.",
+   "Add graphics... adds pictures of ours to Documents as Internal graphics. A graphic need: right-click for "
+   "Needed, In work, Done."],
+  ["Documents", "Acros & Abs"])
