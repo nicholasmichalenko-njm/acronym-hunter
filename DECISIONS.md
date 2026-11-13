@@ -219,4 +219,6 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 4.28.0 | Templates is a second menu group under the effort's steps: Styles, Quick Parts, Page Layout, Template. Team keeps Rules, Check a Draft and Team References | Nicholas 2026-11-12, answer 21; the recording 06:25 |
 | 4.28.0 | Formatting and Layout are one screen, Page Layout (libscreen.PageLayoutPage): one list, the page first, then text and tables; each row knows its library. The page keys formatstd and layoutstd both reach it. One Save on its face, the rest on a right-click | Answer 21; the Templates board |
 | 4.28.0 | Parts is named Quick Parts on screen (the page key stays designs) | Answer 21 |
+| 4.28.1 | Styles: each row's preview is a box of one size (stylespage.BOX) with the style drawn at its true size, cut off at the edge when too big, its real size written beside it. The 14 pt cap was not taken | Nicholas 2026-11-12, answer 22 |
+| 4.28.1 | Styles: the details (Font, Paragraph, Characters, Other) share the row's width after the name, the box and the size; the font is named in itself; a row's words do not take the mouse, so a drag carries every selected row | Nicholas 2026-11-12 10:53 |
 

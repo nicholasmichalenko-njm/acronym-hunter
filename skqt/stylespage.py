@@ -22,7 +22,8 @@ MIME = "application/x-sk-style-ids"
 SAMPLE_PARA = "Our ground segment hands each pass between the two sites in under 90 seconds."
 SAMPLE_HEAD = "2.1  Telemetry, Tracking and Command"
 SAMPLE_CHAR = "shall describe"
-COLS = (210, 120, 190, 150, 140)          # name, font, paragraph, characters, other; the preview takes the rest
+COLS = (210, 120, 190, 150, 140)          # 3.94.0's widths; 4.28.1: the name keeps its width, the details share the rest
+NAME_W, BOX, SIZE_W = 210, (300, 58), 64   # 4.28.1 (answer 22): every preview box is one size; the style is drawn in it at true size
 NAMED = (("Black", ""), ("Red", "C00000"), ("Dark red", "8B0000"), ("Purple", "7030A0"), ("Blue", "2E74B5"), ("Navy", "1F3864"),
          ("Green", "00B050"), ("Brown", "B45309"), ("Gray", "808080"))
 
@@ -60,6 +61,64 @@ def preview(v, text=None, name=""):
     lab.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
     lab.setObjectName("stylePreview")
     return lab
+
+
+class PreviewBox(QWidget):
+    """4.28.1 (answer 22): a white box, the same size on every row, with the style drawn in it at its true size. A style
+    too big for the box is cut off at the box's edge; its real size is written beside the box."""
+
+    def __init__(self, v, text=None, name=""):
+        super().__init__()
+        self.setObjectName("stylePreview")
+        self.v, self.words = dict(v), text or sample_of(v, name)
+        self.setFixedSize(*BOX)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setToolTip(f"{self.words}\n{size_words(v)}, drawn at its true size")
+
+    def font_of(self):
+        v = self.v
+        f = QFont(str(v.get("font") or "Calibri"))
+        f.setPointSizeF(max(1.0, float(v.get("size") or 11)))
+        f.setBold(bool(v.get("bold"))); f.setItalic(bool(v.get("italic"))); f.setUnderline(bool(v.get("underline")))
+        f.setCapitalization(QFont.AllUppercase if v.get("caps") else QFont.MixedCase)
+        return f
+
+    def cut_off(self):
+        """True when the style at its true size is taller than the box. (A long sample always runs past the right edge.)"""
+        from PySide6.QtGui import QFontMetricsF
+        return QFontMetricsF(self.font_of()).height() > BOX[1] - 4
+
+    def paintEvent(self, _e):
+        from PySide6.QtCore import QRectF
+        from PySide6.QtGui import QFontMetricsF, QPen
+        p = QPainter(self); p.setRenderHint(QPainter.Antialiasing); p.setRenderHint(QPainter.TextAntialiasing)
+        r = QRectF(0.5, 0.5, self.width() - 1, self.height() - 1)
+        p.setPen(QPen(QColor("#C9CED6"), 1)); p.setBrush(QColor("#FFFFFF")); p.drawRoundedRect(r, 4, 4)
+        p.setClipRect(r.adjusted(1, 1, -1, -1))
+        f = self.font_of(); p.setFont(f)
+        fm = QFontMetricsF(f)
+        col = str(self.v.get("color") or "AUTO").lstrip("#").upper()
+        p.setPen(QColor("#111111" if col in ("AUTO", "") or len(col) != 6 else "#" + col))
+        y = (self.height() - fm.height()) / 2 + fm.ascent() if fm.height() <= self.height() - 4 else 3 + fm.ascent()
+        p.drawText(8, int(round(y)), self.words)
+        if self.v.get("hidden"):                          # hidden text on a dotted band, as on the setup screen
+            pen = QPen(QColor("#9CA3AF"), 2); pen.setStyle(Qt.DotLine); p.setPen(pen)
+            p.drawLine(4, self.height() - 4, self.width() - 4, self.height() - 4)
+        p.end()
+
+
+def size_words(v):
+    """The style's real size, written beside its box: "11 pt", or "As its base" when the style sets none."""
+    return f"{SL._n(v['size'])} pt" if v.get("size") else "As its base"
+
+
+def calm(w):
+    """4.28.1: a row's words do not take the mouse, so a press anywhere on a row selects it and a drag carries every
+    selected row (the version tabs still click)."""
+    for c in w.findChildren(QWidget):
+        if not isinstance(c, QPushButton) and not c.findChildren(QPushButton):
+            c.setAttribute(Qt.WA_TransparentForMouseEvents)
+    return w
 
 
 class Rows(QListWidget):
@@ -153,9 +212,10 @@ class StylesPage(QWidget):
         nh.addWidget(self.b_move); nh.addWidget(self.b_keep)
         self.notice.hide(); mid.addWidget(self.notice)
         head = QHBoxLayout(); head.setContentsMargins(8, 0, 8, 0)
-        for t, w in zip(("Style", "Font", "Paragraph", "Characters", "Other"), COLS):
+        for t, w in (("Style", NAME_W), ("How it looks, at its true size", BOX[0] + 12), ("Size", SIZE_W)):     # 4.28.1
             lab = D.label(t, "label", wrap=False); lab.setFixedWidth(w); head.addWidget(lab)
-        head.addWidget(D.label("How it looks", "label", wrap=False), 1)
+        for t in ("Font", "Paragraph", "Characters", "Other"):
+            head.addWidget(D.label(t, "label", wrap=False), 1)
         mid.addLayout(head)
         self.rows = Rows(self)
         mid.addWidget(self.rows, 1)
@@ -215,7 +275,7 @@ class StylesPage(QWidget):
 
     def row_widget(self, it, v, versions=None):
         w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(8, 6, 8, 6); h.setSpacing(0)
-        c0 = QWidget(); c0.setFixedWidth(COLS[0]); cv = QVBoxLayout(c0); cv.setContentsMargins(0, 0, 8, 0); cv.setSpacing(3)
+        c0 = QWidget(); c0.setFixedWidth(NAME_W); cv = QVBoxLayout(c0); cv.setContentsMargins(0, 0, 8, 0); cv.setSpacing(3)
         nm = D.label(f"<b>{self.lib.base_of(it)}</b>", None, wrap=False); nm.setTextFormat(Qt.RichText); cv.addWidget(nm)
         if versions and len(versions) > 1:                # 3.94.0 (19:16): the versions are tabs on the row
             tabs = QWidget(); tf = FlowLayout(tabs, 3)
@@ -238,12 +298,19 @@ class StylesPage(QWidget):
             cf.addWidget(ch)
         cv.addWidget(chips)
         h.addWidget(c0)
+        box = PreviewBox(v, name=self.lib.base_of(it))                # 4.28.1: beside the style, one size on every row
+        bw = QWidget(); bw.setFixedWidth(BOX[0] + 12); bl = QVBoxLayout(bw); bl.setContentsMargins(0, 0, 12, 0); bl.addWidget(box); bl.addStretch(1)
+        h.addWidget(bw)
+        sz = D.label(size_words(v) + ("\ncut off" if box.cut_off() else ""), "muted", wrap=False); sz.setObjectName("styleSize"); sz.setFixedWidth(SIZE_W)
+        sz.setAlignment(Qt.AlignTop | Qt.AlignLeft); h.addWidget(sz)
         d = SL.describe(v)
-        for key, wd in zip(("font", "paragraph", "characters", "other"), COLS[1:]):
-            lab = D.label(d[key], None if key == "font" else "muted"); lab.setFixedWidth(wd); lab.setContentsMargins(0, 0, 8, 0)
-            h.addWidget(lab)
-        h.addWidget(preview(v, name=self.lib.base_of(it)), 1)
-        return w
+        for key in ("font", "paragraph", "characters", "other"):       # the details across the width, each with a share of it
+            lab = D.label(d[key], None if key == "font" else "muted"); lab.setContentsMargins(0, 0, 10, 0); lab.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+            if key == "font":
+                fam = str(v.get("font") or "").replace('"', "").replace(";", "")       # the font named in itself
+                lab.setStyleSheet(f'font-family:"{fam}";' if fam else "")
+            lab.setMinimumWidth(60); h.addWidget(lab, 1)
+        return calm(w)
 
     def fill_notice(self):
         nv = [(a, b) for a, b in (SL.newer(self.lib, self.sid) if self.sid else []) if (self.sid, a["id"], b["id"]) not in self.kept_newer]

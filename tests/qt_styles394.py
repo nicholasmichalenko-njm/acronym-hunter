@@ -51,7 +51,7 @@ dlg.count()
 check("the button says how many", dlg.b_go.text() == "Bring in 3 style(s)", dlg.b_go.text())
 c = dlg.go(); app.processEvents()
 check("they come in, into their set", c["new"] == 3 and len(sp.row_ids) == 3 and len(SL.get_set(sp.lib, rfp["id"])["items"]) == 2, c)
-check("each row: a preview in the style's look", len(sp.rows.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QLabel, "stylePreview")) == 3)
+check("each row: a preview in the style's look", len(sp.rows.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QWidget, "stylePreview")) == 3)   # 4.28.1: a box
 dlg2 = sp.bring_in(DOC, run=False)
 same = [r["name"] for r in dlg2.rows if r["state"] == "same"]
 check("met again: the three kept are Already have it, not shown until asked", sorted(same) == ["Heading 1", "Heading 2", "Normal"]

@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE STYLE LIST (4.28.1)
+  - Every row has a preview box of the same size, beside the style's name. The style is drawn in it at its true
+    size. A style too big for the box is cut off at the box's edge, and the row says "cut off".
+  - The style's real size is written beside the box (11 pt, 44 pt, or As its base).
+  - The details lie across the width: Font, Paragraph, Characters, Other. The font's name is shown in that font.
+  - Rows are one height.
+  - Select several styles and drag: every selected style goes to the set you drop on. A press anywhere on a row
+    selects it. Right-click, Add to set, works as before.
+
 TEMPLATES IN THE MENU (4.28.0)
   - Templates is its own group in the menu, under the effort's steps: Styles, Quick Parts, Page Layout, Template.
     None of them needs an effort open.
