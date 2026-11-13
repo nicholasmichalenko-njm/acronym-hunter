@@ -101,7 +101,16 @@ def main(argv=None):
         from skqt.acrtool import open_tool
         _tool = open_tool(A.CONFIG_DIR)
         return app.exec()
-    w = MainWindow(app, A.CONFIG_DIR, A.APP_VERSION)
+    opening = None
+    if "--selftest" not in args:                     # 4.30.1: say the app is opening while the window is built
+        from skqt import opening as _OP
+        opening = _OP.show(app, A.APP_VERSION, ico or "")
+    try:
+        w = MainWindow(app, A.CONFIG_DIR, A.APP_VERSION)
+    except Exception:
+        if opening is not None:
+            _OP.done(opening)
+        raise
     w.safety.install_crash_screen()                  # 2.78.0: save first, then a plain message
     if "--selftest" in args:            # the build checks the built program starts (no effort opened)
         w.show()
@@ -120,6 +129,8 @@ def main(argv=None):
         return 0 if ok else 1
     w.show()
     app.processEvents()
+    if opening is not None:
+        _OP.done(opening)
     from skqt.usage import install as _count_use                 # 3.74.0: button use, on this PC only
     w.usage = _count_use(w)
     app.aboutToQuit.connect(lambda: w.usage.flush() if w.usage else None)

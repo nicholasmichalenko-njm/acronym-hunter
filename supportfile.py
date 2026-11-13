@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.30.1": ["A small window says Stationkeeper is opening while it starts, so there is no need to click again."],
     "4.30.0": ["Global Standards: the foundation every effort starts from is one set with a version number.",
                "Settings > Team data says which version this PC is on, where it came from and what changed here since.",
                "Nothing you do changes yet. Publishing, linking a folder and installing a version come next."],
