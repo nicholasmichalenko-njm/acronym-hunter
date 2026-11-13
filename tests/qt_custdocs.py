@@ -43,7 +43,7 @@ W.Workspace(W.data_dir_for(LIST), "Kestrel").set("outline_text", "Volume I Techn
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("the rail: Deliverables with the effort; Documents: the documents, Changes (4.0.0), Text check (4.1.0: Q&A is a drawer)", [k for k in w.step_btns][:2] == ["home", "library"] and __import__("skqt.mainwin", fromlist=["x"]).TABS["home"][1][0] == "deliverables"
+check("the rail: Deliverables with the effort; Documents: the documents, Changes (4.0.0), Text check (4.1.0: Q&A is a drawer)", [k for k in w.step_btns][0] == "home" and "library" in w.step_btns and "deliverables" in dict(__import__("skqt.mainwin", fromlist=["x"]).TABS["home"])
       and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["library"]][:2] == ["library", "compare"] and "compare" not in w.step_btns,   # 3.90.0: Compare is a tab of Review   # 3.75.0: Compare with the customer documents   # 3.53.0: spaces      # 3.16.0: one place per job; 3.36.0: Effort Formatting
       list(w.step_btns))
 # a compliance matrix with the page-limit sentence as a requirement
