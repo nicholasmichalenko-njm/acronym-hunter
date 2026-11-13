@@ -204,4 +204,7 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 4.26.1 | The choices More held on the page's bar (Plural of, A form of, Part of a longer term) are buttons on it; Show in the list is gone | Nicholas's recording 03:20 |
 | 4.26.1 | A one-letter reading that sits tight between two letter readings on one line is joined to them (ocrjoin): DEFEN, S, E is DEFENSE. Nothing else is joined | Nicholas's recording 02:55 |
 | 4.26.1 | On the page has its own document picker and follows the document open in Shred > Requirements once each time that document changes | Answer 19 |
+| 4.27.0 | The Dashboard entry opens the Overview (skqt/overviewpage, overview.py): one screen, read from what the effort keeps, nothing stored. A block is there only when it changes what someone does this week, has a date, or is a count that links to where it is fixed | Nicholas's recording 2026-11-12 07:55 to 08:45; the plan board |
+| 4.27.0 | The Dashboard as it was is the next tab, All cards, until Tasks, Calendar and Activity have their own places (4.27.1); nothing is removed. go("home") is still that page; the menu entry, the effort switcher and opening an effort go to the Overview | Nicholas: "I dont want to eliminate functionality" |
+| 4.27.0 | The Wall of Truth shows on the Overview as one line that stays up; the assembled wall is still Drafts > Wall of Truth and Drafts keeps Check the drafts | Answer 20 |
 

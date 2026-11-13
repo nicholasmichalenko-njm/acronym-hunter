@@ -52,7 +52,8 @@ RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("graphics"
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics"))
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
+TABS = {"home": [("overview", "Overview"), ("home", "All cards"),      # 4.27.0: the effort's page on one screen; the cards it had
+                 ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "List"), ("compare", "Changes"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
@@ -232,6 +233,7 @@ class MainWindow(QMainWindow):
         self.efforts_page = EffortsHome(self)        # 2.91.0: Home: every effort, + Add an Effort, Unfiled work
         self.dash_page = DashPage(self)              # 3.12.0: its numbers and cards show on the Effort Dashboard
         self.home_page = HomePage(self)
+        self.overview_page = __import__("skqt.overviewpage", fromlist=["x"]).OverviewPage(self)     # 4.27.0
         self.record_page = RecordPage(self)
         from .meetingspage import MeetingsPage
         self.meetings_page = MeetingsPage(self)                 # 3.20.0
@@ -336,7 +338,7 @@ class MainWindow(QMainWindow):
                       "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page, "redline": self.redline_page, "rcheck": self.rcheck_page,
-                      "exceptions": self.exceptions_page, "markups": self.markups_page, "graphics": self.graphics_page,
+                      "exceptions": self.exceptions_page, "markups": self.markups_page, "graphics": self.graphics_page, "overview": self.overview_page,
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
@@ -436,7 +438,7 @@ class MainWindow(QMainWindow):
                 self.efforts_page.open_unfiled(go=False)
             except Exception:  # noqa: BLE001  the page then says no effort is open, as before
                 diag.swallowed()
-        return self.go(key)
+        return self.go("overview" if key == "home" else key)      # 4.27.0: the Dashboard entry opens the Overview
 
     def work_on(self, name):
         """3.53.0: the Working on box: an effort, or Unfiled (made when first used). The page you are on stays."""

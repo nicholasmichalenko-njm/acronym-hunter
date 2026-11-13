@@ -33,6 +33,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "draftacr": ("Acros & Abs in our drafts", "Each volume's draft against the acronym list: first use, spelled out again, not in the list, the Acronyms table"),
           "storyboards": ("Storyboards", "One sheet per section before the first draft: message, themes, approach, features and proof"),
           "mywork": ("My Work", "One person's work in every effort, soonest first"),
+          "overview": ("Overview", "The effort on one screen: your next step, what is left, the deliverables, the dates ahead"),
           "home": ("Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "dashboard": ("Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),

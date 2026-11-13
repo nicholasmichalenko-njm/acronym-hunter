@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.27.0": ["The Dashboard entry opens the Overview: the effort on one screen.",
+               "Your next step and the path, up to four counts that open where each is fixed, the deliverables, the Wall of Truth line.",
+               "The calendar's next dated things, the customer, and the last three things that happened.",
+               "The cards the Dashboard had are the next tab, All cards."],
     "4.26.1": ["Acros & Abs: select finds side by side and the bar combines them into one term, said before you press.",
                "Not a term is for this page only; everywhere in this effort is the second choice.",
                "The tabs are On the page, Everything found and Effort list. The page shows beside the list.",

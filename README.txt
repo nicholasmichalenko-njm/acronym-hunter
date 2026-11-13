@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE EFFORT ON ONE SCREEN (4.27.0)
+  - The Dashboard entry opens the Overview. It fits one screen:
+      Your next step, with one button, and the six steps under it with what is left on each. Click a step to open it.
+      Up to four counts (not shredded, to place, changes to review, tasks late, acros and abs undecided, graphics not
+      swept, questions open). Each opens the page that fixes it. A count that is zero is not shown.
+      Deliverables, one row each: owner, status, and what changed.
+      The Wall of Truth as one line that stays up.
+      Calendar: the next ten dated things (the due date, questions due, stages, gate goals, tasks).
+      Customer: who it is; Show opens the solicitation and the contacts.
+      Latest activity: the last three things that happened; All activity opens the Effort Record.
+  - Click the due date at the top to set it.
+  - All cards, the next tab, is the Dashboard as it was: every card, Customize Home, the month calendar, notes and
+    tasks. Nothing was removed.
+
 ACROS & ABS (4.26.1)
   - Combine. Select two or more finds side by side on the page and the bar reads Combine into, with the one term
     they spell (U and S: US). Change it if the reading is off, type its definition, and the bar says what Add to

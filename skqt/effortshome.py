@@ -196,7 +196,7 @@ class EffortsHome(QWidget):
         if h.effort_name != name and not h.open_effort(name):
             return False
         h.effort_box.setCurrentText(name)
-        h.go("home")
+        h.go("overview")
         return True
 
     def add_effort(self, values=None):
@@ -206,7 +206,7 @@ class EffortsHome(QWidget):
             from .starteffort import start_effort
             return start_effort(self.host, values)
         if self.host.ws is None:
-            self.host.go("home")
+            self.host.go("overview")
             self.host.home_page.start.name.setFocus()
             return None
         from .starteffort import start_dialog

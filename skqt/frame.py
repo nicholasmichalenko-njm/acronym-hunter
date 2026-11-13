@@ -45,7 +45,7 @@ def effort_menu(w):
     Tools."""
     m = QMenu(w)
     if w.effort_name:
-        m.addAction("Dashboard", lambda: w.go("home"))
+        m.addAction("Dashboard", lambda: w.go("overview"))
     others = [w.effort_box.itemText(i) for i in range(w.effort_box.count())
               if w.effort_box.itemText(i) and w.effort_box.itemText(i) != w.effort_name]
     if others:
