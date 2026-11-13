@@ -83,6 +83,7 @@ class AcronymSession(AcronymRules):
         self.parts = {}                                      # 3.76.0: {part: {"whole", "places"}} part of a longer term
         self.rules_extra = {}                                # 3.92.0: {"hyphen_whole": bool} the effort's own reading rules
         self.first_use_set = {}                              # 3.51.0: {term: {file: place}} chosen first uses
+        self.pictures = {}                                   # 4.29.2: {file: [[place, words read]]} every picture the reader saw
         self._last_vc = None
         self.selected_term = None
         self.matrix = None                                   # the Qt edition sets the open compliance matrix (keyword asks)
@@ -159,6 +160,7 @@ class AcronymSession(AcronymRules):
         self.parts = dict(s.get("parts") or {})                       # 3.76.0: part of a longer term
         self.rules_extra = dict(s.get("rules_extra") or {})           # 3.92.0: letters joined by a hyphen are one term
         self.first_use_set = dict(s.get("first_use_set") or {})
+        self.pictures = dict(s.get("pictures") or {})                 # 4.29.2: every picture the reader saw, by file
         for t in self.omitted:                                        # results saved before 3.51.0 kept the flag only
             if t in self.results:
                 self.results[t]["excluded"] = True
@@ -187,6 +189,7 @@ class AcronymSession(AcronymRules):
         s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
                   "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),
                   "omitted": getattr(self, "omitted", {}), "parts": getattr(self, "parts", {}), "rules_extra": getattr(self, "rules_extra", {}), "first_use_set": getattr(self, "first_use_set", {}),
+                  "pictures": getattr(self, "pictures", {}),
                   "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
                   if self.last_scan else s.get("last_scan")})
         self.ws.save_session(s)
@@ -201,7 +204,27 @@ class AcronymSession(AcronymRules):
         self.last_scan = {"paths": list(paths), "folder": folder, "cache": capture}
         A.CANCEL.clear()
         results = A.analyze_batch(list(paths), cb, capture=capture)
+        self.keep_pictures(capture)
         return self.after_scan(results)
+
+    def keep_pictures(self, capture):
+        """4.29.2 (Nicholas 2026-11-13 answer 6): every picture the reader saw inside the files just read, with or without
+        words or terms: {file name: [[place, True when words were read]]}. Graphics lists them all."""
+        import graphiclog as GL
+        import acrpages as AG
+        pics = dict(getattr(self, "pictures", None) or {})
+        for path, entry in (capture or {}).items():
+            seen = {}
+            for label, _text in (entry or {}).get("chunks") or []:
+                if any(m in label for m in GL.INSIDE_MARKS):
+                    seen[AG.place_of(label)] = True
+            for sk in (entry or {}).get("skips") or []:
+                label = sk[0] if isinstance(sk, (list, tuple)) and sk else ""
+                if label and any(m in label for m in GL.INSIDE_MARKS):
+                    seen.setdefault(AG.place_of(label), False)
+            pics[os.path.basename(path)] = [[k, v] for k, v in sorted(seen.items())]
+        self.pictures = pics
+        return pics
 
     def after_scan(self, results):
         """The classic window's scan_done without the window."""

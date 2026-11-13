@@ -74,6 +74,24 @@ class FakeLib:
 ri = GL.rows(FakeLib(), [ins], ["Osprey_Deck.pptx"], (), (), ())
 check("a picture inside a document that the scan found terms in gets a row, under its document",
       len(ri) == 1 and ri[0]["kind"] == "inside" and ri[0]["where"] == "Briefing" and ri[0]["acros"] == "Decided, not marked swept", ri)
+# 4.29.2 (answer 6 of 2026-11-13): every picture the reader saw, not only those with a term in them
+pics = {"Osprey_Deck.pptx": [[ins["key"], True], ["Osprey_Deck.pptx (slide 4, image 'Site photo' image7.png)", True],
+                             ["Osprey_Deck.pptx (slide 6, image image9.png)", False]]}
+rp = GL.rows(FakeLib(), [ins], ["Osprey_Deck.pptx"], (), (), (), pictures=pics)
+check("every picture the reader saw is a row: the one with terms once, and the two with none",
+      [r["kind"] for r in rp] == ["inside"] * 3 and len({r["id"] for r in rp}) == 3 and rp[0]["acros"] == "Decided, not marked swept", rp)
+check("... a picture with no term says so and needs only its words confirmed", rp[1]["acros"] == "No terms found" and rp[1]["words"] == "Read, not confirmed"
+      and rp[1]["name"] == "slide 4, image 'Site photo' image7.png" and GL.todo(rp[1]), rp[1])
+check("... a picture the reader got no words from says No words read", rp[2]["words"] == "No words read", rp[2])
+check("... confirmed, it is no longer left to do", not GL.todo(next(r for r in GL.rows(FakeLib(), [], [], (), [pics["Osprey_Deck.pptx"][1][0]], (), pictures=pics)
+                                                                    if r["page"] == pics["Osprey_Deck.pptx"][1][0])))
+import acrsession as _AS
+class _S:
+    pictures = {}
+kp = _AS.AcronymSession.keep_pictures(_S(), {"/x/Osprey_Deck.pptx": {"chunks": [["Osprey_Deck.pptx (slide 4, image image7.png)", "GEO orbit"], ["Osprey_Deck.pptx (slide 1)", "Title"]],
+                                                              "skips": [["Osprey_Deck.pptx (slide 6, image image9.png)", "No text found"]]}})
+check("the scan keeps each file's pictures: those with words and those without, and no text-only place",
+      kp == {"Osprey_Deck.pptx": [["Osprey_Deck.pptx (slide 4, image image7.png)", True], ["Osprey_Deck.pptx (slide 6, image image9.png)", False]]}, kp)
 need = {"id": "n1", "concept": "Transition timeline", "kind": "Process flow", "section": "Volume I, 3.2", "owner": "Dana", "status": "Needed"}
 rn = GL.rows(FakeLib(), [], [], (), (), [need])
 check("a graphic need is a row with its section, owner and status", rn[0]["kind"] == "need" and rn[0]["where"] == "Volume I, 3.2"
@@ -105,7 +123,7 @@ g = gp.current()
 m = gp.menu(None)
 check("right-click a graphic: open it, show its document, the two marks, scan it now",
       [a.text() for a in m.actions() if a.text()] == ["Open it in Acronyms", "Show its document", "Words read: confirmed",
-                                                      "Acronyms: swept", "Find acronyms in it now"], [a.text() for a in m.actions()])
+                                                      "Acronyms: swept", "Find acronyms in it now", "Answers the need"], [a.text() for a in m.actions()])
 gp.set_words(True); gp.set_swept(True)
 g = gp.current()
 check("tick both marks: Confirmed and Swept, kept with the effort", g["words"] == "Confirmed" and g["acros"] == "Swept"
@@ -118,7 +136,23 @@ gp.set_swept(False, g)
 check("untick: to sweep again", gp.current() is not None and gp.current()["acros"] != "Swept")
 gp.select(next(r["id"] for r in gp.rows if r["kind"] == "need"))
 mn = gp.menu(None)
-check("right-click a need: Needed, In work, Done", [(a.text(), a.isChecked()) for a in mn.actions()] == [("Needed", True), ("In work", False), ("Done", False)])
+check("right-click a need: Needed, In work, Done, then Answered by", [(a.text(), a.isChecked()) for a in mn.actions() if a.text()]
+      == [("Needed", True), ("In work", False), ("Done", False), ("Answered by", False)], [(a.text(), a.isChecked()) for a in mn.actions()])
+# 4.29.2 (answer 7 of 2026-11-13): a need links to the picture that answers it, from either row
+nid = next(r["need"] for r in gp.rows if r["kind"] == "need")
+pid = "doc:" + dO["id"]
+check("link the need to a picture: saved in the effort record with the picture's name", gp.link(nid, pid)
+      and GX.items(RR.Record(w.ws.root))[0].get("picture") == pid and GX.items(RR.Record(w.ws.root))[0].get("picture_name"))
+rn_, rp_ = next(r for r in gp.rows if r["kind"] == "need"), next(r for r in gp.rows if r["id"] == pid)
+from PySide6.QtCore import Qt
+cell = lambda rid: next(gp.table.item(i, 1).text() for i in range(gp.table.rowCount()) if gp.table.item(i, 0).data(Qt.UserRole) == rid)   # noqa: E731
+check("... each row names the other", "answered by " + rp_["name"] in cell(rn_["id"]) and "answers " + rn_["name"] in cell(pid), (cell(rn_["id"]), cell(pid)))
+gp.select(pid)
+am = next(a.menu() for a in gp.menu(None).actions() if a.text() == "Answers the need")
+check("the picture's right-click has Answers the need, with the need ticked", [(a.text(), a.isChecked()) for a in am.actions()] == [(rn_["name"], True)])
+check("take the link off from the picture's side: both rows are plain again", gp.link(nid, "") and "picture" not in GX.items(RR.Record(w.ws.root))[0]
+      and "answer" not in cell(rn_["id"]) and "answers" not in cell(pid))
+gp.select(rn_["id"])
 gp.set_status("Done")
 check("... Done is saved in the effort record and the count drops", GX.items(RR.Record(w.ws.root))[0]["status"] == "Done"
       and "0 graphic needs open" in gp.count.text(), gp.count.text())

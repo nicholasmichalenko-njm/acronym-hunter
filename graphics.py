@@ -73,6 +73,25 @@ def update(rec, gid, who=None, **fields):
     return bool(changed)
 
 
+def link(rec, gid, picture="", name="", who=None):
+    """4.29.2 (Nicholas 2026-11-13 answer 7): the picture that answers a graphic need (its row on Graphics: "doc:<id>"
+    or "page:<place>"), with the name to show; "" takes the link off. One picture per need. Returns True when changed."""
+    g = get(rec, gid)
+    if g is None:
+        return False
+    picture, name = str(picture or "")[:400], _clean(name, 200)
+    if g.get("picture", "") == picture:
+        return False
+    if picture:
+        g["picture"], g["picture_name"] = picture, name
+        rec.log("graphic", f"Graphic need answered by a picture: {g['concept']} ({name})", ref={"graphic": gid}, who=who)
+    else:
+        g.pop("picture", None); g.pop("picture_name", None)
+        rec.log("graphic", f"Graphic need no longer linked to a picture: {g['concept']}", ref={"graphic": gid}, who=who)
+    rec.save()
+    return True
+
+
 def remove(rec, gid, who=None):
     g = get(rec, gid)
     if g is None:

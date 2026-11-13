@@ -1,5 +1,5 @@
 """Graphics (4.25.5; Nicholas's recording 2026-11-12: "its own menu item here for graphics"; the Documents board, step
-E). One row per graphic: a picture in Documents, a picture the scan found terms in inside a document, and each graphic
+E). One row per graphic: a picture in Documents, every picture the reader saw inside a document (4.29.2), and each graphic
 need tagged in Shred. Per row, on its current version: are its words read, are its acros and abs swept. The row opens
 the picture in Acros & Abs with the words the reader found. Nothing is kept twice: the rows are read from Documents,
 the scan and the effort record (graphiclog). Rules only (No AI); nothing leaves the PC."""
@@ -77,7 +77,8 @@ class GraphicsPage(QWidget):
             diag.swallowed()
             pages, scanned = [], []
         needs = GX.items(self.rec())
-        return GL.rows(self.lib(), pages, scanned, AG.done_set(h.ws), GL.words_ok(h.ws), needs)
+        return GL.rows(self.lib(), pages, scanned, AG.done_set(h.ws), GL.words_ok(h.ws), needs,
+                       pictures=getattr(s, "pictures", None) if s is not None else None)
 
     def rec(self):
         import effortrec as RR
@@ -93,7 +94,9 @@ class GraphicsPage(QWidget):
         t = self.table
         t.setRowCount(len(self.rows))
         for r, g in enumerate(self.rows):
-            vals = (g["name"] + (f"   ({g['type']})" if g.get("type") else ""), g["where"], "" if g["kind"] == "need" else SIDE[g["side"]],
+            lk = GL.linked_text(g)                           # 4.29.2: a need and its picture name each other
+            vals = (g["name"] + (f"   ({g['type']})" if g.get("type") else ""), "   ·   ".join(x for x in (g["where"], lk) if x),
+                    "" if g["kind"] == "need" else SIDE[g["side"]],
                     g["version"] + (f"   {g['versions']} versions" if g["versions"] > 1 else ""), g["owner"], g["status"],
                     g["words"], g["acros"])
             for c, val in enumerate(vals):
@@ -113,7 +116,38 @@ class GraphicsPage(QWidget):
         self.count.setText(f"{n} graphic" + ("" if n == 1 else "s") + f": {words} with words to confirm, {sweep} to sweep for acronyms "
                            f"and abs. {needs} graphic need" + ("" if needs == 1 else "s") + " open." if every else "")
         self.empty.setVisible(not every); self.table.setVisible(bool(every))
+        self.every = every
         return len(self.rows)
+
+    def link(self, need_id, picture_id):
+        """4.29.2: the picture that answers a need ("" takes the link off), set from either row. Returns True when changed."""
+        import graphics as GX
+        pic = next((r for r in getattr(self, "every", []) if r["id"] == picture_id), None) if picture_id else None
+        ok = GX.link(self.rec(), need_id, picture_id if pic is not None else "", pic["name"] if pic is not None else "")
+        if ok:
+            diag.activity("qt_graphic_need_linked")
+            self.fill()
+        return ok
+
+    def _link_menu(self, m, g):
+        every = getattr(self, "every", [])
+        if g["kind"] == "need":
+            sm = m.addMenu("Answered by")
+            a = sm.addAction("(no picture)", lambda: self.link(g["need"], "")); a.setCheckable(True); a.setChecked(not g.get("picture"))
+            sm.addSeparator()
+            for r in [x for x in every if x["kind"] != "need"][:40]:
+                a = sm.addAction(f"{r['name']}   ({r['where']})", lambda r=r: self.link(g["need"], r["id"]))
+                a.setCheckable(True); a.setChecked(g.get("picture") == r["id"])
+        else:
+            needs = [x for x in every if x["kind"] == "need"]
+            if not needs:
+                return None
+            sm = m.addMenu("Answers the need")
+            for r in needs[:40]:
+                on = r.get("picture") == g["id"]
+                a = sm.addAction(r["name"], lambda r=r, on=on: self.link(r["need"], "" if on else g["id"]))
+                a.setCheckable(True); a.setChecked(on)
+        return sm
 
     def current(self):
         r = self.table.currentRow()
@@ -235,6 +269,8 @@ class GraphicsPage(QWidget):
             if g["kind"] == "file":
                 m.addSeparator()
                 m.addAction("Find acronyms in it now", lambda: self.scan())
+        m.addSeparator()
+        self._link_menu(m, g)
         if pos is not None:
             m.exec(self.table.viewport().mapToGlobal(pos))
         return m

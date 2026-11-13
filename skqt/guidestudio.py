@@ -192,8 +192,8 @@ REDLINE = ("redline", "Documents", "Prepare for Redline",
   ["Authors redline in Word with Track Changes; there is no editor here."])
 
 GRAPHICS = ("graphics", "Documents", "Graphics",
-  "One row per graphic, the customer's and ours: a picture in Documents, a picture inside a document that the scan "
-  "found terms in, and each graphic need tagged in Shred. Each row says, for its current version, whether its words "
+  "One row per graphic, the customer's and ours: a picture in Documents, every picture the reader "
+  "saw inside a document (after its next scan), and each graphic need tagged in Shred. Each row says, for its current version, whether its words "
   "are read and its acronyms are swept.",
   "When you want to know that every graphic was read and swept, and again when a new version of one arrives.",
   ["Words read: Not read; Read, not confirmed; Confirmed. Acronyms: Not scanned; a count to decide; Swept.",
@@ -201,7 +201,7 @@ GRAPHICS = ("graphics", "Documents", "Graphics",
    "on Acronyms. A new version starts with neither mark.",
    "Double-click a row to open the picture in Acronyms with the words the reader found.",
    "Add graphics... adds pictures of ours to Documents as Internal graphics. A graphic need: right-click for "
-   "Needed, In work, Done."],
+   "Needed, In work, Done, and Answered by to link the picture that answers it (or Answers the need on the picture)."],
   ["Documents", "Acronyms"])
 
 CALENDAR = ("calendar", "The effort", "Calendar",

@@ -45,9 +45,10 @@ def _acros(pages, scanned, done, file):
     return ("None found, not marked swept", "none", keys) if scanned else ("Not scanned", "not", keys)
 
 
-def rows(lib, pages=(), scanned=(), done=(), confirmed=(), needs=()):
+def rows(lib, pages=(), scanned=(), done=(), confirmed=(), needs=(), pictures=None):
     """Every row of the log. pages: acrpages.pages(results); scanned: the file names of the last scan; done: the Page
-    done marks; confirmed: the words-read marks; needs: graphics.items(rec)."""
+    done marks; confirmed: the words-read marks; needs: graphics.items(rec); pictures (4.29.2): the session's
+    {file: [[place, words read]]}, every picture the reader saw."""
     done, confirmed, scanned = set(done or ()), set(confirmed or ()), {os.path.basename(str(x)) for x in (scanned or ())}
     by_file = {}
     for p in pages or ():
@@ -86,13 +87,57 @@ def rows(lib, pages=(), scanned=(), done=(), confirmed=(), needs=()):
                         "words": "Confirmed" if k in confirmed else "Read, not confirmed", "words_ok": k in confirmed,
                         "acros": "Swept" if k in done else (f"{left} to decide" if left else "Decided, not marked swept"),
                         "acros_state": "swept" if k in done else ("decide" if left else "decided"), "keys": [k], "page": k, "file": f})
+    # 4.29.2 (answer 6 of 2026-11-13): every picture the reader saw, not only those with a term in them
+    have = {r["page"] for r in out if r["kind"] == "inside"}
+    for d in docs:
+        vs = d.get("versions") or []
+        if not vs or d.get("withdrawn"):
+            continue
+        f = vs[-1].get("file", "")
+        if f in seen_files:
+            continue
+        for k, read in (pictures or {}).get(f) or []:
+            if k in have:
+                continue
+            have.add(k)
+            ok = k in confirmed
+            out.append({"kind": "inside", "id": "page:" + k, "doc": d["id"], "name": _pic_name(k, f), "where": d.get("name") or f,
+                        "side": "customer" if d.get("category", "customer") in CUSTOMER_SIDE else "ours",
+                        "version": vs[-1].get("label") or "", "versions": len(vs), "owner": "", "status": "",
+                        "words": "Confirmed" if ok else ("Read, not confirmed" if read else "No words read"), "words_ok": ok,
+                        "acros": "No terms found", "acros_state": "swept", "keys": [k], "page": k, "file": f})
     for g in needs or ():
         out.append({"kind": "need", "id": "need:" + g.get("id", ""), "doc": "", "name": g.get("concept", ""),
                     "where": g.get("section") or g.get("doc") or "", "side": "ours", "version": "", "versions": 0,
                     "owner": g.get("owner", ""), "status": g.get("status", "Needed"), "words": "", "words_ok": True,
                     "acros": "", "acros_state": "", "keys": [], "page": "", "file": "", "need": g.get("id", ""),
-                    "type": g.get("kind", "")})
+                    "type": g.get("kind", ""), "picture": g.get("picture", ""), "picture_name": g.get("picture_name", "")})
+    by_id = {r["id"]: r for r in out}                       # 4.29.2: a need and the picture that answers it name each other
+    for r in [x for x in out if x["kind"] == "need" and x.get("picture")]:
+        pic = by_id.get(r["picture"])
+        if pic is not None:
+            r["picture_name"] = pic["name"]
+            pic.setdefault("answers", []).append(r["name"])
+            pic.setdefault("answers_ids", []).append(r["need"])
+        else:
+            r["picture_gone"] = True
     return out
+
+
+def linked_text(r):
+    """What the In column adds: the picture a need is answered by, or the needs a picture answers."""
+    if r["kind"] == "need" and r.get("picture"):
+        return "answered by " + (r.get("picture_name") or "a picture") + (" (no longer listed)" if r.get("picture_gone") else "")
+    if r.get("answers"):
+        return "answers " + ", ".join(r["answers"])
+    return ""
+
+
+def _pic_name(key, file):
+    """A picture's place as its row names it: the part of the place after the file's name."""
+    k = str(key)
+    rest = k[len(file):] if file and k.startswith(file) else k
+    return rest.strip().strip("()").strip() or k
 
 
 def todo(r):
