@@ -137,11 +137,11 @@ def set_lm(M, items, lm):
 
 
 def full_ref(M, it, inherited=None):
-    """2.68.0: the document initial, L or M, and the section in the customer document: R-L-4.2.1."""
+    """2.68.0: the document initial, L or M, and the section in the customer document: RFP-L-4.2.1."""
     sec = it.get("section", "") or ((inherited if inherited is not None else inherited_sections(M)).get(it["id"], ""))
     lm = lm_of(M, it, inherited)
     if sec and lm and re.match(rf"^(?:Section\s+)?{lm}[.\s-]", sec, re.I):
-        sec = re.sub(rf"^(?:Section\s+)?{lm}[.\s-]+", "", sec, flags=re.I) or sec    # R-L-4.2 rather than R-L-L.4.2
+        sec = re.sub(rf"^(?:Section\s+)?{lm}[.\s-]+", "", sec, flags=re.I) or sec    # RFP-L-4.2 rather than RFP-L-L.4.2
     return "-".join(x for x in (initial_of(M, it), lm, sec) if x)
 
 

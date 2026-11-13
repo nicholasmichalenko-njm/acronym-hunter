@@ -13,9 +13,9 @@ class FolderPlanCard(D.Card):
     def __init__(self, host):
         super().__init__("Folders and file names",
                          "Your effort folder tree as you keep it on SharePoint, where each thing Stationkeeper makes goes, and "
-                         "how it is named. New efforts get the whole tree; an effort that exists keeps its folders (a folder "
-                         "appears the first time something is saved into it, and nothing is ever renamed or moved). Customer "
-                         "files keep the names the customer gave them.",
+                         "how it is named. New efforts get the whole tree (built in: the eleven numbered folders); an effort "
+                         "that exists keeps its folders, and nothing is ever renamed or moved. Customer files keep the names "
+                         "the customer gave them.",
                          actions=[D.button("Put back the built-in ones", "ghost", lambda: self.reset()),
                                   D.button("Make the folders in this effort", None, lambda: self.make_here(),
                                            "Every folder of the tree that the open effort does not have yet"),

@@ -397,7 +397,7 @@ class ReadPage(QWidget):
         dlg = QDialog(self); dlg.setWindowTitle("Initial and type for each document"); dlg.setMinimumWidth(720)
         v = QVBoxLayout(dlg)
         v.addWidget(D.label("Every customer document needs an initial and a type before it is read. The initial starts each "
-                            "requirement's reference in the matrix (R-L-4.2.1), so sections with the same number in different "
+                            "requirement's reference in the matrix (RFP-L-4.2.1), so sections with the same number in different "
                             "documents never get mixed up.", "muted"))
         t = QTableWidget(len(sugg), 3); t.setHorizontalHeaderLabels(["File", "Type", "Initial"])
         t.verticalHeader().setVisible(False); t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -410,7 +410,7 @@ class ReadPage(QWidget):
             c = type_box(dtype)
 
             def sug(ty, me=e):                                     # 2.94.0: the initial follows the type until typed
-                taken = {x[1].text().strip().upper() for x in rows if x[1] is not me} | \
+                taken = {x[1].text().strip() for x in rows if x[1] is not me} | \
                         {i2.get("initial") for i2 in self.identities_known().values() if i2.get("initial")}
                 return lib.suggest_initial(ty, taken) if lib is not None else DV.TYPE_INITIAL.get(ty, "X")
             follow(e, c, sug)
@@ -440,7 +440,7 @@ class ReadPage(QWidget):
         names = {os.path.basename(p) for p in ans}
         for f, i in known.items():
             if i.get("initial") and f not in names:
-                seen.setdefault(i["initial"], i.get("doc") or f)
+                seen.setdefault(i["initial"].casefold(), i.get("doc") or f)
         lib = self.library()
         for p, (ini, dtype) in ans.items():
             f = os.path.basename(p)
@@ -448,11 +448,11 @@ class ReadPage(QWidget):
             ini = DV.clean_initial(ini)
             if not ini:
                 out.append(f"{f}: give it an initial.")
-            elif ini in seen and seen[ini] != ((d or {}).get("name") or f):
+            elif ini.casefold() in seen and seen[ini.casefold()] != ((d or {}).get("name") or f):
                 out.append(f"{f}: {ini} is already used.")
             if dtype not in DV.DOC_TYPES:
                 out.append(f"{f}: pick its type.")
-            seen[ini] = (d or {}).get("name") or f
+            seen[ini.casefold()] = (d or {}).get("name") or f
         return out
 
     def identify(self, ans):

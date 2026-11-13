@@ -143,7 +143,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
 def check(lib, entries):
     """2.68.0: what is wrong with a plan before it is added: every new document needs an initial and a type, and no two
     documents share an initial. [] when it can be added."""
-    out, seen = [], set(lib.initials())
+    out, seen = [], {x.casefold() for x in lib.initials()}       # 4.24.0: Amd1 and AMD1 are the same initial
     for e in entries:
         if e.get("dup") or e["choice"] != "new":
             continue
@@ -153,11 +153,11 @@ def check(lib, entries):
         name = os.path.basename(e["path"])
         if not ini:
             out.append(f"{name}: give it an initial.")
-        elif ini in seen:
+        elif ini.casefold() in seen:
             out.append(f"{name}: the initial {ini} is already used.")
         if e.get("type") not in DV.DOC_TYPES:
             out.append(f"{name}: pick its type.")
-        seen.add(ini)
+        seen.add(ini.casefold())
     return out
 
 

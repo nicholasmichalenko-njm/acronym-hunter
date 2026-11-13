@@ -37,7 +37,7 @@ def find_moved(win, name, folder=None):
         win.status("No Effort List with its app data folder is in that folder.")
         return False
     got = ER.relink(lst, old)
-    win.efforts.put(name, path=lst, customer_dir=os.path.join(got["new_root"], "Customer Documents"))
+    win.efforts.put(name, path=lst, customer_dir=_customer(lst))
     diag.activity("effort_relinked", n=got["repointed"])
     win.toast(f"{name} found: {got['repointed']} saved path(s) now point at its new place")
     return True
@@ -67,7 +67,7 @@ def open_from_folder(win, path=None):
         while win.efforts.get(f"{base} ({k})"):
             k += 1
         name = f"{base} ({k})"
-    win.efforts.put(name, path=lst, customer_dir=os.path.join(got["new_root"], "Customer Documents"))
+    win.efforts.put(name, path=lst, customer_dir=_customer(lst))
     diag.activity("effort_opened_from_folder", n=got["repointed"])
     win.fill_efforts()
     win.open_effort(name)
@@ -89,3 +89,9 @@ def ready(win, name, info):
     if not ER.missing(info):
         return info
     return (win.efforts.get(name) or {}) if find_moved(win, name, getattr(win, "find_folder", None)) else {}
+
+
+def _customer(lst):
+    """The effort's customer documents folder where it is now (4.24.0: by the team's tree, or the older folder)."""
+    import effortfolders as EF
+    return EF.folder(lst, "customer", make=False)

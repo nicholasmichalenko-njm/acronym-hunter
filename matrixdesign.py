@@ -13,7 +13,7 @@ COLUMNS = {
     "order": ("Order", 8),                          # 2.51.0: sort on it to get the original layout back
     "section_no": ("Response section no.", 14),     # 2.56.0: our proposal section, number and name apart
     "section_name": ("Response section name", 30),
-    "reference": ("Reference", 16),                 # 2.68.0: document initial, L or M, section: R-L-4.2.1
+    "reference": ("Reference", 16),                 # 2.68.0: document initial, L or M, section: RFP-L-4.2.1
     "doc": ("Doc", 7),                              # 2.68.0: the customer document's initial
     "lm": ("L/M", 6),                               # 2.68.0: Section L (instructions) or M (evaluation), Shipley
     "doc_type": ("Document type", 14),              # 2.68.0: RFP, SOW, SOO, Amendment ...
@@ -61,7 +61,7 @@ CUSTOM = "custom:"                                   # 2.51.0: a column of the t
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
 # 2.56.0 (the user's default): Volume, Response section no., Response section name, RFP section, RFP content (compliance
 # requirements and their support, told apart by the row style), Author(s), Notes; every other column stays available.
-# 2.68.0: Reference (R-L-4.2.1), Doc, L/M and Section (the customer document's own number and title)
+# 2.68.0: Reference (RFP-L-4.2.1), Doc, L/M and Section (the customer document's own number and title)
 SENTENCES = {"columns": [{"key": k, "heading": h} for k, h in
                          (("volume", "Volume"), ("section_no", "Response section no."), ("section_name", "Response section name"),
                           ("reference", "Reference"), ("doc", "Doc"), ("lm", "L/M"), ("rfp_ref", "Section"),

@@ -150,9 +150,9 @@ import shutil
 p1 = shutil.copy2(PDFS[0], os.path.join(docs, "Kestrel_Amendment_0001.pdf"))
 made = dp.add([p1], choices=[{"choice": "new"}])
 d = made[0][0]
-check("a new document gets its type and initial (an amendment: A1)", d["type"] == "Amendment" and d["initial"] == "A1", (d.get("type"), d.get("initial")))
-check("a taken initial is refused", dp.add([PDFS[1]], choices=[{"choice": "new", "initial": "A1"}]) is None)
-check("the documents list shows the initial and type", dp.tree.topLevelItem(0).text(1) == "A1" and dp.tree.topLevelItem(0).text(2) == "Amendment")
+check("a new document gets its type and initial (an amendment: Amd1)", d["type"] == "Amendment" and d["initial"] == "Amd1", (d.get("type"), d.get("initial")))
+check("a taken initial is refused", dp.add([PDFS[1]], choices=[{"choice": "new", "initial": "amd1"}]) is None)
+check("the documents list shows the initial and type", dp.tree.topLevelItem(0).text(1) == "Amd1" and dp.tree.topLevelItem(0).text(2) == "Amendment")
 check("set the initial and type", dp.identity("K1", "Amendment", doc_id=d["id"]) == ""
       and DV.Library(w.ws.p("documents")).load().doc(d["id"])["initial"] == "K1")
 d2 = dp.add([PDFS[1]], choices=[{"choice": "new", "initial": "S2", "type": "SOW"}])[0][0]

@@ -21,8 +21,8 @@ F = {"Effort": "Kestrel Thermal", "Client": "USSF SSC", "Solicitation": "FA8810-
 check("built in: the names the app always used", FP.name_of("matrix_export", F, when=when) == "Kestrel_Thermal_Compliance_Matrix_2026-11-03.xlsx"
       and FP.name_of("tasks_questions", dict(F, Person="A_Lee"), when=when) == "Kestrel_Thermal_Tasks_and_Questions_A_Lee_2026-11-03_1430.xlsx"
       and FP.name_of("effort_list", F) == "Kestrel_Thermal_Effort_List.xlsx", FP.name_of("matrix_export", F, when=when))
-check("built in: the four folders", [t["path"] for t in P["tree"]] == ["Customer Documents", "Volumes", "Response Setup", "Exports"]
-      and FP.folder_of("calendar") == "Exports" and FP.folder_of("setup_changes") == "Response Setup" and FP.folder_of("effort_list") == "")
+check("4.24.0: built in: the eleven numbered folders, four with a job", [t["path"] for t in P["tree"]][:3] == ["01_proposal", "02_customer documents", "03_briefings and approvals"] and len([t for t in P["tree"] if "/" not in t["path"]]) == 11 and {t["role"] for t in P["tree"]} == {"", "customer", "volumes", "setup", "exports"}
+      and FP.folder_of("calendar") == "10_proposal management/Exports" and FP.folder_of("setup_changes") == "10_proposal management" and FP.folder_of("effort_list") == "")
 plan = FP.default()
 plan.update(tree=[{"path": "01 Customer Documents", "role": "customer"}, {"path": "01 Customer Documents/Amendments", "role": ""},
                   {"path": "02 {Solicitation} Capture", "role": ""}, {"path": "05 Volumes", "role": "volumes"},
@@ -72,7 +72,13 @@ old = os.path.join(efforts, "Heron", "Heron_Effort_List.xlsx"); os.makedirs(os.p
 check("an effort from before keeps its root beside its list", EF.root(old) == os.path.dirname(old))
 FP.save(cfg, FP.default())
 EF.remember(old, {"Effort": "Heron"})
-check("back to the built-in plan", EF.place(old, "keywords") == os.path.join(efforts, "Heron", "Exports", "Heron_Keywords.xlsx"), EF.place(old, "keywords"))
+check("back to the built-in plan", EF.place(old, "keywords", make=False) == os.path.join(efforts, "Heron", "10_proposal management", "Exports", "Heron_Keywords.xlsx"), EF.place(old, "keywords", make=False))
+os.makedirs(os.path.join(efforts, "Heron", "Exports")); os.makedirs(os.path.join(efforts, "Heron", "Customer Documents"))
+check("4.24.0: an effort made before keeps its folders: Exports and Customer Documents are used where they are",
+      EF.place(old, "keywords") == os.path.join(efforts, "Heron", "Exports", "Heron_Keywords.xlsx")
+      and EF.folder(old, "customer") == os.path.join(efforts, "Heron", "Customer Documents")
+      and not os.path.isdir(os.path.join(efforts, "Heron", "02_customer documents"))
+      and EF.folder(old, "volumes", make=False) == os.path.join(efforts, "Heron", "01_proposal"))
 n = sum(checks)
 print(f"FOLDER PLAN {'PASS' if all(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

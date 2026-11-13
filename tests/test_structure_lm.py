@@ -24,13 +24,13 @@ def run():
     # document identity
     assert DV.guess_type("Kestrel_SOW_rev2.docx") == "SOW" and DV.guess_type("FA8810_Amendment_0003.pdf") == "Amendment"
     assert DV.guess_type("Statement_of_Objectives.docx") == "SOO" and DV.guess_type("Kestrel.docx") == "RFP"
-    assert DV.clean_initial(" r-2! ") == "R2"
+    assert DV.clean_initial(" r-2! ") == "R2" and DV.clean_initial(" Sec  L ") == "Sec L" and DV.clean_initial("Amd12") == "Amd12"
     lib, files = library()
     plan = DI.plan(lib, files, reader=lambda p: [{"x": f"Text of {os.path.basename(p)} number {k}.", "p": 1} for k in range(3)])
     for e in plan:
         e["choice"] = "new"
-    assert [(e["type"], e["initial"]) for e in plan] == [("RFP", "R"), ("SOW", "S")], [(e["type"], e["initial"]) for e in plan]
-    plan[1]["initial"] = "R"
+    assert [(e["type"], e["initial"]) for e in plan] == [("RFP", "RFP"), ("SOW", "SOW")], [(e["type"], e["initial"]) for e in plan]
+    plan[1]["initial"] = "rfp"
     assert any("already used" in x for x in DI.check(lib, plan)), "two documents cannot share an initial"
     plan[1]["initial"] = ""
     assert any("give it an initial" in x for x in DI.check(lib, plan)), "an initial is required"
@@ -43,7 +43,7 @@ def run():
     rfp = lib.doc_of_file("Kestrel_RFP.docx")
     assert lib.set_identity(rfp["id"], "S", "RFP"), "a taken initial is refused"
     assert lib.set_identity(rfp["id"], "K", "RFP") == "" and lib.identity_map()["Kestrel_RFP.docx"]["initial"] == "K"
-    assert lib.suggest_initial("Amendment") == "A1" and lib.suggest_initial("RFP") == "R"
+    assert lib.suggest_initial("Amendment") == "Amd1" and lib.suggest_initial("RFP") == "RFP" and lib.suggest_initial("RFP", taken=("rfp",)) == "RFP2"
 
     # L and M, and the reference
     a = row(1, "L.4.2", "The Offeror shall describe the thermal design.")

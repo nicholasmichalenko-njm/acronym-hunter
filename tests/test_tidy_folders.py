@@ -82,10 +82,10 @@ check("data in the program folder (Program Files): nothing moves", DH.tidy_progr
 # an effort's folders
 L = os.path.join(DATA, "Efforts", "Kestrel", "Kestrel_Effort_List.xlsx")
 made = EF.create_all(L)
-check("a new effort gets Customer Documents, Volumes, Response Setup and Exports", sorted(os.path.basename(p) for p in made)
-      == sorted(EF.SUBS.values()) and all(os.path.isdir(p) for p in made))
-check("saves start in the effort's Exports folder", EF.out(L, "Kestrel_Calendar.xlsx") == os.path.join(DATA, "Efforts", "Kestrel", "Exports", "Kestrel_Calendar.xlsx"))
-check("Response Setup starts in its own folder", EF.out(L, kind="setup") == os.path.join(DATA, "Efforts", "Kestrel", "Response Setup"))
+check("4.24.0: a new effort gets the team's tree (eleven numbered folders) and Redlines", len([p for p in made if os.path.basename(p)[:2].isdigit()]) == 11
+      and all(os.path.isdir(p) for p in made) and os.path.isdir(EF.folder(L, "redlines")), made)
+check("saves start in the effort's Exports folder", EF.out(L, "Kestrel_Calendar.xlsx") == os.path.join(DATA, "Efforts", "Kestrel", "10_proposal management", "Exports", "Kestrel_Calendar.xlsx"))
+check("Response Setup starts in its own folder", EF.out(L, kind="setup") == os.path.join(DATA, "Efforts", "Kestrel", "10_proposal management"))
 check("no effort: no folder", EF.out("", "x.xlsx") == "x.xlsx" and EF.folder("", "exports") == "")
 ad = os.path.join(DATA, "Efforts", "Kestrel", "Kestrel_Effort_List - app data"); os.makedirs(ad)
 note = EF.note_app_data(ad)

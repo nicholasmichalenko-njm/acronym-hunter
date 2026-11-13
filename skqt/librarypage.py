@@ -151,7 +151,7 @@ class IntakeDialog(QDialog):
         cust = cat == "customer"
         w["role"].setCurrentIndex(max(0, w["role"].findData(DV.suggest_role(cat, w["ty"].currentText() if cust else ""))))
         if cust and not w["ini"].text().strip():
-            taken = [x["ini"].text().strip().upper() for k, x in enumerate(self.rows) if k != r]
+            taken = [x["ini"].text().strip() for k, x in enumerate(self.rows) if k != r]
             w["ini"].setText(self.lib.suggest_initial(w["ty"].currentText(), taken))
         self._changed(r)
 
@@ -161,7 +161,7 @@ class IntakeDialog(QDialog):
             w["role"].setCurrentIndex(max(0, w["role"].findData(DV.suggest_role("customer", w["ty"].currentText()))))
             e = self.plan[r]
             if not w["ini"].property("sk_typed"):
-                taken = [x["ini"].text().strip().upper() for k, x in enumerate(self.rows) if k != r]
+                taken = [x["ini"].text().strip() for k, x in enumerate(self.rows) if k != r]
                 e["initial"] = self.lib.suggest_initial(w["ty"].currentText(), taken)
                 w["ini"].setText(e["initial"])
 

@@ -19,14 +19,16 @@ def _check(on):
 class DocTypesCard(D.Card):
     def __init__(self, host):
         super().__init__("Document types",
-                         "The kinds of customer document your team works with and the initial each starts with. When you "
-                         "add a document, its type fills in the initial (numbered types count up: A1, A2...). File name words "
-                         "help the app guess one of your own types.",
+                         "The kinds of customer document your team works with and the initial each starts with (the type's "
+                         "short name: RFP, SOW, Sec L). When you add a document, its type fills in the initial, and a second "
+                         "document of a type is numbered by itself (RFP2; amendments count from Amd1). File name words help "
+                         "the app guess one of your own types.",
                          actions=[D.button("Put back the built-in ones", "ghost", lambda: self.reset()),
                                   D.button("Save", "primary", lambda: self.save())])
         self.host = host
         self.lock_note = self.add(D.label("", "muted"))
         t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Type", "Initial", "Numbered", "Builds the matrix", "File name words"])
+        t.setColumnHidden(2, True)                      # 4.24.0: numbering is automatic; the value is kept as it was saved
         t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows)
         for i, w in enumerate((200, 80, 90, 130, 0)):
             if w:
@@ -81,7 +83,7 @@ class DocTypesCard(D.Card):
     def values(self):
         return [self._vals(i) for i in range(self.table.rowCount())]
 
-    def add_type(self, name="New type", initial="N"):
+    def add_type(self, name="New type", initial="New"):
         i = self._row({"name": name, "initial": initial, "numbered": False, "matrix": False, "words": "", "orig": None})
         self.table.setCurrentCell(i, 0)
         return i

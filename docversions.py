@@ -123,8 +123,9 @@ def snapshot(name, chunks):
 # ------------------------------------------------------------------ what each customer document is (2.68.0)
 DOC_TYPES = ("RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Q&A", "Attachment", "CDRL", "DD 254", "Contract",
              "Task order", "Delivery order", "Other")
-TYPE_INITIAL = {"RFP": "R", "Amendment": "A", "SOW": "S", "SOO": "O", "PWS": "P", "Section L": "L", "Section M": "M", "Q&A": "Q",
-                "Attachment": "J", "CDRL": "C", "DD 254": "D", "Contract": "CT", "Task order": "TO", "Delivery order": "DO", "Other": "X"}
+TYPE_INITIAL = {"RFP": "RFP", "Amendment": "Amd", "SOW": "SOW", "SOO": "SOO", "PWS": "PWS", "Section L": "Sec L", "Section M": "Sec M",
+                "Q&A": "QA", "Attachment": "Att", "CDRL": "CDRL", "DD 254": "DD254", "Contract": "Con", "Task order": "TO",
+                "Delivery order": "DO", "Other": "X"}      # 4.24.0: the type's short name (doctypes.BUILT_IN)
 ORDER_TYPES = ("Task order", "Delivery order")      # filed under the base contract or RFP, each with its own versions (mods)
 BASE_TYPES = ("Contract", "RFP")
 
@@ -153,9 +154,10 @@ def type_of(name):
 
 
 def clean_initial(text):
-    """An initial: letters and digits only, upper case, at most 6 characters."""
-    import re
-    return re.sub(r"[^A-Za-z0-9]", "", text or "").upper()[:6]
+    """A document's initial: letters, digits and single spaces, at most 8 characters (4.24.0: as typed, so Sec L and
+    Amd; a type's own is at most 6, which leaves room for the number)."""
+    import doctypes
+    return doctypes.clean_initial(text, 8)
 
 
 def guess_type(name):
@@ -444,18 +446,18 @@ class Library(PathsMixin):
         return {d.get("initial", "") for d in self.docs if d.get("initial") and d["id"] != but}
 
     def suggest_initial(self, dtype, taken=()):
-        """The type's letter, numbered when taken (R, R2...; amendments A1, A2...)."""
+        """The type's initial, numbered when taken (RFP, RFP2...; amendments Amd1, Amd2...)."""
         base = TYPE_INITIAL.get(dtype, "X")
-        used = self.initials() | set(taken)
+        used = {u.casefold() for u in self.initials() | set(taken)}
         if dtype in NUMBERED:
             n = 1
-            while f"{base}{n}" in used:
+            while f"{base}{n}".casefold() in used:
                 n += 1
             return f"{base}{n}"
-        if base not in used:
+        if base.casefold() not in used:
             return base
         n = 2
-        while f"{base}{n}" in used:
+        while f"{base}{n}".casefold() in used:
             n += 1
         return f"{base}{n}"
 
@@ -463,10 +465,10 @@ class Library(PathsMixin):
         """'' when fine, else what is wrong (the person sees it)."""
         ini = clean_initial(initial)
         if not ini:
-            return "Give the document an initial (letters and digits, up to 6)."
+            return "Give the document an initial (up to 8 letters and digits)."
         if dtype not in DOC_TYPES:
             return "Pick the document's type."
-        if ini in self.initials(but=doc_id):
+        if ini.casefold() in {u.casefold() for u in self.initials(but=doc_id)}:
             return f"Another document already uses {ini}."
         return ""
 

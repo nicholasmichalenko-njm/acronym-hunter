@@ -1,8 +1,9 @@
 """Document types (2.94.0): the kinds of customer document the team works with, each with its default initial, set once
 in Settings > Document types, kept in the config folder (doc_types.json) and carried by a team pack.
 
-Each type: its name, its initial (the letter that starts the document's references: R-L-4.2.1), whether its documents
-are numbered (Amendment: A1, A2...), whether it builds the matrix by default, and words in a file name that suggest it
+Each type: its name, its initial (4.24.0: the type's short name, which starts the document's references: RFP-L-4.2.1),
+whether its documents are numbered from the first (Amendment: Amd1, Amd2...; kept in the file, no longer a column:
+a second document of any type is numbered by itself), whether it builds the matrix by default, and words in a file name that suggest it
 (for a type of the team's own; the built-in ones are recognised as before). Renaming a type keeps the old name as an
 alias, so documents already filed under it follow. "Other" always stays: a document of no listed type is Other.
 Standard library only.
@@ -11,18 +12,18 @@ import json, os, re
 
 FILE = "doc_types.json"
 BUILT_IN = [
-    {"name": "RFP", "initial": "R", "numbered": False, "matrix": True, "words": ""},
-    {"name": "Amendment", "initial": "A", "numbered": True, "matrix": True, "words": ""},
-    {"name": "SOW", "initial": "S", "numbered": False, "matrix": True, "words": ""},
-    {"name": "SOO", "initial": "O", "numbered": False, "matrix": True, "words": ""},
-    {"name": "PWS", "initial": "P", "numbered": False, "matrix": True, "words": ""},
-    {"name": "Section L", "initial": "L", "numbered": False, "matrix": True, "words": ""},
-    {"name": "Section M", "initial": "M", "numbered": False, "matrix": True, "words": ""},
-    {"name": "Q&A", "initial": "Q", "numbered": False, "matrix": False, "words": ""},
-    {"name": "Attachment", "initial": "J", "numbered": False, "matrix": False, "words": ""},
-    {"name": "CDRL", "initial": "C", "numbered": False, "matrix": False, "words": ""},
-    {"name": "DD 254", "initial": "D", "numbered": False, "matrix": False, "words": ""},
-    {"name": "Contract", "initial": "CT", "numbered": False, "matrix": False, "words": ""},
+    {"name": "RFP", "initial": "RFP", "numbered": False, "matrix": True, "words": ""},
+    {"name": "Amendment", "initial": "Amd", "numbered": True, "matrix": True, "words": ""},
+    {"name": "SOW", "initial": "SOW", "numbered": False, "matrix": True, "words": ""},
+    {"name": "SOO", "initial": "SOO", "numbered": False, "matrix": True, "words": ""},
+    {"name": "PWS", "initial": "PWS", "numbered": False, "matrix": True, "words": ""},
+    {"name": "Section L", "initial": "Sec L", "numbered": False, "matrix": True, "words": ""},
+    {"name": "Section M", "initial": "Sec M", "numbered": False, "matrix": True, "words": ""},
+    {"name": "Q&A", "initial": "QA", "numbered": False, "matrix": False, "words": ""},
+    {"name": "Attachment", "initial": "Att", "numbered": False, "matrix": False, "words": ""},
+    {"name": "CDRL", "initial": "CDRL", "numbered": False, "matrix": False, "words": ""},
+    {"name": "DD 254", "initial": "DD254", "numbered": False, "matrix": False, "words": ""},
+    {"name": "Contract", "initial": "Con", "numbered": False, "matrix": False, "words": ""},
     {"name": "Task order", "initial": "TO", "numbered": True, "matrix": True, "words": ""},
     {"name": "Delivery order", "initial": "DO", "numbered": True, "matrix": True, "words": ""},
     {"name": "Other", "initial": "X", "numbered": False, "matrix": False, "words": ""},
@@ -33,8 +34,11 @@ def _clean(s, n=40):
     return " ".join(str(s or "").split())[:n]
 
 
-def clean_initial(text):
-    return re.sub(r"[^A-Za-z0-9]", "", text or "").upper()[:6]
+def clean_initial(text, n=6):
+    """An initial: letters, digits and single spaces, at most 6 characters (8 on a document, for its number), as typed (4.24.0: Sec L, Amd); typed all
+    in small letters it becomes capitals, as before."""
+    t = " ".join(re.sub(r"[^A-Za-z0-9 ]", "", text or "").split())[:n].strip()
+    return t.upper() if t == t.lower() else t
 
 
 def load(config_dir):
@@ -71,7 +75,7 @@ def problems(types):
             out.append(f"{n} is listed twice")
         seen[n.casefold()] = 1
         if not clean_initial(t.get("initial")):
-            out.append(f"{n} needs an initial (letters and digits, up to 6)")
+            out.append(f"{n} needs an initial (up to 6 letters and digits)")
     if not seen:
         out.append("Keep at least one type")
     return out

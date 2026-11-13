@@ -22,8 +22,15 @@ FILE = "folder_plan.json"
 ROLES = (("customer", "Customer documents"), ("volumes", "Volumes (our Word files)"), ("setup", "Response Setup documents"),
          ("exports", "Exports (the default for anything else)"))
 ROLE_NAMES = dict(ROLES)
-DEFAULT_TREE = [{"path": "Customer Documents", "role": "customer"}, {"path": "Volumes", "role": "volumes"},
-                {"path": "Response Setup", "role": "setup"}, {"path": "Exports", "role": "exports"}]
+# 4.24.0 (Nicholas, 2026-11-12): the tree a new effort gets, as the team keeps it on SharePoint. A PC that saved its own
+# tree keeps it. An effort made before keeps its folders (effortfolders: the older folder is used where it exists).
+DEFAULT_TREE = [{"path": "01_proposal", "role": "volumes"}, {"path": "02_customer documents", "role": "customer"},
+                {"path": "03_briefings and approvals", "role": ""}, {"path": "04_RFIs and white papers", "role": ""},
+                {"path": "05_program management", "role": ""}, {"path": "06_cost and pricing", "role": ""},
+                {"path": "07_tech engineering", "role": ""}, {"path": "08_operations and supply chain", "role": ""},
+                {"path": "09_contracts", "role": ""}, {"path": "10_proposal management", "role": "setup"},
+                {"path": "10_proposal management/Exports", "role": "exports"},
+                {"path": "11_submission confirmation and results", "role": ""}]
 # key: (what it is, the folder's job it goes to by default, the name pattern, the extension or "" for a folder)
 OUTPUTS = [
     ("effort_list", "The effort list (new efforts)", "", "{Effort}_Effort_List", ".xlsx"),

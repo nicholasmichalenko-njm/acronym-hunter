@@ -9,7 +9,8 @@
       <name>_Effort_List.xlsx
       <name>_Effort_List - app data\\   the app's working files for the effort (a note inside says not to edit them)
 
-A new effort gets the four folders. An older effort keeps its files where they are; a folder appears the first time
+A new effort gets the team's tree (4.24.0: eleven numbered folders unless the team set its own; folderplan). An older
+effort keeps its files where they are (its older folder is used where the tree's is not there); a folder appears the first time
 something is saved into it. Every save still asks where to put the file: these are only where the dialog starts.
 Standard library only.
 """
@@ -75,8 +76,18 @@ def folder(effort_path, kind, make=True):
     if not r:
         return ""
     parts = FP.folder_path(FP.folder_of(role=kind), fields_of(effort_path)) or [SUBS[kind]]
-    p = os.path.join(r, *parts)
+    p = _kept(r, os.path.join(r, *parts), kind)
     return _make(p, r) if make else p
+
+
+def _kept(r, p, kind):
+    """4.24.0: an effort made before the tree changed keeps its folders: where the tree's folder for a job is not there
+    and the older one (Customer Documents, Volumes, Response Setup, Exports) is, the older one is used."""
+    if kind in SUBS and not os.path.isdir(p):
+        old = os.path.join(r, SUBS[kind])
+        if os.path.isdir(old):
+            return old
+    return p
 
 
 def place(effort_path, key, fields=None, ext=None, make=True):
@@ -87,8 +98,11 @@ def place(effort_path, key, fields=None, ext=None, make=True):
     f_all = dict(fields_of(effort_path), **{k: v for k, v in (fields or {}).items() if v})
     if not r:
         return FP.name_of(key, f_all, ext=ext) if key in FP.OUT else ""
-    parts = FP.folder_path(FP.folder_of(key), f_all)
+    rel = FP.folder_of(key)
+    parts = FP.folder_path(rel, f_all)
     d = os.path.join(r, *parts) if parts else r
+    if parts:
+        d = _kept(r, d, next((t["role"] for t in FP.current()["tree"] if t["path"] == rel), ""))
     if make:
         d = _make(d, r)
     if key not in FP.OUT or not FP.OUT[key][3] and ext is None:

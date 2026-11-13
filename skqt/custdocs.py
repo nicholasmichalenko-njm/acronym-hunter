@@ -112,7 +112,7 @@ class AddDialog(QDialog):
         v = QVBoxLayout(self)
         v.addWidget(D.label("Each file is matched by its name and its text to the documents already here. Check what each "
                             "one is, then Add. Every new document needs an initial and a type: the initial starts each "
-                            "requirement's reference in the matrix (R-L-4.2.1), so sections with the same number in "
+                            "requirement's reference in the matrix (RFP-L-4.2.1), so sections with the same number in "
                             "different documents never get mixed up. A new version keeps its document's initial.", "muted"))
         self.lib = lib
         self.table = QTableWidget(len(plan), 6)
@@ -166,7 +166,7 @@ class AddDialog(QDialog):
         """A new type suggests its letter, unless the person typed their own."""
         e = self.plan[r]
         if not ini.property("sk_typed"):
-            taken = [w[3].text().strip().upper() for k, w in enumerate(self.rows) if k != r]
+            taken = [w[3].text().strip() for k, w in enumerate(self.rows) if k != r]
             e["initial"] = self.lib.suggest_initial(dtype, taken)
             ini.setText(e["initial"])
 
@@ -342,7 +342,7 @@ class DocsPage(QWidget):
         if initial is None:
             dlg = QDialog(self); dlg.setWindowTitle("Initial and type")
             f = QFormLayout(dlg)
-            f.addRow(D.label(f"{d['name']}: the initial starts each requirement's reference (R-L-4.2.1); every version of "
+            f.addRow(D.label(f"{d['name']}: the initial starts each requirement's reference (RFP-L-4.2.1); every version of "
                              "the document shares it.", "muted"))
             ini = QLineEdit(d.get("initial", "") or c.lib.suggest_initial(d.get("type") or DV.guess_type(d["name"])))
             ini.setMaxLength(6)

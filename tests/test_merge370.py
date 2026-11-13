@@ -108,7 +108,9 @@ check("archived efforts are listed apart", EA.archived(reg) == ["Kestrel (Pat's 
 check("an archived effort can still be merged from", EM.merge(reg, "Kestrel", "Kestrel (Pat's copy)")["ok"])
 EA.restore(reg, "Kestrel (Pat's copy)")
 check("restore brings it back", not reg.get("Kestrel (Pat's copy)").get("archived") and "Kestrel (Pat's copy)" in EA.active(reg))
-check("there is no delete", not any(hasattr(EA, n) for n in ("delete", "remove", "forget")))
+check("4.24.0: delete takes an archived effort off the list, never a live one; its files stay", not EA.delete(reg, "Kestrel")
+      and reg.get("Kestrel") and EA.archive(reg, "Kestrel (Pat's copy)") is not None and EA.delete(reg, "Kestrel (Pat's copy)")
+      and not reg.get("Kestrel (Pat's copy)"))
 
 print(f"MERGE 370 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

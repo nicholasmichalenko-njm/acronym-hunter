@@ -30,7 +30,11 @@ cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 fc = w.settings_page.folders_card
-check("Settings: Folders and file names with the built-in tree", [fc._path(i) for i in fc._items()] == ["Customer Documents", "Volumes", "Response Setup", "Exports"])
+check("Settings: Folders and file names with the built-in tree", [fc._path(i) for i in fc._items()] == [t["path"] for t in FP.DEFAULT_TREE])
+check("4.24.0: eleven numbered folders; Exports sits under 10_proposal management", len(fc.tree_rows()) == 12
+      and any(fc.places.item(i, 3).text() == "10_proposal management/Exports/Effort_Compliance_Matrix_2026-11-03.xlsx" for i in range(fc.places.rowCount())))
+fc.fill(dict(FP.default(), tree=[{"path": "Customer Documents", "role": "customer"}, {"path": "Volumes", "role": "volumes"},
+                                 {"path": "Response Setup", "role": "setup"}, {"path": "Exports", "role": "exports"}]))   # a team's own tree of four
 check("every output listed with a sample", fc.places.rowCount() == len(FP.OUTPUTS)
       and any(fc.places.item(i, 3).text() == "Exports/Effort_Compliance_Matrix_2026-11-03.xlsx" for i in range(fc.places.rowCount())),
       [fc.places.item(i, 3).text() for i in range(4)])
@@ -95,7 +99,7 @@ TP.install(cfgB, info, data)
 check("a team pack carries the folders and file names, locked", FP.load(cfgB)["home"] == "99 Stationkeeper" and TP.locked(cfgB, "folders"))
 FP.apply(cfg)
 fc.reset(answer=True)
-check("Put back the built-in ones (not saved until Save)", [fc._path(i) for i in fc._items()] == ["Customer Documents", "Volumes", "Response Setup", "Exports"]
+check("Put back the built-in ones (not saved until Save)", sorted(fc._path(i) for i in fc._items()) == sorted(t["path"] for t in FP.DEFAULT_TREE)
       and FP.load(cfg)["home"] == "99 Stationkeeper")
 n = sum(checks)
 print(f"QT FOLDER PLAN {'PASS' if all(checks) else 'FAIL'} ({n}/{len(checks)})")
