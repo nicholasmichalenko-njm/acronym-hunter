@@ -221,4 +221,8 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 4.28.0 | Parts is named Quick Parts on screen (the page key stays designs) | Answer 21 |
 | 4.28.1 | Styles: each row's preview is a box of one size (stylespage.BOX) with the style drawn at its true size, cut off at the edge when too big, its real size written beside it. The 14 pt cap was not taken | Nicholas 2026-11-12, answer 22 |
 | 4.28.1 | Styles: the details (Font, Paragraph, Characters, Other) share the row's width after the name, the box and the size; the font is named in itself; a row's words do not take the mouse, so a drag carries every selected row | Nicholas 2026-11-12 10:53 |
+| 4.28.2 | A template is its own named thing (namedtemplates): a name and a pick of style sets, a Quick Part set and starting pages over the Company Standards (Default); no effort type, no profile. Its version is the template's own and survives a rename | Nicholas 2026-11-12, answer 23 |
+| 4.28.2 | An effort picks a named template for each volume (Setup > More > Templates for the volumes...). The pick is stored as that volume's template file (templatesetup), so one path writes the setup on any template | Answer 23 |
+| 4.28.2 | The Template entry opens the named list; the Effort Profiles' list is its second tab, From profiles (page key tplprofiles) | Answer 23 |
+| 4.28.2 | Team defaults is on the Team page, not in Settings | Nicholas 2026-11-12, answer 12 |
 

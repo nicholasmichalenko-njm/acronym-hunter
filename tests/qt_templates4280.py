@@ -29,7 +29,7 @@ def check(name, ok, info=""):
 check("the menu's groups: Effort, Templates, Team, Settings", [g for g, _i in MW.RAIL] == ["Effort", "Templates", "Team", "Settings"])
 check("Templates: Styles, Quick Parts, Page Layout, Template", dict(MW.RAIL)["Templates"] == [("styles", "Styles"), ("designs", "Quick Parts"),
                                                                                               ("formatstd", "Page Layout"), ("templates", "Template")])
-check("Template holds Templates, Effort Profiles and Template Studio", [k for k, _t in MW.TABS["templates"]] == ["templates", "profiles", "studio"])
+check("Template holds Templates, From profiles (4.28.2), Effort Profiles and Template Studio", [k for k, _t in MW.TABS["templates"]] == ["templates", "tplprofiles", "profiles", "studio"])
 check("Team keeps Rules, Check a Draft and Team References", MW.TEAM == ("rules", "audit", "refs") and [k for k, _n, _w in TP.TILES] == ["rules", "audit", "refs"])
 check("each of the pages says it is in Templates", all(MW.GROUP_OF.get(k) == "Templates" for k in ("styles", "designs", "formatstd", "layoutstd", "templates", "profiles", "studio", "qpstd")),
       {k: MW.GROUP_OF.get(k) for k in ("styles", "designs", "formatstd", "layoutstd", "templates", "profiles", "studio", "qpstd")})
@@ -44,12 +44,12 @@ app = QApplication([]); D.apply(app)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
 check("the four entries are in the menu with no effort open", all(k in w.step_btns and w.step_btns[k].isVisible() for k in ("styles", "designs", "formatstd", "templates")))
 check("... under their own heading", w.group_heads["Templates"] is not None and w.group_heads["Templates"].text() == "TEMPLATES")
-for k, page in (("styles", "styles_page"), ("designs", "designs_page"), ("formatstd", "formatstd_page"), ("templates", "templates_page")):
+for k, page in (("styles", "styles_page"), ("designs", "designs_page"), ("formatstd", "formatstd_page"), ("templates", "named_page")):   # 4.28.2: the templates you name
     w.rail_go(k); app.processEvents()
     check(f"{k} opens from the menu with no effort open, and lights its entry", w.stack.currentWidget() is getattr(w, page) and w.step_btns[k].isChecked() and w.ws is None,
           (type(w.stack.currentWidget()).__name__, w.ws is None))
 w.rail_go("templates"); app.processEvents()
-check("Template shows its three tabs", w._tab_keys == ["templates", "profiles", "studio"], w._tab_keys)
+check("Template shows its tabs", w._tab_keys == ["templates", "tplprofiles", "profiles", "studio"], w._tab_keys)
 w.rail_go("styles"); app.processEvents()
 check("Styles, Quick Parts and Page Layout have no tabs: each is a screen", not w._tab_keys or w._tab_keys == ["styles"], w._tab_keys)
 

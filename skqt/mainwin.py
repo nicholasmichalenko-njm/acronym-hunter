@@ -69,7 +69,7 @@ TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.8.0
-        "templates": [("templates", "Templates"), ("profiles", "Effort Profiles"), ("studio", "Template Studio")],   # 4.28.0: the Templates group
+        "templates": [("templates", "Templates"), ("tplprofiles", "From profiles"), ("profiles", "Effort Profiles"), ("studio", "Template Studio")],   # 4.28.0, 4.28.2
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
@@ -426,7 +426,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
 
-    NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates",
+    NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles",
                  "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}
 
     def rail_go(self, key):

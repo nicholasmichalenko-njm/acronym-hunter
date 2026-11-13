@@ -45,6 +45,8 @@ class SetupsPage(QWidget):
         self.b_make = bar.primary("Make the setup", lambda: self.make(),
                                   "Each volume's template with the setup written on it: the customer's words and your notes in "
                                   "hidden reference styles")
+        bar.more("Templates for the volumes...", lambda: __import__("skqt.namedtplpage", fromlist=["x"]).volume_templates(self),
+                 "Each volume takes a template you named in Templates > Template, or the effort's own formatting")
         bar.more("Edit as text / Start from", lambda: self.builder.show_text(not self.builder.text_panel.isVisible()),
                  "The sections as text, one per line, and Start from the RFP or a Word outline")
         bar.more("Sort in document order", lambda: self.builder.sort_order(),

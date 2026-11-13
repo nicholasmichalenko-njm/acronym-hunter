@@ -195,8 +195,9 @@ class SettingsPage(QWidget):
                 ("People", ("authors",)),
                 ("Document types", ("doctypes_card",)),
                 ("Shred and responses", ("ri_card", "re_card", "un_card", "sg_card")),
-                ("Team data and training", ("tl_card", "team_card", "ourdata", "tr")),
+                ("Team data and training", ("tl_card", "ourdata", "tr")),
                 ("Updates and help", ("up", "sec", "help")))
+    MOVED = ("team_card",)                       # 4.28.2 (answer 12): Team defaults is on the Team page
     SET_ASIDE = ("process_card", "roles_card")   # 4.24.0: not shown for now; the code, the saved values and the tests stay
 
     def _sections(self, outer, old):
@@ -220,7 +221,7 @@ class SettingsPage(QWidget):
             v.addStretch(1)
             self.stack.addWidget(sc); self.scrolls.append(sc)
             self.section_list.addItem(name)
-        for k in self.SET_ASIDE:
+        for k in self.SET_ASIDE + self.MOVED:
             c = getattr(self, k)
             c.setParent(self); c.setVisible(False)
         old.setParent(None); old.deleteLater()

@@ -72,7 +72,7 @@ own_logo = BR.add_logo(cfgB, pic("b1.png", (30, 140, 60)))
 MD.save_team(cfgB, MD.default())
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfgB, A.APP_VERSION); w.resize(1500, 950); w.show()
-tc = w.settings_page.team_card
+tc = w.team_page.team_card              # 4.28.2: Team defaults is on the Team page
 said = dict(tc.install(pack, confirm=False))
 check("the preview says what installing does, part by part", "1" not in said["authors"] or "3 name(s) added" in said["authors"], said)
 check("the preview: locked parts replace, the rest add", "Replaces" in said["logos"] and "Replaces" in said["design"]

@@ -19,7 +19,7 @@ PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"shredlist", "redline", "rcheck", "exceptions", "markups", "graphics", "overview", "tasks", "calendar", "activity", "efforts", "mywork", "home", "deliverables", "evalcrit", "sort", "settings", "tools", "refs"}   # 3.63.0: Evaluation Criteria   # 3.53.0: Quick tools, Team References
 TOOLS = {
     "Production": {"studio", "applyword", "shredreq", "shredacc", "techedit", "library", "ours", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
-                   "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
+                   "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
     "Author": {"shredreq", "techedit", "library", "ours", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
                "acrlist", "keywords", "drafts"},
     "Reviewer": {"finalcheck", "techedit", "reviews", "library", "ours", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
@@ -57,7 +57,7 @@ def profile_of(role_text):
 
 MENU = ("tools", "mywork", "efforts", "home", "deliverables", "evalcrit", "effortfmt", "record", "reviews", "postsub", "library", "ours", "read", "compare", "requirements",
         "custqa", "structure", "outline", "shredreq", "shredacc", "assign", "place", "sort", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "draftacr", "truth", "acronyms", "acrlist", "techedit",
-        "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "studio", "applyword", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
+        "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "studio", "applyword", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles", "rules", "refs", "exportall", "settings", "prodstd")
 
 
 def allowed(profile, step):

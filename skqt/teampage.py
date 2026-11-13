@@ -55,4 +55,6 @@ class TeamPage(QWidget):
         hidden = len(TILES) - len(keys)
         self.note.setText(f"{hidden} more are for other roles than {prof}." if hidden else "")
         self.note.setVisible(bool(hidden))
+        if getattr(self, "team_card", None) is not None:           # 4.28.2: Team defaults lives here
+            self.team_card.refresh()
         return keys

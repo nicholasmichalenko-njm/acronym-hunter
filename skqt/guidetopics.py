@@ -581,10 +581,10 @@ TOPICS = [
   ["A profile in several effort types keeps its own parts and limits in each.",
    "An effort's own changes stay in Effort Formatting, on top of its profile."]),
  ("templates", "Templates", "Template",
-  "Every Word template the Effort Profiles make, one row per effort type, profile and volume: Ready, Needs review, Blocked or "
-  "Not made yet, and why.",
+  "The templates you name (4.28.2): each has a name and a pick of style sets, a Quick Part set and starting pages. New template..., "
+  "What goes in..., Make it. An effort picks one for a volume in Setup > More. From profiles lists the ones the Effort Profiles make.",
   "After changing a profile or the libraries, and before an effort's volumes are started.",
-  ["Show narrows the list to one effort type.",
+  ["On From profiles, Show narrows the list to one effort type.",
    "Make .dotx makes one template in the output folder's Templates folder, in a folder named for its effort type. Make all "
    "ready makes every template that nothing stops and that changed or was never made.",
    "Needs review: a newer library version waits on its profile, or the profile changed since the template was made. "

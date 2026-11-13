@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+A TEMPLATE OF ITS OWN (4.28.2)
+  - Templates > Template lists the templates you name. A template is a name and a pick: which style sets (in
+    order), which Quick Part set, which pages a document starts with. The page and the text's layout come from
+    the Company Standards (Default). It belongs to no effort type and no profile.
+  - New template... names one. What goes in... (or a double-click) picks its sets; each pick is kept at once.
+    Make it writes the .dotx in the output folder's Templates\Named folder, with its name and version in it.
+  - The State column: Not made yet, Ready, or Needs review when what goes in changed since it was made (a style
+    added to a picked set counts).
+  - Right-click a row: Open in Word, Rename..., Remove. A removed template's file stays in its folder.
+  - An effort picks one for each volume: Setup > More > Templates for the volumes... Each volume takes a made
+    template or The effort's own formatting. The pick is kept as that volume's template file, with a copy in
+    the effort's Templates folder, so Make the setup writes the setup on it.
+  - When a picked template is made again, the dialog says a newer version waits; pick it again to take it.
+  - The second tab, From profiles, is the list the Effort Profiles make (it was Templates).
+  - Team defaults (the team pack, team topics, sensitivity markings) moved from Settings to the Team page.
+  - A style's values are still one set in two places: change it in the app and Company Standards.xlsx follows;
+    change it in Excel and the app reads it (4.7.0).
+
 THE STYLE LIST (4.28.1)
   - Every row has a preview box of the same size, beside the style's name. The style is drawn in it at its true
     size. A style too big for the box is cut off at the box's edge, and the row says "cut off".
