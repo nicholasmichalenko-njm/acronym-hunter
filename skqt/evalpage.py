@@ -40,6 +40,12 @@ class EvalPage(QWidget):
         row.addWidget(D.button("Set importance", "ghost", lambda: self.set_importance(self.imp_set.currentText())))
         row.addWidget(D.button("Remove", "danger", lambda: self.remove()))
         row.addStretch(1)
+        # 4.29.4 (the capture audit, Nicholas 2026-11-13): a Hot button captured in Shred is read here. Before, only All
+        # cards showed it, and All cards retires.
+        self.hot_title = D.SectionTitle("Hot buttons"); v.addWidget(self.hot_title)
+        self.hot_list = D.label("", None); self.hot_list.setWordWrap(True); self.hot_list.setTextFormat(Qt.RichText)
+        self.hot_list.linkActivated.connect(lambda h: self.remove_hot(h))
+        v.addWidget(self.hot_list)
         v.addWidget(D.SectionTitle("Evaluation pieces from the shred (Section M, and pieces said to be an Evaluation Criterion)"))
         self.mtab = QTableWidget(0, 3); self.mtab.setHorizontalHeaderLabels(["ID", "The customer's words", "In the shred"])
         self.mtab.verticalHeader().setVisible(False); self.mtab.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -58,6 +64,7 @@ class EvalPage(QWidget):
         self.setEnabled(r is not None)
         if r is None:
             return
+        self.fill_hot(r)
         fs = F.factors(r)
         names = {d["id"]: d["name"] for d in DL.items(r)}
         self.ids = [f["id"] for f in fs]
@@ -86,6 +93,27 @@ class EvalPage(QWidget):
             ts = ST.types_of(it)                                                     # 4.5.0: every type it has
             for j, val in enumerate((it["id"], it.get("text", ""), ", ".join(tnames.get(t, t) for t in ts) or "not shredded yet")):
                 self.mtab.setItem(i, j, QTableWidgetItem(val))
+
+    def fill_hot(self, r):
+        """The hot buttons captured in Shred: what the customer cares about most, each with where it was said."""
+        import html
+        hs = F.hot_buttons(r)
+        rows = []
+        for h in hs:
+            where = " ".join(x for x in (h.get("doc", ""), h.get("loc", "")) if x)
+            rows.append(f"<b>{html.escape(h.get('text', ''))}</b>" + (f" &nbsp;<span style='color:{D.tokens()['muted']}'>{html.escape(where)}</span>" if where else "")
+                        + f" &nbsp;<a href='{html.escape(h.get('id', ''))}'>Remove</a>")
+        self.hot_list.setText("<br>".join(rows) if rows else
+                              f"<span style='color:{D.tokens()['muted']}'>None yet. In Shred, select a piece and pick Capture &gt; Hot button.</span>")
+        self.hots = hs
+        return hs
+
+    def remove_hot(self, hid):
+        r = self.rec()
+        if r is None or not F.remove_hot(r, hid):
+            return False
+        self.refresh()
+        return True
 
     def current(self):
         i = self.table.currentRow()

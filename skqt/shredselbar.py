@@ -3,10 +3,11 @@ Select one piece or several and a small bar shows just above them, as Word's min
 click puts one on, a second click takes it off), Combine for several pieces, Split once a split point is set, and Take
 the suggestion when one waits. The top bar keeps what is about the whole document. The piece pane on the right is
 unchanged; this is the same work, where the eyes are. The bar moves with the page and goes when nothing is selected.
+4.29.3: the bar wraps to as many rows as it needs and never runs off the page; drag it by its grip and it stays put.
 Rules only (No AI); nothing leaves the PC."""
-from PySide6.QtCore import QRectF, QTimer
+from PySide6.QtCore import QPoint, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QPushButton
+from PySide6.QtWidgets import QFrame, QGraphicsDropShadowEffect, QLabel, QPushButton, QWidget
 
 import diag
 import shredtypes as ST
@@ -15,6 +16,7 @@ from . import design as D
 
 def install(page):
     page.sel_bar = None
+    page.sel_bar_pos = None                              # 4.29.3: where the person dragged the bar to, or None
     page._sel_bar_timer = QTimer(page); page._sel_bar_timer.setSingleShot(True); page._sel_bar_timer.setInterval(80)
     page._sel_bar_timer.timeout.connect(lambda: refresh(page))
     v = page.view
@@ -72,7 +74,10 @@ def build(page, rows):
     f.setStyleSheet(f"QFrame#shredSelBar{{background:{t['surface']};border:1px solid {t['border_strong']};border-radius:8px}}")
     sh = QGraphicsDropShadowEffect(f); sh.setBlurRadius(18); sh.setOffset(0, 4); sh.setColor(QColor(0, 0, 0, 80))
     f.setGraphicsEffect(sh)
-    h = QHBoxLayout(f); h.setContentsMargins(8, 6, 8, 6); h.setSpacing(4)
+    from .adaptive import FlowLayout                     # 4.29.3: the bar wraps inside the page; it never runs off it
+    f.inner = QWidget(f); f.inner.move(8, 6)
+    h = f.flow = FlowLayout(f.inner, 4)
+    f.grip = Grip(page, f); h.addWidget(f.grip)
     types = ST.load(page.host.config_dir)
     sug = TC.suggested(page, rows[-1]) if len(rows) == 1 else ""
     f.chips = {}
@@ -91,6 +96,15 @@ def build(page, rows):
                      + (". Suggested: Enter takes it" if key == sug else ""))
         b.clicked.connect(lambda _c=False, k=key: SB.toggle_piece(page, k))
         h.addWidget(b); f.chips[key] = b
+    # 4.29.3 (Nicholas 2026-11-13 11:06): Capture and Ask a question sit here with the types; each says where it is kept
+    from PySide6.QtWidgets import QMenu
+    f.capture = D.button("Capture", "ghost", None, "A contact, an objective, a key point, a graphic need and the effort's own captures. "
+                         "Each line says where it is kept.")
+    f.capture_menu = QMenu(f.capture); f.capture_menu.setToolTipsVisible(True)
+    f.capture_menu.aboutToShow.connect(lambda: TC.fill_capture(page, f.capture_menu)); f.capture.setMenu(f.capture_menu)
+    h.addWidget(f.capture)
+    f.ask = D.button("Ask a question", "ghost", lambda: TC.ask(page), TC.ASK_TIP)
+    h.addWidget(f.ask)
     f.combine = f.split = f.take = None
     if len(rows) > 1:
         f.combine = D.button("Combine", "ghost", page.do_combine, "One piece from the selected ones (J)")
@@ -103,6 +117,56 @@ def build(page, rows):
                           lambda: page.accept_suggestions(rows=page.selected()), "Each selected piece takes its suggested type (Enter)")
         h.addWidget(f.take)
     return f
+
+
+class Grip(QLabel):
+    """4.29.3 (Nicholas 2026-11-13 11:06): drag the bar by its grip to put it where it is out of the way; it stays there
+    for every selection until it is double-clicked, which sends it back to the selection."""
+    def __init__(self, page, bar):
+        super().__init__("::")
+        self.page, self.bar, self._from = page, bar, None
+        t = D.tokens()
+        self.setStyleSheet(f"QLabel{{color:{t['faint']};font-weight:700;padding:2px 4px;}}")
+        self.setCursor(Qt.SizeAllCursor)
+        self.setToolTip("Drag to move the bar; it stays where you put it. Double-click: back to the selection.")
+
+    def mousePressEvent(self, e):
+        self._from = e.globalPosition().toPoint() - self.bar.pos()
+
+    def mouseMoveEvent(self, e):
+        if self._from is not None:
+            move_to(self.page, e.globalPosition().toPoint() - self._from)
+
+    def mouseReleaseEvent(self, _e):
+        self._from = None
+
+    def mouseDoubleClickEvent(self, _e):
+        self.page.sel_bar_pos = None
+        place(self.page)
+
+
+def move_to(page, pos):
+    """Put the bar at a point of the page's view (kept inside it) and keep it there."""
+    b = getattr(page, "sel_bar", None)
+    if b is None:
+        return None
+    host = b.parentWidget()
+    x = max(0, min(max(0, host.width() - b.width()), int(pos.x())))
+    y = max(0, min(max(0, host.height() - b.height()), int(pos.y())))
+    page.sel_bar_pos = (x, y)
+    b.move(x, y); b.raise_()
+    return page.sel_bar_pos
+
+
+def fit(b):
+    """The bar's size: one row when the page is wide enough, else as many rows as it takes, never wider than the page."""
+    host, lay = b.parentWidget(), b.flow
+    one = lay.sizeHint().width()
+    w = max(120, min(one, host.width() - 12 - 16))
+    hgt = lay.heightForWidth(w)
+    b.inner.setGeometry(8, 6, w, hgt)
+    b.resize(w + 16, hgt + 12)
+    return b.size()
 
 
 def sel_rect(page):
@@ -127,7 +191,12 @@ def place(page):
         if r is None:
             return close(page)
         host = b.parentWidget()
-        b.adjustSize()
+        fit(b)
+        if getattr(page, "sel_bar_pos", None):          # 4.29.3: moved by its grip: it stays there
+            x, y = page.sel_bar_pos
+            b.move(max(0, min(max(0, host.width() - b.width()), x)), max(0, min(max(0, host.height() - b.height()), y)))
+            b.raise_()
+            return b.geometry()
         W, H, w, h, gap = host.width(), host.height(), b.width(), b.height(), 6
         x = max(0, min(max(0, W - w), r.left()))
         top = max(r.top(), 0)

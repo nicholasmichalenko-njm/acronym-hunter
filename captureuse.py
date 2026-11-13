@@ -42,6 +42,38 @@ MARKS = {
 }
 
 
+# 4.29.4 (the capture audit; Nicholas 2026-11-13: "a label without a home or purpose means the decision is lost"): every
+# capture in Shred's Capture menu, where it is kept in the words the menu shows, and the page that reads it with its
+# proof. tests/test_captureuse4210.py fails when a capture has no entry or its reader is gone.
+CAPTURES = {
+    "contact": ("the Overview's Customer card", [("overview", "skqt/overviewpage.py", "rec.contacts()")]),
+    "submit": ("Shred > Submission Checklist", [("requirements", "skqt/custdocs.py", "c.reg.rows()")]),
+    "format": ("Shred > Submission Checklist", [("requirements", "skqt/custdocs.py", "c.reg.rows()")]),
+    "acronym": ("Shred > Acronyms > Effort list", [("acrlist", "skqt/effortlistpage.py", "self.L.rows")]),
+    "question": ("Customer Q&A", [("custqa", "skqt/custqapage.py", "Q.items(rec)")]),
+    "keydate": ("Calendar", [("calendar", "skqt/calendarpage.py", "st.calendar(")]),
+    "objective": ("the Matrix's Customer objective column and each section's kickoff sheet",
+                  [("matrix", "matrixdesign.py", '"objective"'), ("setups", "kickoff.py", '"objectives"')]),
+    "keypoint": ("the Matrix's Key points column and each section's kickoff sheet",
+                 [("matrix", "matrixdesign.py", '"keypoints"'), ("setups", "kickoff.py", '"keypoints"')]),
+    "graphic": ("Documents > Graphics, as a graphic need", [("graphics", "skqt/graphicspage.py", "GX.items(")]),
+    "factor": ("Shred > Evaluation Criteria", [("evalcrit", "skqt/evalpage.py", "F.factors(r)")]),
+    "pagelimit": ("Shred > Submission Checklist, and the section's pages on Drafts > Status",
+                  [("requirements", "skqt/custdocs.py", "c.reg.rows()"), ("drafts", "pagebudget.py", '"Page limit"')]),
+    "deliverable": ("Overview > Deliverables", [("deliverables", "skqt/custdocs.py", "DL.items(")]),
+    "detail": ("the Overview's banner, under the effort's name", [("overview", "skqt/brandview.py", "BR.identity(rec)")]),
+    "hot": ("Shred > Evaluation Criteria, under Hot buttons", [("evalcrit", "skqt/evalpage.py", "F.hot_buttons(r)")]),
+    "other": ("Shred > Submission Checklist", [("requirements", "skqt/rulesdates.py", "Other submission detail")]),
+    "written": ("Submit > Final Checks, under The RFP's written rules", [("checks", "skqt/checkspage.py", "The RFP's written rules")]),
+    "unit": ("Settings > Units of measurement", [("settings", "skqt/unitsview.py", "import units")]),
+}
+
+
+def capture_line(key):
+    """Where a capture is kept, as the Capture menu says it ("" for a capture the list does not know: an effort's own)."""
+    return CAPTURES.get(key, ("", []))[0]
+
+
 def line(keys, names=None):
     """'Goes to: ...' for the pane, '' for a piece with no type. names: {key: the type's name as the team shows it}."""
     names = names or {}
@@ -56,4 +88,4 @@ def line(keys, names=None):
 
 def pages():
     """Every page key the list names."""
-    return sorted({p for _say, uses in list(TYPES.values()) + list(MARKS.values()) for p, _f, _w in uses})
+    return sorted({p for _say, uses in list(TYPES.values()) + list(MARKS.values()) + list(CAPTURES.values()) for p, _f, _w in uses})

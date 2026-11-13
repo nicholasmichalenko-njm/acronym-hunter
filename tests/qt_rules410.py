@@ -111,6 +111,15 @@ check("Acronyms > The list: More opens the whole acro list and the lists to subm
 bar.action("The whole acro list...").trigger(); app.processEvents()
 check("... the whole list opens inside Acronyms", (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page) and w.step_btns["assign"].isChecked()
       and w.stepper.chips["acronyms"].styleSheet().count("2px solid") == 1 and "acrlist" not in w.stepper.chips)
+# 4.29.4 (the capture audit): a Hot button captured in Shred is read on Evaluation Criteria
+import custfocus as CF, effortrec as RRx
+rx = RRx.Record(w.ws.root)
+hid = CF.add_hot(rx, "Schedule certainty matters most", quote="The Government places great weight on schedule.", source={"doc": "Section M", "loc": "page 4"})
+w.go("evalcrit"); app.processEvents(); ep.refresh(); app.processEvents()
+check("Evaluation Criteria lists the hot buttons with where each was said", "Schedule certainty matters most" in ep.hot_list.text()
+      and "Section M page 4" in ep.hot_list.text() and "Remove" in ep.hot_list.text(), ep.hot_list.text())
+check("... Remove takes it off, there and in the effort record", ep.remove_hot(hid) and CF.hot_buttons(RRx.Record(w.ws.root)) == []
+      and "None yet" in ep.hot_list.text(), ep.hot_list.text())
 w.close()
 print(f"QT RULES 410 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

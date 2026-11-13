@@ -187,6 +187,18 @@ w.go("acrlist"); app.processEvents()
 lp = w.acrlist_page
 check("Effort list opens on what was added", lp.f_status.currentText() == "Added to effort list" and "KXQ" in lp.terms
       and all(lp.status_of(lp.L.rows[t]) != "Not a term" for t in lp.terms), lp.terms[:8])
+# 4.29.3 (Nicholas 2026-11-13 11:13): how much is left shows large and follows every decision; Scan again is one click
+pgs_ = op.pages()
+tot_, left_ = sum(len(p["terms"]) for p in pgs_), sum(p["to_decide"] for p in pgs_)
+op.fill(); app.processEvents()
+check("On the page says how many finds are left of how many, with a bar", op.progress_lab.text() in (f"{left_} of {tot_} finds left to decide", "Every find is decided")
+      and op.progress_bar.maximum() == max(1, tot_) and op.progress_bar.value() == tot_ - left_, op.progress_lab.text())
+und = next((t for p in pgs_ for t, st in p["terms"].items() if st == "decide"), None)
+if und:
+    s.add([und], "A made-up definition"); op.decided(); op.fill(); app.processEvents()
+    check("... one decision and the count drops by itself, for every place the term is found", op.progress_lab.text() != f"{left_} of {tot_} finds left to decide"
+          and op.progress_bar.value() > tot_ - left_, op.progress_lab.text())
+check("the bar has Scan again beside Page done", ap.b_rescan.text() == "Scan again" and ap.b_rescan.isVisibleTo(ap) or ap.tabs.currentIndex() != 0, ap.b_rescan.text())
 # 4.29.2 (answer 12 of 2026-11-13): the page beside the Effort list
 check("the Effort list has the page beside it, with a hint until a term is picked", lp.split.count() == 2 and lp.where_view is None
       and "Select a term" in lp.side_hint.text())

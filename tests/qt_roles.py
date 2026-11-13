@@ -50,7 +50,8 @@ check("3.15.0: every tool is in the menu once (no stage group repeating them)", 
       [n for n in names if names.count(n) > 1])
 check("... the stage's tools carry a dot in the stage's color", marked and set(marked) == set(w.stage_tools_now)
       and all("background:" in w.step_btns[k].stage_dot.styleSheet() for k in marked), (marked, w.stage_tools_now))
-check("... and each step says what is left (3.96.0)", [b.badge.isVisibleTo(w) for k, b in w.step_btns.items() if k == "library"] == [True])
+check("... and each step says what is left (3.96.0); 4.29.3: Documents carries no words in the menu",
+      [b.badge.isVisibleTo(w) for k, b in w.step_btns.items() if k == "library"] == [False] and w.step_btns["assign"].badge.isVisibleTo(w))
 check("the open effort and its stage are at the top of the menu", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text().startswith("Kestrel")
       and w.rail_effort.stage.text() == cur_stage, (w.rail_effort.name.text(), w.rail_effort.stage.text()))
 from PySide6.QtCore import Qt

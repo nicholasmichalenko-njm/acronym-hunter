@@ -60,6 +60,11 @@ class OnPage(QWidget):
         self.doc_pick.addItem(EVERY_DOC, "")
         self.doc_pick.currentIndexChanged.connect(lambda _i: self.fill(keep=False) if not self._filling else None)
         self._filling, self._followed = False, None
+        # 4.29.3 (Nicholas 2026-11-13 11:13): how much is left, large, first in the column, again after every decision
+        self.progress_lab = D.label("", "title", wrap=False); left.addWidget(self.progress_lab)
+        from PySide6.QtWidgets import QProgressBar
+        self.progress_bar = QProgressBar(); self.progress_bar.setTextVisible(False); self.progress_bar.setFixedHeight(6)
+        left.addWidget(self.progress_bar)
         left.addWidget(self.doc_pick)
         self.list = QListWidget(); self.list.setMinimumWidth(240); self.list.setMaximumWidth(320)
         self.list.setTextElideMode(Qt.ElideMiddle); self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -174,6 +179,7 @@ class OnPage(QWidget):
             if p["key"] == cur:
                 self.list.setCurrentItem(it)
         self.list.blockSignals(False)
+        self.show_progress(pgs)
         tot = AG.totals(pgs)
         self.foot.setText(f"{tot['to_decide']} undecided in {tot['pages_left']} page(s). {tot['pages_done']} page(s) done."
                           if pgs else "")
@@ -186,6 +192,15 @@ class OnPage(QWidget):
             self.redraw()
         self.left_lab.setText(f"{self.left_here()} undecided on this page" if self.key else "")
         return pgs
+
+    def show_progress(self, pgs):
+        """The finds left to decide of all the finds shown (the documents picked), in words and as a bar."""
+        total = sum(len(p["terms"]) for p in pgs)
+        left = sum(p["to_decide"] for p in pgs)
+        self.progress_bar.setRange(0, max(1, total)); self.progress_bar.setValue(total - left)
+        self.progress_bar.setVisible(bool(total)); self.progress_lab.setVisible(bool(total))
+        self.progress_lab.setText("Every find is decided" if total and not left else f"{left} of {total} finds left to decide")
+        return left, total
 
     def left_here(self):
         s = self.session

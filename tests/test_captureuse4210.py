@@ -25,6 +25,15 @@ for k, (_say, uses) in list(CU.TYPES.items()) + list(CU.MARKS.items()):
         if not os.path.isfile(p) or words not in open(p, encoding="utf-8").read():
             gone.append((k, f, words))
 check("the code that reads each one is still there", not gone, gone)
+# 4.29.4: the capture audit
+import reviewitems as RI
+keys = [c[0] for c in RI.CAPTURES]
+check("every capture in the Capture menu says where it is kept", set(CU.CAPTURES) == set(keys) and all(CU.capture_line(k) for k in keys),
+      set(keys) ^ set(CU.CAPTURES))
+gone_c = [(k, f) for k, (_s, uses) in CU.CAPTURES.items() for _p, f, w in uses
+          if w not in open(os.path.join(ROOT, f), encoding="utf-8").read()]
+check("... and a page reads every one of them: the code that reads it is there", not gone_c and all(u for _s, u in CU.CAPTURES.values()), gone_c)
+check("... a Hot button is read on Evaluation Criteria, not only on All cards", CU.CAPTURES["hot"][1][0][0] == "evalcrit")
 check("only Information and Not applicable go nowhere", sorted(k for k, (_s, u) in CU.TYPES.items() if not u) == ["information", "not_applicable"])
 check("the pane's line: one type", CU.line(["structure"]).startswith("Goes to: Matrix & Outline > Outline"))
 check("... two types, each named", CU.line(["requirement", "date"], {"requirement": "Requirement", "date": "Date"}).startswith("Goes to: Requirement: ")

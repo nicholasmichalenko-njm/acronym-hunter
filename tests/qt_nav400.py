@@ -41,8 +41,8 @@ check("the effort switcher is there with nothing open", w.rail_effort.isVisibleT
 check("Ctrl+K is named at the foot of the menu", "Ctrl+K" in w.rail_hint.text())
 w.open_effort("Kestrel"); app.processEvents()
 NR.refresh_steps(w, force=True)
-check("each step says what is left: add files, next", w.step_btns["library"].badge.text() == "add files"
-      and w.step_btns["assign"].badge.text() == "next")
+check("each step says what is left (next); 4.29.3: Documents carries no words in the menu", w.step_btns["library"].badge.text() == ""
+      and not w.step_btns["library"].badge.isVisibleTo(w) and w.step_btns["assign"].badge.text() == "next")
 check("the switcher names the effort", w.rail_effort.name.text().startswith("Kestrel"))
 from skqt import frame as FR
 acts = [a.text() for a in FR.effort_menu(w).actions() if a.text()]
