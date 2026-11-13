@@ -76,3 +76,21 @@ def combined(items):
             out += ("" if b["span"][0] - a["span"][1] <= 0 else " ") + b["term"]
         return out
     return " ".join(x["term"] for x in its)
+
+
+def together(s, parts):
+    """4.29.3 (Nicholas 2026-11-13 11:12): {part: [its places]} at every place in the effort where all the parts are
+    found side by side on the same page, as they were where the person combined them. Decided once, the same finds
+    elsewhere are part of the whole term too and are not left to decide again."""
+    import acrparts as APS
+    parts = [t for t in parts if (s.results.get(t) or {}).get("locations")]
+    if not parts:
+        return {}
+    at = {t: {} for t in parts}
+    for t in parts:
+        for l in s.results[t]["locations"]:
+            at[t].setdefault(APS.place(l), []).append(l)
+    shared = set(at[parts[0]])
+    for t in parts[1:]:
+        shared &= set(at[t])
+    return {t: [l for k in sorted(shared) for l in at[t][k]] for t in parts} if shared else {}

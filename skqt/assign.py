@@ -2765,7 +2765,7 @@ class AssignPage(QWidget):
             br.addStretch(1)
             self.change_box = box
             self.add(box)
-        self.head("Source")
+        src_head = self.head("Source")
         place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
         where = PS.where_text(self.pdf, place) if (self.pdf and place) else MD._where(it)
         sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
@@ -2777,6 +2777,9 @@ class AssignPage(QWidget):
         idl2 = (f"Document {ident.get('initial')} ({ident.get('type', '')})" if ident.get("initial") else "")
         self.ident_label = self.add(D.label(idl2, "muted"))
         self.ident_label.setVisible(bool(idl2))
+        if F == "shred":                                                # 4.29.3 (Nicholas 2026-11-13 11:06): on Shred the
+            for x in (src_head, self.source_label, self.ident_label):   # document is open in front of you; the pane does
+                x.setVisible(False)                                     # not repeat where the piece is
         if d == "Keep" and not F:                                       # 2.68.0: L or M, and the reference it makes
             lmw = QWidget(); lh = QHBoxLayout(lmw); lh.setContentsMargins(0, 0, 0, 0); lh.setSpacing(D.SPACE["s"])
             cur_lm = it.get("lm", "")

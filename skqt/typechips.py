@@ -31,8 +31,11 @@ def pane(page, chips):
             w.setVisible(bool(chips))
         if say is not None:
             say.setVisible(not chips)
+        cr = getattr(page, "cap_row", None)              # 4.29.3: Capture and Ask a question follow the chips
+        if cr is not None:
+            cr.setVisible(bool(chips))
     except RuntimeError:                 # the card was drawn again under it
-        page.type_w = page.type_say = None
+        page.type_w = page.type_say = page.cap_row = None
 
 
 def add(page, rows):
@@ -75,15 +78,16 @@ def add(page, rows):
                                           + ". Enter takes it.", "muted"))
     rule_row(page, rows, sug)
     __import__("skqt.makechecked", fromlist=["x"]).add_row(page, rows)       # 4.26.0: a typed Rule or Date, made checked
-    row = QHBoxLayout(); row.setSpacing(D.SPACE["xs"])
+    roww = QWidget(); row = QHBoxLayout(roww); row.setContentsMargins(0, 0, 0, 0); row.setSpacing(D.SPACE["xs"])
     cap = D.button("Capture", None, None, "Contact, objective, key point, graphic need and the effort's own captures")
-    m = QMenu(cap); m.aboutToShow.connect(lambda: fill_capture(page, m)); cap.setMenu(m)
+    m = QMenu(cap); m.setToolTipsVisible(True); m.aboutToShow.connect(lambda: fill_capture(page, m)); cap.setMenu(m)
     page.capture_btn, page.capture_menu = cap, m
     row.addWidget(cap)
-    page.ask_btn = D.button("Ask a question", None, lambda: ask(page), "A question for the customer about this piece, in the Q&A log")
+    page.ask_btn = D.button("Ask a question", None, lambda: ask(page), ASK_TIP)
     row.addWidget(page.ask_btn)
     row.addStretch(1)
-    page.body_add_layout(row)
+    page.cap_row = page.add(roww)                        # 4.29.3: on the bar at the selection while that shows
+    pane(page, getattr(page, "sel_bar", None) is None)
     __import__("skqt.piececaptures", fromlist=["x"]).add(page, rows)        # 4.12.0: its deliverable, what it gave
     __import__("skqt.shredselbar", fromlist=["x"]).later(page)              # 4.26.0: the bar at the selection follows
     __import__("skqt.shredprogress", fromlist=["x"]).refresh(page)
@@ -116,13 +120,26 @@ def rule_row(page, rows, sug):
     return row
 
 
+ASK_TIP = "Files a question for the customer that cites this piece. It is kept in Customer Q&A (Documents), where it is answered and tracked."
+
+
+def goes(key):
+    """Where a capture is kept, in the words Settings gives it (reviewitems.CAPTURES): 'into Customer information'."""
+    import reviewitems as RI
+    tip = next((c[5] for c in RI.CAPTURES if c[0] == key), "")
+    return tip.split(", ", 1)[1] if ", " in tip else tip
+
+
 def fill_capture(page, m):
-    """The captures the types do not already cover: the bar's own (keys kept) and the rest (More)."""
+    """The captures the types do not already cover: the bar's own (keys kept) and the rest (More). 4.29.3: each line
+    says where what it captures is kept, so a capture is never a label with no home."""
     m.clear()
     for key, b in (getattr(page, "cap_keys", None) or {}).items():
         if key in ("more",) + COVERED:
             continue
-        m.addAction(b.icon(), b.text(), b.click)
+        g = goes(key)
+        a = m.addAction(b.icon(), b.text() + (f"   ·   {g}" if g else ""), b.click)
+        a.setToolTip(next((c[5] for c in __import__("reviewitems").CAPTURES if c[0] == key), ""))
     if getattr(page, "more_actions", None) is not None:
         page.fill_more_menu()
         extra = [a for a in page.more_menu.actions()]

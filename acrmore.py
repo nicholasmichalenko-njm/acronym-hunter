@@ -79,9 +79,25 @@ def add_manual(s, term, category="Acronym", definition="", document="", to=("res
     if "results" in to:
         item = {"category": category or "Acronym", "count": 0, "locations": [document] if document else [], "definitions": [definition] if definition else [],
                 "selected_definition": definition or "", "status": "ADDED MANUALLY", "manual": True, "in_db": False, "excluded": False}
-        s.manual_items[term] = item
-        s.results[term] = dict(item)
-        said.append("listed with the scan's terms")
+        have = s.results.get(term)
+        if have is not None and not have.get("manual"):
+            # 4.29.3 (Nicholas 2026-11-13): the scan already holds this term (a reading fixed to a term found elsewhere).
+            # Its record stays: its places, its definition and whether it is in the effort's list. Only the place is added.
+            # Before, the record was replaced, so a term already added went back to undecided.
+            if document and document not in (have.get("locations") or []):
+                have.setdefault("locations", []).append(document)
+            if definition and definition not in (have.get("definitions") or []):
+                have.setdefault("definitions", []).append(definition)
+            said.append("already found by the scan: this place is added to it")
+        else:
+            if have is not None:                                # added by hand before: keep its place in the list
+                for k in ("effort", "known", "list_definition"):
+                    if have.get(k) is not None:
+                        item[k] = have[k]
+                item["locations"] = sorted(set(have.get("locations") or []) | set(item["locations"]))
+            s.manual_items[term] = item
+            s.results[term] = dict(item)
+            said.append("listed with the scan's terms")
     if "list" in to and s.effort is not None:
         if term not in s.results:
             s.results[term] = {"category": category or "Acronym", "count": 0, "locations": [], "definitions": [definition] if definition else [],

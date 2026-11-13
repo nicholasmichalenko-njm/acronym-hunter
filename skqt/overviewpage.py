@@ -43,7 +43,15 @@ class OverviewPage(QWidget):
         self.due.clicked.connect(lambda: self.set_due())
         head.addWidget(self.due)
         self.stage = D.Pill("", "head"); head.addWidget(self.stage)
-        v.addLayout(head)
+        self.head_w = QWidget(); self.head_w.setLayout(head); head.setContentsMargins(0, 0, 0, 0)
+        v.addWidget(self.head_w)
+        # 4.29.3 (Nicholas 2026-11-13 11:06): the effort's picture, its name in large type and the large due date are the
+        # first thing on the Overview, as they were on the Dashboard. The same banner; the one-line head shows with no effort.
+        from .brandview import EffortBanner
+        self.banner = EffortBanner(self)
+        for b in list(self.banner.toggles.values()) + list(self.banner.c_toggles.values()):
+            b.setVisible(False)                              # Win themes and Wall of Truth strips are All cards' own
+        v.addWidget(self.banner)
         self.empty = D.EmptyState("No effort open", "Open an effort to see where it stands.", "All Efforts", lambda: host.go("efforts"))
         v.addWidget(self.empty, 1)
         self.body = QWidget(); v.addWidget(self.body, 1)
@@ -164,9 +172,21 @@ class OverviewPage(QWidget):
         self.empty.setVisible(not on); self.body.setVisible(on)
         for w in (self.sub, self.due, self.stage):
             w.setVisible(on)
+        self.head_w.setVisible(not on); self.banner.setVisible(on)
         if not on:
             self.name.setText("Overview")
             return None
+        try:                                                 # 4.29.3: the banner, filled as the Dashboard fills its own
+            hp = h.home_page
+            r = __import__("effortrec").Record(h.ws.root)
+            if r is not None:
+                self.banner.gate_info = hp.gate_info(r, None)
+                self.banner.set_condensed(False, save=False)
+                self.banner.fill(r, h.record_page.effort_list(), d["stage"] or "")
+                self.banner.fold_btn.setVisible(False)
+        except Exception:  # noqa: BLE001
+            __import__("diag").swallowed()
+            self.head_w.setVisible(True); self.banner.setVisible(False)
         t = D.tokens()
         self.name.setText(h.effort_name)
         self.sub.setText("  ·  ".join(x for x in (d["client"], d["solicitation"]) if x) or "Customer and solicitation not set yet")
@@ -254,6 +274,14 @@ class OverviewPage(QWidget):
         return d
 
     # ------------------------------------------------------------------ what it does
+    def show_gate_goals(self):
+        """The banner's stage pill: the gate's goals, on All cards where they live."""
+        self.host.go("home")
+        return self.host.home_page.show_gate_goals()
+
+    def set_strip(self, key, on):
+        return None                                          # the strips are All cards' own; their toggles are hidden here
+
     def open_next(self):
         d = self.data or {}
         nx = d.get("next")

@@ -178,14 +178,17 @@ def combine(op, f):
     typ = chosen_type(f) or "Acronym"
     dfn = f.typed.text().strip()
     parts = [t for t in f.terms if t != whole]
+    also = AP.together(s, parts) if len(parts) > 1 else {}       # 4.29.3: the same finds side by side elsewhere, decided once
+    n_else = len({APS.place(l) for ls in also.values() for l in ls} - {APS.place(l) for t in parts for l in AP.here(s, t, op.key)})
     for t in parts:
-        APS.set_part(s, t, whole, places=AP.here(s, t, op.key))
+        APS.set_part(s, t, whole, places=list(AP.here(s, t, op.key)) + list(also.get(t, [])))
     if whole not in s.results:
         AM.add_manual(s, whole, typ, dfn, document=op.key, to=("results",))
     AG.set_type(s, [whole], typ)
     s.add([whole], dfn)
     diag.activity("acronym_page_combined", n=len(parts))
-    return op.decided(f"{whole}: in the effort list ({', '.join(parts[:4])} on this page are part of it)")
+    return op.decided(f"{whole}: in the effort list ({', '.join(parts[:4])} on this page are part of it"
+                      + (f", and in {n_else} other place{'' if n_else == 1 else 's'} where they sit together" if n_else else "") + ")")
 
 
 def _state_words(d):

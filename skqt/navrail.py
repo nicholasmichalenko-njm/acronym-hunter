@@ -94,6 +94,14 @@ class StepButton(QPushButton):
         else:
             self.circle.setStyleSheet("QLabel#railStepNo{border-radius:12px;font-size:11px;font-weight:700;" + _circle(self.n, state, t) + "}")
         col = {"done": t["rail_ok"], "now": t["rail_warn"]}.get(state, t["rail_dim"])
+        # 4.29.3 (Nicholas 2026-11-13 11:06): Documents carries no count in the menu (new files are said on Documents
+        # itself), and a word that would run over the entry's name is left off; the entry's tip still says it.
+        if self.key == "library" and badge != "done":
+            badge = ""
+        if badge:
+            room = (self.width() if self.width() > 120 else 214) - 42 - self.fontMetrics().horizontalAdvance(self.text().replace("&&", "&")) - 30
+            if self.badge.fontMetrics().horizontalAdvance(badge) > room:
+                self.setToolTip(badge); badge = ""
         self.badge.setText(badge or "")
         self.badge.setVisible(bool(badge))
         self.badge.setStyleSheet(f"QLabel#railBadge{{color:{col};font-size:11px;background:transparent;}}")
