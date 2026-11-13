@@ -21,7 +21,7 @@ F = {"Effort": "Kestrel Thermal", "Client": "USSF SSC", "Solicitation": "FA8810-
 check("built in: the names the app always used", FP.name_of("matrix_export", F, when=when) == "Kestrel_Thermal_Compliance_Matrix_2026-11-03.xlsx"
       and FP.name_of("tasks_questions", dict(F, Person="A_Lee"), when=when) == "Kestrel_Thermal_Tasks_and_Questions_A_Lee_2026-11-03_1430.xlsx"
       and FP.name_of("effort_list", F) == "Kestrel_Thermal_Effort_List.xlsx", FP.name_of("matrix_export", F, when=when))
-check("4.24.0: built in: the eleven numbered folders, four with a job", [t["path"] for t in P["tree"]][:3] == ["01_proposal", "02_customer documents", "03_briefings and approvals"] and len([t for t in P["tree"] if "/" not in t["path"]]) == 11 and {t["role"] for t in P["tree"]} == {"", "customer", "volumes", "setup", "exports"}
+check("4.24.0: built in: the eleven numbered folders, four with a job", [t["path"] for t in P["tree"]][:3] == ["01_proposal", "01_proposal/Redlines", "02_customer documents"] and len([t for t in P["tree"] if "/" not in t["path"]]) == 11 and {t["role"] for t in P["tree"]} == {"", "customer", "volumes", "setup", "exports", "redlines"}
       and FP.folder_of("calendar") == "10_proposal management/Exports" and FP.folder_of("setup_changes") == "10_proposal management" and FP.folder_of("effort_list") == "")
 plan = FP.default()
 plan.update(tree=[{"path": "01 Customer Documents", "role": "customer"}, {"path": "01 Customer Documents/Amendments", "role": ""},

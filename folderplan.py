@@ -20,11 +20,14 @@ import datetime, json, os, re
 
 FILE = "folder_plan.json"
 ROLES = (("customer", "Customer documents"), ("volumes", "Volumes (our Word files)"), ("setup", "Response Setup documents"),
-         ("exports", "Exports (the default for anything else)"))
+         ("exports", "Exports (the default for anything else)"),
+         ("redlines", "Redlined deliverables"))            # 4.29.2 (Nicholas 2026-11-13 answer 3): a place in the plan, not the root
 ROLE_NAMES = dict(ROLES)
+NEEDED = tuple(r for r, _n in ROLES if r != "redlines")   # a team's own tree may leave Redlines out: it is then at the effort's root, as before
 # 4.24.0 (Nicholas, 2026-11-12): the tree a new effort gets, as the team keeps it on SharePoint. A PC that saved its own
 # tree keeps it. An effort made before keeps its folders (effortfolders: the older folder is used where it exists).
-DEFAULT_TREE = [{"path": "01_proposal", "role": "volumes"}, {"path": "02_customer documents", "role": "customer"},
+DEFAULT_TREE = [{"path": "01_proposal", "role": "volumes"}, {"path": "01_proposal/Redlines", "role": "redlines"},
+                {"path": "02_customer documents", "role": "customer"},
                 {"path": "03_briefings and approvals", "role": ""}, {"path": "04_RFIs and white papers", "role": ""},
                 {"path": "05_program management", "role": ""}, {"path": "06_cost and pricing", "role": ""},
                 {"path": "07_tech engineering", "role": ""}, {"path": "08_operations and supply chain", "role": ""},
@@ -112,7 +115,7 @@ def load(config_dir):
             tree.append({"path": p, "role": t.get("role", "") if isinstance(t, dict) and t.get("role") in ROLE_NAMES else ""})
     if tree:
         out["tree"] = tree
-    for r, _n in ROLES:                                     # every job has a folder
+    for r in NEEDED:                                        # every job has a folder
         if not any(t["role"] == r for t in out["tree"]):
             name = next(x["path"] for x in DEFAULT_TREE if x["role"] == r)
             if any(t["path"] == name for t in out["tree"]):

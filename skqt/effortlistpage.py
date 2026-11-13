@@ -117,7 +117,18 @@ class EffortListPage(QWidget):
             if i != 1:
                 self.table.setColumnWidth(i, wd)
         self.table.cellDoubleClicked.connect(lambda r, c: self.edit_definition() if c == 1 else None)
-        v.addWidget(self.table, 1)
+        # 4.29.2 (Nicholas 2026-11-13 answer 12): the customer's page where the selected term was found, beside the list
+        from PySide6.QtWidgets import QSplitter, QWidget as _W
+        from PySide6.QtCore import Qt as _Qt
+        self.split = QSplitter(_Qt.Horizontal)
+        self.side = _W(); self.side_box = QVBoxLayout(self.side); self.side_box.setContentsMargins(D.SPACE["s"], 0, 0, 0)
+        self.side_hint = D.label("Select a term: the customer's page where it was found shows here.", "muted")
+        self.side_box.addWidget(self.side_hint); self.side_box.addStretch(1)
+        self.where_view = None
+        self.split.addWidget(self.table); self.split.addWidget(self.side)
+        self.split.setStretchFactor(0, 3); self.split.setStretchFactor(1, 2)
+        self.table.itemSelectionChanged.connect(self.show_where)
+        v.addWidget(self.split, 1)
         self.empty = D.EmptyState("The acronym list is empty", "Add terms from the Scan tab: each one keeps its definition, "
                                                               "and where it was found here and in the effort's workbook. Import a list... brings in one you have.")
         v.addWidget(self.empty)
@@ -169,7 +180,7 @@ class EffortListPage(QWidget):
         else:
             self.p_unused.setText(f"{len(unused)} not used in the submission"); self.p_unused.show()
         self.terms.sort(key=str.casefold)
-        self.empty.setVisible(not rows); self.table.setVisible(bool(rows))
+        self.empty.setVisible(not rows); self.table.setVisible(bool(rows)); self.split.setVisible(bool(rows))
         self.table.setRowCount(len(self.terms))
         for i, t in enumerate(self.terms):
             r = rows[t]
@@ -201,6 +212,29 @@ class EffortListPage(QWidget):
         if not r:
             return None
         return {x["term"] for x in r.get("unused", [])}
+
+    def show_where(self):
+        """The page beside the list: where the one selected term was found (the last scan's places). Returns the view,
+        or None when nothing or several are selected, or the term has no place in the customer's documents."""
+        if self.where_view is not None:
+            self.where_view.setParent(None); self.where_view.deleteLater(); self.where_view = None
+        sel = self.selected()
+        s = self.session
+        d = ((s.results if s is not None else {}) or {}).get(sel[0]) if len(sel) == 1 else None
+        locs = (d or {}).get("locations") or []
+        ap = getattr(self.host, "acronym_page", None)
+        if locs and ap is not None:
+            try:
+                from .foundview import FoundView
+                self.where_view = FoundView(sel[0], locs, ap.path_of)
+                self.side_box.insertWidget(0, self.where_view, 1)
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+                self.where_view = None
+        self.side_hint.setText("Select a term: the customer's page where it was found shows here." if len(sel) != 1
+                               else "" if self.where_view is not None else f"{sel[0]} was not found in the customer's documents in the last scan.")
+        self.side_hint.setVisible(self.where_view is None)
+        return self.where_view
 
     def selected(self):
         rows = sorted({ix.row() for ix in self.table.selectedIndexes()})

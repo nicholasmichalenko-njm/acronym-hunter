@@ -187,6 +187,16 @@ w.go("acrlist"); app.processEvents()
 lp = w.acrlist_page
 check("Effort list opens on what was added", lp.f_status.currentText() == "Added to effort list" and "KXQ" in lp.terms
       and all(lp.status_of(lp.L.rows[t]) != "Not a term" for t in lp.terms), lp.terms[:8])
+# 4.29.2 (answer 12 of 2026-11-13): the page beside the Effort list
+check("the Effort list has the page beside it, with a hint until a term is picked", lp.split.count() == 2 and lp.where_view is None
+      and "Select a term" in lp.side_hint.text())
+found = next((t for t in lp.terms if (s.results.get(t) or {}).get("locations")), None)
+lp.select([found]) if found else None
+app.processEvents()
+check("pick a term found in the customer's documents: its page shows beside the list", found is not None and lp.where_view is not None
+      and lp.where_view.term == found and not lp.side_hint.isVisibleTo(lp), found)
+lp.table.clearSelection(); app.processEvents()
+check("nothing picked: the hint is back", lp.where_view is None and lp.side_hint.isVisibleTo(lp))
 print(f"QT ACROS 4261 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 w.close()
 sys.exit(0 if all(checks) else 1)

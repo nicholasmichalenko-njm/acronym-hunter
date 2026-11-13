@@ -278,7 +278,7 @@ class FolderPlanCard(D.Card):
             self.host.status("The team pack set the folders and file names. They change when the team sends a new pack.")
             return False
         v = self.values()
-        missing = [FP.ROLE_NAMES[r] for r, _n in FP.ROLES if not any(t["role"] == r for t in v["tree"])]
+        missing = [FP.ROLE_NAMES[r] for r in FP.NEEDED if not any(t["role"] == r for t in v["tree"])]
         if missing:
             self.host.status("Give these jobs a folder first: " + ", ".join(missing) + ".")
             return False

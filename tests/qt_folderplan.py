@@ -31,7 +31,8 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 fc = w.settings_page.folders_card
 check("Settings: Folders and file names with the built-in tree", [fc._path(i) for i in fc._items()] == [t["path"] for t in FP.DEFAULT_TREE])
-check("4.24.0: eleven numbered folders; Exports sits under 10_proposal management", len(fc.tree_rows()) == 12
+check("4.24.0: eleven numbered folders; Exports sits under 10_proposal management", len(fc.tree_rows()) == 13
+      and FP.folder_of(role="redlines") == "01_proposal/Redlines"       # 4.29.2: redlined deliverables sit under 01_proposal
       and any(fc.places.item(i, 3).text() == "10_proposal management/Exports/Effort_Compliance_Matrix_2026-11-03.xlsx" for i in range(fc.places.rowCount())))
 fc.fill(dict(FP.default(), tree=[{"path": "Customer Documents", "role": "customer"}, {"path": "Volumes", "role": "volumes"},
                                  {"path": "Response Setup", "role": "setup"}, {"path": "Exports", "role": "exports"}]))   # a team's own tree of four
