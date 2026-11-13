@@ -63,7 +63,7 @@ r = RR.Record(w.ws.root)
 x = next(i for i in PS.data(r)["items"] if i["days"] == 7)
 check("Mark submitted: due dates count from the submission", PS.due_of(r, x) == datetime.date.today() + datetime.timedelta(days=7)
       and "Submitted" in pp.state.text() and any("submitted" in e["text"] for e in r.events(limit=5)))
-out = pp.export(os.path.join(os.path.dirname(L), "Exports", "Heron_Post-Submission_Checklist.xlsx"))
+out = pp.export(__import__("effortfolders").out(L, "Heron_Post-Submission_Checklist.xlsx"))   # 4.24.0: the tree's Exports folder
 import openpyxl
 wb = openpyxl.load_workbook(out); ws = wb.active
 heads = [c.value for c in ws[7]]
