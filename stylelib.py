@@ -18,6 +18,9 @@ W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 NS = {"w": W}
 SET_COLORS = ("#3B82F6", "#F59E0B", "#14B8A6", "#EC4899", "#8B5CF6", "#22C55E", "#EF4444", "#64748B")
 STATES = {"new": "New", "same": "Already have it", "variant": "Different from yours"}
+# 4.30.1 (Nicholas 2026-11-13 14:30): what bringing each one in does, said on its row
+DOES = {"new": "New: added to your library", "variant": "Same name, other values: added as a new version beside yours",
+        "same": "Identical to yours: not added twice; it joins the set"}
 LOOK = ("font", "size", "color", "bold", "italic", "underline", "hidden")
 
 
@@ -45,11 +48,12 @@ def read_styles(path):
 
 def against(lib, styles):
     """Each style read from a file against the library: state (new, same, variant), the version it matches or differs
-    from, and whether it starts ticked (new and different do)."""
+    from, and whether it starts ticked. 4.30.1: every one does. A style identical to one you have is never added twice;
+    ticked, it joins the set the import is for, so a set made from a document holds every style of that document."""
     out = []
     for s in styles:
         st, hit = lib.match("style", s["name"], s["values"])
-        out.append(dict(s, state=st, words=STATES[st], mine=hit, keep=st != "same"))
+        out.append(dict(s, state=st, words=DOES[st], mine=hit, keep=True))    # 4.30.1: one you have is ticked too, so it joins the set
     return out
 
 
@@ -104,7 +108,7 @@ def style_xml(name, v):
         rf = etree.SubElement(rpr, _w("rFonts"))
         for a in ("ascii", "hAnsi", "cs"):
             rf.set(_w(a), v["font"])
-    for k, t in (("bold", "b"), ("italic", "i")):
+    for k, t in (("bold", "b"), ("italic", "i"), ("caps", "caps")):
         if v.get(k):
             etree.SubElement(rpr, _w(t))
     if v.get("underline"):
@@ -342,3 +346,119 @@ def rows(lib, sid=None, words="", shown=None):
             pick = it["id"]                 # styles() gives the set's version, or the newest, first
         out.append({"family": fam, "versions": vers, "shown": pick})
     return out
+
+
+# ------------------------------------------------------------------ 4.30.1: review, change and duplicate a style on Styles
+EDIT = LOOK + ("caps", "before", "after", "jc", "keep_next")      # what the style's own form on Styles sets
+JC = (("", "As its base"), ("left", "Left"), ("center", "Centered"), ("right", "Right"), ("both", "Justified"))
+
+
+def kind_of(v):
+    return "character" if (v or {}).get("type") == "character" else "paragraph"
+
+
+def _set_flag(parent, tag, on, val=None):
+    for e in parent.findall(_w(tag)):
+        parent.remove(e)
+    if on:
+        e = etree.SubElement(parent, _w(tag))
+        if val is not None:
+            e.set(_w("val"), val)
+
+
+def patch_xml(xml, name, v):
+    """Word's own definition of a style with only the values the form sets written into it; everything else it carries
+    (numbering, tabs, borders, its base) stays as Word wrote it. name renames it (a duplicate). Returns the xml."""
+    try:
+        s = etree.fromstring(xml.encode("utf-8") if isinstance(xml, str) else xml)
+    except (etree.XMLSyntaxError, AttributeError, ValueError):
+        return style_xml(name, v)
+    s.set(_w("styleId"), style_id(name))
+    n = s.find(_w("name"))
+    if n is None:
+        n = etree.SubElement(s, _w("name")); s.insert(0, n)
+    n.set(_w("val"), name)
+    rpr = s.find(_w("rPr"))
+    if rpr is None:
+        rpr = etree.SubElement(s, _w("rPr"))
+    for e in rpr.findall(_w("rFonts")):
+        rpr.remove(e)
+    if v.get("font"):
+        rf = etree.SubElement(rpr, _w("rFonts"))
+        for a in ("ascii", "hAnsi", "cs"):
+            rf.set(_w(a), str(v["font"]))
+    for k, t in (("bold", "b"), ("italic", "i"), ("caps", "caps"), ("hidden", "vanish")):
+        _set_flag(rpr, t, bool(v.get(k)))
+    _set_flag(rpr, "bCs", bool(v.get("bold"))); _set_flag(rpr, "iCs", bool(v.get("italic")))
+    _set_flag(rpr, "u", bool(v.get("underline")), "single")
+    col = str(v.get("color") or "").lstrip("#").upper()
+    _set_flag(rpr, "color", bool(col and col != "AUTO"), col)
+    sz = str(int(round(float(v["size"]) * 2))) if v.get("size") else None
+    _set_flag(rpr, "sz", bool(sz), sz); _set_flag(rpr, "szCs", bool(sz), sz)
+    if kind_of(v) == "paragraph":
+        ppr = s.find(_w("pPr"))
+        if ppr is None:
+            ppr = etree.Element(_w("pPr")); rpr.addprevious(ppr)
+        _set_flag(ppr, "keepNext", bool(v.get("keep_next")))
+        sp = ppr.find(_w("spacing"))
+        if v.get("before") is not None or v.get("after") is not None:
+            if sp is None:
+                sp = etree.SubElement(ppr, _w("spacing"))
+            for k in ("before", "after"):
+                if v.get(k) is not None:
+                    sp.set(_w(k), str(int(round(float(v[k]) * 20))))
+        _set_flag(ppr, "jc", bool(v.get("jc")), v.get("jc") or None)
+    return etree.tostring(s, encoding="unicode")
+
+
+def _edited(old, values):
+    v = dict(old)
+    for k in EDIT:
+        if k not in values:
+            continue
+        x = values[k]
+        if k in ("bold", "italic", "underline", "hidden", "caps", "keep_next"):
+            v[k] = bool(x)
+        elif x in (None, ""):
+            v.pop(k, None)
+        elif k in ("size", "before", "after"):
+            v[k] = float(x)
+        else:
+            v[k] = str(x).lstrip("#").upper() if k == "color" else str(x)
+    if kind_of(v) == "character":
+        for k in ("before", "after", "jc", "keep_next"):
+            v.pop(k, None)
+    return v
+
+
+def _xml_for(name, old, v):
+    return patch_xml(old["_xml"], name, v) if old.get("_xml") and old.get("_made") != "app" else style_xml(name, v)
+
+
+def save_edit(lib, iid, values, who=None):
+    """The style's form saved: a new version with the values it sets (font, size, color, bold, italic, underline, all
+    caps, hidden; for a paragraph style its alignment, space before and after, keep with next). The version it came from
+    stays. A style brought in from Word keeps everything else Word wrote. Returns (item, state)."""
+    it = lib.get(iid)
+    if it is None:
+        return None, "missing"
+    old = lib.values(it) or {}
+    v = _edited(old, values)
+    v["_xml"] = _xml_for(lib.base_of(it), old, v)
+    return lib.save_version(iid, v, who=who)
+
+
+def duplicate(lib, iid, name, values=None, who=None):
+    """A new style under its own name with every value of this one (4.30.1). values: changes to make on the way.
+    Returns (item, state): state "taken" when the library has a style of that name."""
+    it = lib.get(iid)
+    name = " ".join(str(name or "").split())[:80]
+    if it is None or not name:
+        return None, "no name"
+    if any(i["kind"] == "style" and lib.base_of(i).casefold() == name.casefold() for i in lib.items):
+        return None, "taken"
+    old = lib.values(it) or {}
+    v = _edited(old, values or {})
+    v["_xml"] = _xml_for(name, old, v)
+    v["_copy_of"] = lib.base_of(it)
+    return lib.add("style", name, v, source="", summary=TL._summary_style(v), who=who)

@@ -182,6 +182,8 @@ class StylesPage(QWidget):
         self.find = QLineEdit(); self.find.setPlaceholderText("Find a style"); self.find.setClearButtonEnabled(True)
         self.find.setMinimumWidth(220); self.find.textChanged.connect(lambda _t: self.fill_rows())
         top.addWidget(self.find)
+        from . import styleedit as SE                         # 4.30.1: paragraph or character styles; double-click a row
+        SE.add_kind_filter(self, top)
         self.bar = CommandBar(self)
         self.b_new = self.bar.add("New style", lambda: self.new_style(), "A simple style made here: font, size, color, bold, italic, "
                                   "underline, hidden")
@@ -218,6 +220,7 @@ class StylesPage(QWidget):
             head.addWidget(D.label(t, "label", wrap=False), 1)
         mid.addLayout(head)
         self.rows = Rows(self)
+        self.rows.itemDoubleClicked.connect(lambda li: self.review(li.data(Qt.UserRole)))    # 4.30.1: review or change it here
         mid.addWidget(self.rows, 1)
         self.empty = D.EmptyState("No styles yet", "Bring in the styles of a Word file or template you already use: each one is "
                                   "kept with Word's own definition, and you choose which come in.", "Bring in from a document...",
@@ -254,7 +257,7 @@ class StylesPage(QWidget):
         self.fill_rows()
 
     def fill_rows(self):
-        rows = SL.rows(self.lib, self.sid, self.find.text(), self.shown_ver)
+        rows = __import__("skqt.styleedit", fromlist=["x"]).keep_kind(self, SL.rows(self.lib, self.sid, self.find.text(), self.shown_ver))
         self.rows.clear()
         self.row_ids = []
         for r in rows:
@@ -290,6 +293,8 @@ class StylesPage(QWidget):
                 tf.addWidget(b)
             cv.addWidget(tabs)
             self.ver_tabs = getattr(self, "ver_tabs", {}); self.ver_tabs[it.get("family")] = tabs
+        kind = D.label(("Character" if SL.kind_of(v) == "character" else "Paragraph") + " style", "faint", wrap=False)   # 4.30.1
+        kind.setObjectName("styleKind"); cv.addWidget(kind)
         cv.addWidget(D.label(SL.version_words(self.lib, it, v), "muted"))
         chips = QWidget(); cf = FlowLayout(chips, 4)
         for k in SL.sets_of(self.lib, it["id"]):
@@ -356,7 +361,8 @@ class StylesPage(QWidget):
         if self.sid:
             m.addAction("Take out of this set").triggered.connect(lambda: self.take_out(ids))
         if len(ids) == 1:
-            m.addAction("Make a copy to change...").triggered.connect(lambda: self.change_look(ids[0]))
+            m.addAction("Review or change...").triggered.connect(lambda: self.review(ids[0]))        # 4.30.1; a double-click too
+            m.addAction("Duplicate...").triggered.connect(lambda: self.duplicate(ids[0]))
             m.addAction("Name this version...").triggered.connect(lambda: self.label_version(ids[0]))
             m.addAction("Every value...").triggered.connect(lambda: self.every_value(ids[0]))      # 3.98.0
         m.addSeparator()
@@ -470,6 +476,16 @@ class StylesPage(QWidget):
         self.host.toast(f"{self.lib.base_of(it)} v{new['version']}: " + ("kept beside the others" if st == "version" else "the same look as a version you have"))
         self.fill_sets(); self.fill_rows(); self.select(new["id"])
         return new
+
+    def review(self, iid, values=None):
+        """4.30.1: the style's own form: its font, size, characters and paragraph, to read or change. A new version."""
+        from . import styleedit as SE
+        return SE.review(self, iid, values)
+
+    def duplicate(self, iid, name=None, values=None):
+        """4.30.1: a new style under its own name with this one's values."""
+        from . import styleedit as SE
+        return SE.duplicate(self, iid, name, values)
 
     def label_version(self, iid, label=None):
         if label is None:

@@ -26,7 +26,7 @@ h1 = next((s for s in st if s["name"] == "Heading 1"), None)
 check("a file's styles are read with Word's own definition", h1 is not None and h1["xml"].startswith("<w:style")
       and "Heading" in h1["xml"] and h1["values"].get("size"), names[:8])
 ag = SL.against(lib, st)
-check("against an empty library every style is New, ticked", all(x["words"] == "New" and x["keep"] for x in ag))
+check("against an empty library every style is New, ticked", all(x["state"] == "new" and x["words"].startswith("New") and x["keep"] for x in ag))
 for x in ag:
     x["keep"] = x["name"] in ("Heading 1", "Normal")
 rfp = SL.new_set(lib, "RFP volume")
@@ -39,8 +39,8 @@ check("Word's definition is kept beside the values, out of the comparison", (lib
       and lib.values(h1v1).get("_from") == "Kestrel_Technical_Volume.docx")
 check("it went into its set", SL.sets_of(lib, h1v1["id"]) and SL.sets_of(lib, h1v1["id"])[0]["id"] == rfp["id"])
 ag2 = SL.against(lib, st)
-check("met again: Already have it, not ticked", next(x for x in ag2 if x["name"] == "Heading 1")["words"] == "Already have it"
-      and not next(x for x in ag2 if x["name"] == "Heading 1")["keep"])
+check("met again: Already have it; 4.30.1: ticked, so it joins the set, and never added twice", next(x for x in ag2 if x["name"] == "Heading 1")["state"] == "same"
+      and "joins the set" in next(x for x in ag2 if x["name"] == "Heading 1")["words"] and next(x for x in ag2 if x["name"] == "Heading 1")["keep"])
 other = [dict(h1, values=dict(h1["values"], size=16.0))]
 ag3 = SL.against(lib, other)
 check("other values under the same name: Different from yours", ag3[0]["state"] == "variant" and ag3[0]["mine"]["id"] == h1v1["id"])

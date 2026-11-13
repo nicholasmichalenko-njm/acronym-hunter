@@ -54,8 +54,9 @@ check("they come in, into their set", c["new"] == 3 and len(sp.row_ids) == 3 and
 check("each row: a preview in the style's look", len(sp.rows.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QWidget, "stylePreview")) == 3)   # 4.28.1: a box
 dlg2 = sp.bring_in(DOC, run=False)
 same = [r["name"] for r in dlg2.rows if r["state"] == "same"]
-check("met again: the three kept are Already have it, not shown until asked", sorted(same) == ["Heading 1", "Heading 2", "Normal"]
-      and not any(r["name"] in same for r in dlg2.shown) and dlg2.chips["same"].text() == "Already have it 3", (same, dlg2.chips["same"].text()))
+check("met again: the three kept are Already have it; 4.30.1: shown and ticked, so they can join a set", sorted(same) == ["Heading 1", "Heading 2", "Normal"]
+      and all(r["name"] in [x["name"] for x in dlg2.shown] and r["keep"] for r in dlg2.rows if r["state"] == "same")
+      and dlg2.chips["same"].text() == "Already have it 3", (same, dlg2.chips["same"].text()))
 dlg2.chips["same"].setChecked(True); app.processEvents()
 check("... shown when asked, with yours beside the file's", len(dlg2.shown) == len(dlg2.rows) and dlg2.table.cellWidget(0, 2) is not None
       or any(dlg2.table.cellWidget(i, 2) is not None for i in range(dlg2.table.rowCount())))
@@ -88,8 +89,8 @@ check("Make a copy to change: a new version, shown on the row; the first stays",
       and sp.lib.get(it["id"]) is not None and new["id"] in sp.row_ids or new["id"] in [r["shown"] for r in SL.rows(sp.lib, None)])
 sp.select(h1v2["id"]); app.processEvents()
 acts = [a.text() for a in sp.row_menu(run=False).actions()]
-check("the row's menu: Add to set, Take out of this set, Make a copy to change, Name this version, Remove",
-      all(x in acts for x in ("Add to set", "Take out of this set", "Make a copy to change...", "Name this version...",
+check("the row's menu: Add to set, Take out of this set, Review or change (4.30.1), Duplicate, Name this version, Remove",
+      all(x in acts for x in ("Add to set", "Take out of this set", "Review or change...", "Duplicate...", "Name this version...",
                               "Remove from the library")), acts)
 sp.label_version(h1v2["id"], "large")
 check("Name this version shows on its tab", any(b.text() == "v2 large" for b in sp.ver_tabs[h1["family"]].findChildren(QPushButton)))

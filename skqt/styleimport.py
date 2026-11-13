@@ -31,9 +31,20 @@ class StyleImport(QDialog):
         style = (f"QPushButton{{border:1px solid {t['border_strong']};border-radius:12px;padding:3px 10px;background:{t['surface']};color:{t['text']}}}"
                  f"QPushButton:checked{{border:2px solid {t['accent']};background:{t['accent_soft']};color:{t['accent']};font-weight:600}}")
         for k, word in FILTERS:
-            b = QPushButton(f"{word} {sum(1 for r in rows if r['state'] == k)}"); b.setCheckable(True); b.setChecked(k != "same")
+            b = QPushButton(f"{word} {sum(1 for r in rows if r['state'] == k)}"); b.setCheckable(True); b.setChecked(True)   # 4.30.1: all shown
             b.setStyleSheet(style); b.toggled.connect(lambda _on: self.fill()); fr.addWidget(b); self.chips[k] = b
         fr.addStretch(1)
+        # 4.30.1 (Nicholas 2026-11-13 14:30): one set for the whole import, so a style you already have is not missed
+        fr.addWidget(D.label("Put every ticked style in the set", "muted", wrap=False))
+        self.set_all = QComboBox(); self.set_all.addItem("No set", None)
+        for k in SL.sets(page.lib):
+            self.set_all.addItem(dot(k.get("color") or "#64748B"), k["name"], k["id"])
+        self.set_all.addItem("New set...", "__new__")
+        self.set_all.setCurrentIndex(max(0, self.set_all.findData(page.sid)) if page.sid else 0)
+        for r in rows:
+            r["set"] = page.sid or None
+        self.set_all.activated.connect(lambda _i: self.pick_set(self.set_all.currentData()))
+        fr.addWidget(self.set_all)
         self.b_all = D.button("Untick all shown", "ghost", lambda: self.tick_all())
         fr.addWidget(self.b_all)
         v.addLayout(fr)
@@ -45,8 +56,9 @@ class StyleImport(QDialog):
         self.table.setColumnWidth(0, 220); self.table.setColumnWidth(1, 150); self.table.setColumnWidth(4, 200)
         self.table.itemChanged.connect(lambda it: self.ticked(it))
         v.addWidget(self.table, 1)
-        v.addWidget(D.label("Different from yours comes in as a new version under the same name; yours stays, and a set that uses it "
-                            "is asked before it moves. Each style keeps Word's own definition exactly as it is in the file.", "muted"))
+        v.addWidget(D.label("Every style of the file is listed and ticked. One you already have, exactly the same, is never added twice: "
+                            "ticked, it joins the set. One with the same name and other values comes in as a new version; yours stays, and "
+                            "a set that uses it is asked before it moves. Each keeps Word's own definition as it is in the file.", "muted"))
         foot = QHBoxLayout()
         self.n_lab = D.label("", "muted", wrap=False); foot.addWidget(self.n_lab, 1)
         foot.addWidget(D.button("Cancel", None, self.reject))
@@ -79,14 +91,30 @@ class StyleImport(QDialog):
                 cb.addItem(dot(k.get("color") or "#64748B"), k["name"], k["id"])
             if r.get("set"):
                 cb.setCurrentIndex(max(0, cb.findData(r["set"])))
-            elif self.page.sid:
-                cb.setCurrentIndex(max(0, cb.findData(self.page.sid)))
-            cb.currentIndexChanged.connect(lambda _i, r=r, cb=cb: r.__setitem__("set", cb.currentData()))
-            r["set"] = cb.currentData()
+            cb.currentIndexChanged.connect(lambda _i, r=r, cb=cb: (r.__setitem__("set", cb.currentData()), self.count()))
             self.table.setCellWidget(i, 4, cb)
             self.table.setRowHeight(i, 58)
         self.table.blockSignals(False)
         self.count()
+
+    def pick_set(self, sid, name=None):
+        """The set for the whole import: every style's row takes it (a row can still be given another). New set...
+        asks its name (name: tests). Returns the set's id, or None for No set."""
+        if sid == "__new__":
+            if name is None:
+                from PySide6.QtWidgets import QInputDialog
+                name, ok = QInputDialog.getText(self, "New set", "The set's name (what these styles are for):")
+                if not ok:
+                    name = ""
+            k = SL.new_set(self.page.lib, name) if (name or "").strip() else None
+            sid = k["id"] if k else None
+            if k:
+                self.set_all.insertItem(self.set_all.count() - 1, dot(k.get("color") or "#64748B"), k["name"], k["id"])
+            self.set_all.setCurrentIndex(max(0, self.set_all.findData(sid)))
+        for r in self.rows:
+            r["set"] = sid
+        self.fill()
+        return sid
 
     def tick_all(self, on=None):
         """Every style shown ticked, or none (the button says which)."""
@@ -103,7 +131,12 @@ class StyleImport(QDialog):
 
     def count(self):
         n = sum(1 for r in self.rows if r["keep"])
-        self.n_lab.setText(f"{n} ticked")
+        same = sum(1 for r in self.rows if r["keep"] and r["state"] == "same")
+        in_set = sum(1 for r in self.rows if r["keep"] and r.get("set"))
+        lost = sum(1 for r in self.rows if r["keep"] and r["state"] == "same" and not r.get("set"))
+        self.n_lab.setText(f"{n} ticked: {n - same} come in" + (f", {same} you already have" if same else "")
+                           + (f". {in_set} go into a set" if in_set else ". No set picked")
+                           + (f". {lost} you already have and no set is picked for: nothing changes for those" if lost else "") + ".")
         self.b_go.setText(f"Bring in {n} style(s)")
         self.b_go.setEnabled(n > 0)
         self.b_all.setText("Untick all shown" if self.shown and all(r["keep"] for r in self.shown) else "Tick all shown")
@@ -113,8 +146,9 @@ class StyleImport(QDialog):
         lib = self.page.lib
         c = SL.bring_in(lib, self.rows, self.path, set_of={r["name"]: r.get("set") for r in self.rows if r.get("set")})
         diag.activity("styles_brought_in", added=c["new"], items=c["variant"])
+        n_set = sum(1 for r in self.rows if r["keep"] and r.get("set"))
         self.page.host.toast(f"{c['new']} new style(s), {c['variant']} new version(s)"
-                             + (f", {c['same']} you had already" if c["same"] else ""))
+                             + (f", {c['same']} you had already" if c["same"] else "") + (f"; {n_set} in their set" if n_set else ""))
         self.result_counts = c
         self.page.fill_sets(); self.page.fill_rows()
         self.accept()
