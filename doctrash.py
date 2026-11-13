@@ -19,9 +19,25 @@ def put(ws, kind, name, payload, files=()):
     for k, p in enumerate(dict.fromkeys(f for f in files if f)):
         rec = {"orig": os.path.abspath(p), "kept": ""}
         if os.path.isfile(p):
-            dst = os.path.join(d, "files", f"{k:02d}-{os.path.basename(p)}")
-            shutil.move(p, dst)
-            rec["kept"] = os.path.relpath(dst, d)
+            # 4.23.2: a file can be gone, held by a sync program, or too deep for Windows by the time it is moved (a
+            # FileNotFoundError here stopped a delete half done on 4.23.0). A short name is tried, then the file is
+            # noted as not kept, and the delete goes on. The kept name is short: where it goes back to is in "orig".
+            stem, ext = os.path.splitext(os.path.basename(p))
+            dst = os.path.join(d, "files", f"{k:02d}-{stem[:40]}{ext}")
+            try:
+                shutil.move(p, dst)
+                rec["kept"] = os.path.relpath(dst, d)
+            except OSError:
+                try:
+                    dst = os.path.join(d, "files", f"{k:02d}{ext}")
+                    shutil.copy2(p, dst)
+                    rec["kept"] = os.path.relpath(dst, d)
+                    try:
+                        os.remove(p)
+                    except OSError:
+                        rec["left"] = True          # a copy is kept; the original could not be taken away
+                except OSError:
+                    rec["lost"] = True              # nothing could be kept: Restore brings the record back, not this file
         kept.append(rec)
     entry = {"id": eid, "kind": kind, "name": name, "when": datetime.datetime.now().isoformat(timespec="seconds"),
              "who": getpass.getuser(), "files": kept, "payload": payload}
@@ -62,6 +78,8 @@ def take_back(ws, eid):
             continue
         src = os.path.join(d, rec["kept"])
         dst = rec["orig"]
+        if not os.path.isfile(src):                 # 4.23.2: the kept file is gone from the Trash
+            continue
         if os.path.exists(dst):
             stem, ext = os.path.splitext(dst)
             dst = f"{stem} (restored {datetime.datetime.now().strftime('%Y-%m-%d %H%M')}){ext}"
