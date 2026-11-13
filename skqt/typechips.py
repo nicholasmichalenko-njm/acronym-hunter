@@ -57,6 +57,7 @@ def add(page, rows):
         page.sug_label = page.add(D.label(f"Suggested: {types.get(sug, {}).get('name', sug)}" + (f", {why}" if why else "")
                                           + ". Enter takes it.", "muted"))
     rule_row(page, rows, sug)
+    __import__("skqt.makechecked", fromlist=["x"]).add_row(page, rows)       # 4.26.0: a typed Rule or Date, made checked
     row = QHBoxLayout(); row.setSpacing(D.SPACE["xs"])
     cap = D.button("Capture", None, None, "Contact, objective, key point, graphic need and the effort's own captures")
     m = QMenu(cap); m.aboutToShow.connect(lambda: fill_capture(page, m)); cap.setMenu(m)
@@ -67,6 +68,8 @@ def add(page, rows):
     row.addStretch(1)
     page.body_add_layout(row)
     __import__("skqt.piececaptures", fromlist=["x"]).add(page, rows)        # 4.12.0: its deliverable, what it gave
+    __import__("skqt.shredselbar", fromlist=["x"]).later(page)              # 4.26.0: the bar at the selection follows
+    __import__("skqt.shredprogress", fromlist=["x"]).refresh(page)
     return page.type_chips
 
 

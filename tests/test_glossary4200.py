@@ -44,8 +44,8 @@ check("keeps: Color Reviews, Review by hand, the Effort Library, sorted by categ
                bad("sorted", "sorted by category"), bad("compare-page", "Compare two drafts")]))
 # the shred's counts, one set of words
 check("12 of 40 pieces shredded; 1 piece", SW.progress(12, 40) == "12 of 40 pieces shredded" and SW.pieces(1) == "1 piece")
-check("28 to shred; all shredded", SW.left(28) == "28 to shred" and SW.left(0) == "all shredded")
-check("a document: 40 pieces, 28 to shred", SW.of_document(40, 28) == "40 pieces, 28 to shred" and SW.of_document(3, 0) == "3 pieces, all shredded")
+check("28 not shredded; all shredded", SW.left(28) == "28 not shredded" and SW.left(0) == "all shredded")
+check("a document: 40 pieces, 28 not shredded", SW.of_document(40, 28) == "40 pieces, 28 not shredded" and SW.of_document(3, 0) == "3 pieces, all shredded")
 src = {f: open(os.path.join(ROOT, f), encoding="utf-8").read() for f in ("navsteps.py", "skqt/navrail.py", "skqt/docstatus.py", "skqt/shredlist.py")}
 check("the menu, the stepper, Documents' panel and the List read them there", all("SW." in s for s in src.values()),
       [f for f, s in src.items() if "SW." not in s])

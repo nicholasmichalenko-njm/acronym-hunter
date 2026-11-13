@@ -246,7 +246,7 @@ class Placer:
         ans = sum(1 for c in cov if c["answered"])
         from . import amendflags as AF                           # 3.89.0 decision 6
         nf = len(AF.flags(pg.host))
-        self.left_lbl.setText(f"Left: <a href='undecided'>{len(lf['undecided'])} not decided</a> · "
+        self.left_lbl.setText(f"Left: <a href='undecided'>{len(lf['undecided'])} not shredded</a> · "
                               f"<a href='unplaced'>{len(lf['unplaced'])} not placed</a> · "
                               f"{ans} of {len(cov)} customer headings answered"
                               + (f" · <a href='flagged'>{nf} changed by an amendment</a>" if nf else "")

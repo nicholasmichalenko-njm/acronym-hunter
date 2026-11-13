@@ -431,6 +431,9 @@ class PageView(QGraphicsView):
 
     def contextMenuEvent(self, e):
         """3.29.0: right-click a sentence for what can come off it."""
+        bm = getattr(self, "band_menu", None)              # 4.26.0: inside a dragged box: Add missed text
+        if bm is not None and bm(e) is not None:
+            return e.accept()
         b = None if self.capturing else self.box_at(e.pos())
         if b is None:
             return super().contextMenuEvent(e)
@@ -873,7 +876,7 @@ class AssignPage(QWidget):
         for i in range(9):                                       # 3.21.0: the effort's own bins, in order
             QShortcut(QKeySequence(f"Alt+{i + 1}"), self.view, activated=lambda n=i: self.do_custom_bin(n))
             QShortcut(QKeySequence(str(i + 1)), self.view, activated=lambda n=i: self.tag_topic(n) if self.sort_on else None)
-        QShortcut(QKeySequence("Ctrl+T"), self.view, activated=lambda: self.toggle_sort())
+        QShortcut(QKeySequence("Ctrl+T"), self.view, activated=lambda: self.toggle_sort() if getattr(self, "focus", None) is None else None)   # 4.26.0
         self.apply_items()                                       # 3.29.0: decisions and captures from Settings
         SF.install(self)                                         # 4.5.0: Shred and Place, as designed
         self.show_card([])
@@ -944,11 +947,12 @@ class AssignPage(QWidget):
         self.queue_lbl.setText(f"Document {files.index(self.file) + 1} of {len(files)}  ·  "
                                + (f"{len(left)} not shredded yet" if left else "all shredded"))
         self.next_btn.setVisible(bool([f for f in left if f != self.file]))
-        main = getattr(self, "shred_main", None)             # 4.20.0: one button marks the document; once marked, one
-        one = main is not None and getattr(self, "focus", None) == "shred"      # takes the mark off (they showed side by side)
-        self.done_btn.setVisible(here or not one)
+        chk = getattr(self, "shred_check", None)             # 4.26.0: a plain checkbox says the document is shredded
+        one = chk is not None and getattr(self, "focus", None) == "shred"
+        self.done_btn.setVisible(not one)
         if one:
-            main.setVisible(not here)
+            chk.blockSignals(True); chk.setChecked(here); chk.blockSignals(False)
+            chk.setToolTip(f"Marked shredded {done[self.file]}." if here else "Tick it when every piece of this document is looked at")
         self.done_btn.setText("Shredded \u2713" if here else "Mark shredded")
         self.done_btn.setToolTip(f"Marked shredded {done[self.file]}. Click to take the mark off." if here else
                                  "Every piece of this document is looked at")
@@ -2603,7 +2607,7 @@ class AssignPage(QWidget):
             b.setSelected(True); n += 1
         self._guard = False
         self.on_select()
-        self.host.status(f"{n} piece(s) selected." if n else ("Every piece here has a decision." if undecided else "Nothing to select."))
+        self.host.status(f"{n} piece(s) selected." if n else ("Every piece here is shredded." if undecided else "Nothing to select."))
         return n
 
     def select_undecided(self):
@@ -3814,7 +3818,7 @@ class AssignPage(QWidget):
         if state == "shown" and cat and not now:
             row.addWidget(D.button("Accept  Enter", "primary", lambda: self.accept_suggestions(rows=self.selected()),
                                    "Take the suggestion (or press its key, or another key to decide otherwise)"))
-            row.addWidget(D.button("Not right", None, lambda: self.reject_suggestion(), "Leave it undecided, for you"))
+            row.addWidget(D.button("Not right", None, lambda: self.reject_suggestion(), "Leave it not shredded, for you"))
         if rec.get("unchecked"):
             row.addWidget(D.button("Checked", "primary", lambda: self.check_suggestion(), "A person looked and it is right"))
         if state in ("rejected", "changed") or (cat and now and not SR.agrees(cat, now)) or (not cat and now in ("L", "M", "SOW", "I", "req")):
@@ -4248,7 +4252,7 @@ class AssignPage(QWidget):
         rows = self.selected()
         if rows:
             self.R.clear(rows)
-            self.after(f"{len(rows)} piece(s): not decided")
+            self.after(f"{len(rows)} piece(s): not shredded")
             return len(rows)
         return 0
 

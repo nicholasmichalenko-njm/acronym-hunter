@@ -254,23 +254,23 @@ SECTIONS = (("health", "Effort health (the numbers on top)", "wide"),           
             ("custfocus", "Evaluation and hot buttons", "half"),                                      # 2.99.0
             ("graphics", "Graphic needs", "half"),                                                    # 3.0.4
             ("themes", "Win themes (to edit; they show under the header)", "half"),                   # 3.2.0
-            ("compliance", "Compliance review", "half"), ("coverage", "Volumes, people and page budget", "half"),  # 3.12.0; 3.16.0: set them here
+            ("coverage", "Volumes, people and page budget", "half"),  # 3.12.0; 3.16.0: set them here (4.26.0: Compliance review is Shred's bar)
             ("pastdue", "Past due", "half"), ("acronyms", "Acronyms and QA/QC", "half"),
             ("people", "Who has what", "wide"),
             ("meetings", "Meeting notes", "wide"), ("evalcrit", "Evaluation criteria", "half"),   # 3.63.0
             ("info", "Customer information", "wide"), ("timeline", "Timeline", "wide"))
-RETIRED = {"formatting": "submission"}                           # 3.12.0: a key a saved layout may still hold -> its card now
+RETIRED = {"formatting": "submission"}     # (4.26.0: "compliance" is no card now; a saved layout that holds it drops it)                           # 3.12.0: a key a saved layout may still hold -> its card now
 KEYS = tuple(k for k, _t, _w in SECTIONS)
 TITLE = {k: t for k, t, _w in SECTIONS}
 WIDTH = {k: w for k, _t, w in SECTIONS}
 ROLES = {
     # 3.63.0: meeting notes up front; the deliverables list carries volumes, people and who has what
-    "Proposal Manager": ("health", "meetings", "deliverables", "stage", "submission", "goals", "notes", "tasks", "calendar", "compliance",
+    "Proposal Manager": ("health", "meetings", "deliverables", "stage", "submission", "goals", "notes", "tasks", "calendar",
                          "pastdue", "evalcrit", "custqa", "custfocus", "graphics", "acronyms", "info", "timeline"),
     "Production": ("health", "deliverables", "meetings", "submission", "graphics", "calendar", "tasks", "stage", "notes", "acronyms",
                    "timeline"),
     "Author": ("mywork", "meetings", "tasks", "notes", "graphics", "calendar", "submission", "stage"),
-    "Reviewer": ("stage", "health", "meetings", "calendar", "notes", "tasks", "submission", "compliance", "evalcrit", "deliverables"),
+    "Reviewer": ("stage", "health", "meetings", "calendar", "notes", "tasks", "submission", "evalcrit", "deliverables"),
     "Capture": ("stage", "info", "evalcrit", "meetings", "custfocus", "submission", "custqa", "notes", "calendar", "goals", "timeline"),
 }
 ROLE_NAMES = tuple(ROLES)

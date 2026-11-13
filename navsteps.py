@@ -123,7 +123,7 @@ def steps(f):
     left1 = chk + cmp_
     bits = []
     if chk:
-        bits.append(f"{chk} to check")
+        bits.append(f"{chk} new document" + ("" if chk == 1 else "s"))     # 4.26.0: "check" means comparing one thing with another
     if cmp_:
         bits.append(f"{_plural(cmp_, 'change')} to review")
     out.append({"key": "library", "done": docs > 0 and not left1, "progress": 1.0 if docs and not left1 else 0.5 if docs else 0.0,
@@ -208,9 +208,10 @@ def next_step(sts, f):
             return {"key": k, "go": "compare", "title": f"Review the {_plural(f['compare'], 'change')} a new version made",
                     "button": "Open Changes", "then": then,
                     "why": "Each changed passage: no impact, shred it again, or ask a question."}
-        t = f"Check the {_plural(f['to_check'], 'customer document')} that came in" if f["to_check"] else "Add the customer's documents"
+        n = f["to_check"]
+        t = (f"Decide what the {'new document is' if n == 1 else str(n) + ' new documents are'} used for") if n else "Add the customer's documents"
         return {"key": k, "go": "library", "title": t, "button": "Open Documents", "then": then,
-                "why": "Each document's type and version, so the shred reads the right ones."}
+                "why": "Each document's type, version and what it is used for, so the shred reads the right ones."}
     if k == "assign":
         r = f.get("reqs")
         if not r:

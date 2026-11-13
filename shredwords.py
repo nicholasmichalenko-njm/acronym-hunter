@@ -14,8 +14,8 @@ def progress(done, total):
 
 
 def left(n):
-    """What is left to do: '28 to shred', or 'all shredded'."""
-    return f"{n} to shred" if n else "all shredded"
+    """What is left to do: '28 not shredded', or 'all shredded' (4.26.0, answer 29: counts say "not shredded")."""
+    return f"{n} not shredded" if n else "all shredded"
 
 
 def under(done, total):
@@ -24,7 +24,7 @@ def under(done, total):
 
 
 def of_document(total, not_done):
-    """Documents' panel: '40 pieces, 28 to shred' or '40 pieces, all shredded'."""
+    """Documents' panel: '40 pieces, 28 not shredded' or '40 pieces, all shredded'."""
     return f"{pieces(total)}, {left(not_done)}"
 
 

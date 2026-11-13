@@ -1,6 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SHRED, SIMPLER (4.26.0)
+  - The bar at the selection. Select one piece or several and a small bar shows just above them: the types as
+    chips, Combine for several pieces, Split once you clicked the word to split before, and Take the selected
+    suggestions. The pane on the right is unchanged.
+  - This document is shredded is a checkbox on the document row. It marks the document and opens nothing.
+  - More holds Fix text and Fit width. Next document, Pan, Take every suggestion and the Captured list left it.
+    The page moves with Space and drag or a middle-button drag at any time; Ctrl+wheel zooms.
+  - Add missed text: drag a box on the page, right-click inside the box, Add missed text.
+  - Make it checked...: a piece typed Rule shows this on its pane. It opens the rule filled from the piece; Effort
+    Formatting and Submit check it from then on and it keeps the piece as its source. A piece typed Date gets
+    the same offer and opens the Key date card. Nothing is made until you press the button.
+  - Counts say "not shredded". The bar that was the Dashboard's Compliance review card is under Shred's document
+    row. Shred no longer has Next: Matrix & Outline at the bottom; the menu says what is left.
+  - Sort mode is off Shred (it is Your Tools > Sort). Theme tags lost its Structure view.
+  - Start our structure shows its two doors on Matrix & Outline > Outline only. Setup shows one line that opens it.
+  - Rules & Dates with nothing to list shows one sentence and Add a rule....
+  - The menu says "1 new document" (it said "1 to check"); your next step says "Decide what the new document is
+    used for".
+
 GRAPHICS (4.25.5)
   - Graphics is in the menu under Documents. One row per graphic, the customer's and ours: a picture in Documents,
     a picture inside a document that the scan found terms in, and each graphic need you tag in Shred.

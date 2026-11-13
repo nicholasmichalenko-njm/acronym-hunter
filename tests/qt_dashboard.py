@@ -53,8 +53,9 @@ check("the menu has the Effort Dashboard and no Dashboard", "home" in w.step_btn
 check("the page is called Dashboard (3.96.0)", w.page_title.text() == "Dashboard")
 w.go("dashboard"); app.processEvents()
 check("the old Dashboard route opens the Effort Dashboard", w.stack.currentWidget() is hp)
-check("the Dashboard's numbers and cards are on it for the proposal manager", all(k in hp.shown for k in ("health", "compliance",
-      "pastdue", "acronyms")) and "coverage" not in hp.shown and "people" not in hp.shown and hp.health.isVisibleTo(w) and w.dash_page.comp.isVisibleTo(w) and w.dash_page.data is not None)
+check("the Dashboard's numbers and cards are on it for the proposal manager", all(k in hp.shown for k in ("health",
+      "pastdue", "acronyms")) and "coverage" not in hp.shown and "people" not in hp.shown and hp.health.isVisibleTo(w)
+      and "compliance" not in hp.shown and not w.dash_page.comp.isVisibleTo(w) and w.dash_page.data is not None)     # 4.26.0: the bar is Shred's
 
 # ---------------------------------------------------------------- the pinned header
 check("the header is pinned above the scrolling cards", bn.parent() is hp.head and hp.head.isVisibleTo(w)

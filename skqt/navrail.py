@@ -331,6 +331,9 @@ class NextBar(QFrame):
 
     def show_for(self, step, rail_of):
         e = rail_of.get(step, step)
+        if e == "assign":                           # 4.26.0 (answer 18): Shred's Next: Matrix & Outline is gone; it committed
+            self.setVisible(False)                  # nothing the menu does not, and the menu says what is left
+            return None
         b = NS.bar(e, self.w.steps_now) if self.w.ws is not None and e in NS.NAME else None
         if not b:
             self.setVisible(False)

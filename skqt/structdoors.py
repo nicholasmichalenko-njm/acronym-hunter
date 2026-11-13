@@ -1,5 +1,5 @@
 """Start our structure: two doors to one outline (4.19.0; claude/stationkeeper-response-structure-plan-4.19.html).
-The Setup builder (Matrix & Outline's outline, and Setup's) shows a card while our outline is empty, or still the start
+The Setup builder shows a card on Matrix & Outline > Outline (4.26.0: on Setup it is one line that opens Outline) while our outline is empty, or still the start
 the app made from the customer's headings when it first read them (either door replaces that start):
 - The customer prescribes it: the pieces typed Structure in Shred are read into headings (structfrom.read), shown in a
   preview to fix levels and titles, then Put in our outline. Each heading keeps Required by. Recommended when Structure
@@ -22,7 +22,13 @@ def card(page):
     f = QFrame(); f.setObjectName("card")
     v = QVBoxLayout(f); v.setContentsMargins(D.SPACE["l"], D.SPACE["m"], D.SPACE["l"], D.SPACE["m"]); v.setSpacing(D.SPACE["s"])
     v.addWidget(D.label("Start our structure", "title"))
-    row = QHBoxLayout(); row.setSpacing(D.SPACE["l"]); v.addLayout(row)
+    from PySide6.QtWidgets import QWidget
+    page.doors_w = QWidget(); v.addWidget(page.doors_w)                # 4.26.0 (answer 28): the two doors show on Outline only
+    row = QHBoxLayout(page.doors_w); row.setContentsMargins(0, 0, 0, 0); row.setSpacing(D.SPACE["l"])
+    page.start_line = D.label("Our structure starts on Matrix & Outline > Outline. <a href='outline'>Open Outline</a>", "muted")
+    page.start_line.linkActivated.connect(lambda _h: page.host.go("outline"))
+    page.start_line.setVisible(False)
+    v.addWidget(page.start_line)
     one = QVBoxLayout(); row.addLayout(one, 1)
     one.addWidget(D.label("The customer prescribes it", "label"))
     page.door1_say = D.label("", "muted"); one.addWidget(page.door1_say)
@@ -45,6 +51,19 @@ def card(page):
     return f
 
 
+def on_outline(page):
+    """The builder sits on Matrix & Outline > Outline (True) or on Setup (False): starting has one place."""
+    p = page.parentWidget()
+    while p is not None:
+        n = type(p).__name__
+        if n == "OutlinePage":
+            return True
+        if n in ("SetupsPage", "SetupPage"):
+            return False
+        p = p.parentWidget()
+    return True
+
+
 def refresh(page):
     """Show the card while our outline is empty; say what Door 1 has to read."""
     c = getattr(page, "start_card", None)
@@ -56,6 +75,8 @@ def refresh(page):
     c.setVisible(bool(empty))
     if not empty:
         return
+    here = on_outline(page)
+    page.doors_w.setVisible(here); page.start_line.setVisible(not here)
     n = len(SF.pieces(M))
     page.door1.setProperty("kind", "primary" if n else None)
     page.door1.setEnabled(bool(n))

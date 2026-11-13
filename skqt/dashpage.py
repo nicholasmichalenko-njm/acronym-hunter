@@ -119,6 +119,7 @@ class DashPage(QWidget):
         self.people_table = _table(["Person", "Sections", "Requirements", "Open tasks", "Late", "Open questions"], (0, 80, 100, 90, 60, 110))
         self.people.add(self.people_table)
         grid.addWidget(self.comp, 0, 0); grid.addWidget(self.stages, 0, 1, 2, 1, Qt.AlignTop)
+        self.comp.setVisible(False)       # 4.26.0 (Nicholas's recording 08:45): the bar is Shred's now (skqt/shredprogress)
         grid.addWidget(self.vol, 1, 0, Qt.AlignTop)
         grid.addWidget(self.acr, 2, 0, Qt.AlignTop); grid.addWidget(self.late, 2, 1, Qt.AlignTop)
         grid.addWidget(self.people, 3, 0, 1, 2)

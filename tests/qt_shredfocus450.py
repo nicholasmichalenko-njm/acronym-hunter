@@ -68,15 +68,16 @@ vis = lambda x: x.isVisibleTo(w) and x.isVisible()                     # noqa: E
 
 
 def controls():
-    n = sum(1 for b in pg.findChildren(QAbstractButton) if vis(b) and not isinstance(b.parent(), QTabBar))
+    n = sum(1 for b in pg.findChildren(QAbstractButton) if vis(b) and not isinstance(b.parent(), QTabBar)
+            and b.parent().objectName() != "shredSelBar")          # 4.26.0: the bar at the selection is counted apart
     n += sum(1 for c in pg.findChildren(QComboBox) if vis(c))
     return n + sum(1 for f in pg.findChildren(QLineEdit) if vis(f) and not isinstance(f.parent(), QComboBox))
 
 
 check("Shred is in its focus: one job", pg.focus == "shred" and not vis(pg.decide_area) and not vis(pg.bulk)
       and not vis(pg.topic_bar) and not vis(pg.sg_btn) and not vis(pg.next_btn))
-check("the main button: Mark this document shredded; More holds the rest", vis(pg.shred_main) and vis(pg.focus_more)
-      and all(k in pg.more_acts for k in ("Fix text", "Take every suggestion", "Add missed text", "Fit width", "Pan", "Captured list")))
+check("4.26.0: This document is shredded is a checkbox; More holds Fix text and Fit width only", vis(pg.shred_check) and vis(pg.focus_more)
+      and sorted(pg.more_acts) == ["Fit width", "Fix text"] and not pg.shred_check.isChecked())
 it = by("Integrated Master Schedule")
 pg.select(it["id"]); app.processEvents()
 n_ctl = controls()

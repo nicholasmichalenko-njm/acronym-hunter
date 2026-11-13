@@ -86,10 +86,12 @@ check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth
       and w.page_title.text() == "Drafts" and w.stack.currentWidget() is w.drafts_page, w._tab_keys)
 # the bar
 w.rail_go("assign"); app.processEvents()
+check("4.26.0: Shred has no bar at the bottom (Next: Matrix & Outline is gone)", not w.next_bar.isVisibleTo(w))
+w.rail_go("matrix"); app.processEvents()
 check("the bar at the bottom: what is left and the next step", w.next_bar.isVisibleTo(w) and w.next_bar.left.text().startswith("On this step:")
-      and w.next_bar.btn.text().startswith("Next: Matrix && Outline"))      # 4.4.0: && draws one &, not an underscore
+      and w.next_bar.btn.text().startswith("Next: Setup"), w.next_bar.btn.text())
 w.next_bar.go(); app.processEvents()
-check("... its button opens the next step", w.stack.currentWidget() is w.matrix_page and w.step_btns["matrix"].isChecked())
+check("... its button opens the next step", w.stack.currentWidget() is w.setups_page and w.step_btns["setups"].isChecked())
 w.rail_go("finalcheck"); app.processEvents()
 check("Submit, the last step: no next button", w.next_bar.isVisibleTo(w) and not w.next_bar.btn.isVisibleTo(w)
       and w._tab_keys == ["finalcheck", "qa", "checks", "postsub", "keywords"])

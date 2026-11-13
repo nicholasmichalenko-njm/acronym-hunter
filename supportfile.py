@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.26.0": ["Shred: select pieces and a bar shows above them with the types, Combine, Split and Take the selected suggestions.",
+               "This document is shredded is a checkbox. Add missed text: drag a box, right-click inside it.",
+               "A piece typed Rule or Date has Make it checked... on its pane. Counts say not shredded.",
+               "The compliance bar moved from the Dashboard to Shred. Next: Matrix & Outline is gone from Shred."],
     "4.25.5": ["Graphics is a page of its own, under Documents: one row per graphic, the customer's and ours.",
                "Each row says, for its current version, whether its words are read and its acros and abs are swept.",
                "A graphic need tagged in Shred is a row there too, with its status."],

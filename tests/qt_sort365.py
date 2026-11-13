@@ -63,7 +63,9 @@ n = sp.take_suggestions([logs, tr])
 check("Take the suggestions files them under their suggested topics", n == 2 and TP.primary(sp.rec(), logs["id"])["id"] == cyber
       and TP.primary(sp.rec(), tr["id"])["id"] == trans)
 # Structure
-sp.view.setCurrentIndex(2); app.processEvents()
+check("4.26.0 (answer 30): the Structure view is off the page (Sort and Overview stay)",
+      [sp.view.itemText(i) for i in range(sp.view.count())] == ["Sort", "Overview"])
+sp.stack.setCurrentIndex(2); app.processEvents()          # its machinery stays under the screen
 sv = sp.struct
 check("Sort > Structure lists every topic with its requirements and what it fills", sv.table.rowCount() == len(TP.topics(sp.rec()))
       and "topic(s) with requirements and no section" in sv.gaps.text(), sv.gaps.text())

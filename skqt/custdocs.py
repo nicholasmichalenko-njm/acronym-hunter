@@ -552,6 +552,7 @@ class RequirementsPage(QWidget):
         from . import rulesdates as RD                # 4.1.0: the shred's Rule and Date pieces and its key dates
         sel = RD.add_groups(self, keep) or sel
         RD.regroup(self)                              # 4.6.0: three groups only
+        RD.empty_state(self)                          # 4.26.0: nothing to list: one sentence, one way in
         self.tree.expandAll()
         if sel is not None:
             self.tree.setCurrentItem(sel)

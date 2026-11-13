@@ -225,9 +225,9 @@ TOPICS = [
    "N goes to the next piece not shredded in this document.",
    "A piece a new version changed shows Changed by <version> on its pane until it is shredded again; a new one shows "
    "New in <version>.",
-   "When a document is done, press Mark this document shredded: it is marked and the next one opens.",
-   "More: Fix text, Take every suggestion, Add missed text (drag a box around text the reader missed), Next document, "
-   "Fit width (Ctrl+0), Pan (H, or hold Space and drag) and the Captured list.",
+   "Select pieces and a bar shows above them: the types, Combine, Split, Take the selected suggestions. When a document is "
+   "done, tick This document is shredded. More holds Fix text and Fit width (Ctrl+0). Text the reader missed: drag a box, "
+   "right-click inside it, Add missed text. Space and drag or the middle button moves the page; Ctrl+wheel zooms.",
    "Settings > Shred: decisions and captures sets every type's and capture's name, key, color and showing.",
    "See it as > List shows every piece under the customer's headings with what is shredded; double-click a piece to "
    "open it on its page.",

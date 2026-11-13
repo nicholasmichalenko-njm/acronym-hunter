@@ -3,11 +3,11 @@ shows one job per mode. Shred says what each piece is; Place puts it in our outl
 keeps its key, its right-click entry or a place in More.
 
 apply(page, mode): mode "shred" or "place" (placemode.apply calls it on every visit).
-- Both: the selection bar, the topic bar, the bottom decide and capture panel and the help line leave; Next document,
-  Suggest, Add missed text, Pan, Fit width and Fix text go to More. Suggestions are always worked out: the piece pane
+- Both: the selection bar, the topic bar, the bottom decide and capture panel and the help line leave; Fit width and
+  Fix text are in More. Suggestions are always worked out: the piece pane
   shows the suggested type dashed, and Enter takes it.
-- Shred: the main button is Mark this document shredded (it marks the document and opens the next one). N goes to the
-  next piece not sorted.
+- Shred: This document is shredded is a checkbox (4.26.0; it was the main button and opened the next document). N goes
+  to the next piece not sorted.
 - Place: the piece pane is the place pane (placepane); N goes to the next piece not placed.
 Rules only (No AI); nothing leaves the PC."""
 from PySide6.QtWidgets import QMenu
@@ -19,29 +19,34 @@ LEAVE = ("next_btn", "sg_btn", "cap_btn", "pan_btn", "fit_btn", "fix_btn", "done
 
 
 def install(page):
-    """Once, in AssignPage.__init__: the main button and More on the document row."""
+    """Once, in AssignPage.__init__: the checkbox and More on the document row.
+    4.26.0 (answer 17): This document is shredded is a plain checkbox (it marks, and opens nothing); Take the selected
+    suggestions and Split are on the bar at the selection (skqt/shredselbar); Next document, Pan, Add missed text,
+    Take every suggestion and the Captured list left More. The page pans and zooms at any time (Space and drag, a middle-button drag, Ctrl+wheel);
+    missed text is added from a dragged box (skqt/shredband)."""
+    from PySide6.QtWidgets import QCheckBox
     bar = page.top_bar
     page.focus = "shred"
-    page.shred_main = D.button("Mark this document shredded", "primary", lambda: shredded(page),
-                               "Every piece of this document is looked at: it is marked shredded and the next one opens")
-    page.focus_more = D.button("More", None, None, "Fix text, suggestions, missed text, the page's size")
+    page.shred_check = QCheckBox("This document is shredded")
+    page.shred_check.toggled.connect(lambda on: shredded(page, on))
+    page.shred_main = page.shred_check                    # the name the older code and tests know
+    page.focus_more = D.button("More", None, None, "Fix text, the page's size")
     m = QMenu(page.focus_more)
     page.more_acts = {}
     for name, fn in (("Fix text  F2", lambda: __import__("skqt.fixtext", fromlist=["x"]).toggle(page)),
-                     ("Take every suggestion", lambda: page.accept_suggestions(clear_only=False)),
-                     ("Add missed text", lambda: page.toggle_capture()),
-                     ("Next document", lambda: page.next_file()),
-                     ("Fit width  Ctrl+0", lambda: page.view.fit()),
-                     ("Pan  H", lambda: page.toggle_pan()),
-                     ("Captured list", lambda: page.all_excerpts())):
+                     ("Fit width  Ctrl+0", lambda: page.view.fit())):
         page.more_acts[name.split("  ")[0]] = m.addAction(name, fn)
     page.focus_more.setMenu(m)
     bar.addWidget(page.focus_more)
-    bar.addWidget(page.shred_main)
+    bar.addWidget(page.shred_check)
+    __import__("skqt.shredband", fromlist=["x"]).install(page)
+    __import__("skqt.shredselbar", fromlist=["x"]).install(page)       # 4.26.0: the bar at the selection
+    __import__("skqt.shredprogress", fromlist=["x"]).install(page)     # 4.26.0: the compliance bar, moved from the Dashboard
     import os
     if os.environ.get("SK_SHRED_CLASSIC"):
         page.focus = None
-        page.shred_main.setVisible(False); page.focus_more.setVisible(False)
+        for x in (page.shred_check, page.focus_more):
+            x.setVisible(False)
     from PySide6.QtGui import QKeySequence, QShortcut
     QShortcut(QKeySequence("Ctrl+0"), page.view, activated=lambda: page.view.fit())
 
@@ -65,9 +70,13 @@ def apply(page, mode):
         for x in getattr(page, "outline_rows", []):                  # + Heading, Start from: Outline builds the outline
             x.setVisible(False)
         page.note.setVisible(not page.file)                         # only the empty page's one way in
-        page.shred_main.setVisible(mode == "shred" and bool(page.file) and page.cx is None)
-        page.more_acts["Take every suggestion"].setVisible(mode == "shred")
-        page.more_acts["Captured list"].setVisible(mode == "shred")
+        on = mode == "shred" and bool(page.file) and page.cx is None
+        page.shred_check.setVisible(on)
+        if page.view.pan_tool:                                       # the Pan tool is gone: Space, the middle button
+            page.toggle_pan(False)
+        if getattr(page, "sort_on", False):                          # 4.26.0 (answer 30): Sort mode is Your Tools > Sort's;
+            page.sort_on = False; page.sort_btn.setChecked(False)    # here the keys 1 to 9 file nothing
+        page.show_queue()
         if mode != "shred":
             __import__("skqt.capturecard", fromlist=["x"]).closing(page)       # 4.12.0: the card is Shred's
         if mode == "shred":
@@ -76,6 +85,8 @@ def apply(page, mode):
             page.sg_on = False
             page.restyle()
         page.show_card(page.selected())
+        __import__("skqt.shredselbar", fromlist=["x"]).later(page)
+        __import__("skqt.shredprogress", fromlist=["x"]).refresh(page)
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return mode
@@ -95,13 +106,12 @@ def suggest_on(page):
     return page.sg_on
 
 
-def shredded(page):
-    """Mark this document shredded, then the next one not shredded opens."""
-    if not page.mark_reviewed(True):
-        return None
-    nxt = page.next_file()
-    page.host.status(f"{page.file} shredded." if not nxt else f"Shredded. Next: {nxt}.")
-    return nxt or True
+def shredded(page, on=True):
+    """Tick or untick This document is shredded. It marks the document; nothing else opens."""
+    got = page.mark_reviewed(bool(on))
+    if page.file:
+        page.host.status(f"{page.file} is marked shredded." if got else f"{page.file}: the mark is off.")
+    return got
 
 
 def enter(page):
@@ -170,7 +180,9 @@ def off(page):
         x.setVisible(True)
     page.sg_strip.setVisible(page.sg_on)
     page.note.setVisible(True)
-    page.shred_main.setVisible(False)
-    page.focus_more.setVisible(False)
+    if getattr(page, "progress_row", None) is not None:
+        page.progress_row.setVisible(False)
+    for x in (page.shred_check, page.focus_more):
+        x.setVisible(False)
     page.show_card(page.selected())
     return None

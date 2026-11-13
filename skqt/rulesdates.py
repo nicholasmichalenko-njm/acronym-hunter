@@ -159,3 +159,25 @@ def open_piece(host, iid):
         diag.swallowed()
         return False
     return True
+
+
+def empty_state(page):
+    """4.26.0 (Nicholas's recording): with nothing to list, the page is one sentence and one way in, as Evaluation is.
+    The three empty groups, the bar and the side card show again as soon as there is a rule or a date."""
+    from . import design as D
+    t = page.tree
+    n = sum(t.topLevelItem(i).childCount() for i in range(t.topLevelItemCount()))
+    es = getattr(page, "empty", None)
+    if es is None:
+        es = page.empty = D.EmptyState(
+            "No rules or dates yet",
+            "A rule the reader finds in the customer's documents, a piece you type Rule or Date in Shred, and a rule you "
+            "add yourself are listed here.", "Add a rule...", lambda: page.add())
+        page.layout().addWidget(es, 1)
+    split = t.parentWidget()
+    on = n == 0 and page.host.ws is not None
+    es.setVisible(on)
+    split.setVisible(not on)
+    page.cbar.setVisible(not on)
+    return on
+

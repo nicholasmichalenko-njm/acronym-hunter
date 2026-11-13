@@ -26,7 +26,8 @@ class SortPage(QWidget):
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.sumlab = D.label("", "title"); top.addWidget(self.sumlab, 1)
-        self.view = QComboBox(); self.view.addItems(["Sort", "Overview", "Structure"]); self.view.currentIndexChanged.connect(lambda i: self.stack.setCurrentIndex(i))
+        self.view = QComboBox(); self.view.addItems(["Sort", "Overview"])     # 4.26.0 (answer 30): the Structure view is gone; the outline is built on Outline
+        self.view.currentIndexChanged.connect(lambda i: self.stack.setCurrentIndex(i))
         top.addWidget(self.view)
         self.start = QComboBox(); self.start.addItem("Start from...", "")
         for k, lab in (("headings", "The RFP's headings (its own numbering)"), ("factors", "The evaluation factors"),
