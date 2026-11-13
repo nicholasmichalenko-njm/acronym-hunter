@@ -24,18 +24,21 @@ def suggested(page, it):
 
 def pane(page, chips):
     """4.29.1 (Nicholas 2026-11-13 answer 8): the types show once. While the bar sits at the selection the pane says
-    which types the piece has; the pane's own chips show only when there is no bar (the piece is off the page shown)."""
-    try:
-        w, say = getattr(page, "type_w", None), getattr(page, "type_say", None)
-        if w is not None:
-            w.setVisible(bool(chips))
-        if say is not None:
-            say.setVisible(not chips)
-        cr = getattr(page, "cap_row", None)              # 4.29.3: Capture and Ask a question follow the chips
-        if cr is not None:
-            cr.setVisible(bool(chips))
-    except RuntimeError:                 # the card was drawn again under it
-        page.type_w = page.type_say = page.cap_row = None
+    which types the piece has; the pane's own chips show only when there is no bar (the piece is off the page shown).
+    4.29.3: Capture and Ask a question follow the chips. 4.29.4: a widget of a card that was drawn again has no parent
+    any more; showing it would open it as a window of its own, so only widgets still in the card are touched."""
+    def live(x):
+        try:
+            return x is not None and x.parentWidget() is not None
+        except RuntimeError:             # deleted with its card
+            return False
+    w, say, cr = getattr(page, "type_w", None), getattr(page, "type_say", None), getattr(page, "cap_row", None)
+    if live(w):
+        w.setVisible(bool(chips))
+    if live(say):
+        say.setVisible(not chips)
+    if live(cr):
+        cr.setVisible(bool(chips))
 
 
 def add(page, rows):
@@ -124,10 +127,9 @@ ASK_TIP = "Files a question for the customer that cites this piece. It is kept i
 
 
 def goes(key):
-    """Where a capture is kept, in the words Settings gives it (reviewitems.CAPTURES): 'into Customer information'."""
-    import reviewitems as RI
-    tip = next((c[5] for c in RI.CAPTURES if c[0] == key), "")
-    return tip.split(", ", 1)[1] if ", " in tip else tip
+    """Where a capture is kept, from the audited list (captureuse.CAPTURES): 'Shred > Evaluation Criteria'."""
+    import captureuse as CU
+    return CU.capture_line(key)
 
 
 def fill_capture(page, m):
