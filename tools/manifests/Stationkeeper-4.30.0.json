@@ -1,0 +1,2420 @@
+{
+ "edition": "us",
+ "files": {
+  "Stationkeeper.exe": {
+   "sha256": "f421159f5d5484f2d1e436f5c27964545e4907ea3774abe8a921326ab97c2451",
+   "size": 13615669
+  },
+  "_internal/PIL/_imaging.cp311-win_amd64.pyd": {
+   "sha256": "1ead5ef5fb2b0b40d5a92c4baa5e4e111b187e9f9f4e895a1ab8cea8e12318f2",
+   "size": 2662400
+  },
+  "_internal/PIL/_imagingcms.cp311-win_amd64.pyd": {
+   "sha256": "6b2b71a29b684727c100cbe2810a69cde03d32fd489150f90ef7ca155556a5fe",
+   "size": 275968
+  },
+  "_internal/PIL/_webp.cp311-win_amd64.pyd": {
+   "sha256": "2d5846f349212f73e613ab18076851d360d3deb0dd7b41db76357ed06e65f39d",
+   "size": 415744
+  },
+  "_internal/PySide6/MSVCP140.dll": {
+   "sha256": "0fdfeb79ecd1012eca5be64f04c45f56c82d08b59d1dfabfe99ed077b935620c",
+   "size": 549176
+  },
+  "_internal/PySide6/MSVCP140_1.dll": {
+   "sha256": "0583e9d052fde0c2b91dfa3b326afb429879bbd9a25a8edec4676782c5ffe171",
+   "size": 27448
+  },
+  "_internal/PySide6/MSVCP140_2.dll": {
+   "sha256": "270a847fc813c720782cf8a6710e2e9fce80c45f331213456ba082b3e5d51b41",
+   "size": 271672
+  },
+  "_internal/PySide6/Qt6Core.dll": {
+   "sha256": "d2308a473d2dce5b169bd754855db7e9e61085f47330b0c470e05ed7cb6fa73a",
+   "size": 10370872
+  },
+  "_internal/PySide6/Qt6Gui.dll": {
+   "sha256": "f2f8082db68d100369fd46b657c8b59d9325965e63ae8b52a063dad7e9247457",
+   "size": 9638712
+  },
+  "_internal/PySide6/Qt6Widgets.dll": {
+   "sha256": "375d202cdc417240656d222664dbedf429650b98464f633e6ae058393c80bfae",
+   "size": 6501176
+  },
+  "_internal/PySide6/QtCore.pyd": {
+   "sha256": "c4c74fd76173a57c0f20466f3c868e7f62762eccd803c335e99064017d5306d3",
+   "size": 3345720
+  },
+  "_internal/PySide6/QtGui.pyd": {
+   "sha256": "57e71c240446c68ae689195f64d9c35ffd9eeefb5abb1b4dad6fcbaecf83676e",
+   "size": 3901240
+  },
+  "_internal/PySide6/QtWidgets.pyd": {
+   "sha256": "196e5a821fa586cca26fd710417619af322c82c9743ce58ddb76c9f184c3d6d8",
+   "size": 4857656
+  },
+  "_internal/PySide6/VCRUNTIME140.dll": {
+   "sha256": "869ea7d55c73237cbf5cfd809182e4be893833938e034f3ad2a613d4cc6d4fe5",
+   "size": 116024
+  },
+  "_internal/PySide6/VCRUNTIME140_1.dll": {
+   "sha256": "e5235ad48a4c34cee1d36aee1f288f01b639ca9056cf603fe65c1d841b8e97ea",
+   "size": 41272
+  },
+  "_internal/PySide6/plugins/imageformats/qgif.dll": {
+   "sha256": "dedc821fb5c443542ebf99cb3e33811d03d57fae07ed4af3ab4d254734427c06",
+   "size": 47928
+  },
+  "_internal/PySide6/plugins/imageformats/qico.dll": {
+   "sha256": "c20922f51aa4a6622256d36aaf5425bbe3e988b2d18c357c0010b3b6192a5c19",
+   "size": 46904
+  },
+  "_internal/PySide6/plugins/imageformats/qjpeg.dll": {
+   "sha256": "e3744a20b7e19659488176088bf7f3346056a86dc9e42ebdd85e1651fdec7b97",
+   "size": 592184
+  },
+  "_internal/PySide6/plugins/platforms/qwindows.dll": {
+   "sha256": "aed2c28d2419e7cbf410f143947d68740df0bc04fb9ab2b94440e9b39ffc679d",
+   "size": 992056
+  },
+  "_internal/PySide6/pyside6.abi3.dll": {
+   "sha256": "0f6f86d84e8044def327b61ea365752bb90e502ecfd8f105b9d71559f6f11c17",
+   "size": 255288
+  },
+  "_internal/_bz2.pyd": {
+   "sha256": "00b8ca9a338d2b47285c9e56d6d893db2a999b47216756f18439997fb80a56e3",
+   "size": 84760
+  },
+  "_internal/_ctypes.pyd": {
+   "sha256": "c148292328f0aab7863af82f54f613961e7cb95b7215f7a81cafaf45bd4c42b7",
+   "size": 124696
+  },
+  "_internal/_decimal.pyd": {
+   "sha256": "980a63f2b39cf16910f44384398e25f24482346a482addb00de42555b17d4278",
+   "size": 255768
+  },
+  "_internal/_elementtree.pyd": {
+   "sha256": "02e30b6a2bee5be5336e40a9c89575603051bde86f9c9cdc78b7fa7d9b7bd1f0",
+   "size": 128792
+  },
+  "_internal/_lzma.pyd": {
+   "sha256": "f5e01b516c2c23035f7703e23569dec26c5616c05a929b2580ae474a5c6722c5",
+   "size": 159512
+  },
+  "_internal/_queue.pyd": {
+   "sha256": "3f8e7e6aa13b417acc78b63434fb1144e6319a010a9fc376c54d6e69b638fe4c",
+   "size": 32024
+  },
+  "_internal/_socket.pyd": {
+   "sha256": "a19e3c7c03ef1b5625790b1c9c42594909311ab6df540fbf43c6aa93300ab166",
+   "size": 79640
+  },
+  "_internal/_uuid.pyd": {
+   "sha256": "e6aa7f1637e211251c9d6f467203b2b6d85e5bc2d901699f2a55af637fa89250",
+   "size": 25368
+  },
+  "_internal/assets/brand/README.txt": {
+   "sha256": "b2c861ea62ba00d1a2ac4e6c3fcdd0953c2b8a79d9ba83e3ae9c38afe2b49d80",
+   "size": 374
+  },
+  "_internal/assets/common_words.txt": {
+   "sha256": "3e968374485a829e887b349d855d4a65d50170b11cc49262fa1bf24ff68f0730",
+   "size": 90657
+  },
+  "_internal/assets/scanner.ico": {
+   "sha256": "6771767e5116d85b1caa426da7136c3be4531889e1afde4cff5ea5908a8ce1cf",
+   "size": 55459
+  },
+  "_internal/assets/scanner_256.png": {
+   "sha256": "4d26a225588304c0e767bb9aa2c8631ee3a26c7ea43d018a4f3fdcbbf4637b79",
+   "size": 21256
+  },
+  "_internal/assets/spelling_words.txt": {
+   "sha256": "53c2db5c24fb0712b977022345a16e7306727e361217c2b3c12349855e4851f4",
+   "size": 1800957
+  },
+  "_internal/assets/trainer.ico": {
+   "sha256": "107285b7e7699153a3424fc56323d7c7c158e59db266e60f94ed6c70a763ccf4",
+   "size": 54193
+  },
+  "_internal/base_library.zip": {
+   "sha256": "82a39d1d8b88520ec3e09f559eb7a26814571f9c1f61a425ce24186b151a8c89",
+   "size": 1443565
+  },
+  "_internal/docs/CHECKSUM.txt": {
+   "sha256": "d7787a0ed1884c07c48057096151c1f1e6eb60a5a4b4a905719d3f7f2b3967af",
+   "size": 93
+  },
+  "_internal/docs/OVERVIEW.md": {
+   "sha256": "2ecb29a848f70a01cf6689970f435098eb431612a5b9c41060b109fb7a6cd938",
+   "size": 43755
+  },
+  "_internal/docs/README.txt": {
+   "sha256": "024e98327ac11a003d95e3097a125ceae0c8a7e445365b1433e975ab8a9af852",
+   "size": 336347
+  },
+  "_internal/docs/SECURITY.md": {
+   "sha256": "bd6e34d242bdc17bcd946b34a6474eb51d059c6e64302a1f4c6f411d4bebcb17",
+   "size": 39934
+  },
+  "_internal/doctr/LICENSE.txt": {
+   "sha256": "ec14763489b29d5b3adf97700f5ad8899722ae1ab2052b14244a77184f22e61b",
+   "size": 11537
+  },
+  "_internal/doctr/SOURCE.txt": {
+   "sha256": "ffe330ea73f72ec1ffeffedc94a089521c324786b1ff77e38cbe71b57e4a6aa1",
+   "size": 1052
+  },
+  "_internal/doctr/doctr_det.onnx": {
+   "sha256": "3de5a54fb8d0fb436ef8867ae503a5480b7de24049492b288245bd9032fbbaea",
+   "size": 16076966
+  },
+  "_internal/doctr/doctr_models.json": {
+   "sha256": "0fa2f89b0602f1389297e112b42bc36a3acde9680525742bb09b4fb0e098f703",
+   "size": 1215
+  },
+  "_internal/doctr/doctr_reco.onnx": {
+   "sha256": "f8bbe2b5432e5fa979e13152163f260c83480928437c71dbf21ba99b0b9acd36",
+   "size": 63213846
+  },
+  "_internal/effortdata/effort-data.schema.json": {
+   "sha256": "6c994670626c5df273746501c300e68bbd31c435ab4b13848ad8967116b2236d",
+   "size": 4545
+  },
+  "_internal/imgcore.dll": {
+   "sha256": "327fd9e971edbd72421633a89f7d076c26ec6e3472cd5f34816b0d79349dae01",
+   "size": 25600
+  },
+  "_internal/libffi-8.dll": {
+   "sha256": "eff52743773eb550fcc6ce3efc37c85724502233b6b002a35496d828bd7b280a",
+   "size": 39696
+  },
+  "_internal/lxml/_elementpath.cp311-win_amd64.pyd": {
+   "sha256": "2afcd8b4272d9ed94be40b31d112012e578f77b7bab01d7f0735d1ae5ebc166e",
+   "size": 143360
+  },
+  "_internal/lxml/builder.cp311-win_amd64.pyd": {
+   "sha256": "7ce0b56a67c366188a43958b13a72dfe2d69fe2573131177b446c4dbf9a555ad",
+   "size": 89088
+  },
+  "_internal/lxml/etree.cp311-win_amd64.pyd": {
+   "sha256": "2e4af374a880041b8b89c5782a7653700ec5ac2c8b4ff7da7c239e6bd9d7c5bd",
+   "size": 4049920
+  },
+  "_internal/lxml/html/_difflib.cp311-win_amd64.pyd": {
+   "sha256": "025303efe9e1f482871b6788920a527db879c9074e43a48d4d8386f37dc0fe5c",
+   "size": 346624
+  },
+  "_internal/lxml/html/diff.cp311-win_amd64.pyd": {
+   "sha256": "8d2def697753f83b338ff27ffe4296de665d37cf4cbd5705114d697d5521f5e6",
+   "size": 229376
+  },
+  "_internal/lxml/isoschematron/resources/rng/iso-schematron.rng": {
+   "sha256": "702338aa97ee4d8015b6e923c65a1b3cc949f2767e6aeec380e352da0e2b60ee",
+   "size": 19046
+  },
+  "_internal/lxml/isoschematron/resources/xsl/RNG2Schtrn.xsl": {
+   "sha256": "832f84eb1476a77e522bdc1715386b68f24423d35da084cd1dde319aacbba316",
+   "size": 3247
+  },
+  "_internal/lxml/isoschematron/resources/xsl/XSD2Schtrn.xsl": {
+   "sha256": "430791ac820cfb315c820f7c19703609a59f21b8151345ca11e6127efbfaec0d",
+   "size": 4563
+  },
+  "_internal/lxml/isoschematron/resources/xsl/iso-schematron-xslt1/iso_abstract_expand.xsl": {
+   "sha256": "492519900916845606fd8347bd6f5453a5fcb6630e1f5bdda519b3aaed25e103",
+   "size": 12015
+  },
+  "_internal/lxml/isoschematron/resources/xsl/iso-schematron-xslt1/iso_dsdl_include.xsl": {
+   "sha256": "659f9def6af14250027ebb381266836316916f177480f6be0cf2d195557a4118",
+   "size": 41116
+  },
+  "_internal/lxml/isoschematron/resources/xsl/iso-schematron-xslt1/iso_schematron_message.xsl": {
+   "sha256": "3506a5e33dc4b99ff9415a0c15b26a99ad922a0e3e8739bf0dbdbcdfed25d245",
+   "size": 2069
+  },
+  "_internal/lxml/isoschematron/resources/xsl/iso-schematron-xslt1/iso_schematron_skeleton_for_xslt1.xsl": {
+   "sha256": "568d45e7bea875191d2c19ae1045ab2dae4b17748c4d7f41e841069f151bbfff",
+   "size": 73560
+  },
+  "_internal/lxml/isoschematron/resources/xsl/iso-schematron-xslt1/iso_svrl_for_xslt1.xsl": {
+   "sha256": "508ef11f1d2578d5d2f41694e9cc90e021de7e5b9f2a6004fb38ceae286e1fe1",
+   "size": 20970
+  },
+  "_internal/lxml/isoschematron/resources/xsl/iso-schematron-xslt1/readme.txt": {
+   "sha256": "3862e216cc2e2c9116e443d828e7a86aeb8224512d55aea3cb3044d4e70923df",
+   "size": 3310
+  },
+  "_internal/lxml/objectify.cp311-win_amd64.pyd": {
+   "sha256": "6d48d88dd5be650b59a38f5bbea08bbd6524de28e5345f6436d9eedb03b2587f",
+   "size": 1744896
+  },
+  "_internal/lxml/sax.cp311-win_amd64.pyd": {
+   "sha256": "58a0445a0c7dfbf6f47117de6774be3ab64e6ca9f00bf78f1097d3b766a99cbf",
+   "size": 118272
+  },
+  "_internal/msvcp140.dll": {
+   "sha256": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca",
+   "size": 643512
+  },
+  "_internal/numpy-2.4.6.dist-info/DELVEWHEEL": {
+   "sha256": "0399822db132f754a7e3ba5eac8e564e4049b30df55d53bfeba6d38b812de58d",
+   "size": 462
+  },
+  "_internal/numpy-2.4.6.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/numpy-2.4.6.dist-info/METADATA": {
+   "sha256": "b082c52ccbe3b880bae177c35171b52ed6c947f3ad71e3762f2723f60a411de0",
+   "size": 6608
+  },
+  "_internal/numpy-2.4.6.dist-info/RECORD": {
+   "sha256": "84f63311558f99632b0d5c7f8ff98529281b3b4991096c9a5cfccab800a3421c",
+   "size": 129345
+  },
+  "_internal/numpy-2.4.6.dist-info/REQUESTED": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/numpy-2.4.6.dist-info/WHEEL": {
+   "sha256": "25d2d35a173bde827e96a4c16068225689edaffbe1cf0cdba403a29ffd9bc532",
+   "size": 85
+  },
+  "_internal/numpy-2.4.6.dist-info/entry_points.txt": {
+   "sha256": "ec26fade0c8bdac211a6c1dd003a65eb16885b925395423e93fcaa115af4052c",
+   "size": 220
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/LICENSE.txt": {
+   "sha256": "a804dff0ead9fadc5293456410bcbfc32bf024be9c4513459663fb7b442d2341",
+   "size": 45831
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt": {
+   "sha256": "d544761558b510866c21f7e8a2d5716fca76e0b98117e3b6b86314db7244d150",
+   "size": 1039
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING": {
+   "sha256": "aea41976c720f91bd19725c16916a1ace40eb1ea42620d340e587a5de4bbcea0",
+   "size": 704
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/_core/src/highway/LICENSE": {
+   "sha256": "d208152e2777ffd0126eacc1bd21c0320d69e4e6b622d21a2a12a47e8ef73763",
+   "size": 21155
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt": {
+   "sha256": "b0fd592d4ead563148e3977e7b589169d46a5ef2ff133c755a81af880a3fc919",
+   "size": 1441
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md": {
+   "sha256": "a732977853530066790c42817087f4829b518dd98d340c916acbfd227e39d3cb",
+   "size": 1542
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE": {
+   "sha256": "585483905b13d4b42f800c55ba99e89d6e2e33ccd5f503e201c07531d148ff41",
+   "size": 1573
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md": {
+   "sha256": "8db000e158c162e7249787852d8c69764706502ccee725c06641b31c1e95c8af",
+   "size": 1523
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt": {
+   "sha256": "19060ef465e1797d682ee0fc3081bd25ab1395e995e43d25c9d13c95d9a3cd6b",
+   "size": 2314
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/ma/LICENSE": {
+   "sha256": "d78dbb208b80d92b4d333e41a4baae50d12444f46e53199fa7726a91de6e2da7",
+   "size": 1616
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/random/LICENSE.md": {
+   "sha256": "b4bc2f4fa1c95778f1ed3dd8f14706bece399475b978f9f34b5d3cd72521b48a",
+   "size": 3582
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/random/src/distributions/LICENSE.md": {
+   "sha256": "cf5619f25b112d5ce7c896efffc8e610bcb345dfadcc19f2c1460aa48fff2c9e",
+   "size": 2805
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md": {
+   "sha256": "92c10699884321f1c2947fe2a70ab23b0fbf1507f756d89dd08f38c61fc3d4fa",
+   "size": 2986
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md": {
+   "sha256": "41190663b77bee5302386495a07b7eabfbfa571aa0ae2f11da6764162062fc4f",
+   "size": 1176
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/random/src/philox/LICENSE.md": {
+   "sha256": "322ac46d870c8aeead6c53adcccc839296fb3c8e456eae155081297daf7f8013",
+   "size": 1540
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md": {
+   "sha256": "28cad82ce1379dc529df30da78ec012d7d0d1d576b03ddcb93388aee53659f59",
+   "size": 1253
+  },
+  "_internal/numpy-2.4.6.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md": {
+   "sha256": "454ec7350e478e037061850b67395753b425b1cb0a34bbc26290b020bf89d763",
+   "size": 340
+  },
+  "_internal/numpy.libs/libscipy_openblas64_-63c857e738469261263c764a36be9436.dll": {
+   "sha256": "63c857e738469261263c764a36be9436ebdeaa272e340a828f42047a97131080",
+   "size": 20415488
+  },
+  "_internal/numpy.libs/msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll": {
+   "sha256": "a4c2229bdc2a2a630acdc095b4d86008e5c3e3bc7773174354f3da4f5beb9cde",
+   "size": 575056
+  },
+  "_internal/numpy/_core/_multiarray_tests.cp311-win_amd64.pyd": {
+   "sha256": "adf0e01de577f4ccc2a11099c817cb41c8a78b6174175356dd62e745075cfac8",
+   "size": 64512
+  },
+  "_internal/numpy/_core/_multiarray_umath.cp311-win_amd64.pyd": {
+   "sha256": "4fb4c5d62a6bd766eea716350eaf5396580e33cf7dc159e305488d1b7d72dad2",
+   "size": 3703296
+  },
+  "_internal/numpy/fft/_pocketfft_umath.cp311-win_amd64.pyd": {
+   "sha256": "e22ee51c9761e8cb2e153efc321d09cb656c5573488e55167f69d6e070d22466",
+   "size": 276480
+  },
+  "_internal/numpy/linalg/_umath_linalg.cp311-win_amd64.pyd": {
+   "sha256": "8742391ee3d6dfb4a6e41418626bb45048b102e05229d424279ddefb877d9cd6",
+   "size": 112128
+  },
+  "_internal/numpy/random/_bounded_integers.cp311-win_amd64.pyd": {
+   "sha256": "418dc5293b11f83a70c63ef77c3c9ca0dc4b9f20c7fadb4625805480305ddcef",
+   "size": 220160
+  },
+  "_internal/numpy/random/_common.cp311-win_amd64.pyd": {
+   "sha256": "f2cdbaa3d3d0dd8f5b74b7b4630470d609be4e4d31f8e37f8681e6c3c5aca895",
+   "size": 169984
+  },
+  "_internal/numpy/random/_generator.cp311-win_amd64.pyd": {
+   "sha256": "91f53ff9a803213ea5fa38b73be057b448be1728b4a353586d10f08d4f2c021c",
+   "size": 608768
+  },
+  "_internal/numpy/random/_mt19937.cp311-win_amd64.pyd": {
+   "sha256": "e66de88dbf0b9a2ae67576cf2f4e7c220e10729d445403787bc8b58f4e8a6750",
+   "size": 84992
+  },
+  "_internal/numpy/random/_pcg64.cp311-win_amd64.pyd": {
+   "sha256": "16e4f9401783c502d82bce06263d98c985c841f3115d301741b22413bbbff851",
+   "size": 96768
+  },
+  "_internal/numpy/random/_philox.cp311-win_amd64.pyd": {
+   "sha256": "56c44540e500dfb820e5a75004b5cf9945a648a87d0e40d64672325dd22fa3c1",
+   "size": 79872
+  },
+  "_internal/numpy/random/_sfc64.cp311-win_amd64.pyd": {
+   "sha256": "23f03f25c5528ca51c11846bcbb5aaaee7c1c518897249865c47dca913c43863",
+   "size": 59392
+  },
+  "_internal/numpy/random/bit_generator.cp311-win_amd64.pyd": {
+   "sha256": "eafa63966c1b3e34397bec8fef991dee5a7944b09058b38afd9f2de40acfd141",
+   "size": 165888
+  },
+  "_internal/numpy/random/mtrand.cp311-win_amd64.pyd": {
+   "sha256": "6f8a3d3ce835c6cd4fea9e4425b757b268ad69b0cef201a225f6cbd1b453182a",
+   "size": 512512
+  },
+  "_internal/onnxruntime-1.31.0.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/onnxruntime-1.31.0.dist-info/METADATA": {
+   "sha256": "491a1e0ab0a2c1b6030daf4a00826b417b57410a6f67e1a8172568863481491b",
+   "size": 6000
+  },
+  "_internal/onnxruntime-1.31.0.dist-info/RECORD": {
+   "sha256": "acaee13fff51735df3314a9f67c9235ebf7ae9bb7a96b1a3ce9dfcaea62acc6b",
+   "size": 60839
+  },
+  "_internal/onnxruntime-1.31.0.dist-info/REQUESTED": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/onnxruntime-1.31.0.dist-info/WHEEL": {
+   "sha256": "55ad5e704e1a425731c9b664712be1d8578dd7f0e50bc21a24d249b02258123d",
+   "size": 101
+  },
+  "_internal/onnxruntime-1.31.0.dist-info/entry_points.txt": {
+   "sha256": "eea2d2e056c65f03d98df7695401a99e693d23a9ba1f90b1127c1c0b1d489a3b",
+   "size": 77
+  },
+  "_internal/onnxruntime-1.31.0.dist-info/top_level.txt": {
+   "sha256": "ce4fdf2447a4ad39bd0cbc57d8bc067a0a2456a3fa6e5a8f845a0c22e87436ff",
+   "size": 12
+  },
+  "_internal/onnxruntime/LICENSE": {
+   "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674",
+   "size": 1094
+  },
+  "_internal/onnxruntime/Privacy.md": {
+   "sha256": "8c26e1fc8581d9553e475250fe014e3d1e5ea4ae9f1cb084a068ff8601703dc9",
+   "size": 6635
+  },
+  "_internal/onnxruntime/ThirdPartyNotices.txt": {
+   "sha256": "c53a76501ef60db6f865f20599f220761201ac4057683acefdab37d861b86622",
+   "size": 344457
+  },
+  "_internal/onnxruntime/__init__.py": {
+   "sha256": "147e8169d2305a810121647a239f217df349f6755008a78b8bd7abf6905c68ea",
+   "size": 22276
+  },
+  "_internal/onnxruntime/backend/__init__.py": {
+   "sha256": "e48d5896c6b07fdc3a30d98ae1188dd7003e10442a94a2b061335907e9bf93a3",
+   "size": 334
+  },
+  "_internal/onnxruntime/backend/backend.py": {
+   "sha256": "75e6b2df1c12db84949497209968ef20cb392099f6b87bca2a116b8ca7e5dee7",
+   "size": 10447
+  },
+  "_internal/onnxruntime/backend/backend_rep.py": {
+   "sha256": "bc5e6bed64391baaec2e1705b0de62bc86d5a583040a4c17b8754d4fd0960fc4",
+   "size": 2901
+  },
+  "_internal/onnxruntime/capi/__init__.py": {
+   "sha256": "b91a78a4cb5fa1ac81859804b2216a1420f5dd8e8b528f3615d66c417f17f0b2",
+   "size": 251
+  },
+  "_internal/onnxruntime/capi/_ld_preload.py": {
+   "sha256": "962e9c6d9eb88437d49dd6ade26a6b516ce8c0b6b7450770d2ad84e7ab171701",
+   "size": 413
+  },
+  "_internal/onnxruntime/capi/_pybind_state.py": {
+   "sha256": "9db5299d49dcc01bf9a60240f32ba00d82510384d37c2d206983840f98c3f920",
+   "size": 1533
+  },
+  "_internal/onnxruntime/capi/build_and_package_info.py": {
+   "sha256": "d862f46052a9b45262b442b4d5450a1b9deb02b6a942de0e40695ad172a0e7e2",
+   "size": 54
+  },
+  "_internal/onnxruntime/capi/convert_npz_to_onnx_adapter.py": {
+   "sha256": "3744a162bdf4bc141c3abf4ac8577801474472a596f3d29577cd2a4980a0750e",
+   "size": 1581
+  },
+  "_internal/onnxruntime/capi/onnxruntime.dll": {
+   "sha256": "7f6af4d294cf33d84dd66211d2d7a385e45108ac34716f1717dfbbd40e932952",
+   "size": 19288888
+  },
+  "_internal/onnxruntime/capi/onnxruntime_collect_build_info.py": {
+   "sha256": "b03f19d92d794074afb8ed63eed82a24a78e44351ab70cd49b3bc2f148fd7003",
+   "size": 2109
+  },
+  "_internal/onnxruntime/capi/onnxruntime_inference_collection.py": {
+   "sha256": "caa5b378e0c8d02654d912d3e6cfcee18a71a62037568c350aea00a70d2c9ec3",
+   "size": 87280
+  },
+  "_internal/onnxruntime/capi/onnxruntime_providers_shared.dll": {
+   "sha256": "f82cd03f748ade80791c2150b968ce1d767bdf94394a5d1f249f1fc77f5eccc6",
+   "size": 21856
+  },
+  "_internal/onnxruntime/capi/onnxruntime_pybind11_state.pyd": {
+   "sha256": "9b8782388e4cd190e15107c95d13cac52e21424c4d2cbd6306ed7b1a6380ab40",
+   "size": 19964768
+  },
+  "_internal/onnxruntime/capi/onnxruntime_validation.py": {
+   "sha256": "a7d02f7973eeefc07e15de303ad0528acbd6de56ae32641ff42c498abb6d7e4f",
+   "size": 6949
+  },
+  "_internal/onnxruntime/capi/version_info.py": {
+   "sha256": "f269b55535c5f31831e8df2f14d7b44e28a4f6a760f55be2f5fdf66cf13d92dc",
+   "size": 34
+  },
+  "_internal/openpyxl-3.1.5.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/openpyxl-3.1.5.dist-info/LICENCE.rst": {
+   "sha256": "0c84bb42f5d367e5ebf9fc2dde35b16141df5ee0fdc189250858bc6c5560f69e",
+   "size": 1131
+  },
+  "_internal/openpyxl-3.1.5.dist-info/METADATA": {
+   "sha256": "23f80ca9830dd89435da1710f26deda8f81e5409287e74540210c72627a4ad96",
+   "size": 2510
+  },
+  "_internal/openpyxl-3.1.5.dist-info/RECORD": {
+   "sha256": "6140d75a8b5fe3e31553b5cfe275092919a5b8f98796462f9dcf6aaacdefb2bf",
+   "size": 27747
+  },
+  "_internal/openpyxl-3.1.5.dist-info/REQUESTED": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/openpyxl-3.1.5.dist-info/WHEEL": {
+   "sha256": "0d96a30f8a702d6b9eef40807dced86b14f5c0b51c88d06f37f4d372f5e996d1",
+   "size": 110
+  },
+  "_internal/openpyxl-3.1.5.dist-info/top_level.txt": {
+   "sha256": "98a24ee50140b14103b49fdcf7b17e21b995b476040f29aa0fb7795f450b915b",
+   "size": 9
+  },
+  "_internal/openpyxl/__init__.py": {
+   "sha256": "b36b17729f138575c7b3035287e52e422e411eca1ab2e7335328cd373d15ba97",
+   "size": 603
+  },
+  "_internal/openpyxl/_constants.py": {
+   "sha256": "ae139e43ac0d1fa8f0ef71b8236e3656d6e6c8cf1fbdd355c0eb0e8c9949e935",
+   "size": 306
+  },
+  "_internal/openpyxl/cell/__init__.py": {
+   "sha256": "39737314547d765c545e2b965f229255044989085915e97efd1412de61cd9eb4",
+   "size": 122
+  },
+  "_internal/openpyxl/cell/_writer.py": {
+   "sha256": "dc8e962ca1091ae15ef2b3a3c5d015b834f8b19623718a39efeeaf7a519ea5d4",
+   "size": 4015
+  },
+  "_internal/openpyxl/cell/cell.py": {
+   "sha256": "85526c302f64240c716ff0aca49941af00eddaacdf71c3ba6037cf1cadc10424",
+   "size": 8922
+  },
+  "_internal/openpyxl/cell/read_only.py": {
+   "sha256": "0295e4a1f9942b94084acb93819be664ab14f0fb9f490b6a7b6c666164e02e77",
+   "size": 3097
+  },
+  "_internal/openpyxl/cell/rich_text.py": {
+   "sha256": "b80666181edb6035276a71c8d2f26629b7d217cae2b88612e42c25554ff7fdf3",
+   "size": 5628
+  },
+  "_internal/openpyxl/cell/text.py": {
+   "sha256": "69c53a05940d4a6571e1b0573e015abe8c667e83db558ae6ff3b69d5b19e3a67",
+   "size": 4367
+  },
+  "_internal/openpyxl/chart/_3d.py": {
+   "sha256": "49d9b44cda571d736838b53088e49c72fef2170ade97ffab8d0864ac3a80005e",
+   "size": 3104
+  },
+  "_internal/openpyxl/chart/__init__.py": {
+   "sha256": "6a0e1808dd41dc91f49644bbb628990a8855000e75c7fa5e8c674032ec5a2356",
+   "size": 564
+  },
+  "_internal/openpyxl/chart/_chart.py": {
+   "sha256": "8f9c67ea6418999e04ef2d95d57bf1d63c215f6fceebc329fbccde5d1b5e4bb1",
+   "size": 5746
+  },
+  "_internal/openpyxl/chart/area_chart.py": {
+   "sha256": "b91383ddf76eb3ac83d531aef3b8f8cfb2ad3841fbb48fb76793452bbdf0c20c",
+   "size": 2890
+  },
+  "_internal/openpyxl/chart/axis.py": {
+   "sha256": "ca89a6cb9ab699058a9a62d1a2e581a629a20590c13352be50a008c02c0a0cd7",
+   "size": 12580
+  },
+  "_internal/openpyxl/chart/bar_chart.py": {
+   "sha256": "fd340795e313de049ae81d4190a0ff1642c572ff0b45aa221dba72db27e52cee",
+   "size": 4142
+  },
+  "_internal/openpyxl/chart/bubble_chart.py": {
+   "sha256": "28bed56581722c3a40f0c0be205b5101420ddbadb12ba3338d4e350eb4958296",
+   "size": 2004
+  },
+  "_internal/openpyxl/chart/chartspace.py": {
+   "sha256": "3ee3c606c55ba4ae496a06c1ed25a0a78270750b53ad9cc89bc99fde47c602e6",
+   "size": 6069
+  },
+  "_internal/openpyxl/chart/data_source.py": {
+   "sha256": "180b96a02389e24ed164d259919724d33b7ff83e547c3130ab0437343e3eb37e",
+   "size": 5782
+  },
+  "_internal/openpyxl/chart/descriptors.py": {
+   "sha256": "ba3faaa6dc0a3817a0ed4e7104de10250d8ec10bc543ba389f978c5d72164bb3",
+   "size": 736
+  },
+  "_internal/openpyxl/chart/error_bar.py": {
+   "sha256": "192fcbecf8b228d9c9547bd0a86da12f1116db7ee280b2c26ad08d0bec463319",
+   "size": 1832
+  },
+  "_internal/openpyxl/chart/label.py": {
+   "sha256": "223bc8f826634d8f3276853350e8a171bc68456892a456ff8a90fa0b623c3eee",
+   "size": 4133
+  },
+  "_internal/openpyxl/chart/layout.py": {
+   "sha256": "4076a4a7f08872836ebe3c9932c436a7fa8fe380c842ce1aaaecbbca59fde093",
+   "size": 2040
+  },
+  "_internal/openpyxl/chart/legend.py": {
+   "sha256": "88f33270e8580c0558774e4e53f40307e1926af770ff52fd08cb892044cea062",
+   "size": 2040
+  },
+  "_internal/openpyxl/chart/line_chart.py": {
+   "sha256": "ead0320c2cc58ae88116e5034d68507a91fcc550b1dace7b947f79d5c11cc27d",
+   "size": 3951
+  },
+  "_internal/openpyxl/chart/marker.py": {
+   "sha256": "91fc9b324b212b7a9e7ce516ece5fe3acd2f7e5e4e0977e0f0ccadc070b68bec",
+   "size": 2600
+  },
+  "_internal/openpyxl/chart/picture.py": {
+   "sha256": "43878135030a4031d1f754673dceed33e61955d7275a771e75495f6a08faee09",
+   "size": 1156
+  },
+  "_internal/openpyxl/chart/pie_chart.py": {
+   "sha256": "50ebe48eb06935dfeb4feaef29ca4f79577d74af842dd3086878c0504afaa0df",
+   "size": 4793
+  },
+  "_internal/openpyxl/chart/pivot.py": {
+   "sha256": "f645439a7c67474b90450f966e5eaac3c79ec3d2c686aa2668305a5ea406658e",
+   "size": 1741
+  },
+  "_internal/openpyxl/chart/plotarea.py": {
+   "sha256": "7a6ef2a2b5c5cfd4a626bbaa391e0f9feda8123d12bb8ae7cf235ce5ed0867f5",
+   "size": 5805
+  },
+  "_internal/openpyxl/chart/print_settings.py": {
+   "sha256": "53007a2a7eb190b4417a35d2725faeb45f1d90d855ecb9b72df93b002a5b460b",
+   "size": 1454
+  },
+  "_internal/openpyxl/chart/radar_chart.py": {
+   "sha256": "f772356357665d9e98d05d55297cfd237c75b9f830ca004e75b3d9ba64799f7b",
+   "size": 1521
+  },
+  "_internal/openpyxl/chart/reader.py": {
+   "sha256": "a100fedbda3148b5b6cb35ddc97361cd060d5e033ae18de455238892b3d90ae5",
+   "size": 802
+  },
+  "_internal/openpyxl/chart/reference.py": {
+   "sha256": "3774f8a98307f4156bb5b0d188a219cfea86bcf01d7eab964c62f45cac43f46f",
+   "size": 3098
+  },
+  "_internal/openpyxl/chart/scatter_chart.py": {
+   "sha256": "24c537da38f14e3eedc4f2764de6c11cf4b951c32c44756a2f3fe9b27376619b",
+   "size": 1563
+  },
+  "_internal/openpyxl/chart/series.py": {
+   "sha256": "93c791f1cbe21fd10f9654638ebff66be947e52dff1d60532f213b5ca821cd67",
+   "size": 5896
+  },
+  "_internal/openpyxl/chart/series_factory.py": {
+   "sha256": "7b2d7380dc0cd60e1b43007d94b84ce84f9cb4b20cda42d63375fb08fc3c483b",
+   "size": 1368
+  },
+  "_internal/openpyxl/chart/shapes.py": {
+   "sha256": "26480ccb70d458328b57a2591ca6ffa5406f5a9cd3010ddb89432bfb57c95995",
+   "size": 2815
+  },
+  "_internal/openpyxl/chart/stock_chart.py": {
+   "sha256": "609ede125057e68987ce22a8e35ca04c0ec5fcd124c8894551f74325766e2a13",
+   "size": 1604
+  },
+  "_internal/openpyxl/chart/surface_chart.py": {
+   "sha256": "ffec86117f8ebb634956624203f2bf6d22f2ce4f91bdb3eea7240b9a37c25a3d",
+   "size": 2914
+  },
+  "_internal/openpyxl/chart/text.py": {
+   "sha256": "be82427f83cae689665f483fe6ef5a428f01e4ba4252539eab88f8a673b2fc0d",
+   "size": 1847
+  },
+  "_internal/openpyxl/chart/title.py": {
+   "sha256": "2feecac7072931bd9a664e2292032c22014f56d05a7c8a69c7dca477914f278c",
+   "size": 1952
+  },
+  "_internal/openpyxl/chart/trendline.py": {
+   "sha256": "f6959225af40770b5deaffe2edd3d3eea34ace13ab48c599e10b803a7b595958",
+   "size": 3045
+  },
+  "_internal/openpyxl/chart/updown_bars.py": {
+   "sha256": "400e25c8432d315bd90ab614a476583154b5c6c9da378fd3e54062e84ee2950d",
+   "size": 897
+  },
+  "_internal/openpyxl/chartsheet/__init__.py": {
+   "sha256": "dce9f2d5635bc715ae75d4d6fa97ae50fbcedf1a8858559edc36b6394cec5672",
+   "size": 71
+  },
+  "_internal/openpyxl/chartsheet/chartsheet.py": {
+   "sha256": "1935cd7d03d805a4b807b5c1e1fee00e4028da40a3b59aa2765ea20f1a7e250f",
+   "size": 3911
+  },
+  "_internal/openpyxl/chartsheet/custom.py": {
+   "sha256": "a9581e0b34fbb75b4dfe90f068baad477b9bb8f0cb79347928a95cc709d359af",
+   "size": 1691
+  },
+  "_internal/openpyxl/chartsheet/properties.py": {
+   "sha256": "751d67ae9db616c3e4c83af041a655eedfa9f99d8973cf18d8884819b06f1619",
+   "size": 679
+  },
+  "_internal/openpyxl/chartsheet/protection.py": {
+   "sha256": "7898b110199da130cedbfd21ea0e75b1d49d7d274268ff1450db1b12a1ddb3a5",
+   "size": 1265
+  },
+  "_internal/openpyxl/chartsheet/publish.py": {
+   "sha256": "3ebc2ab142a7d922baed9337344193f451f89ce282d5c3b1c66df7db68476b04",
+   "size": 1587
+  },
+  "_internal/openpyxl/chartsheet/relation.py": {
+   "sha256": "64001f1196fadfdbded24e81c91c261dd8c1ae3a950b46c738b808701c11c7aa",
+   "size": 2731
+  },
+  "_internal/openpyxl/chartsheet/views.py": {
+   "sha256": "332dc0bbe0c401c0b8970040461ac2730b0decba7d1fa705413f92880709964a",
+   "size": 1341
+  },
+  "_internal/openpyxl/comments/__init__.py": {
+   "sha256": "93f409f8e3d199ef07800610972c5b6d18664b59f6172a30a8879e9015beeefc",
+   "size": 67
+  },
+  "_internal/openpyxl/comments/author.py": {
+   "sha256": "3d907f7e342a8849bc05d1c36e56dfcc1d20ce416f1025aae62d6348778965ca",
+   "size": 388
+  },
+  "_internal/openpyxl/comments/comment_sheet.py": {
+   "sha256": "52fd913e9231ae29033c706be588f574392eb1907def2544f8d413334f849c19",
+   "size": 5753
+  },
+  "_internal/openpyxl/comments/comments.py": {
+   "sha256": "0b1bab01633b59b09d6dec9af8342495b8964856b186dad4341644cee953cb17",
+   "size": 1466
+  },
+  "_internal/openpyxl/comments/shape_writer.py": {
+   "sha256": "2ecd5dd12b1c7f118cf47daca63c4c34778949a649b8b6b0957b38b78a87eefe",
+   "size": 3809
+  },
+  "_internal/openpyxl/compat/__init__.py": {
+   "sha256": "7e5b45fff09d18af7b97657732d203c5bc2057fa75019bcb772a9c12d5cab2ab",
+   "size": 1592
+  },
+  "_internal/openpyxl/compat/abc.py": {
+   "sha256": "63e2faa68cf3823afcd4e7d7b230e418378a12ae8139f32bea7beb169b3fa3a4",
+   "size": 155
+  },
+  "_internal/openpyxl/compat/numbers.py": {
+   "sha256": "d9d7241343c74fb781f3d49cd8176558e1f864b5d6b77fdea3bdfe0b346e8d46",
+   "size": 1617
+  },
+  "_internal/openpyxl/compat/product.py": {
+   "sha256": "f9b0e034c1c60e06da860c348ea6a57bc4de20044bc3b1ced2ca1000bf5bff89",
+   "size": 264
+  },
+  "_internal/openpyxl/compat/singleton.py": {
+   "sha256": "4751e21fb5e98da5b892bdc620b58c738851199917c9cd322bb4f58dc83f4168",
+   "size": 1023
+  },
+  "_internal/openpyxl/compat/strings.py": {
+   "sha256": "0ff4d67fc427307e96331eb1b820df5e5d1ba1cd64f6aee3f2119a9554364549",
+   "size": 604
+  },
+  "_internal/openpyxl/descriptors/__init__.py": {
+   "sha256": "78849347449ad5928a3503f1319b6a944dfd26e818ce48f18997fbbbd7edb62c",
+   "size": 1952
+  },
+  "_internal/openpyxl/descriptors/base.py": {
+   "sha256": "f82b8d7ecc0419ace03a85f71ae33606cdb39012264fdf764ef476475c6c9d73",
+   "size": 7135
+  },
+  "_internal/openpyxl/descriptors/container.py": {
+   "sha256": "21c3bdd4cd36851d2f5d9b561aeaf3d081f5562d8fa041023f53c46f3eb61494",
+   "size": 889
+  },
+  "_internal/openpyxl/descriptors/excel.py": {
+   "sha256": "77a6ba9ada19fb7de3c0c1a582f3532f9e1ca8b00d2b284c8a11baf3cee3f2bd",
+   "size": 2412
+  },
+  "_internal/openpyxl/descriptors/namespace.py": {
+   "sha256": "2e32387bd474f4d49b0a5aff7b0bf46261e0598f113b9c6ad6cf92a40bf3db0a",
+   "size": 313
+  },
+  "_internal/openpyxl/descriptors/nested.py": {
+   "sha256": "e4b4ac7f6baf4cab2b1841101752955cc2c7645a118262df2ff9735b49564232",
+   "size": 2603
+  },
+  "_internal/openpyxl/descriptors/sequence.py": {
+   "sha256": "3aa177e0afe7502e3a5c3e41ffac73187784202cfff368641643455e90644921",
+   "size": 3490
+  },
+  "_internal/openpyxl/descriptors/serialisable.py": {
+   "sha256": "53fef03041904483a28a65142f801b74e89631cfda2f229e6919e3fd9edd54ef",
+   "size": 7361
+  },
+  "_internal/openpyxl/descriptors/slots.py": {
+   "sha256": "c4d8f9bcb596a28ba7a58a9b3f62439e78654e24cb467fae4df4319dca457e7d",
+   "size": 824
+  },
+  "_internal/openpyxl/drawing/__init__.py": {
+   "sha256": "c655d5693dc5b3d96dbdb6d12064d2468c3d930f6784b637663d4c9babd74471",
+   "size": 66
+  },
+  "_internal/openpyxl/drawing/colors.py": {
+   "sha256": "77dd9de8b42fdb18b8c55b7417a6c4273fa4a5ee1a86084db0e218d3f7318102",
+   "size": 15251
+  },
+  "_internal/openpyxl/drawing/connector.py": {
+   "sha256": "e1b7ba905c039a2c6a617ea4a36d8913772a27dc5433b951a2749eaf50435606",
+   "size": 3863
+  },
+  "_internal/openpyxl/drawing/drawing.py": {
+   "sha256": "59bbf6e1365b35a3e780347769d3a3ea350183e8b2318c9fbe010f83ee483eef",
+   "size": 2339
+  },
+  "_internal/openpyxl/drawing/effect.py": {
+   "sha256": "bd9e6bf64dc97f2680a0182017337dc32bec1039cc9c09a4419b1d550375fb0a",
+   "size": 9435
+  },
+  "_internal/openpyxl/drawing/fill.py": {
+   "sha256": "67f9006396e7720bb55a464dbe08e25f9b9cad823a18b5f2522e87dff9a77b69",
+   "size": 13092
+  },
+  "_internal/openpyxl/drawing/geometry.py": {
+   "sha256": "d1433984c1d8cbf4770be947b79c773440839fb3b5b5f6cabb907078bc1d2e58",
+   "size": 17523
+  },
+  "_internal/openpyxl/drawing/graphic.py": {
+   "sha256": "d35dca8664eaa753c52a1b7d951440e921e3ce7c6af442f8bbfc9b03cf0eb829",
+   "size": 4811
+  },
+  "_internal/openpyxl/drawing/image.py": {
+   "sha256": "44e3b46098f31fd7aa8cf50a5396ccb6de1b5e71c52bdba87c36b6fff4771b69",
+   "size": 1455
+  },
+  "_internal/openpyxl/drawing/line.py": {
+   "sha256": "091c55d0d52971ee117d73c3965a1d7277a81e4f2faf622777c1da5a752fd871",
+   "size": 3904
+  },
+  "_internal/openpyxl/drawing/picture.py": {
+   "sha256": "b436286f6c787a7710f6b51639edbd3eab624520c48fbe3a8fe4af43bad5575d",
+   "size": 4205
+  },
+  "_internal/openpyxl/drawing/properties.py": {
+   "sha256": "4f22ce1777a1a77f1726fbaea4d65db0ea99d073579153c10d8c14e4ed468413",
+   "size": 4948
+  },
+  "_internal/openpyxl/drawing/relation.py": {
+   "sha256": "2276ccef9ca65948c8097863c82718aa9d4559c7c2169f6af6f79c60ba6dce4e",
+   "size": 344
+  },
+  "_internal/openpyxl/drawing/spreadsheet_drawing.py": {
+   "sha256": "094592a48616387504a7e5123801953652df5c140e6dc19d83f459fdb8203d83",
+   "size": 10721
+  },
+  "_internal/openpyxl/drawing/text.py": {
+   "sha256": "ebf4a122ef452c6ecc26f30bb3f1bfb536ad4da06ac69697e4a30ac527d363b6",
+   "size": 22421
+  },
+  "_internal/openpyxl/drawing/xdr.py": {
+   "sha256": "5c4db2473942aa82415a0dd33d1c5e9736781a6055f5d0c54ed889809664bbe5",
+   "size": 626
+  },
+  "_internal/openpyxl/formatting/__init__.py": {
+   "sha256": "be990bdc48a631afa6a098dc5a4e25ddb216749ddcedaf2928e7c69673ed7bd7",
+   "size": 59
+  },
+  "_internal/openpyxl/formatting/formatting.py": {
+   "sha256": "01d5e5ae189ce023efc89df4d281493c9507fb6bd2d1534e2e236e76ddd4dba7",
+   "size": 2701
+  },
+  "_internal/openpyxl/formatting/rule.py": {
+   "sha256": "f7a15ce7e8520720abbe40b53b46a01286722fd1bf01d7ae96b8d15e77ffad9f",
+   "size": 9288
+  },
+  "_internal/openpyxl/formula/__init__.py": {
+   "sha256": "020bc476e9d5af2873c1e72e1553b611ecdd253de1e60097a70da3ddfe555160",
+   "size": 69
+  },
+  "_internal/openpyxl/formula/tokenizer.py": {
+   "sha256": "a358c300e97bf588825abfb62e64880b201b866da175bfb7ee3ae26ac9afe1d7",
+   "size": 15088
+  },
+  "_internal/openpyxl/formula/translate.py": {
+   "sha256": "66cf5a76a7d94c0ba8f09fd035ba8adef8d00e5485856734bd673a4c230362b2",
+   "size": 6653
+  },
+  "_internal/openpyxl/packaging/__init__.py": {
+   "sha256": "29c36d3b6ce8622cce806fa26736b265f7d22f559e651f7c8b543c4184d185f2",
+   "size": 90
+  },
+  "_internal/openpyxl/packaging/core.py": {
+   "sha256": "3926d214666b298719b337077b72e1404ca201fd96ca5c319b8ffa37c58ef98a",
+   "size": 4061
+  },
+  "_internal/openpyxl/packaging/custom.py": {
+   "sha256": "b82125ec8c084c55f6a4ec620084e7bcd6dfb1abfcd2e1c1d305d416f8c84544",
+   "size": 6738
+  },
+  "_internal/openpyxl/packaging/extended.py": {
+   "sha256": "24592cc4377aeeb039ee7fafc60e3cb5b7998768362c439bd1f8092dea9b4d63",
+   "size": 4810
+  },
+  "_internal/openpyxl/packaging/interface.py": {
+   "sha256": "be5195b7862fc94478517f53afdc66927d46f2cff29d856d031e28909ebe83ff",
+   "size": 920
+  },
+  "_internal/openpyxl/packaging/manifest.py": {
+   "sha256": "cb9ce80d09e1275696fc73cb22d63f584f787d22d2e23c6f7c8aa7fc9db327a4",
+   "size": 5366
+  },
+  "_internal/openpyxl/packaging/relationship.py": {
+   "sha256": "8cb86f16f0d56414536535e8911aebb0488b23d0a6165ba5846cc0fce60a3344",
+   "size": 3974
+  },
+  "_internal/openpyxl/packaging/workbook.py": {
+   "sha256": "b388e5e20aaa3246941e6300479d9d73d66835389eb9772ad4e1b7720343623c",
+   "size": 6495
+  },
+  "_internal/openpyxl/pivot/__init__.py": {
+   "sha256": "735dbef6430f5a551d8f04a864fb05a66796f0a5571f41c21a93b776509356a2",
+   "size": 35
+  },
+  "_internal/openpyxl/pivot/cache.py": {
+   "sha256": "90a40c11ca186fdb1c97f08d3567e634e4dec03e52de1a411b056232d0c2cb1d",
+   "size": 27840
+  },
+  "_internal/openpyxl/pivot/fields.py": {
+   "sha256": "d0240b75338185801af607c465bfdbbe4802c7c7de012629eb876a16c90392a5",
+   "size": 7057
+  },
+  "_internal/openpyxl/pivot/record.py": {
+   "sha256": "738e5fb7562c3c05519de31587f5af510d6766df51250fe3a2c46ea252b1dea1",
+   "size": 2671
+  },
+  "_internal/openpyxl/pivot/table.py": {
+   "sha256": "ae228179bd5a2025d68a99e1a52692c7d8aa3fe0247dcc8e4a6dc37e5e34edd0",
+   "size": 40756
+  },
+  "_internal/openpyxl/reader/__init__.py": {
+   "sha256": "735dbef6430f5a551d8f04a864fb05a66796f0a5571f41c21a93b776509356a2",
+   "size": 35
+  },
+  "_internal/openpyxl/reader/drawings.py": {
+   "sha256": "8993e893c0dcfe664cc913e4fc47c35c342f65dc1f1f06d88efc5f2b6717b5a8",
+   "size": 2209
+  },
+  "_internal/openpyxl/reader/excel.py": {
+   "sha256": "9204ad42d3b58f4bd5e7a196697c68dc6036117ba8b86b6716b45532872af046",
+   "size": 12357
+  },
+  "_internal/openpyxl/reader/strings.py": {
+   "sha256": "a06d8caba7810f4f849453b13dd1d30549ac854c5336b2b5b27b3550945a562b",
+   "size": 1113
+  },
+  "_internal/openpyxl/reader/workbook.py": {
+   "sha256": "e30d0b455eea34d1870e761dd7dcd48169c93845fcb478e6def964c70965cefe",
+   "size": 4352
+  },
+  "_internal/openpyxl/styles/__init__.py": {
+   "sha256": "d9034d765cf80a386790141536167ed76633ef7fee1c88a7a91296a3f4e33708",
+   "size": 363
+  },
+  "_internal/openpyxl/styles/alignment.py": {
+   "sha256": "c10384b666213c916d9ee06ad23b8c7b912c0a9f43352552d62781865027c161",
+   "size": 2198
+  },
+  "_internal/openpyxl/styles/borders.py": {
+   "sha256": "04b5133b205bc56433bfc2ae875bb8b167c98883c973c404c5bee71b07529977",
+   "size": 3302
+  },
+  "_internal/openpyxl/styles/builtins.py": {
+   "sha256": "70cb49bdead54a37487427243fa2fe02523438b3113e06d0c1a25652495d0345",
+   "size": 31182
+  },
+  "_internal/openpyxl/styles/cell_style.py": {
+   "sha256": "f0e97917a92d29e4aa843545fb5d30e5e221ed6fa39338a3a4f3c7aaabf5a83b",
+   "size": 5414
+  },
+  "_internal/openpyxl/styles/colors.py": {
+   "sha256": "4acdd0a8d4b9608495909c6535f778abf612ac529d2a301358b0d2bb6acf3017",
+   "size": 4612
+  },
+  "_internal/openpyxl/styles/differential.py": {
+   "sha256": "76a1069f2fe8bb58c2ded7a005a975c3f51b38dc901095ef18f511b3cc56c1f5",
+   "size": 2267
+  },
+  "_internal/openpyxl/styles/fills.py": {
+   "sha256": "2e64781f4d06cca0d6c988f30c46b2cca64ddbc4bf9ae0fae43bc015695b6822",
+   "size": 6380
+  },
+  "_internal/openpyxl/styles/fonts.py": {
+   "sha256": "9e47a225480a62759a113be7e75b0ea3dcd05c988e1092870d3aafc6dd098817",
+   "size": 3516
+  },
+  "_internal/openpyxl/styles/named_styles.py": {
+   "sha256": "9df2f528fa5de9bd18d2a06b189435e4450e79b7de3b579905084f5697195bea",
+   "size": 7254
+  },
+  "_internal/openpyxl/styles/numbers.py": {
+   "sha256": "ea42bb99d043fb4c6cedb8d80c5346b1402fa05bd1bb9c12323385f49e63f86a",
+   "size": 5097
+  },
+  "_internal/openpyxl/styles/protection.py": {
+   "sha256": "0541e0011abb4a33957d6fd24f9de12825287d50445979f72e79ff7399f88bf2",
+   "size": 394
+  },
+  "_internal/openpyxl/styles/proxy.py": {
+   "sha256": "6a3b2fcd1a7f30e795feb65211f568b62ebeded5bc6a8c28e7f1e3c29d8095f0",
+   "size": 1432
+  },
+  "_internal/openpyxl/styles/styleable.py": {
+   "sha256": "625ffea0f96312e17383db57292482baf5912f82f41c2e5b1cc1495617b1e8e7",
+   "size": 4499
+  },
+  "_internal/openpyxl/styles/stylesheet.py": {
+   "sha256": "ee4669cf26af2eb38971d66a6739775994f233ad02a963fc8bf390d09ff5c72d",
+   "size": 8790
+  },
+  "_internal/openpyxl/styles/table.py": {
+   "sha256": "55ec51a8f3d09a347359ed6b5533a0c8e420be5081b8461389fe4c115ff4aac9",
+   "size": 2801
+  },
+  "_internal/openpyxl/utils/__init__.py": {
+   "sha256": "c0230d5e0228038685e2da52b92cf19b59374a624918e123b5d6ea7496591bb2",
+   "size": 324
+  },
+  "_internal/openpyxl/utils/bound_dictionary.py": {
+   "sha256": "cdfcdf950a26d45a9f130f2e7b106a23c784c427805842f34a4e13aaaa43fb0f",
+   "size": 717
+  },
+  "_internal/openpyxl/utils/cell.py": {
+   "sha256": "3fba20e1ce0971237ffda988b2e6c832048c950e12ac0039799d1c8e4a1795a4",
+   "size": 6967
+  },
+  "_internal/openpyxl/utils/dataframe.py": {
+   "sha256": "77748f79be29f58285c2515351685d554618c8c2cdaddf5ab42ea249fd9007ac",
+   "size": 2957
+  },
+  "_internal/openpyxl/utils/datetime.py": {
+   "sha256": "c50f331c915bfa7e2794de9f03f7c564a1e51de34e07b125e3ca7df9838fbc61",
+   "size": 4529
+  },
+  "_internal/openpyxl/utils/escape.py": {
+   "sha256": "e1d81c4a549d3cd934be424d1d150af69a047bca67e2c048439463cfeec7d549",
+   "size": 790
+  },
+  "_internal/openpyxl/utils/exceptions.py": {
+   "sha256": "593e34813c9df5852183531ea993731e9f6a2672f9797cdb0846ff56d1e9dca9",
+   "size": 889
+  },
+  "_internal/openpyxl/utils/formulas.py": {
+   "sha256": "f88d33caf89c05931a007d57cec9a6104cc4e0607e340eb4e5a02b595b7d8a4e",
+   "size": 4248
+  },
+  "_internal/openpyxl/utils/indexed_list.py": {
+   "sha256": "841b103fd82e9d38adee229d306c3fb4cdf2e6e2295c38d4c7b8ecc1b405e837",
+   "size": 1257
+  },
+  "_internal/openpyxl/utils/inference.py": {
+   "sha256": "74cd45056fd1c7fc44ecff2f1a8e963616c17bed9eaa91ae263e1ea9d4bb5231",
+   "size": 1583
+  },
+  "_internal/openpyxl/utils/protection.py": {
+   "sha256": "a299bb19533678f42fa4dcca4fe5b9eaefb4c8ff25892f56264c69ce91bfb44d",
+   "size": 830
+  },
+  "_internal/openpyxl/utils/units.py": {
+   "sha256": "786a46addcf2a0a96a2ecf7d7802cd0b97358122d7468e06754340a9d078c338",
+   "size": 2642
+  },
+  "_internal/openpyxl/workbook/__init__.py": {
+   "sha256": "c8a32290df15aa855925ca194955b7a7d4a6b7cf226dea8dabd347846049a843",
+   "size": 68
+  },
+  "_internal/openpyxl/workbook/_writer.py": {
+   "sha256": "a41e2cd397ab344049153ff0e4b4fed83971a979192cebad5d65607b044b55db",
+   "size": 6506
+  },
+  "_internal/openpyxl/workbook/child.py": {
+   "sha256": "affe55f433641926198738bad8fd74667b0ee624f9d7c628a5c4dd992bed0147",
+   "size": 4052
+  },
+  "_internal/openpyxl/workbook/defined_name.py": {
+   "sha256": "1001755af198538586eddbac0e2dbdc8102bd79061918b6417f1ab1729b50c36",
+   "size": 5394
+  },
+  "_internal/openpyxl/workbook/external_link/__init__.py": {
+   "sha256": "60e90b236dba9f2a2907a9a84a1cc621f05172475080f8855e3559c175be0e91",
+   "size": 71
+  },
+  "_internal/openpyxl/workbook/external_link/external.py": {
+   "sha256": "2d75ee7a3d3e7748919f0949fb5dd2f3591bb83c6f8405a8dea7e7c69b0296f3",
+   "size": 4509
+  },
+  "_internal/openpyxl/workbook/external_reference.py": {
+   "sha256": "f5b297f7f420349c6fedf1147741bea1c5f265a8cc02c0f31b5d5dd268a0bb16",
+   "size": 348
+  },
+  "_internal/openpyxl/workbook/function_group.py": {
+   "sha256": "c7941f52915db23b5b15b009cd9a1fed2ad9dfbea7b9f358f769a909c6923e24",
+   "size": 803
+  },
+  "_internal/openpyxl/workbook/properties.py": {
+   "sha256": "bcc52b8aeebb890535d71228b37edacafef7823ab591d1e0236ee7709dd5936e",
+   "size": 5261
+  },
+  "_internal/openpyxl/workbook/protection.py": {
+   "sha256": "2e18b2ba839c85daee9fdc4cc2afe9c46cdb932b3389385f2a2be4d1d1c738bc",
+   "size": 6008
+  },
+  "_internal/openpyxl/workbook/smart_tags.py": {
+   "sha256": "c471d70ab50f9c7791a0cfde6a4ac23b3f9e0a972ddd8ef12874a1afdc06bfbb",
+   "size": 1181
+  },
+  "_internal/openpyxl/workbook/views.py": {
+   "sha256": "bb042a642ad16af0280432d9201b60cfbae2384844687a65c9b578717fd33206",
+   "size": 5214
+  },
+  "_internal/openpyxl/workbook/web.py": {
+   "sha256": "f3b07998467abdf1d3c32c1c1ad7182fabbb0f74722550c22715749c765e4bec",
+   "size": 2642
+  },
+  "_internal/openpyxl/workbook/workbook.py": {
+   "sha256": "a1a12bbd21f5a94a615003ce6530878f6507c8a783aac8f60f270a083720a3b3",
+   "size": 13232
+  },
+  "_internal/openpyxl/worksheet/__init__.py": {
+   "sha256": "735dbef6430f5a551d8f04a864fb05a66796f0a5571f41c21a93b776509356a2",
+   "size": 35
+  },
+  "_internal/openpyxl/worksheet/_read_only.py": {
+   "sha256": "e8a77843eef752824363aeac911272fe4b3ec021cdb6d94686c0f1bc1f7d3ee6",
+   "size": 5709
+  },
+  "_internal/openpyxl/worksheet/_reader.py": {
+   "sha256": "be9fc3ef0e038800cc77236b62942096b095bd52d3f7f0ec4998a439dfbe9f67",
+   "size": 16375
+  },
+  "_internal/openpyxl/worksheet/_write_only.py": {
+   "sha256": "caa5be0ed0430d84f018204745523092179207b4922cedf1970f91b17b4fa2b1",
+   "size": 4232
+  },
+  "_internal/openpyxl/worksheet/_writer.py": {
+   "sha256": "6c3b70e81579b5dced0114049103e9ac4c51afc859545923d03ca896ac55bb69",
+   "size": 10283
+  },
+  "_internal/openpyxl/worksheet/cell_range.py": {
+   "sha256": "60ff00527a9414fe70395fdabcc0c5452674422da9efc45616ec32c82b9aee6f",
+   "size": 15013
+  },
+  "_internal/openpyxl/worksheet/cell_watch.py": {
+   "sha256": "2ddc467139976d9e2cc66ea29dab058193e57758a374be7f383494befcf5dc35",
+   "size": 608
+  },
+  "_internal/openpyxl/worksheet/controls.py": {
+   "sha256": "14f2e0e0df784fe20bdbb34b83c2defd4e166034ffe806b6e4b0c6fe48840d50",
+   "size": 2735
+  },
+  "_internal/openpyxl/worksheet/copier.py": {
+   "sha256": "d038b5a9292cd20ec9b609a973f336d0ef8a3c25bcd58af69b20b98f8e7c9f25",
+   "size": 2319
+  },
+  "_internal/openpyxl/worksheet/custom.py": {
+   "sha256": "091950f7c1b0aaa2a610392ff203d409ad00a4d336573f812ecffe44cbb78cb0",
+   "size": 639
+  },
+  "_internal/openpyxl/worksheet/datavalidation.py": {
+   "sha256": "9be3bb34ea130ebfdb01fc41f7111e63942db458ae3edcecf88140945d23e051",
+   "size": 6131
+  },
+  "_internal/openpyxl/worksheet/dimensions.py": {
+   "sha256": "1f333bec5ad88b18900c2ba0453f82f59a4aabb18d15a19c8714fbdd4e1c8ac6",
+   "size": 9102
+  },
+  "_internal/openpyxl/worksheet/drawing.py": {
+   "sha256": "da77eb2f24d7d24022ccf208345d762b00d6f664676aaf21b3e36b481716a661",
+   "size": 275
+  },
+  "_internal/openpyxl/worksheet/errors.py": {
+   "sha256": "2a4142e1b9dc92f0a9ef85ec55703b2540a2e0c22298416edee01d75c4298e8d",
+   "size": 2435
+  },
+  "_internal/openpyxl/worksheet/filters.py": {
+   "sha256": "f1e523d8bb8ff106f3d51d6090ad5ce96fd4292f3efffe9794531592e9c8b9ad",
+   "size": 13854
+  },
+  "_internal/openpyxl/worksheet/formula.py": {
+   "sha256": "e72bae97ab3597e2bfefc2971c2e87ac5fe92e1c72a6895d8798cc83bce69726",
+   "size": 1045
+  },
+  "_internal/openpyxl/worksheet/header_footer.py": {
+   "sha256": "f7517a3540d4130ae181e5abc46f57b433f23c3d375c0b4653f38d0699007d47",
+   "size": 7886
+  },
+  "_internal/openpyxl/worksheet/hyperlink.py": {
+   "sha256": "b17ccf9248e5f4158dcc2c70c0411a492e77277ee32173e69e7103fa3f0c201a",
+   "size": 1103
+  },
+  "_internal/openpyxl/worksheet/merge.py": {
+   "sha256": "80d3881fa109f3055c26989b02fe0231ced4a43eff0eb1af81a092bc6da29b90",
+   "size": 4125
+  },
+  "_internal/openpyxl/worksheet/ole.py": {
+   "sha256": "92156fa8cb7818f73d62beb084b0df914a39d5ebb22d77c97b5a78cc579ee27a",
+   "size": 3530
+  },
+  "_internal/openpyxl/worksheet/page.py": {
+   "sha256": "e2379245c0c4d12d913f3200980dc187eb97472ab48676cee61e6925d1876db4",
+   "size": 4901
+  },
+  "_internal/openpyxl/worksheet/pagebreak.py": {
+   "sha256": "5d714830e63855d3d009df3a9c63e0840ea139f2c62b91bf285baf8c134f46cc",
+   "size": 1811
+  },
+  "_internal/openpyxl/worksheet/picture.py": {
+   "sha256": "ef64dcb42c73936254f2e15f8e211b4c1b9f11ee5e4312227923c146153a9b54",
+   "size": 185
+  },
+  "_internal/openpyxl/worksheet/print_settings.py": {
+   "sha256": "93f8387e4aecf5b7f3f92f9120a2011aacd582e6ee7cc76bc964377a35d0a112",
+   "size": 5215
+  },
+  "_internal/openpyxl/worksheet/properties.py": {
+   "sha256": "f625d33950bc07d0beda9a7f894e65d2be458dfdd4cefd1220e50a46b676870e",
+   "size": 3087
+  },
+  "_internal/openpyxl/worksheet/protection.py": {
+   "sha256": "be3e4ce96582e712a21de592fed26a5f1ae53891c9ec6a56d8974fc3bafd8e31",
+   "size": 3758
+  },
+  "_internal/openpyxl/worksheet/related.py": {
+   "sha256": "64b0e981cad6e835a5f2fbe1dac49507faf52721bc6c2f0489c0812a37ecb13b",
+   "size": 335
+  },
+  "_internal/openpyxl/worksheet/scenario.py": {
+   "sha256": "565256e298b5393cb5709f66ed9c5acc8cbc3d2968d7b046a675188b198da2d4",
+   "size": 2401
+  },
+  "_internal/openpyxl/worksheet/smart_tag.py": {
+   "sha256": "9cb6edd3822a78996593b4e6352d5e4cd75bece9f98cc7f79657f2cb7a2d0d29",
+   "size": 1608
+  },
+  "_internal/openpyxl/worksheet/table.py": {
+   "sha256": "823b7e8cd3fc761572f30e60fa0309a5f1cef9e575128c49cbdd728bee471bae",
+   "size": 11671
+  },
+  "_internal/openpyxl/worksheet/views.py": {
+   "sha256": "0e465ca6dc296e99251c82d296f2be6b62e627b0566f5c1b0dccf625597be34e",
+   "size": 4974
+  },
+  "_internal/openpyxl/worksheet/worksheet.py": {
+   "sha256": "e09339aa3a09ba6b5ca9fb471648a6b45110af3ec4d830665e7915a3b477597f",
+   "size": 27572
+  },
+  "_internal/openpyxl/writer/__init__.py": {
+   "sha256": "735dbef6430f5a551d8f04a864fb05a66796f0a5571f41c21a93b776509356a2",
+   "size": 35
+  },
+  "_internal/openpyxl/writer/excel.py": {
+   "sha256": "ea2a179f78521c72149e45b6c02c8180f0380a770ee855cbe72192033b2aa7a6",
+   "size": 9572
+  },
+  "_internal/openpyxl/writer/theme.py": {
+   "sha256": "e4786afb4b8fe79b1ffd9870ee2dccf5acc27c28c02d0c68a3b095ffd40f9930",
+   "size": 10320
+  },
+  "_internal/openpyxl/xml/__init__.py": {
+   "sha256": "0392a3d065a4e5723ecc9c5b00be6f229a55fc08041cb46f786bbc44ae5ced4d",
+   "size": 1016
+  },
+  "_internal/openpyxl/xml/constants.py": {
+   "sha256": "1c336785c8fe58ef5ac8ee0cab071adc0bb465335fb03a960ed95e444b3f5ada",
+   "size": 4833
+  },
+  "_internal/openpyxl/xml/functions.py": {
+   "sha256": "8c1b5f6bcfffc388019443c61cb18202d26268d28fca28532ec7e68a0caadbf4",
+   "size": 2025
+  },
+  "_internal/pptx/__init__.py": {
+   "sha256": "5cbabf88d062a399cd8d03e6986c700bc189647bd5d7404ba9130244301e519c",
+   "size": 2100
+  },
+  "_internal/pptx/action.py": {
+   "sha256": "3626a81bbe446322de987614915e73341f776704b9037f6e4d8f48fcad0ffdbd",
+   "size": 9638
+  },
+  "_internal/pptx/api.py": {
+   "sha256": "22b1b16b7e59eadc99071681ba49f244e7661ca348f1751aefb5d4eb6c411453",
+   "size": 1737
+  },
+  "_internal/pptx/chart/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/chart/axis.py": {
+   "sha256": "35ba36ef55a7eef64bce7bc7c4565bdd556b692838d642ec4b5a38ef4785909b",
+   "size": 17321
+  },
+  "_internal/pptx/chart/category.py": {
+   "sha256": "8f9b7f7241bb88d9ac69be37c92dd029f308336297488543f788c74fa93c4bfd",
+   "size": 7187
+  },
+  "_internal/pptx/chart/chart.py": {
+   "sha256": "e41ea70567d4ba7368151df290352a6237e3c3b08c88083b722ba6f884887398",
+   "size": 9958
+  },
+  "_internal/pptx/chart/data.py": {
+   "sha256": "4d5d6c67ef9eb410ea9970f31b0fe5b8af3b0205ce7b41b87c47786653cec117",
+   "size": 29753
+  },
+  "_internal/pptx/chart/datalabel.py": {
+   "sha256": "30850014dfcd9cb732540ea1a5391ed57487454b01da6f66621c2c58a71622e0",
+   "size": 9465
+  },
+  "_internal/pptx/chart/legend.py": {
+   "sha256": "798f5efcd09312a7faf3d958af05bb1ec6f86b1f0fc19d2da73b141b8de94fbc",
+   "size": 2516
+  },
+  "_internal/pptx/chart/marker.py": {
+   "sha256": "49d800d8ce3028aeb035ee7ce2e1941ebd9acb9ceb71bd61457cde40886521df",
+   "size": 2072
+  },
+  "_internal/pptx/chart/plot.py": {
+   "sha256": "88e456b89757e5c32cfcbcbdd6035aa886bdd35a9a60835beecee30dd52f90e0",
+   "size": 13168
+  },
+  "_internal/pptx/chart/point.py": {
+   "sha256": "c41cae2849a7e9ef0762610b55346f47c148b7b201d64f0402817a0f5ba78a3d",
+   "size": 2735
+  },
+  "_internal/pptx/chart/series.py": {
+   "sha256": "37ac16112b0061620f17c2d0437f9bad91f4087f284a4ec586300194027c0bc1",
+   "size": 7400
+  },
+  "_internal/pptx/chart/xlsx.py": {
+   "sha256": "13b66371154c86d16b19fd4d854177ea7f10ae783ac4e80864bdb15832e30b17",
+   "size": 10840
+  },
+  "_internal/pptx/chart/xmlwriter.py": {
+   "sha256": "ab2201878f14e965798fff5add7df39893acf3bf75f306b59a2bea426138b9dc",
+   "size": 67352
+  },
+  "_internal/pptx/dml/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/dml/chtfmt.py": {
+   "sha256": "9869fe8f4a78738f6e94532397d8c2cd9deb29d6007d177680261670f3565ba3",
+   "size": 1328
+  },
+  "_internal/pptx/dml/color.py": {
+   "sha256": "a31eae18e1b22b68255824869d1727b2863ba545f33141462f3646bf70a9021c",
+   "size": 9071
+  },
+  "_internal/pptx/dml/effect.py": {
+   "sha256": "d23b540b3acaf3ab92d09f4b2337bd1a7185236fc7b7f37d5cf583b143b08b7d",
+   "size": 1525
+  },
+  "_internal/pptx/dml/fill.py": {
+   "sha256": "575b508d38c3362d94d9af5af67e07b5fc7b823c51be57c5ae737a5b34ebf3c2",
+   "size": 13319
+  },
+  "_internal/pptx/dml/line.py": {
+   "sha256": "fecb898429224e065291c4c84778682f472e68640ed4411d5cb206237e4a0edc",
+   "size": 3055
+  },
+  "_internal/pptx/enum/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/enum/action.py": {
+   "sha256": "79e80ec374899a32fcadb2978dcf4c13848140959057d6ed1cdce7378dead7c7",
+   "size": 1743
+  },
+  "_internal/pptx/enum/base.py": {
+   "sha256": "eb9b0140803b19d3088e482b374a5b6eeab05bc2eeeef878879d9ac22f495c96",
+   "size": 5844
+  },
+  "_internal/pptx/enum/chart.py": {
+   "sha256": "361b73ba1e3dff8320f7c77331f8dfc7df9f326ae998e30a5274b3992da6ea8e",
+   "size": 14025
+  },
+  "_internal/pptx/enum/dml.py": {
+   "sha256": "cf5b5319d513ed1d1883ec0b44a00baeadb5a5f04ed5dc1569650a6d16d926c8",
+   "size": 12053
+  },
+  "_internal/pptx/enum/lang.py": {
+   "sha256": "166a7554d538676bbcd381adb4c8571ceff597fd6756ff104bebcc28be2c5e00",
+   "size": 22431
+  },
+  "_internal/pptx/enum/shapes.py": {
+   "sha256": "296a9c7b50c5521e6c29ceacaf54b8baeb072affb6f9d051eaaf9daf7b4d0512",
+   "size": 29725
+  },
+  "_internal/pptx/enum/text.py": {
+   "sha256": "792acf53b09b66db8a9b5ebac1a5ff2e8733e72eb94e19c9646e56634f587cbe",
+   "size": 8067
+  },
+  "_internal/pptx/exc.py": {
+   "sha256": "e5a86be36a4be442c61c50f4605080629d7b6049bf0e45d4ca6cadd843455ff4",
+   "size": 473
+  },
+  "_internal/pptx/media.py": {
+   "sha256": "2f909d36252929d97a02d3e46949dc4f6a6296e9ca34562eb1a59a5023ea4440",
+   "size": 10580
+  },
+  "_internal/pptx/opc/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/opc/constants.py": {
+   "sha256": "918a89055101665a0ea5135fe880e24bd0b5da890a8acb83bfd73099d4d4b467",
+   "size": 18075
+  },
+  "_internal/pptx/opc/oxml.py": {
+   "sha256": "7938e2fbe9e33db51c5481033c1979b48194dd59cb3b149889811e5af778a804",
+   "size": 6083
+  },
+  "_internal/pptx/opc/package.py": {
+   "sha256": "c23d8aeacf86bdac3a4fa55f5bcd9fd0644bc1942e1483dedf2c97b4122da27b",
+   "size": 30062
+  },
+  "_internal/pptx/opc/packuri.py": {
+   "sha256": "963761cb27007279cab02df5b0507078e38f4dd082db7479d03e72625a29fcc7",
+   "size": 3811
+  },
+  "_internal/pptx/opc/serialized.py": {
+   "sha256": "ee21f7bf72e7f795b6e8fd42d1762cc2f3ce35dc13a7e84cfe577b401e655c74",
+   "size": 11437
+  },
+  "_internal/pptx/opc/shared.py": {
+   "sha256": "9a855eb3a277869e01ad741365f92854995dc5fafd2d4cccb7186d97a9e460ec",
+   "size": 709
+  },
+  "_internal/pptx/opc/spec.py": {
+   "sha256": "01dc6095ddccfa44db593c26dbb60dc0f50f97b0238776a75d38b08182db203a",
+   "size": 998
+  },
+  "_internal/pptx/oxml/__init__.py": {
+   "sha256": "357a2705a0384c8bbde4de17a115838443fe09b16a7ca822b9cb296983a3b02c",
+   "size": 15633
+  },
+  "_internal/pptx/oxml/action.py": {
+   "sha256": "5ccf3e81ec6d182e9b4cfe110991e80c37cefbca81695a6ae9fba148b8d88450",
+   "size": 1612
+  },
+  "_internal/pptx/oxml/chart/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/oxml/chart/axis.py": {
+   "sha256": "1ec2dc4fd95a46d2df0afe83a2e894dcbb0dfc81178ca7984841eb4ecd468f27",
+   "size": 9404
+  },
+  "_internal/pptx/oxml/chart/chart.py": {
+   "sha256": "9eb9a93e92b1aaf24a0cbbc06f6836ee535c29388961773a36cd08f4b7b45fc0",
+   "size": 8114
+  },
+  "_internal/pptx/oxml/chart/datalabel.py": {
+   "sha256": "801e343e1da47ae8685d6cf51ed69453d3a3ce71d0496f5fe597b07debaf532b",
+   "size": 7698
+  },
+  "_internal/pptx/oxml/chart/legend.py": {
+   "sha256": "3910e25519997f716625ea152a6e23abdc4013b4523cdf4516e0eb746cc8e280",
+   "size": 2088
+  },
+  "_internal/pptx/oxml/chart/marker.py": {
+   "sha256": "65edaa05ee3c406bc43dc6ea02fefe4c012892631be8cdea40628781a6457546",
+   "size": 1787
+  },
+  "_internal/pptx/oxml/chart/plot.py": {
+   "sha256": "3924a3cbae4da773538f716c7d2cacd520850d5f9b7b8869abb842686de2a281",
+   "size": 9196
+  },
+  "_internal/pptx/oxml/chart/series.py": {
+   "sha256": "272cf161780e6a3b284c073a45aac5cef06d95c7d38842fb7e22a82ab5fa14d7",
+   "size": 7597
+  },
+  "_internal/pptx/oxml/chart/shared.py": {
+   "sha256": "deeb37f1741ac2d97b0a383cf0d7625626625cd9c390b5ec3f64d9d051dc5952",
+   "size": 5994
+  },
+  "_internal/pptx/oxml/coreprops.py": {
+   "sha256": "437da6ea0301aa51f6580ed7b570710fad2f7566350c4b852505f6c3c0a37c5c",
+   "size": 10419
+  },
+  "_internal/pptx/oxml/dml/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/oxml/dml/color.py": {
+   "sha256": "87fb99a534de2e715e36d13d6ec39993cffb5f46b8aafafa1a1b7a5d7c8a712a",
+   "size": 2470
+  },
+  "_internal/pptx/oxml/dml/fill.py": {
+   "sha256": "0add5843b62a0d893efb16623b4e7e521897c04d6b8e095c4f7f3778e26a61d9",
+   "size": 5912
+  },
+  "_internal/pptx/oxml/dml/line.py": {
+   "sha256": "82b01fc800dcc5cf5dcc7c2c5e543377b3b327dfb20a9a2be35d42f37fae853a",
+   "size": 379
+  },
+  "_internal/pptx/oxml/ns.py": {
+   "sha256": "127dcdd9da4ad9e25bfc4ef0e64a2b831ad810353fc859077693d1e5e0e4ccb5",
+   "size": 4761
+  },
+  "_internal/pptx/oxml/presentation.py": {
+   "sha256": "b21d8301a120e4f748577bd721e797e118092002d9e146d1a83385f61505bd5e",
+   "size": 4252
+  },
+  "_internal/pptx/oxml/shapes/__init__.py": {
+   "sha256": "34cf2b01e2d1ff6f54ff8ac9249531aec92e12762a74b451cc55647d8abc63ea",
+   "size": 588
+  },
+  "_internal/pptx/oxml/shapes/autoshape.py": {
+   "sha256": "a7bf83f04061dd8558e41cb08ba5d6f6c2fe9e650afa21b4e1faf6ffae43bc6a",
+   "size": 14763
+  },
+  "_internal/pptx/oxml/shapes/connector.py": {
+   "sha256": "1af9a73ce9d4f21c9254efeccbd7e7b2fcd11e93090f347e9a59edc403601571",
+   "size": 3628
+  },
+  "_internal/pptx/oxml/shapes/graphfrm.py": {
+   "sha256": "286ce19c6a7cac586149bd89df5e7a013992cbc9700dfcf4392dc2025d46b518",
+   "size": 13080
+  },
+  "_internal/pptx/oxml/shapes/groupshape.py": {
+   "sha256": "081441c350dfda4d94be268ebf55a1df61bd23422b219b40a08bec4685eab7f0",
+   "size": 9989
+  },
+  "_internal/pptx/oxml/shapes/picture.py": {
+   "sha256": "7bd978755adbcbf3393f479956cec9db256332b4a6782a2a6128294783768691",
+   "size": 8532
+  },
+  "_internal/pptx/oxml/shapes/shared.py": {
+   "sha256": "8897315c3a33e23aabbb0280684b310de36f6000d1f767d5655d32326140f7c8",
+   "size": 13962
+  },
+  "_internal/pptx/oxml/simpletypes.py": {
+   "sha256": "f05a1b28ab6429302c3d2c5473d1e8bd70c78d0f48ae498e5b9709156600966f",
+   "size": 19814
+  },
+  "_internal/pptx/oxml/slide.py": {
+   "sha256": "0b95e846539145cb9a6fe48ac7c47bb97617238230ae9551b57fa77750e6f6ad",
+   "size": 11301
+  },
+  "_internal/pptx/oxml/table.py": {
+   "sha256": "5d9c1eff46bf8f83266b1a8239efd8d2fabceb38e88ed59e8e22220c2e04fbfa",
+   "size": 20095
+  },
+  "_internal/pptx/oxml/text.py": {
+   "sha256": "128d1a723567f782e7b7691777c6d006a0ee306837bc0d6209f096755fca3559",
+   "size": 20280
+  },
+  "_internal/pptx/oxml/theme.py": {
+   "sha256": "332951a39eaa2a61ade96e1f7455056e07bfd82300e0c226b6c9d48bf743a275",
+   "size": 685
+  },
+  "_internal/pptx/oxml/xmlchemy.py": {
+   "sha256": "42b286f6084c62268e5197591068c29de0d5f4463bcf9fbc0019939100109f75",
+   "size": 26913
+  },
+  "_internal/pptx/package.py": {
+   "sha256": "b4e082ddde5c62ef50aca9f0ad2f96168e63c9a716db3e8b7d6341e3e5a8785f",
+   "size": 7857
+  },
+  "_internal/pptx/parts/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/parts/chart.py": {
+   "sha256": "04c25f6eec67795c4198b9e52867185b2b6ed6dcc0bbb512f86efbe48c1528fd",
+   "size": 3212
+  },
+  "_internal/pptx/parts/coreprops.py": {
+   "sha256": "52d76b5d89afc72e66c0f09740c45136ee9ab61678822c3b0612307bebcd4ecf",
+   "size": 4435
+  },
+  "_internal/pptx/parts/embeddedpackage.py": {
+   "sha256": "5e187cfc141697fff83726aa2654fce42f2f9083fefc16b1981bbf832ac3123f",
+   "size": 2979
+  },
+  "_internal/pptx/parts/image.py": {
+   "sha256": "2986341c5535d1551cf601cb6b7febeb8347f86e9d70f6c992ec61a345decdf4",
+   "size": 9617
+  },
+  "_internal/pptx/parts/media.py": {
+   "sha256": "e615f4229779ec3dcafc283dfb8ba7792cb8ffddd6131b93bfacafdd9862e51d",
+   "size": 918
+  },
+  "_internal/pptx/parts/presentation.py": {
+   "sha256": "25403af83c0d9445a086a1174c174ba48fa806c08c3b7f49dba46b40487475a0",
+   "size": 4840
+  },
+  "_internal/pptx/parts/slide.py": {
+   "sha256": "f7729b1a52f38a65e3dcae513adc9f053f3a491778b8711ccb3dcc3b6d8aeeea",
+   "size": 10776
+  },
+  "_internal/pptx/presentation.py": {
+   "sha256": "54fda4d3f3c2d98a282d555043a08c4ad44a45720e540794ef626d65533df6eb",
+   "size": 3810
+  },
+  "_internal/pptx/py.typed": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/shapes/__init__.py": {
+   "sha256": "4dcb0dd0403f7e8648e5104e0040e33de85b92bebaeafe3ba1dcef81b901ff02",
+   "size": 720
+  },
+  "_internal/pptx/shapes/autoshape.py": {
+   "sha256": "6882506d5bed164007010d487a708052e58f0abd497f7cf156387d67f93db2ad",
+   "size": 13751
+  },
+  "_internal/pptx/shapes/base.py": {
+   "sha256": "e0c1d106fb08d422d48105fde9af915f9b5ca941914bdd54b2ec0c4715698732",
+   "size": 7900
+  },
+  "_internal/pptx/shapes/connector.py": {
+   "sha256": "742d25a19e5d6d013884094407e148e85c09f3e2e3aae572863f0cf151241e3f",
+   "size": 9996
+  },
+  "_internal/pptx/shapes/freeform.py": {
+   "sha256": "68bca6dd633faf72fe3268e27d5a66e413260376e60090e35fc8c427c813fe1c",
+   "size": 12460
+  },
+  "_internal/pptx/shapes/graphfrm.py": {
+   "sha256": "53196bccced50ab1d1747f184562c6d39761f2ce9cd1f8543f5d21e07e4ef631",
+   "size": 6107
+  },
+  "_internal/pptx/shapes/group.py": {
+   "sha256": "53c5e3b6851490efb70ff86f04c447efc73baeca1b1448985166c1b50da11d09",
+   "size": 2232
+  },
+  "_internal/pptx/shapes/picture.py": {
+   "sha256": "75ac59333bae16360db5d95d0443f4b49136166a10e527259d8759433ff05cff",
+   "size": 6853
+  },
+  "_internal/pptx/shapes/placeholder.py": {
+   "sha256": "7bb9bc6bf557299c31b36b6390d27a0bda01f402d2dcc00ce055804d9092f600",
+   "size": 14772
+  },
+  "_internal/pptx/shapes/shapetree.py": {
+   "sha256": "1bec72fbd15f6faabcd022429ffb55ee681b237a45cc926fd87d6bba9fdd478c",
+   "size": 47412
+  },
+  "_internal/pptx/shared.py": {
+   "sha256": "dd0d95b99e7eac7a0b68a3a49126c3ff93e6b5a8e21e663581a99625ec9cc27c",
+   "size": 2745
+  },
+  "_internal/pptx/slide.py": {
+   "sha256": "6d4cc334dd502a63f9a2f3b8279960eac26b97e23ecba111cca97f5db5c9cf08",
+   "size": 18693
+  },
+  "_internal/pptx/spec.py": {
+   "sha256": "5571c4cf3dce067d3ed02c76fd971fe68d331172bd407cee95351e9d24f44545",
+   "size": 23869
+  },
+  "_internal/pptx/table.py": {
+   "sha256": "3cebe5c4d126741391001dc69849e335bb002900e278dcea32fcdf657d7d5ba2",
+   "size": 16972
+  },
+  "_internal/pptx/templates/default.pptx": {
+   "sha256": "e10cc9e120961f6bd4074a373c9c80d2a06c497157e8f4972977b7bea83a8f34",
+   "size": 34030
+  },
+  "_internal/pptx/templates/docx-icon.emf": {
+   "sha256": "cbfa051aa5f1ec1993f0ce056f67112ce4af3a8c3ac6fccfc219399ed6dc625d",
+   "size": 127228
+  },
+  "_internal/pptx/templates/generic-icon.emf": {
+   "sha256": "e12b5b9555953d6eeef4c24e9c6a3c2a7073e1eaeba8825291ea4b78572b955e",
+   "size": 5396
+  },
+  "_internal/pptx/templates/notes.xml": {
+   "sha256": "a8f14f275cf7616e15c61216afe36aac706c3e7c7c4e987bd433c65809110d03",
+   "size": 722
+  },
+  "_internal/pptx/templates/notesMaster.xml": {
+   "sha256": "1fb939714ad0571d747d9e573f9a0594062a89e73c6a076d943ba7f541072813",
+   "size": 11135
+  },
+  "_internal/pptx/templates/pptx-icon.emf": {
+   "sha256": "7f976582a6d94fe56b65ce6d3bef5ab5746a6f652718979b1325a31c5a2b4e5d",
+   "size": 5492
+  },
+  "_internal/pptx/templates/theme.xml": {
+   "sha256": "76f7bdf39e5333483e42f9c4f6eba344330617b6e6171b7a4039c239131a9b4d",
+   "size": 10964
+  },
+  "_internal/pptx/templates/xlsx-icon.emf": {
+   "sha256": "14e52936cebdf16e5a6629ce707415c26122fe54af322872a2d25fec618a69ee",
+   "size": 130380
+  },
+  "_internal/pptx/text/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pptx/text/fonts.py": {
+   "sha256": "76f9085b58d3551d8f6ec01b941fa5340d31624a7ce957942890ba0ce09bbb77",
+   "size": 12863
+  },
+  "_internal/pptx/text/layout.py": {
+   "sha256": "6e46638919a822b14c95c9a89e844e7e07e0ae02c273d0515ca882916c01ed6d",
+   "size": 10232
+  },
+  "_internal/pptx/text/text.py": {
+   "sha256": "2252578005a8eb412a5b84b0ca53d804b7afea4fcfa6819880c02a819ec87e30",
+   "size": 25530
+  },
+  "_internal/pptx/types.py": {
+   "sha256": "8bf15100b17afab866b5f656d7b88d5e65963b82b65588ce623648038e6062ff",
+   "size": 867
+  },
+  "_internal/pptx/util.py": {
+   "sha256": "b8327c3d75a19f0c22ca888e1376df36a09df48e8757dbc61d0c7c20308905a6",
+   "size": 8062
+  },
+  "_internal/pyexpat.pyd": {
+   "sha256": "c7c7564f7f874fb660a46384980a2cf28bc3e245ca83628a197ccf861eab5560",
+   "size": 199448
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/METADATA": {
+   "sha256": "8733a714c056453b87b48c819495cc05f9038d38221b89505043d28c2501237e",
+   "size": 63509
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/RECORD": {
+   "sha256": "41dc71684f8965396bbb803a337f6960f82226c77c4c6ebb1fc8262d536c2b19",
+   "size": 9614
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/REQUESTED": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/WHEEL": {
+   "sha256": "671f7c8306ff75029c9092b71c43952a7c710f9d847d4fcf5c31bfbac309da78",
+   "size": 98
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/entry_points.txt": {
+   "sha256": "39f3e2f656f1c386b806c26ecf2b9f92dd0e1927b6db2d496c8ddd014d779a27",
+   "size": 62
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/LICENSES/Apache-2.0.txt": {
+   "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+   "size": 11560
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/LICENSES/BSD-3-Clause.txt": {
+   "sha256": "ad9a9e823df025f42389c1812eae28019f657d1ed7b3a4ebfd5010b0736a0da4",
+   "size": 1485
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/LICENSES/CC-BY-4.0.txt": {
+   "sha256": "f1b1748301cd4274f46733c218d510929661b4990855de5fc645dacd69c4371c",
+   "size": 14844
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/abseil.txt": {
+   "sha256": "f54fff0b905df5b3464527c652a30e903b172d6dcab4d89b5e6f105d5e4a4603",
+   "size": 11564
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/agg23.txt": {
+   "sha256": "c110d3ea2ad77467ce0dcff7d3337e6c8be8049a5103f4b9bd5fd911a77972e5",
+   "size": 725
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/fast_float.txt": {
+   "sha256": "bf1b57355feca8fce77ee95f48002f8d4789fb71b30ec7599c06cda4901fbb2b",
+   "size": 1106
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/freetype.txt": {
+   "sha256": "f4b133e25df1f86ad3ffea453aa0e613f0474f34778dbbb3e437e7b2724937d8",
+   "size": 6741
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/icu.txt": {
+   "sha256": "93679f4389d53b6835d89843f251844fb9bc455b35bab036d3c8e7abe497a47a",
+   "size": 28286
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/lcms.txt": {
+   "sha256": "7312b68c5b25e9bf2b828706fb4e29588f22705112f411fd42e1f7d84c3d139a",
+   "size": 1353
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/libjpeg_turbo.ijg": {
+   "sha256": "db16a04128171879c60708d171b88d97345a2dd20f9bfc173680a4497c73f704",
+   "size": 13059
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/libjpeg_turbo.md": {
+   "sha256": "be2b2b5ab168bce87bc3e31f2a5c5adba4b7f6e9e51d618e958d1d46972ebd95",
+   "size": 5755
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/libopenjpeg.txt": {
+   "sha256": "c5ab0890a737c2dfa7ba675036554f6d17741d98629b0c2a145354d00617e6b2",
+   "size": 1794
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/libpng.txt": {
+   "sha256": "452390433ba0f88aa3e2b122c647741b72a0c117cd6ed7a329b49785aecb5511",
+   "size": 5479
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/llvm-libc.txt": {
+   "sha256": "3b6226c32e168c83b891d8d6f0d3c29c2116dc3ef93dc93c307b54f279ecf383",
+   "size": 15418
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/pdfium-binaries.txt": {
+   "sha256": "8854f4388f1ca13b3ad9baa42e95f5546b4c0b17109c159256d3eca7be39b09b",
+   "size": 1184
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/pdfium.txt": {
+   "sha256": "961eacd9633fff6d051db7208b755e9210e30efac7adec3e6a6d52798f0ccf0e",
+   "size": 12818
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/simdutf.txt": {
+   "sha256": "c172a0ba936ff31230febb5dad869e25cb7c1a07480c7a381be8cf011bb52719",
+   "size": 1077
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/licenses/data/windows_x64/BUILD_LICENSES/zlib.txt": {
+   "sha256": "33fd641c9f3b0e0be64bc78fea9e94807674cdd70c48477599226cb8956565fe",
+   "size": 1332
+  },
+  "_internal/pypdfium2-5.14.0.dist-info/top_level.txt": {
+   "sha256": "07e2cb6d8ff0e395a284a74697fa4ceab81bfb3dbe45886aca406b5d7fc90fc5",
+   "size": 52
+  },
+  "_internal/pypdfium2/__init__.py": {
+   "sha256": "e4dea381d513bf1c657cc94d83701ff7a216721d64822d078522af1b38fd6491",
+   "size": 653
+  },
+  "_internal/pypdfium2/__main__.py": {
+   "sha256": "cc9bc7ec16b8fb3724faf4b2f13f2886c193bdb107432246e0150a1278cd5f0d",
+   "size": 914
+  },
+  "_internal/pypdfium2/_helpers/__init__.py": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/pypdfium2/_helpers/attachment.py": {
+   "sha256": "594d548ad08a77ea0c93b22387845dc23ad84d64e787dcabf1d8886d838d45c3",
+   "size": 7701
+  },
+  "_internal/pypdfium2/_helpers/bitmap.py": {
+   "sha256": "fc28faf6a56112b69f2570e3522d3c9d548046ac2de7c22812b11640353043a8",
+   "size": 20807
+  },
+  "_internal/pypdfium2/_helpers/document.py": {
+   "sha256": "b4d112176efcd8bacef8be71b652cc02fd873d3c597e57ca06d9afbb4cd252a1",
+   "size": 30441
+  },
+  "_internal/pypdfium2/_helpers/matrix.py": {
+   "sha256": "4eab322995c9bb6ae9bfe8ead5bd723a5b946d23e4abd66d9a4bc1bc8ac07107",
+   "size": 6615
+  },
+  "_internal/pypdfium2/_helpers/misc.py": {
+   "sha256": "0de38c4d38e8ffd24349d3e7b753e269d07efe3ee1390c057f88f5099e90b81f",
+   "size": 1578
+  },
+  "_internal/pypdfium2/_helpers/page.py": {
+   "sha256": "0c756c5542c58bdffa3a09e527508e651f3083a5d0d0e44910f2421bc820bc51",
+   "size": 24174
+  },
+  "_internal/pypdfium2/_helpers/pageobjects.py": {
+   "sha256": "3ccbca76c25ec3d39ee177b0b162f85bdb9982fdc9b7f9b244a97ce3a30426c5",
+   "size": 27441
+  },
+  "_internal/pypdfium2/_helpers/sysfontinfo.py": {
+   "sha256": "c97d9502e5004ff9b3de1071823dca410eec8182a9fb7368efc3864b2f9c45b4",
+   "size": 12468
+  },
+  "_internal/pypdfium2/_helpers/textpage.py": {
+   "sha256": "d8899cda5e394d26da5eeadf998644a417b8ce7ac10c20c33da512eed369446d",
+   "size": 14058
+  },
+  "_internal/pypdfium2/_helpers/unsupported.py": {
+   "sha256": "a46a7101a8865e094cad1923d5356d2377fbebc683ad673357418f07b74fbb8f",
+   "size": 2651
+  },
+  "_internal/pypdfium2/_lazy.py": {
+   "sha256": "0b946874c8df7a542568f6a873843e8a63aeca1340520738777ea87bd8475b19",
+   "size": 871
+  },
+  "_internal/pypdfium2/_library_scope.py": {
+   "sha256": "d2507c29c5364f0939a8cd7571381ad0fcbdeb75b4bb12162395ed212db5dd5b",
+   "size": 2342
+  },
+  "_internal/pypdfium2/internal/__init__.py": {
+   "sha256": "ca51eac7bb2637e09bbb3e9b17f5c9ce69cb0f472b6176b0fbe32433d552da17",
+   "size": 242
+  },
+  "_internal/pypdfium2/internal/bases.py": {
+   "sha256": "ffa1d4664a0f7f0526e55e6356603022cba81cbacdbf3e1dcea2f3a785523e10",
+   "size": 6863
+  },
+  "_internal/pypdfium2/internal/consts.py": {
+   "sha256": "4444cc73ed21386abf41959b16c33c6ff692f703851c6e0c0352ec6330e574a6",
+   "size": 8057
+  },
+  "_internal/pypdfium2/internal/utils.py": {
+   "sha256": "69117299be5ee6cd062a7ee946d1ce9b044546f3610cafa3aabcf1e550c03802",
+   "size": 3073
+  },
+  "_internal/pypdfium2/raw.py": {
+   "sha256": "78f7cd3ff66290d97cf63771f3868729481b6edc4d808b93b2841304462951bb",
+   "size": 273
+  },
+  "_internal/pypdfium2/version.json": {
+   "sha256": "4fea9865d76e0996f34fd409258c82e683393c273a58f4def53de27837965547",
+   "size": 171
+  },
+  "_internal/pypdfium2/version.py": {
+   "sha256": "722db25612df52d609dc30c0a4aa74dda5210befd723fdf2ac3994effaf66ce8",
+   "size": 2779
+  },
+  "_internal/pypdfium2_raw/__init__.py": {
+   "sha256": "c8279b9e5b5171d37a3bcdb6628b7da8fb009d2cb803ea0e877c0381f52722d8",
+   "size": 841
+  },
+  "_internal/pypdfium2_raw/bindings.py": {
+   "sha256": "2f492d5232bfe3a52da5fd4f06ab0c5c6745715840d3128ddc8b7dd9c8ca6fc0",
+   "size": 153023
+  },
+  "_internal/pypdfium2_raw/pdfium.dll": {
+   "sha256": "69f1e860f6742fbaafcc4db80e785eec9a4ee0da36ea6d1dc0867ea0f18baea6",
+   "size": 7381504
+  },
+  "_internal/pypdfium2_raw/version.json": {
+   "sha256": "363ee2f6a236c8b262326634ee79c661a6020c9df1fcef734dd928ee6924113a",
+   "size": 152
+  },
+  "_internal/pypdfium2_raw/version.py": {
+   "sha256": "650422c7beaa6b233576531011a4a478eb3b73dc319febc5acd46c24b55ac241",
+   "size": 2664
+  },
+  "_internal/python3.dll": {
+   "sha256": "db84bc052cfb121fe4db36242ba5f1d2c031b600ef5d8d752cf25b7c02b6bac6",
+   "size": 67352
+  },
+  "_internal/python311.dll": {
+   "sha256": "0817a2a657a24c0d5fbb60df56960f42fc66b3039d522ec952dab83e2d869364",
+   "size": 5800216
+  },
+  "_internal/python_pptx-1.0.2.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/python_pptx-1.0.2.dist-info/LICENSE": {
+   "sha256": "7652f271e46d0d533e9dc463f3b5fcbdcacf4d6a9c8d6b554d15efd0f37f6132",
+   "size": 1104
+  },
+  "_internal/python_pptx-1.0.2.dist-info/METADATA": {
+   "sha256": "d38c6af5f1817cc528706264d8343cd1c95dbdec5672f29b944f54f79134a3a2",
+   "size": 2503
+  },
+  "_internal/python_pptx-1.0.2.dist-info/RECORD": {
+   "sha256": "c3f81467c6ebf323b4a46fe91525b40bd2912ebdbf86fc0e1a95edb6196bb826",
+   "size": 14231
+  },
+  "_internal/python_pptx-1.0.2.dist-info/REQUESTED": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/python_pptx-1.0.2.dist-info/WHEEL": {
+   "sha256": "4749dceaa4f1ba82e4ed2840dbf63e51690df1975f0c11b607a12aa73d965dbb",
+   "size": 91
+  },
+  "_internal/python_pptx-1.0.2.dist-info/top_level.txt": {
+   "sha256": "3b80543eff5cdffe8e40db5a9dea8daaadf60e9d5317228af8af4254d3de9c5f",
+   "size": 5
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/DELVEWHEEL": {
+   "sha256": "1134e52fde7967389578c86040fc97058fb5319ef5513349cf0733f693d6cb09",
+   "size": 409
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/METADATA": {
+   "sha256": "f1e04d5508594b145d98fc8ccfb434f668f315cedc873749a5248c67cd4cbf9a",
+   "size": 12175
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/RECORD": {
+   "sha256": "b422079faba12b3232c3805ea60f3dee14f9ddd7d3918b78533ebae374cf9e12",
+   "size": 8503
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/REQUESTED": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/WHEEL": {
+   "sha256": "b622a443ed964cb66aed1fa0cfea27f65510f526fc8c176594dcf330009bc05b",
+   "size": 105
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/entry_points.txt": {
+   "sha256": "866661a89859c6bccaa5ab3ab5bfe400a50413df79dabe20aa424e57ababbedd",
+   "size": 71
+  },
+  "_internal/rapidfuzz-3.14.6.dist-info/licenses/LICENSE": {
+   "sha256": "f34ccdffdff56fc417785915eedf18601d5479755df3c472b2c754c29802d683",
+   "size": 1092
+  },
+  "_internal/rapidfuzz/__init__.py": {
+   "sha256": "c24c40370cf495a3eb0a5d0fd27febca79b6b451f5293cd9893c05c72a577d5d",
+   "size": 1147
+  },
+  "_internal/rapidfuzz/__init__.pyi": {
+   "sha256": "c16c0ab3c7cb4df1fd5761a7ed321415667943c53058889254537f5ca986a2e6",
+   "size": 232
+  },
+  "_internal/rapidfuzz/__pyinstaller/__init__.py": {
+   "sha256": "69a4d0573685526fa7d7047ef7e3dc44a431efbdabe688af131d9d9b72decb2f",
+   "size": 145
+  },
+  "_internal/rapidfuzz/__pyinstaller/test_rapidfuzz_packaging.py": {
+   "sha256": "6e38ae0dad2362bd65bdc0eb153410e156f9d78ad652930600b50a18cfba4015",
+   "size": 1153
+  },
+  "_internal/rapidfuzz/_common_py.py": {
+   "sha256": "c5b7230cfd60f3e5e4f08907c08a7f09de1ea7f2b71d2c0571b87348a6f98e21",
+   "size": 1773
+  },
+  "_internal/rapidfuzz/_feature_detector.py": {
+   "sha256": "f928ff6f2c9e5ee55b401a989876afae19e99d0054ebccb48967ff030954aefc",
+   "size": 345
+  },
+  "_internal/rapidfuzz/_feature_detector_cpp.cp311-win_amd64.pyd": {
+   "sha256": "930cb50706118d3f046c6fddc142290d58ee8b12a191fb6e61d7d6e0962c0096",
+   "size": 34304
+  },
+  "_internal/rapidfuzz/_utils.py": {
+   "sha256": "d59dd7928ea18b2f02d7d149a25e3df4ffb0e8dccc00a3797de39d53b79f9ca7",
+   "size": 2323
+  },
+  "_internal/rapidfuzz/distance/DamerauLevenshtein.py": {
+   "sha256": "3fd3049ff3831d894cf36380c3d3fa99817bb69997d8815414e61237e04ff541",
+   "size": 4067
+  },
+  "_internal/rapidfuzz/distance/DamerauLevenshtein.pyi": {
+   "sha256": "6cc4741e6db9d768d775c057c537cf40e6709c9a2708863c5f64497e45ec1338",
+   "size": 1904
+  },
+  "_internal/rapidfuzz/distance/DamerauLevenshtein_py.py": {
+   "sha256": "fb374c338befef40e4e551c085b8de0794e939debe6346c54b4b986d2041f459",
+   "size": 6591
+  },
+  "_internal/rapidfuzz/distance/Hamming.py": {
+   "sha256": "00c0a21d5f06586442a47b2428fcf7f88c4b77a047e309e70f7eba99fde8f545",
+   "size": 4404
+  },
+  "_internal/rapidfuzz/distance/Hamming.pyi": {
+   "sha256": "4e3a17b7d972b0cf7e64e79d8a30a28b9d311867631a5cf6dfd2d6c74c1b61e6",
+   "size": 2769
+  },
+  "_internal/rapidfuzz/distance/Hamming_py.py": {
+   "sha256": "1407a890c08e716dd46fc5e53bab6c1d65a974959250a55b2423590a73fea662",
+   "size": 9081
+  },
+  "_internal/rapidfuzz/distance/Indel.py": {
+   "sha256": "13e8117fec4feb637b8d0926e5780380882d98a82e594711df44d6fffe8a111a",
+   "size": 4308
+  },
+  "_internal/rapidfuzz/distance/Indel.pyi": {
+   "sha256": "c63b35b1d7edec071b1ce87dae9f691f415a9807ff4eb376ab258174c5e4f8d1",
+   "size": 2593
+  },
+  "_internal/rapidfuzz/distance/Indel_py.py": {
+   "sha256": "a04fa199bf76a3e6b9c585376e3e9442dbd496327809fe956235c02304adcd60",
+   "size": 9935
+  },
+  "_internal/rapidfuzz/distance/Jaro.py": {
+   "sha256": "684ba7d4742c962f70e6488636bd4c065fc43a58673250ea2104a154155e6928",
+   "size": 3587
+  },
+  "_internal/rapidfuzz/distance/Jaro.pyi": {
+   "sha256": "2298cb82f87bde36a526230c36ac1ce934a693b53dc84fc95cb3f7439eb4e463",
+   "size": 1908
+  },
+  "_internal/rapidfuzz/distance/JaroWinkler.py": {
+   "sha256": "6415a3cd4cec529f7745fc51dafcd24daf2baa8af29649562b1a11a63ed8b66b",
+   "size": 3843
+  },
+  "_internal/rapidfuzz/distance/JaroWinkler.pyi": {
+   "sha256": "e570be6397d816798834cd03c36f4181152fcc57e71b4ec756bb82af02f8305f",
+   "size": 2164
+  },
+  "_internal/rapidfuzz/distance/JaroWinkler_py.py": {
+   "sha256": "08903d2261103c6a914e85e08de8dd5044bddcbe494597fd80691b56e5fa01b5",
+   "size": 6481
+  },
+  "_internal/rapidfuzz/distance/Jaro_py.py": {
+   "sha256": "ca9862e8e629626ccf394843560f012d3b6d6d12e9b2183ea5dfe50be96d5be9",
+   "size": 7389
+  },
+  "_internal/rapidfuzz/distance/LCSseq.py": {
+   "sha256": "580375d16b36585aca2e97c01fa6602a4ba64be374900732749bb21a5460e5c9",
+   "size": 4404
+  },
+  "_internal/rapidfuzz/distance/LCSseq.pyi": {
+   "sha256": "c63b35b1d7edec071b1ce87dae9f691f415a9807ff4eb376ab258174c5e4f8d1",
+   "size": 2593
+  },
+  "_internal/rapidfuzz/distance/LCSseq_py.py": {
+   "sha256": "3746caa3522641dc4ded3a1263fab29d9e365cad31bc61687fa139a540d3b1e6",
+   "size": 11505
+  },
+  "_internal/rapidfuzz/distance/Levenshtein.py": {
+   "sha256": "0ff662ba1750a737dadede022f143db18a90f668bf4f299a0492f9a90433c25d",
+   "size": 4596
+  },
+  "_internal/rapidfuzz/distance/Levenshtein.pyi": {
+   "sha256": "ec2fa75a7ff210e4688fe228a30d01b2668b9e9287ede8ffe6c9b2905b707273",
+   "size": 3678
+  },
+  "_internal/rapidfuzz/distance/Levenshtein_py.py": {
+   "sha256": "7f881a8360420024865cf55ed209c69d87f90832c0772aa1bdfe5c525f69b515",
+   "size": 17103
+  },
+  "_internal/rapidfuzz/distance/OSA.py": {
+   "sha256": "25b561b32339fdeb44b7e7098b305606b6a552dea88b6ff0ef7d322b4fc30cb7",
+   "size": 3555
+  },
+  "_internal/rapidfuzz/distance/OSA.pyi": {
+   "sha256": "6cc4741e6db9d768d775c057c537cf40e6709c9a2708863c5f64497e45ec1338",
+   "size": 1904
+  },
+  "_internal/rapidfuzz/distance/OSA_py.py": {
+   "sha256": "0460f8f7002335b039c6a86b5080f8be403bc9a789de35e58ec13ad1259b1228",
+   "size": 6251
+  },
+  "_internal/rapidfuzz/distance/Postfix.py": {
+   "sha256": "de2b55477492c4a29b6c07a3a77cd7814badb7c7eb63e1ba8d266bdf635e33a8",
+   "size": 3683
+  },
+  "_internal/rapidfuzz/distance/Postfix.pyi": {
+   "sha256": "6cc4741e6db9d768d775c057c537cf40e6709c9a2708863c5f64497e45ec1338",
+   "size": 1904
+  },
+  "_internal/rapidfuzz/distance/Postfix_py.py": {
+   "sha256": "cb058ed0ce6cc025a48d9aa3a76c0a30467bfc657c67dd4844c7bcff364679a4",
+   "size": 5039
+  },
+  "_internal/rapidfuzz/distance/Prefix.py": {
+   "sha256": "8134fadb42f41aed617d997ed0e57e564a434919ec30d6baa4ea31935a61a151",
+   "size": 3651
+  },
+  "_internal/rapidfuzz/distance/Prefix.pyi": {
+   "sha256": "6cc4741e6db9d768d775c057c537cf40e6709c9a2708863c5f64497e45ec1338",
+   "size": 1904
+  },
+  "_internal/rapidfuzz/distance/Prefix_py.py": {
+   "sha256": "987b56df0443d23a25efa3670ce80800b32fb2520db46249f62a59ef5dec95d4",
+   "size": 5015
+  },
+  "_internal/rapidfuzz/distance/__init__.py": {
+   "sha256": "82984a593508d825bee0e63f03d00e833d1d6ffb1be24c52a91af6d0fc6c5f6c",
+   "size": 621
+  },
+  "_internal/rapidfuzz/distance/__init__.pyi": {
+   "sha256": "c17e7de2884f6788004a6bcaa5ba2f0d61f6041f48715a2346ab45d323e3cef8",
+   "size": 571
+  },
+  "_internal/rapidfuzz/distance/_initialize.py": {
+   "sha256": "5bd2db2f3b4d7a71ea0f0dc1d3e1babeb89351b595fdd176444d96f8b3038df7",
+   "size": 3086
+  },
+  "_internal/rapidfuzz/distance/_initialize.pyi": {
+   "sha256": "37ba28ce742dad085928d675506b635327fa2e23ffbdbb5209615ae3d2bd7c90",
+   "size": 3998
+  },
+  "_internal/rapidfuzz/distance/_initialize_cpp.cp311-win_amd64.pyd": {
+   "sha256": "f886892458def87605034ed0acbba66d29fac80a8dc8cea90116ad1f6309d83f",
+   "size": 230912
+  },
+  "_internal/rapidfuzz/distance/_initialize_py.py": {
+   "sha256": "810f0a0215d7de83f908c44ffc3cb6b3bebebb3736cbba5da3c72358070b44c7",
+   "size": 26996
+  },
+  "_internal/rapidfuzz/distance/metrics_cpp.cp311-win_amd64.pyd": {
+   "sha256": "47d0a4e34376bdec0a8b10e7e9a9c7e86c4f217402418c96f0dd70a4bf89a815",
+   "size": 1526784
+  },
+  "_internal/rapidfuzz/distance/metrics_cpp_avx2.cp311-win_amd64.pyd": {
+   "sha256": "67769d0d1dc0f1ef5f97ee758d673d496a4e46837625ccd63aed2befeb15e893",
+   "size": 1537536
+  },
+  "_internal/rapidfuzz/distance/metrics_py.py": {
+   "sha256": "1847c33808245febcaadd340d26c78eff8e2dbce983d8be1eb39176b66f2d2fc",
+   "size": 9037
+  },
+  "_internal/rapidfuzz/fuzz.py": {
+   "sha256": "4e0e2f2cc2e1b79f0fc293ae80b2086b352bb2f68c9d2f40a571f5d3d2811ba0",
+   "size": 4637
+  },
+  "_internal/rapidfuzz/fuzz.pyi": {
+   "sha256": "f08dc026d5f9d159686da02016daa25e0d7ea5bcda440f5d15229ecefef38145",
+   "size": 4811
+  },
+  "_internal/rapidfuzz/fuzz_cpp.cp311-win_amd64.pyd": {
+   "sha256": "d18bb480a082bec6e624cdcd9bd4c35ec71e9e3302bfacd18eeb80d33e5248ff",
+   "size": 817152
+  },
+  "_internal/rapidfuzz/fuzz_cpp_avx2.cp311-win_amd64.pyd": {
+   "sha256": "858652aa68826c22acd22e569c7486c361c578618bf5914a685ca81062859980",
+   "size": 828416
+  },
+  "_internal/rapidfuzz/fuzz_py.py": {
+   "sha256": "476a504ef492f2217ff5c76b48b59a62cdb7cc52c9429111c4e897eef403284d",
+   "size": 26035
+  },
+  "_internal/rapidfuzz/process.py": {
+   "sha256": "8fc886bf3e7f8465f46dede2c47d6b278dc5d9d1fd95578ef361a4b615c519a4",
+   "size": 2684
+  },
+  "_internal/rapidfuzz/process.pyi": {
+   "sha256": "75693b0d02b4f4bf96e10000c88039dac5ca13a74743d10def485d17886d4b1a",
+   "size": 20534
+  },
+  "_internal/rapidfuzz/process_cpp.py": {
+   "sha256": "b805db1ddfd4546d3239a16f55b64a819cd02e90d6b5e209c42b18e8c79444a5",
+   "size": 2530
+  },
+  "_internal/rapidfuzz/process_cpp_impl.cp311-win_amd64.pyd": {
+   "sha256": "5c47bb0a112a2ab2abe61350ba3f68061555c7d3febcc71cc6747ea88399f3e7",
+   "size": 504832
+  },
+  "_internal/rapidfuzz/process_py.py": {
+   "sha256": "762d804b6127e95cc8ae9a20d87fafb2f6ae6989cc671078696079f66298ee7b",
+   "size": 26646
+  },
+  "_internal/rapidfuzz/py.typed": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/rapidfuzz/utils.py": {
+   "sha256": "9b661696f68caab4f25350d4479d81598683106343f6ffd4ac08494ddadef5fc",
+   "size": 1922
+  },
+  "_internal/rapidfuzz/utils.pyi": {
+   "sha256": "af3da5c61c50bbe066ea03f10438f005b36cda80418c0acfe8f11895671a1394",
+   "size": 304
+  },
+  "_internal/rapidfuzz/utils_cpp.cp311-win_amd64.pyd": {
+   "sha256": "50091d2ebf87291ea3689b3c8e6cfa9fdee51ea93fb248be2e9571af519fe1e7",
+   "size": 160768
+  },
+  "_internal/rapidfuzz/utils_py.py": {
+   "sha256": "a0feb180eb28a644743613637f7bbac79e60c34dcb50c275ce1d85608b319e8e",
+   "size": 622
+  },
+  "_internal/select.pyd": {
+   "sha256": "bae0974390945520eb99ab32486c6a964691f8f4a028ac408d98fa8fb0db7d90",
+   "size": 30488
+  },
+  "_internal/shiboken6/MSVCP140.dll": {
+   "sha256": "c17f8a04d9b58ce533ee79d7540616868b4615d0213db43131ff76a7eeb8f7a8",
+   "size": 549176
+  },
+  "_internal/shiboken6/MSVCP140_1.dll": {
+   "sha256": "30aa4d6e3146bedd65b408745bc93c63704719a2d71f45b9171f9224918a9345",
+   "size": 27448
+  },
+  "_internal/shiboken6/Shiboken.pyd": {
+   "sha256": "bd14268fc6224a1e5184f2b78a242187756e435612f111792cdb432e00ac517f",
+   "size": 33592
+  },
+  "_internal/shiboken6/VCRUNTIME140.dll": {
+   "sha256": "ec021f7c115629e5c336b9aaa6f150b0c7266d3d79156e56048a0b4a85023613",
+   "size": 116024
+  },
+  "_internal/shiboken6/VCRUNTIME140_1.dll": {
+   "sha256": "7581b594463e32e1cb29d75c5607f85eef06d54a6b88e718f8f2c3e8b30d8368",
+   "size": 41272
+  },
+  "_internal/shiboken6/shiboken6.abi3.dll": {
+   "sha256": "5c8709fa6d33ec2186950e2d7e61dcf857299a34cbac7580f56bfea2055fa63d",
+   "size": 394040
+  },
+  "_internal/skia.cp311-win_amd64.pyd": {
+   "sha256": "988535f83a645e95a697a88767c0fdfd85b6ba41cd5d003b5710393284003eb3",
+   "size": 15859200
+  },
+  "_internal/tesseract/SOURCE.txt": {
+   "sha256": "221d7b5f6225cc86d0adcce49add1ec1fae1cb0f2be1a1f77aeb6242a6dbdc20",
+   "size": 1625
+  },
+  "_internal/tesseract/doc/AUTHORS": {
+   "sha256": "720862b7253993b348fe15f37ed6e0d4feb0fc8df8324284d75975d54dd29923",
+   "size": 787
+  },
+  "_internal/tesseract/doc/LICENSE": {
+   "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+   "size": 11358
+  },
+  "_internal/tesseract/libLerc.dll": {
+   "sha256": "1ffee78579c25b073267bcac8d0a6045d9bd446e010c7953b569b2629ca8a58a",
+   "size": 803103
+  },
+  "_internal/tesseract/libdeflate.dll": {
+   "sha256": "61a60665da9fd15a0e8668c47424f325e1d74479c3f896fa7ae48ffcee4ca300",
+   "size": 97053
+  },
+  "_internal/tesseract/libgcc_s_seh-1.dll": {
+   "sha256": "791ebf66e99c7c1b4ed3666468cec45a0172b4c8942ac6c84c3e9cab3e1b5270",
+   "size": 150537
+  },
+  "_internal/tesseract/libgif-7.dll": {
+   "sha256": "547f069546e3233430d3cbf106b403fbdc9c5cf1518e525c462533d58843b31e",
+   "size": 46093
+  },
+  "_internal/tesseract/libjbig-0.dll": {
+   "sha256": "36b6155be36d24a19154a48177a09978ff6c26f48665d8c7bb5057aaace6b91c",
+   "size": 61598
+  },
+  "_internal/tesseract/libjpeg-8.dll": {
+   "sha256": "c63acd5a3231725aa96aa35444b74cd8d607a6fbdab1dd18b0e0ada7e39476d4",
+   "size": 967184
+  },
+  "_internal/tesseract/libleptonica-6.dll": {
+   "sha256": "c48f31ed1cb3dbea30b1121a169dfcd9a4bdb0ed12b5b6fb20a006094a7480bf",
+   "size": 2818986
+  },
+  "_internal/tesseract/liblzma-5.dll": {
+   "sha256": "d97a260b8bb4f6affc34ec47249429240068b94bb6f7dc30c4d64daaafb3ac69",
+   "size": 190872
+  },
+  "_internal/tesseract/libopenjp2-7.dll": {
+   "sha256": "94f9507828d391cf96d700d34918114f1c1e03f91dd1243a19275e0435690925",
+   "size": 517286
+  },
+  "_internal/tesseract/libpng16-16.dll": {
+   "sha256": "7f425fd2b41d83869bb31bf761b4fb315f11040d55540661f96e582e1ec79a36",
+   "size": 254777
+  },
+  "_internal/tesseract/libsharpyuv-0.dll": {
+   "sha256": "d29380c7056383f3e7a80bf9e150f0b8c425c1cf2568d1336e88979ddc2307af",
+   "size": 48938
+  },
+  "_internal/tesseract/libstdc++-6.dll": {
+   "sha256": "4e4822dc4aaa99383f581dae7ab9464ae89346c5ca742f7efbcdebe20b0fe7b5",
+   "size": 2659194
+  },
+  "_internal/tesseract/libtiff-6.dll": {
+   "sha256": "d047260c3d456f84a2f9cd801d3b57bee0357cade32724caf16006c64c5fe8ff",
+   "size": 614318
+  },
+  "_internal/tesseract/libwebp-7.dll": {
+   "sha256": "8dfe40c4e0abc90ddf18f080898987e01253d099b2b2d6daf7db521e55c00446",
+   "size": 746378
+  },
+  "_internal/tesseract/libwebpmux-3.dll": {
+   "sha256": "9bd85116a22923d648d6b0ad09f21d08df7bd3d8860b24a5b4a6d4ac788b7340",
+   "size": 78875
+  },
+  "_internal/tesseract/libwinpthread-1.dll": {
+   "sha256": "817e5b2636f532666e8f255e225af75e9d0c41b141512fde45264070a65b1c92",
+   "size": 68731
+  },
+  "_internal/tesseract/libzstd.dll": {
+   "sha256": "48368ab0ca622d0ec12f41ce85d91f22866bf5da92c77a69a06483564c93816c",
+   "size": 1217412
+  },
+  "_internal/tesseract/tessdata/configs/lstm.train": {
+   "sha256": "3d1f8e5ab4e41467fdd938dc4d266eea081b477f8d74ab6b198dd1d854b5301c",
+   "size": 282
+  },
+  "_internal/tesseract/tessdata/eng.traineddata": {
+   "sha256": "8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba",
+   "size": 15400601
+  },
+  "_internal/tesseract/tesseract.exe": {
+   "sha256": "a4be4952aea51d69e5b803719bebd1f8e0662b8d574dd9c91e0ff0997605260e",
+   "size": 4679547
+  },
+  "_internal/tesseract/zlib1.dll": {
+   "sha256": "11cd91171765cd65f1c3362e3df67e5f5a618a6b88c8cdec899b802eaf1c7b0d",
+   "size": 127291
+  },
+  "_internal/unicodedata.pyd": {
+   "sha256": "37c68617fa02a2cadced17ef724e2d450ef12a8a37215da789a4679fde1c5c02",
+   "size": 1140504
+  },
+  "_internal/vcruntime140.dll": {
+   "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7",
+   "size": 178616
+  },
+  "_internal/vcruntime140_1.dll": {
+   "sha256": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e",
+   "size": 50112
+  }
+ },
+ "format": 1,
+ "program": "Stationkeeper",
+ "version": "4.30.0"
+}
