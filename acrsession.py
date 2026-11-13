@@ -479,6 +479,32 @@ class AcronymSession(AcronymRules):
         self.save()
         return self.status.text
 
+    def forget_files(self, names):
+        """4.23.3: documents deleted from the effort leave the acronym results too. Their places come off every term; a
+        term found nowhere else, not in the effort's list and not added by hand, goes; the files leave the last scan.
+        Returns how many terms went. (Acros & Abs kept showing a deleted document's page until the next scan.)"""
+        names = {n for n in names if n}
+        if not names:
+            return 0
+        mine = lambda loc: any(str(loc).startswith(n) for n in names)                  # noqa: E731
+        gone = 0
+        for t in list(self.results):
+            d = self.results[t]
+            locs = list(d.get("locations", []))
+            kept = [x for x in locs if not mine(x)]
+            if len(kept) == len(locs):
+                continue
+            d["locations"] = kept
+            if not kept and not d.get("effort") and not d.get("manual"):
+                del self.results[t]
+                gone += 1
+        if self.last_scan:
+            self.last_scan["paths"] = [p for p in self.last_scan.get("paths", []) if os.path.basename(p) not in names]
+        for n in names:
+            self.scanned_paths.pop(n, None)
+        self.save()
+        return gone
+
     def set_status(self, terms, status, approver=""):
         """In the list or Not a term (3.76.0); terms not in the list are added first."""
         if self.effort is None:

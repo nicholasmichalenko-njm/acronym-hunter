@@ -178,11 +178,19 @@ check("Watched folders: Customer Documents always", fd.t.rowCount() == 1 and "al
 fd.add(extra, "bidders")
 check("+ Folder: watched, with where its new files go, and checked at once", fd.t.rowCount() == 2
       and [os.path.basename(p) for p, c in w.watch_found["new"]] == ["MIL-STD-1540E.txt"] and w.watch_found["new"][0][1] == "bidders")
+fd.t.setCurrentCell(-1, -1); fd.t.clearSelection()
+check("4.23.3: Stop watching with nothing selected says so in the window", not fd.remove() and "Select a folder" in fd.last.text(), fd.last.text())
 fd.t.setCurrentCell(0, 0)
-check("the Customer Documents folder cannot be removed", not fd.remove())
+check("the Customer Documents folder cannot be removed, and the window says why", not fd.remove() and "always watched" in fd.last.text(), fd.last.text())
+fd.check()
+check("4.23.3: Check now answers in the window, with how many files it looked at", fd.last.text().startswith("Checked now: ")
+      and "file(s) in the watched folders" in fd.last.text(), fd.last.text())
 fd.t.setCurrentCell(1, 0)
-check("Stop watching", fd.remove() and fd.t.rowCount() == 1)
+check("Stop watching", fd.remove() and fd.t.rowCount() == 1 and fd.last.text().startswith("No longer watched: "), fd.last.text())
 fd.deleteLater()
+# 4.23.3: the roles pill is off Documents
+lp_ = w.library_page; lp_.refresh()
+check("4.23.3: Documents shows no 'role(s) to confirm' pill", lp_.p_und.isHidden() and not lp_.p_docs.isHidden())
 # background check
 w.watch_found = None
 th = w.watch_start(force=True)

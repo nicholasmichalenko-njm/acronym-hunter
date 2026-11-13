@@ -46,6 +46,33 @@ m = A.build_matcher()
 check("an ordinary sentence start is not initials (A. B. needs no space between)", not m["dotted_re"].search("Plan A. Before the review"))
 check("a word in capitals after a small word is not a small-letter term (toDO is, do NOT is not)", m["lowlead_re"].search("the eCFR text")
       and not m["lowlead_re"].search("do NOT use") and not m["lowlead_re"].search("pre-CDR review"))
+# a deleted document leaves the acronym results (forget_files)
+import acrsession as AS
+
+
+class _S:
+    def __init__(self):
+        self.results = {"KGS": {"locations": ["Kestrel_A.pdf (p.1)", "Kestrel_B.docx (para 3)"]},
+                        "PMO": {"locations": ["Kestrel_A.pdf (p.2)"]},
+                        "RFP": {"locations": ["Kestrel_A.pdf (p.1)"], "effort": "In the list"},
+                        "LRIP": {"locations": ["Kestrel_A.pdf (p.4)"], "manual": True},
+                        "DoD": {"locations": ["Kestrel_B.docx (para 1)"]}}
+        self.last_scan = {"paths": ["/x/Kestrel_A.pdf", "/x/Kestrel_B.docx"], "folder": None, "cache": {}}
+        self.scanned_paths = {"Kestrel_A.pdf": "/x/Kestrel_A.pdf", "Kestrel_B.docx": "/x/Kestrel_B.docx"}
+        self.saved = 0
+
+    def save(self):
+        self.saved += 1
+
+
+s_ = _S()
+gone = AS.AcronymSession.forget_files(s_, ["Kestrel_A.pdf"])
+check("a deleted document's places leave every term", s_.results["KGS"]["locations"] == ["Kestrel_B.docx (para 3)"] and s_.results["DoD"]["locations"])
+check("a term found nowhere else goes; one in the list or added by hand stays", gone == 1 and "PMO" not in s_.results
+      and s_.results["RFP"]["locations"] == [] and "LRIP" in s_.results, (gone, sorted(s_.results)))
+check("the file leaves the last scan, and the session is saved", s_.last_scan["paths"] == ["/x/Kestrel_B.docx"]
+      and "Kestrel_A.pdf" not in s_.scanned_paths and s_.saved == 1)
+check("nothing named, nothing changes", AS.AcronymSession.forget_files(s_, []) == 0 and s_.saved == 1)
 k = sum(checks)
 print(f"ACR SHAPES 4233 {'PASS' if k == len(checks) and checks else 'FAIL'} ({k}/{len(checks)})")
 sys.exit(0 if checks and k == len(checks) else 1)

@@ -144,9 +144,21 @@ def delete(page, d, vid=None, answer=None):
         answer = box.clickedButton() is yes
     if not answer:
         return None
+    try:                                             # 4.23.3: the files' names, for Acros & Abs to forget them
+        _d, _vs, _whole = DR._scope(lib, d["id"], vid)
+        going = list(DR._files_going(lib, _d, _vs)[0]) if _d is not None else []
+    except Exception:  # noqa: BLE001
+        diag.swallowed(); going = []
     eid = DR.delete(host.ws, lib, M, d["id"], vid)
     if eid is None:
         return None
+    try:
+        ap = getattr(host, "acronym_page", None)
+        if ap is not None and ap.session is not None and going:
+            ap.session.forget_files(going)
+            ap.fill()
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
     if M is not None:
         host.changed()
     page.trashed_now = getattr(page, "trashed_now", []) + [eid]

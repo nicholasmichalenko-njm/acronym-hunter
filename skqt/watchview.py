@@ -171,17 +171,24 @@ class FoldersDialog(QDialog):
     def remove(self):
         i = self.t.currentRow()
         if i < 0:
+            self.last.setText("Select a folder in the list first, then Stop watching.")   # 4.23.3: said here, in the window
             return False
         p, built = self.t.item(i, 0).data(Qt.UserRole)
         if built:
-            self.host.status("The effort's Customer Documents folder is always watched.")
+            self.last.setText("The effort's Customer Documents folder is always watched: it cannot be taken off.")
             return False
         ok = WA.remove_folder(self.host.ws.root, p)
         self.fill()
+        self.last.setText(f"No longer watched: {p}" if ok else "That folder was not on the list.")
         return ok
 
     def check(self):
         found = self.host.watch_now()
         self.fill()
-        self.host.toast(WA.summary(found) or "Nothing new, changed or missing")
+        said = WA.summary(found) or "Nothing new, changed or missing"
+        self.host.toast(said)
+        n = sum(len(WA.walk(p, self.host.ws.root)) for p, _c, _b in WA.folders(self.host.ws.root, self.host.watch_customer_dir()) if os.path.isdir(p))
+        # 4.23.3: the answer is in this window too (the message sat behind it), with how many files were looked at
+        self.last.setText(f"Checked now: {n} file(s) in the watched folders. {said}." + (" Close this window: they are listed at the top of Documents." if WA.summary(found) else
+                          " A file already in Documents, one set aside before, or a kind the program does not read is not listed as new."))
         return found

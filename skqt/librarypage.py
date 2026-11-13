@@ -459,7 +459,10 @@ class LibraryPage(QWidget):
         self.p_docs.setText(f"{n_docs} document" + ("" if n_docs == 1 else "s"))
         self.p_und.setText(f"{len(und)} role(s) to confirm" if und else "every role confirmed"); self.p_und.set_tone("warn" if und else "ok")
         self.p_miss.setText(f"{len(miss)} original(s) not here" if miss else "every original here"); self.p_miss.set_tone("warn" if miss else "ok")
-        self.p_und.setVisible(bool(und)); self.p_miss.setVisible(bool(miss))
+        # 4.23.3 (Nicholas 2026-11-12 17:25): "N role(s) to confirm" is off the page. It counted the documents whose role
+        # (Builds the matrix, Context, Reference only) the program had suggested and nobody had confirmed; the Role column
+        # still shows a suggested role, and the Dashboard's tile still counts them.
+        self.p_und.setVisible(False); self.p_miss.setVisible(bool(miss))
 
     def missing(self):
         return [d for d in self.lib.all if d["versions"] and not self.lib.has_original(d["versions"][-1])] if self.lib else []
