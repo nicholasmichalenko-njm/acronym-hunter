@@ -22,16 +22,16 @@ import os
 
 # key, name, shortcut, color, tab, placed (offered on Matrix & Outline > Place)
 TYPES = (("requirement", "Requirement", "R", "#0D9488", "requirements", True),
-         ("instruction", "Instruction", "L", "#16A34A", "requirements", True),
-         ("rule", "Rule", "U", "#B45309", "rules", False),
-         ("date", "Date", "D", "#1E6B3A", "rules", False),
-         ("evaluation", "Evaluation", "E", "#EA580C", "evaluation", True),
+         ("instruction", "Content Instruction", "L", "#16A34A", "requirements", True),
+         ("rule", "Format & Submission", "U", "#B45309", "rules", False),
+         ("date", "Key Date", "D", "#1E6B3A", "rules", False),
+         ("evaluation", "Evaluation Criterion", "E", "#EA580C", "evaluation", True),
          ("deliverable", "Deliverable", "V", "#0369A1", "requirements", True),
          ("information", "Information", "G", "#64748B", "requirements", False),
          ("not_applicable", "Not applicable", "X", "#64748B", "requirements", False),
-         ("structure", "Structure", "O", "#7C3AED", "requirements", False))     # 4.19.0: sets our response structure (structfrom)
+         ("structure", "Response Structure", "O", "#7C3AED", "requirements", False))     # 4.19.0: sets our response structure (structfrom)
 KEYS = tuple(t[0] for t in TYPES)
-TABS = (("requirements", "Requirements"), ("rules", "Rules & Dates"), ("evaluation", "Evaluation"), ("acros", "Acros & Abs"))
+TABS = (("requirements", "Requirements"), ("rules", "Submission Checklist"), ("evaluation", "Evaluation Criteria"), ("acros", "Acronyms"))
 FILE = "piece_types.json"
 FORMAT = 1
 FIELD = "piece"

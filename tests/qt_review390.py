@@ -71,13 +71,13 @@ pg.open_file("Kestrel_Section_LM.pdf"); app.processEvents()
 check("Review opens on Our structure", pg.views.current() == "structure" and pg.views.tabs.tabText(0) == "Our structure")
 # L to M is a view of Review, not a page
 w.go("crosswalk"); app.processEvents()
-check("go(crosswalk): Review with the L to M view", w.stack.currentWidget() is pg and pg.views.current() == "lm"
+check("go(crosswalk): Review with the Crosswalk view", w.stack.currentWidget() is pg and pg.views.current() == "lm"
       and w.crosswalk_page.isVisibleTo(pg) and w.step_btns["matrix"].isChecked())          # 4.3.0: Matrix & Outline's
 cw = w.crosswalk_page
 row = next(i for i, r in enumerate(cw.rows) if r["num"] == "L.4")
 cw.table.selectRow(row); app.processEvents()
 risk = next(it for it in w.review.M.items if "five highest" in it["text"])
-check("an L to M row shows its instruction's sentence on the page", pg.cur == risk["id"] or risk["id"] in [b for b, x in pg.view.boxes.items() if x.isSelected()],
+check("an Crosswalk row shows its instruction's sentence on the page", pg.cur == risk["id"] or risk["id"] in [b for b, x in pg.view.boxes.items() if x.isSelected()],
       pg.cur)
 check("the lines go to Our structure only", pg.placer.gutter.compute() == [])
 w.go("prove"); app.processEvents()

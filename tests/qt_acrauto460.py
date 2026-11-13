@@ -70,7 +70,7 @@ check("... with no question asked", not asked, asked)
 ap = w.acronym_page
 before = w.stack.currentWidget()
 wk = SP.auto_scan(w)
-check("4.6.0: once the documents are extracted, Acros & Abs scans them, in the background, no page change",
+check("4.6.0: once the documents are extracted, Acronyms scans them, in the background, no page change",
       (wk is not None or (ap.session and ap.session.last_scan)) and w.stack.currentWidget() is before)   # the timer may be first
 check("... and finds their terms, the Reference document's too (GCS)", wait(lambda: ap.worker is None) and ap.session.results
       and {"IMS", "GCS"} <= set(ap.session.results.keys() if hasattr(ap.session.results, "keys") else []), list(ap.session.results)[:10] if ap.session.results else None)

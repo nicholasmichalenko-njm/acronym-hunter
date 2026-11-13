@@ -531,7 +531,7 @@ class BuilderPage(QWidget):
         self.plan_btn.setVisible(ex is not None)
         self.preview_note.setText("Word's own pages, laid out from a dated copy of the volume's template and setup. A change to "
                                   "the structure goes back to the plan." if ex is not None else
-                                  "Drawn by Stationkeeper from the structure, the page budget and Production Standards: close to "
+                                  "Drawn by Stationkeeper from the structure, the page allocation and Production Standards: close to "
                                   "Word's layout. Exact preview in Word gives Word's own pages.")
         if ex is not None:
             self.preview.set_pages(ex["pages"], self.sel or "")

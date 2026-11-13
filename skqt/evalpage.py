@@ -40,7 +40,7 @@ class EvalPage(QWidget):
         row.addWidget(D.button("Set importance", "ghost", lambda: self.set_importance(self.imp_set.currentText())))
         row.addWidget(D.button("Remove", "danger", lambda: self.remove()))
         row.addStretch(1)
-        v.addWidget(D.SectionTitle("Evaluation pieces from the shred (Section M, and pieces said to be Evaluation)"))
+        v.addWidget(D.SectionTitle("Evaluation pieces from the shred (Section M, and pieces said to be an Evaluation Criterion)"))
         self.mtab = QTableWidget(0, 3); self.mtab.setHorizontalHeaderLabels(["ID", "The customer's words", "In the shred"])
         self.mtab.verticalHeader().setVisible(False); self.mtab.setEditTriggers(QTableWidget.NoEditTriggers)
         self.mtab.setSelectionBehavior(QTableWidget.SelectRows); self.mtab.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)

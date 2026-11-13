@@ -20,7 +20,7 @@ class NoticePage(QWidget):
         self.does = self.card.add(D.label("", "muted"))
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); self.card.body.addLayout(row)
         self.act = D.button("", "primary", lambda: self.do_action())
-        self.back = D.button("Back to the Effort Dashboard", None, lambda: self.host.go("home"))
+        self.back = D.button("Back to Overview", None, lambda: self.host.go("home"))
         row.addWidget(self.act); row.addWidget(self.back); row.addStretch(1)
         v.addStretch(1)
 
@@ -41,7 +41,7 @@ class NoticePage(QWidget):
         else:
             roles = ", ".join(why["roles"])
             src = {"effort": "from People in this effort", "pm": "you are this effort's proposal manager",
-                   "own": "your own choice in Customize... on the Effort Dashboard"}.get(why["source"], "")
+                   "own": "your own choice in Customize... on Overview"}.get(why["source"], "")
             pm_name = self.pm_name()
             self.card.title.setText(f"{title} is for {roles}")
             self.text.setText(f"Your role here is {why['profile']} ({src}). "
@@ -130,7 +130,7 @@ class RolesCard(D.Card):
         self._filling = True
         self.role_text.setText(f"Your role: <b>{prof}</b> " + {"effort": "(from People in this effort)",
                                "pm": "(you are this effort's proposal manager)",
-                               "own": "(your own choice: Customize... on the Effort Dashboard)"}.get(src, ""))
+                               "own": "(your own choice: Customize... on Overview)"}.get(src, ""))
         self.hide.setChecked(bool(st.get("hide_other_roles")))
         self.stage.setChecked(bool(st.get("stage_tools", True)))
         self.aside.setChecked(bool(st.get("show_set_aside")))

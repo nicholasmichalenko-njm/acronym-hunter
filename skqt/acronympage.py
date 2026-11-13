@@ -91,7 +91,7 @@ class AcronymPage(QWidget):
                                 "read with the files already scanned")             # 3.53.0
         self.b_cancel = D.button("Cancel", "danger", lambda: self.cancel()); self.b_cancel.hide()
         self.b_window = D.button("Open in its own window", "ghost", lambda: self.own_window(),     # 3.50.0
-                                 "Acros & Abs Finder: scan any files and export the list, apart from this effort")
+                                 "Acronym Finder: scan any files and export the list, apart from this effort")
         for b in (self.b_files, self.b_lib, self.b_folder, self.b_again, self.b_paste, self.b_cancel, self.b_window):
             top.addWidget(b)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)

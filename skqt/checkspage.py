@@ -100,8 +100,8 @@ class ChecksPage(QWidget):
         v.addWidget(self.x_card)
         # ---- compare two drafts
         self.c_card = D.Card("Compare two drafts", "What changed between two versions of a volume: the red team copy and today's, "
-                             "say. Open in Changes shows them side by side, with the redline in Word.",       # 3.55.0: one Compare
-                             actions=[D.button("Open in Changes", "primary", lambda: self.open_compare())])
+                             "say. Open in Amendments shows them side by side, with the redline in Word.",       # 3.55.0: one Compare
+                             actions=[D.button("Open in Amendments", "primary", lambda: self.open_compare())])
         cf = QFormLayout(); self.c_card.body.addLayout(cf)
         self.older, self.newer = QComboBox(), QComboBox()
         for label, cb in (("Earlier version", self.older), ("Later version", self.newer)):

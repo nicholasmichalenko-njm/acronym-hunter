@@ -28,7 +28,7 @@ check("the code that reads each one is still there", not gone, gone)
 check("only Information and Not applicable go nowhere", sorted(k for k, (_s, u) in CU.TYPES.items() if not u) == ["information", "not_applicable"])
 check("the pane's line: one type", CU.line(["structure"]).startswith("Goes to: Matrix & Outline > Outline"))
 check("... two types, each named", CU.line(["requirement", "date"], {"requirement": "Requirement", "date": "Date"}).startswith("Goes to: Requirement: ")
-      and "; Date: Shred > Rules & Dates" in CU.line(["requirement", "date"], {"requirement": "Requirement", "date": "Date"}))
+      and "; Date: Shred > Submission Checklist" in CU.line(["requirement", "date"], {"requirement": "Requirement", "date": "Date"}))
 check("... no type, no line", CU.line([]) == "")
 # a required heading's page limit reaches the page budget
 tmp = tempfile.mkdtemp()

@@ -36,12 +36,14 @@ RULES = [
      r"\b[Ss]entences?\b|\b[Ss]entence\(s\)", r"$^"),
     ("sorted", "shredded (a piece that has a type); placed (a piece in a section)",
      r"\b(not |all )?sorted\b", r"sorted (by|in|on|into)\b"),
-    ("acronyms-page", "Acros & Abs (every page name); acronym list stays for the export the customer sees",
-     r"\bAcronym (Finder|List)\b|^Acronyms$|Acronyms in our drafts", r"$^"),
+    ("acronyms-page", "Acronyms (every page name; 4.29.0, the naming plan); Acronym Finder, Acronym List",
+     r"Acros (&|&&) Abs|[Aa]cros and abs", r"$^"),
     ("volume-parts", "sections (what a volume is made of); Quick Parts and Standards > Parts keep their names",
      r"[Pp]arts and numbering|usual parts", r"$^"),
-    ("compare-page", "Changes (the page)",
-     r"\bCompare\b", r"Compare (two|the two|with|each|it|them)\b"),
+    ("compare-page", "Amendments (the page; 4.29.0)",
+     r"\bCompare\b|\b(in|Open|>) Changes\b", r"Compare (two|the two|with|each|it|them)\b"),
+    ("names-4290", "Overview (was Dashboard); Submission Checklist (was Rules & Dates); Crosswalk (was L to M); Themes (was Theme tags)",
+     r"\bDashboard\b|Rules (&|&&) Dates|\bL to M\b|Theme tags", r"$^"),
 ]
 RULES = [(k, say, re.compile(bad), re.compile(ok)) for k, say, bad, ok in RULES]
 

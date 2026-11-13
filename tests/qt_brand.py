@@ -42,7 +42,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 # ---- the menu
 texts = [b.text() for b in w.step_btns.values()]
-check("the menu is in Title Case (4.0.0: the six steps; 4.25.3: Prepare for Redline left it; 4.25.5: Graphics)", texts == ["Dashboard", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup",
+check("the menu is in Title Case (4.0.0: the six steps; 4.25.3: Prepare for Redline left it; 4.25.5: Graphics)", texts == ["Overview", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup",
                                                                                          "Drafts", "Submit", "Styles", "Quick Parts", "Page Layout", "Template", "Quick tools", "Team", "Settings"], texts)
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton as _QPB
@@ -69,7 +69,7 @@ check("... and Settings says they are built in", "Built into this version" in bc
 w.open_effort("Kestrel")
 w.go("home"); app.processEvents()
 hp = w.home_page; bn = hp.banner
-check("the page title is Dashboard (3.12.0: Home and Dashboard, one page; 3.96.0)", w.page_title.text() == "Dashboard")
+check("the page title is Overview (3.12.0: Home and Overview, one page; 3.96.0)", w.page_title.text() == "Overview")
 check("the banner: the effort's name, client and solicitation", bn.name.text() == "Kestrel" and "USSF SSC" in bn.sub.text()
       and "FA8810-26-R-0042" in bn.sub.text())
 check("no picture yet: a spot to add one", "Effort image" in bn.pic.text())

@@ -59,8 +59,8 @@ w.go("efforts"); app.processEvents()
 from skqt import frame as FR                                  # 3.75.0: the card opens a menu: the Dashboard, another effort
 m = FR.effort_menu(w)
 m.actions()[0].trigger(); app.processEvents()
-check("... and its menu opens the Dashboard; All Efforts is there too (3.96.0; 4.27.2: Quick tools is in the menu)",
-      m.actions()[0].text() == "Dashboard" and w.stack.currentWidget() is w.overview_page
+check("... and its menu opens the Overview; All Efforts is there too (3.96.0; 4.27.2: Quick tools is in the menu)",
+      m.actions()[0].text() == "Overview" and w.stack.currentWidget() is w.overview_page
       and [a.text() for a in m.actions()][-1] == "All Efforts")
 w.step_btns[marked[0]].click(); app.processEvents()
 check("a stage tool opens its page", w.stack.currentWidget() is not w.notice_page or w.notice_page.why is not None)
@@ -97,9 +97,9 @@ from PySide6.QtWidgets import QLabel as _QL
 check("3.75.0: Fix a Copy is a tab of Check a Draft in the Team group, marked Beta on the page",
       [k for k, _t in __import__("skqt.mainwin", fromlist=["TABS"]).TABS["audit"]] == ["audit", "applyword", "fixcopy"] and w.beta_pill.isVisibleTo(w))
 w.go("acrlist"); app.processEvents()
-check("3.16.0: a tab's page marks its menu item: the Acro List is Shred's, opened from Acros & Abs (4.1.0), and Production opens it",
+check("3.16.0: a tab's page marks its menu item: the Acro List is Shred's, opened from Acronyms (4.1.0), and Production opens it",
       (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page) and w.step_btns["assign"].isChecked() and w.page_title.text() == "Shred"
-      and "acrlist" not in w.stepper.chips and w.stepper.chips["acronyms"].nm.text() == "Acros & Abs"
+      and "acrlist" not in w.stepper.chips and w.stepper.chips["acronyms"].nm.text() == "Acronyms"
       and not w.step_btns["assign"].property("offrole") and not w.beta_pill.isVisibleTo(w))
 w.stepper.chips["acronyms"].click(); app.processEvents()
 check("... clicking a tab opens its page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked())

@@ -74,7 +74,7 @@ ims, rep, ev = by("(IMS)"), by("monthly status"), by("realism")
 w.review.req([ims, rep, ev], "")
 ev["piece"] = "evaluation"
 lf = HS.left(M)
-check("not placed: the requirements, never the evaluation piece (it links through L to M)",
+check("not placed: the requirements, never the evaluation piece (it links through Crosswalk)",
       ims["id"] in lf["unplaced"] and rep["id"] in lf["unplaced"] and ev["id"] not in lf["unplaced"], lf)
 pg.select(rep["id"]); app.processEvents()
 acts = [a.text() for a in pg.sentence_menu(rep["id"]).actions()]

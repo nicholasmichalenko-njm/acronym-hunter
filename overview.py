@@ -26,7 +26,7 @@ def numbers(f, late_tasks=0, graphics_left=0, review_open=0, questions=0):
              (int((r.get("reqs") or 0) - (r.get("placed") or 0)) if r else 0, "to place", "place"),
              (int(f.get("compare") or 0), "changes to review", "compare"),
              (int(late_tasks or 0), "tasks late", "tasks"),
-             (int(f.get("acronyms") or 0), "acros and abs undecided", "acronyms"),
+             (int(f.get("acronyms") or 0), "acronyms undecided", "acronyms"),
              (int(graphics_left or 0), "graphics not swept", "graphics"),
              (int(review_open or 0), "review items open", "drafts"),
              (int(questions or 0), "questions open", "home")]

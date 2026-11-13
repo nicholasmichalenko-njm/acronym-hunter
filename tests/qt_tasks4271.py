@@ -69,10 +69,10 @@ gid = GX.add(rec, "Transition timeline")
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 keys = [k for k, _t in RAIL[0][1]]
-check("the menu: Dashboard, Calendar, Tasks, then the path", keys[:4] == ["home", "calendar", "tasks", "library"]
+check("the menu: Overview, Calendar, Tasks, then the path", keys[:4] == ["home", "calendar", "tasks", "library"]
       and "calendar" not in STEP_KEYS and "tasks" not in STEP_KEYS and w.step_btns["tasks"].n is None and w.step_btns["calendar"].n is None, keys)
 check("... the six steps keep their numbers", [w.step_btns[k].n for k in ("library", "assign", "matrix", "setups", "drafts", "finalcheck")] == [1, 2, 3, 4, 5, 6])
-check("Activity is a tab of the Dashboard", [k for k, _t in TABS["home"]][-1] == "activity")
+check("Activity is a tab of the Overview", [k for k, _t in TABS["home"]][-1] == "activity")
 w.open_effort("Osprey"); app.processEvents()
 
 # Tasks

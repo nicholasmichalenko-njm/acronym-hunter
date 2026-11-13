@@ -42,14 +42,14 @@ by = {s["key"]: s for s in sts}
 check("Documents: a new version's changes to review keep it open", by["library"]["state"] == "now" and by["library"]["badge"] == "4 changes to review"
       and "9 documents in; 4 changes to review" == by["library"]["summary"], by["library"])
 n = NS.next_step(sts, f)
-check("Your next step: review the changes first, in Documents > Changes", n["go"] == "compare" and "4 changes" in n["title"]
-      and n["button"] == "Open Changes")
+check("Your next step: review the changes first, in Documents > Amendments", n["go"] == "compare" and "4 changes" in n["title"]
+      and n["button"] == "Open Amendments")
 f = dict(f, compare=0)
 sts = NS.steps(f)
 by = {s["key"]: s for s in sts}
 check("files in and checked: done", by["library"]["state"] == "done" and by["library"]["badge"] == "done" and by["library"]["progress"] == 1.0)
 check("Shred now: pieces to shred and acros to decide", by["assign"]["state"] == "now" and by["assign"]["badge"] == "12 not shredded"
-      and "400 of 412 pieces shredded" in by["assign"]["summary"] and "14 acros and abs to decide" in by["assign"]["summary"], by["assign"])
+      and "400 of 412 pieces shredded" in by["assign"]["summary"] and "14 acronyms to decide" in by["assign"]["summary"], by["assign"])
 check("... how far along", 0.9 < by["assign"]["progress"] < 1.0, by["assign"]["progress"])
 check("Matrix & Outline next: requirements to place (4.6.0: its count, not 'next'); Submit its due date", by["matrix"]["state"] == "next"
       and by["matrix"]["badge"] == "26 to place"
@@ -58,8 +58,8 @@ n = NS.next_step(sts, f)
 check("... Your next step: the pieces left to shred", n["go"] == "assign" and "12 pieces" in n["title"] and n["button"] == "Open Shred")
 f2 = dict(f, reqs=dict(reqs, undecided=0, decided=412))
 n = NS.next_step(NS.steps(f2), f2)
-check("... then the acros and abs left to decide", n["go"] == "acronyms" and n["title"] == "Decide the 14 acros and abs left"
-      and n["button"] == "Open Acros & Abs")
+check("... then the acronyms left to decide", n["go"] == "acronyms" and n["title"] == "Decide the 14 acronyms left"
+      and n["button"] == "Open Acronyms")
 f2 = dict(f2, acronyms=0)
 sts = NS.steps(f2)
 n = NS.next_step(sts, f2)

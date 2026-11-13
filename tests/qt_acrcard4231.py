@@ -89,7 +89,7 @@ tid = APT.to_wall(ap, t3, answer={})
 rec = R.Record(w.ws.root)
 tr = WT.get(rec, tid) if tid else None
 check("Add to the Wall of Truth: a Term truth, how to write it and what it means here", tr is not None and tr["kind"] == "Term" and tr["label"] == t3
-      and tr["value"] == t3 and tr["notes"] == "Means here: Kestrel meaning for the wall" and tr["source"] == "Acros & Abs", tr)
+      and tr["value"] == t3 and tr["notes"] == "Means here: Kestrel meaning for the wall" and tr["source"] == "Acronyms", tr)
 w.go("truth"); app.processEvents()
 check("... and it shows on Drafts > Wall of Truth", any(t3 == x["label"] for x in WT.items(R.Record(w.ws.root))))
 # the page: what is selected goes to either line (the Finder keeps the page beside the card)

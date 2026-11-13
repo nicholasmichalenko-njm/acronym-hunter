@@ -133,16 +133,16 @@ STYLES = ("styles", "Templates", "Styles", "Every style you keep, one row each, 
 
 # 3.96.0: the menu as the effort's path, and Team. 4.0.0: six steps. 4.1.0: Shred's four tabs
 PATH = ("path", "Getting started", "The effort's path",
-  "The menu is the effort's path: the Dashboard, then 1 Documents, 2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts and "
+  "The menu is the effort's path: the Overview, then 1 Documents, 2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts and "
   "6 Submit. Each step says what is left on it (done, a count, next, or the due date).",
   "Whenever you are not sure what to do next.",
   ["Documents: the customer's package, complete, current and readable. Click a document to see what has been done to it and "
-   "its next thing; Changes shows what a new version changed.",
-   "Shred: what every piece of the customer's text is (Requirements, Rules & Dates, Evaluation, Acros & Abs; adding a document "
+   "its next thing; Amendments shows what a new version changed.",
+   "Shred: what every piece of the customer's text is (Requirements, Submission Checklist, Evaluation, Acronyms; adding a document "
    "extracts it). See it as shows Page or List; Fix text checks that every page was read right. The Q&A button opens the Q&A log beside the page.",
-   "Matrix & Outline: what we answer and where (Outline, Place, the Matrix, L to M, Coverage). Setup: who writes what, when and how long, and the "
-   "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acros & Abs). Submit: the last checks.",
-   "The Dashboard is the map: one card per step, Your next step with one button, and this week's dates.",
+   "Matrix & Outline: what we answer and where (Outline, Place, the Matrix, Crosswalk, Coverage). Setup: who writes what, when and how long, and the "
+   "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acronyms). Submit: the last checks.",
+   "The Overview is the map: one card per step, Your next step with one button, and this week's dates.",
    "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",
    "The effort switcher at the top of the menu holds another effort, All Efforts and Quick tools. Ctrl+K goes to any page or "
    "tool by name."],
@@ -194,15 +194,15 @@ REDLINE = ("redline", "Documents", "Prepare for Redline",
 GRAPHICS = ("graphics", "Documents", "Graphics",
   "One row per graphic, the customer's and ours: a picture in Documents, a picture inside a document that the scan "
   "found terms in, and each graphic need tagged in Shred. Each row says, for its current version, whether its words "
-  "are read and its acros and abs are swept.",
+  "are read and its acronyms are swept.",
   "When you want to know that every graphic was read and swept, and again when a new version of one arrives.",
-  ["Words read: Not read; Read, not confirmed; Confirmed. Acros and abs: Not scanned; a count to decide; Swept.",
-   "Right-click a row to tick Words read: confirmed, or Acros and abs: swept. Swept is the same mark as Page done "
-   "on Acros & Abs. A new version starts with neither mark.",
-   "Double-click a row to open the picture in Acros & Abs with the words the reader found.",
+  ["Words read: Not read; Read, not confirmed; Confirmed. Acronyms: Not scanned; a count to decide; Swept.",
+   "Right-click a row to tick Words read: confirmed, or Acronyms: swept. Swept is the same mark as Page done "
+   "on Acronyms. A new version starts with neither mark.",
+   "Double-click a row to open the picture in Acronyms with the words the reader found.",
    "Add graphics... adds pictures of ours to Documents as Internal graphics. A graphic need: right-click for "
    "Needed, In work, Done."],
-  ["Documents", "Acros & Abs"])
+  ["Documents", "Acronyms"])
 
 CALENDAR = ("calendar", "The effort", "Calendar",
   "Every dated thing in the effort on one page: the month with each such day marked, the list of the day you pick, "
@@ -211,7 +211,7 @@ CALENDAR = ("calendar", "The effort", "Calendar",
   "Daily. It is also the right column of the Overview.",
   ["Click a day for its list. Today brings the month and the list back to today.",
    "Set the due date by clicking it at the top of the Overview. A task's date is set on Tasks."],
-  ["The Dashboard's All cards tab keeps the calendar card with the calendar file (.ics)."])
+  ["The Overview's All cards tab keeps the calendar card with the calendar file (.ics)."])
 
 TASKS = ("tasks", "The effort", "Tasks",
   "One page, two views. This effort lists its tasks by gate, late ones first. Mine, across efforts lists one person's "

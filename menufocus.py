@@ -33,5 +33,5 @@ def hidden(settings=None):
 def names():
     """The set-aside pages' menu names, for the Settings line."""
     return ("My Work, Wall of Truth, Data calls, Color Reviews, Setup's "
-            "Kickoff packets, and the Effort Dashboard's stages and gates, gate goals, win themes, All overviews and the "
+            "Kickoff packets, and Overview's stages and gates, gate goals, win themes, All overviews and the "
             "Evaluation and hot buttons card")

@@ -54,10 +54,10 @@ check("typed Structure: Goes to Matrix & Outline > Outline", pg.goes_label is no
 late = by("shall not exceed 25 pages")
 pg.select(late["id"]); app.processEvents()
 SB.toggle_piece(pg, "rule"); app.processEvents()
-check("typed Rule: Rules & Dates, and what makes a rule check other pages", pg.goes_label is not None and "Shred > Rules & Dates" in pg.goes_label.text()
+check("typed Rule: Submission Checklist, and what makes a rule check other pages", pg.goes_label is not None and "Shred > Submission Checklist" in pg.goes_label.text()
       and "reader found on its own" in pg.goes_label.text(), pg.goes_label.text() if pg.goes_label else None)
 SB.toggle_piece(pg, "requirement"); app.processEvents()
-check("two types: each named", pg.goes_label.text().startswith("Goes to: Requirement: ") and "; Rule: " in pg.goes_label.text(), pg.goes_label.text())
+check("two types: each named", pg.goes_label.text().startswith("Goes to: Requirement: ") and "; Format & Submission: " in pg.goes_label.text(), pg.goes_label.text())
 w.go("requirements"); app.processEvents()
 rp = w.stack.currentWidget()
 found = []
@@ -70,7 +70,7 @@ def walk(it):
 t = rp.tree
 for i in range(t.topLevelItemCount()):
     walk(t.topLevelItem(i))
-check("Rules & Dates: a piece typed Rule says Listed here, not a use it does not have", "Listed here" in found, found)
+check("Submission Checklist: a piece typed Rule says Listed here, not a use it does not have", "Listed here" in found, found)
 k = sum(checks)
 print(f"QT CAPTUREUSE 4210 {'PASS' if k == len(checks) else 'FAIL'} ({k}/{len(checks)})")
 w.close(); app.quit()

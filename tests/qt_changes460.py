@@ -90,7 +90,7 @@ from skqt import changecards as CC, docfocus as DF
 w.rail_go("library"); app.processEvents()
 lp, op = w.library_page, w.ours_page
 check("4.25.0: Documents' tabs: List, Changes, Data calls; All, Customer and Internal are chips on the list",
-      [t for _k, t in __import__("skqt.mainwin", fromlist=["x"]).TABS["library"]] == ["List", "Changes", "Data calls"]
+      [t for _k, t in __import__("skqt.mainwin", fromlist=["x"]).TABS["library"]] == ["List", "Amendments", "Data calls"]
       and [b.text() for b in lp.side_btns.values()] == ["All", "Customer", "Internal"]
       and [lp.type_f.itemText(i) for i in range(3)] == ["Every folder", "For the shred", "Returned to the customer"]
       and lp.side_btns["all"].isChecked() and op is lp)
@@ -99,7 +99,7 @@ check("Customer's header: Find, More, Add documents... (the main button)", lp.ba
       and not lp.tree.isVisibleTo(w), lp.bar.labels())
 __import__("skqt.navrail", fromlist=["x"]).refresh_steps(w, force=True); w.show_tabs("library")
 ti = w._tab_keys.index("compare")
-check("Changes' tab says how many changes are left to decide", w.page_tabs.tabText(ti).startswith("Changes (")
+check("Changes' tab says how many changes are left to decide", w.page_tabs.tabText(ti).startswith("Amendments (")
       and w.page_tabs.tabText(ti).endswith(")"), w.page_tabs.tabText(ti))
 hdr = [lp.table.horizontalHeaderItem(c).text() for c in range(lp.table.columnCount())]
 check("4.25.0: the columns: Document, Type, Source, Version, Status", hdr == DF.COLUMNS == ["Document", "Type", "Source", "Version", "Used for", "Status"], hdr)
@@ -134,7 +134,7 @@ check("4.25.0: pages to look at never stand before the shred: no Check the text 
 # Rules & Dates: three groups, Used by, Add a rule... the main button
 w.go("requirements"); rp = w.requirements_page; rp.refresh(); app.processEvents()
 tops = [rp.tree.topLevelItem(i).text(0) for i in range(rp.tree.topLevelItemCount())]
-check("Rules & Dates: Structure and page limits, Format, Submission and dates", [t.split(" (")[0] for t in tops[:3]]
+check("Submission Checklist: Structure and page limits, Format, Submission and dates", [t.split(" (")[0] for t in tops[:3]]
       == ["Structure and page limits", "Format", "Submission and dates"], tops)
 kids = [rp.tree.topLevelItem(i).child(j) for i in range(3) for j in range(rp.tree.topLevelItem(i).childCount())]
 check("... each rule says what uses it", kids and all(k.text(4) for k in kids) and rp.tree.headerItem().text(4) == "Used by",
@@ -145,7 +145,7 @@ w.go("compare"); app.processEvents()
 cp = w.compare_page
 rows = cp.show(d["id"], None, v["id"]); app.processEvents()
 ch = [i for i, r in enumerate(rows) if r["kind"] != "same"]
-check("Changes shows a card per change, not the page view", cp.cards.isVisibleTo(w) and not cp.split.isVisibleTo(w)
+check("Amendments shows a card per change, not the page view", cp.cards.isVisibleTo(w) and not cp.split.isVisibleTo(w)
       and len(cp.cards.boxes) == len(cp.shown) and len(ch) >= 3, (len(cp.cards.boxes), len(ch)))
 check("the main button is Next change; Open in Word as tracked changes beside it; Any two files under More",
       cp.bar.main.text() == "Next change" and "Open in Word as tracked changes" in cp.bar.labels() and "Any two files..." in cp.bar.labels()

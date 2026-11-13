@@ -78,7 +78,7 @@ w.go("tools"); app.processEvents()
 tl = w.pages["tools"]
 urows = [tl.uf_list.item(i).text() for i in range(tl.uf_list.count())]
 check("4.27.2: Quick tools lists what is unfiled (All Efforts no longer has the card)", not hp.uf_card.isVisibleTo(w)
-      and any(x.startswith("Document:") for x in urows) and "2 acros and abs" in urows and tl.uf_make.isEnabled(), urows)
+      and any(x.startswith("Document:") for x in urows) and "2 acronyms" in urows and tl.uf_make.isEnabled(), urows)
 w.go("efforts"); app.processEvents()
 check("Unfiled is not one of the effort cards", "Unfiled" not in hp.cards)
 docs = UF.documents(w.efforts)

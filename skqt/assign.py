@@ -800,7 +800,7 @@ class AssignPage(QWidget):
         row.addStretch(1)
         self.start_btn = D.button("Start from...", None, lambda: self.start_from(),     # 3.16.0
                                   "Start or replace the structure: what the RFP prescribes, its headings, its outline, or a "
-                                  "Word outline (the Structure tab). Volumes, people and page budget are on the Effort Dashboard.")
+                                  "Word outline (the Structure tab). Volumes, people and page allocation are on Overview.")
         row.addWidget(self.start_btn)
         self.active_volume = ""
         self.tree.setMinimumHeight(220)
@@ -1134,7 +1134,7 @@ class AssignPage(QWidget):
         self.build_boxes()
         self.note.setText("Click a piece; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         if f in (__import__("setupdoc").setup_of(self.M).get("superseded") or []):    # 4.17.0: say which version this is
-            self.note.setText("An older version: only its pieces that changed are here, waiting in Documents > Changes. "
+            self.note.setText("An older version: only its pieces that changed are here, waiting in Documents > Amendments. "
                               "Shred the latest version, the other file in the list.")
         self.mark_changes()                         # 2.98.0: what this version changed, outlined on the page
         QTimer.singleShot(0, self.view.fit)
@@ -1855,7 +1855,7 @@ class AssignPage(QWidget):
             self.excerpt_rows[x["id"]] = lab
             self.add(w)
         if others:
-            self.add(D.label("Also captured: " + PM.text(others) + ". Edit them where they are filed (Effort Dashboard, "
+            self.add(D.label("Also captured: " + PM.text(others) + ". Edit them where they are filed (Overview, "
                              "acronym list, Effort Record).", "muted"))
         return len(rules) + len(qs) + len(others) + len(xs)
 
@@ -2761,7 +2761,7 @@ class AssignPage(QWidget):
             if ch["kind"] == "changed":
                 br.addWidget(D.button("Show the old page", None, lambda: self.old_page(it["id"]),
                                       f"{m['from'].get('label', '')} at the same spot, the old piece highlighted"))
-            br.addWidget(D.button("Decide in Changes", "ghost", lambda: self.host.go("compare")))
+            br.addWidget(D.button("Decide in Amendments", "ghost", lambda: self.host.go("compare")))
             br.addStretch(1)
             self.change_box = box
             self.add(box)
@@ -4108,7 +4108,7 @@ class AssignPage(QWidget):
             cnt.addItem("Counts toward the page limit", True); cnt.addItem("Does not count toward the page limit", False)
             cnt.setCurrentIndex({None: 0, True: 1, False: 2}[SP.item_count(self.M, label)])
             f.addRow("Page limit", cnt)
-            f.addRow(D.label("Subsections are included. The Page budget splits a volume's limit across its sections.", "muted"))
+            f.addRow(D.label("Subsections are included. The Page Allocation splits a volume's limit across its sections.", "muted"))
             bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
             f.addRow(bb)
             if d.exec() != QDialog.Accepted:

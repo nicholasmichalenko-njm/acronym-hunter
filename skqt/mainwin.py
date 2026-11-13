@@ -43,7 +43,7 @@ def _WAU():
     return __import__("skqt.watchauto", fromlist=["x"])     # 4.25.1: the effort's own folder, watched
 
 
-RAIL = [("Effort", [("home", "Dashboard"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
+RAIL = [("Effort", [("home", "Overview"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Templates", [("styles", "Styles"), ("designs", "Quick Parts"), ("formatstd", "Page Layout"), ("templates", "Template")]),   # 4.28.0
@@ -52,19 +52,19 @@ RAIL = [("Effort", [("home", "Dashboard"), ("calendar", "Calendar"), ("tasks", "
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Quick tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.27.0, 4.27.1
+TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.27.0, 4.27.1
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
-        "library": [("library", "List"), ("compare", "Changes"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
+        "library": [("library", "List"), ("compare", "Amendments"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
-        "assign": [("assign", "Requirements"), ("requirements", "Rules & Dates"), ("evalcrit", "Evaluation"),
-                   ("acronyms", "Acros & Abs")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
-        "matrix": [("outline", "Outline"), ("place", "Place"), ("matrix", "Matrix"), ("crosswalk", "L to M"),
+        "assign": [("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"),
+                   ("acronyms", "Acronyms")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
+        "matrix": [("outline", "Outline"), ("place", "Place"), ("matrix", "Matrix"), ("crosswalk", "Crosswalk"),
                    ("prove", "Coverage")],                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
-        "drafts": [("drafts", "Status"), ("draftacr", "Acros & Abs"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
+        "drafts": [("drafts", "Status"), ("draftacr", "Acronyms"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
                    ("truth", "Wall of Truth"), ("markups", "Reviewer markups")],   # 4.25.3: a reviewer's commented PDF of a draft                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],

@@ -72,7 +72,7 @@ _STRUCT = re.compile(r"\bpages?\b.*\b(limit|exceed|maximum|no more than)\b|\b(li
                      r"\bvolumes?\b|\bsections?\b.*\b(order|organi[sz]e|structure)", re.I)
 _FORMAT = re.compile(r"\bfont|\bpoint\b|\bpt\b|margin|spacing|single[- ]spaced|line spacing|\bpaper\b|8\.5|letter size|"
                      r"\bheader|\bfooter|page number|\bfile (name|format|type)|\.pdf\b|\bpdf\b|\bword\b|\bexcel\b", re.I)
-USED_BY = {"structure": "Matrix & Outline, Setup", "format": "Setup, Submit", "submission": "Submit, Dashboard"}
+USED_BY = {"structure": "Matrix & Outline, Setup", "format": "Setup, Submit", "submission": "Submit, Overview"}
 
 
 def bucket(text):
@@ -108,7 +108,7 @@ def regroup(page):
             from . import design as D
             if label in ("Rules from the shred", "Dates from the shred"):     # 4.21.0: a typed piece is listed here; only a
                 it.setText(4, "Listed here")                                 # rule the reader found checks other pages
-                it.setToolTip(4, "A piece typed Rule or Date in Shred is listed here. Add a rule... makes it one that "
+                it.setToolTip(4, "A piece typed Format & Submission or Key Date in Shred is listed here. Add a rule... makes it one that "
                                  "Effort Formatting and Submit check.")
             else:
                 it.setText(4, USED_BY[gk])
@@ -171,7 +171,7 @@ def empty_state(page):
     if es is None:
         es = page.empty = D.EmptyState(
             "No rules or dates yet",
-            "A rule the reader finds in the customer's documents, a piece you type Rule or Date in Shred, and a rule you "
+            "A rule the reader finds in the customer's documents, a piece you type Format & Submission or Key Date in Shred, and a rule you "
             "add yourself are listed here.", "Add a rule...", lambda: page.add())
         page.layout().addWidget(es, 1)
     split = t.parentWidget()

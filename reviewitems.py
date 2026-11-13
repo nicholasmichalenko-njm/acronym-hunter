@@ -26,8 +26,8 @@ DECISIONS = (("C", "Requirement", "Requirement", "R", "#0D9488"),
              ("ignore", "Not applicable", "Not applicable", "X", "#64748B"))
 # key, name, shortcut, color, place (bar or more), what it does (shown in Settings)
 CAPTURES = (("contact", "Contact", "", "#DB2777", "bar", "A point of contact, into Customer information"),
-            ("submit", "Submission", "", "#DB2777", "bar", "A submission instruction, into Rules & Dates"),
-            ("format", "Formatting", "", "#DB2777", "bar", "A measured formatting rule, into Rules & Dates and Production Standards"),
+            ("submit", "Submission", "", "#DB2777", "bar", "A submission instruction, into Submission Checklist"),
+            ("format", "Formatting", "", "#DB2777", "bar", "A measured formatting rule, into Submission Checklist and Production Standards"),
             ("acronym", "Acronym", "", "#DB2777", "bar", "An acronym and what it stands for, into the effort list"),
             ("question", "Question", "", "#DB2777", "bar", "A question for the customer, into Customer Q&A"),
             ("keydate", "Key date", "", "#DB2777", "bar", "A date onto the effort calendar"),
@@ -35,11 +35,11 @@ CAPTURES = (("contact", "Contact", "", "#DB2777", "bar", "A point of contact, in
             ("keypoint", "Key point", "K", "#0E7490", "bar", "Your train of thought: a theme, a discriminator, a risk"),
             ("graphic", "Graphic need", "P", "#DB2777", "bar", "A concept that needs a graphic, into Graphic needs"),
             ("factor", "Evaluation factor", "", "#DB2777", "more", "An evaluation factor, into Evaluation and hot buttons"),
-            ("pagelimit", "Page limit", "", "#DB2777", "more", "A page limit, into the page budget"),
+            ("pagelimit", "Page limit", "", "#DB2777", "more", "A page limit, into the page allocation"),
             ("deliverable", "Deliverable", "", "#DB2777", "more", "A deliverable, onto the deliverables board"),
             ("detail", "Effort detail", "", "#DB2777", "more", "Contract type, NAICS, set-aside..., into the Effort Record"),
             ("hot", "Hot button", "", "#DB2777", "more", "A hot button, into Evaluation and hot buttons"),
-            ("other", "Other submission detail", "", "#BE185D", "more", "Submission detail that fits no rule, listed in Rules & Dates"),
+            ("other", "Other submission detail", "", "#BE185D", "more", "Submission detail that fits no rule, listed in Submission Checklist"),
             ("written", "Written formatting rule", "", "#BE185D", "more", "A rule in words (a marking, a label), on Final Checks"),
             ("unit", "Unit of measurement", "", "#7C3AED", "more", "A unit and what it means, into the Units of Measurement table"))
 # the effort types' own showing (the team can change these in Settings)

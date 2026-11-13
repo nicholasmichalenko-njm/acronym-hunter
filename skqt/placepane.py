@@ -27,7 +27,7 @@ def add(page, rows):
     page.place_btn = None
     if not ST.placed_any([k for k in ks if k != "evaluation"]):
         if "evaluation" in ks:
-            page.add(D.label("An evaluation piece links through L to M, not a section.", "muted"))
+            page.add(D.label("An evaluation piece links through Crosswalk, not a section.", "muted"))
         else:
             page.add(D.label("Rules, dates and information are not placed: they stay in Shred and travel to Setup and Submit."
                              if ks else "Not shredded yet: say what it is in Shred first.", "muted"))

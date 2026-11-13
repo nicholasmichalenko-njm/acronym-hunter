@@ -95,7 +95,7 @@ class WhatChangedDialog(QDialog):
             v.addWidget(D.label(", ".join(h["id"] for h in s["requirements"][:20]) + (" ..." if len(s["requirements"]) > 20 else ""), "mono"))
         if s["not_in_matrix"]:
             v.addWidget(D.label(f"{s['not_in_matrix']} new piece(s) are not in the matrix yet: "
-                                "decide them in Changes.", "muted"))
+                                "decide them in Amendments.", "muted"))
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         rev = bb.addButton("Review the changes", QDialogButtonBox.ActionRole)
         rev.clicked.connect(lambda: self.review())

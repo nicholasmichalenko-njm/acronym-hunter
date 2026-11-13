@@ -17,7 +17,7 @@ class BudgetDialog(QDialog):
         super().__init__(host)
         self.host = host
         self.M = host.review.M
-        self.setWindowTitle("Page budget")
+        self.setWindowTitle("Page Allocation")
         self.resize(860, 640)
         self.rows, self.delivs = self._sources()
         self.vols = PB.volumes(self.M)
@@ -165,7 +165,7 @@ class BudgetDialog(QDialog):
 
     def save(self):
         R = self.host.review
-        R.snap("the page budget")
+        R.snap("the page allocation")
         for l, n in self.edit.items():
             if (PB.pages(self.M, l) or 0) != (n or 0) or (n and PB.source(self.M, l) != self.src.get(l, "team")):
                 PB.set_pages(self.M, l, n, self.src.get(l, "team"))

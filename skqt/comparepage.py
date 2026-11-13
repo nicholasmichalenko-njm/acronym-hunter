@@ -96,7 +96,7 @@ class ComparePage(QWidget):
         for sb in (self.view.verticalScrollBar(), self.tree.verticalScrollBar()):
             sb.valueChanged.connect(lambda _v: self.gutter.update())
         self.empty = D.EmptyState("No new versions to compare yet", "Add the amendment or the new version in Documents. "
-                                  "Changes shows what changed on its pages, beside our response.", "Go to Documents",
+                                  "Amendments shows what changed on its pages, beside our response.", "Go to Documents",
                                   lambda: self.host.go("library"))
         v.addWidget(self.empty); self.empty.hide()
         self.decide_panel = DecideBar(self)

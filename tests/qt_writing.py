@@ -60,7 +60,7 @@ modes.save(show_set_aside=True)
 w.go("home"); app.processEvents()
 hp = w.home_page
 hp.apply_layout(); hp.refresh(); app.processEvents()
-check("the Effort Dashboard shows the win themes under the header (3.12.0)", hp.strips["themes"].isVisibleTo(w) and len(hp.themes_now) == 1
+check("Overview shows the win themes under the header (3.12.0)", hp.strips["themes"].isVisibleTo(w) and len(hp.themes_now) == 1
       and "Win themes   1" in hp.strips["themes"].title_label.text())
 tid = hp.theme_dialog(None, {"title": "Program office close to the customer", "kind": "Discriminator", "statement": "",
                              "discriminator": "", "proof": [], "sections": [labels[-1]], "hot": "", "words": ["Colorado"]})

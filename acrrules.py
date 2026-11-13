@@ -173,7 +173,7 @@ class AcronymRules:
             return ""
         got = {kinds.get(_file_of(l).lower()) for l in data.get("locations", []) if l}
         got.discard(None)
-        return "Both" if got == {"customer", "ours"} else "Customer" if got == {"customer"} else "Ours" if got == {"ours"} else ""
+        return "Both" if got == {"customer", "ours"} else "Customer" if got == {"customer"} else "Internal" if got == {"ours"} else ""
 
     def wrap_locations(self, locations):
         """Locations wrapped to the column width, at most LOC_MAX_LINES lines (the rest: double-click the row)."""

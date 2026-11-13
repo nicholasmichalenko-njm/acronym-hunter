@@ -1280,7 +1280,7 @@ class ConformDialog(QDialog):
         self.setMinimumWidth(760)
         v = QVBoxLayout(self)
         v.addWidget(D.label(f"{len(ins)} change instruction(s) found in {amend['name']}. Each is applied to the latest version "
-                            "of the document it changes; the result is its next version, Conformed, which Changes and Shred "
+                            "of the document it changes; the result is its next version, Conformed, which Amendments and Shred "
                             "show like any reissued version. Nothing in the files changes.", "muted"))
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.label("It changes", "label", wrap=False))

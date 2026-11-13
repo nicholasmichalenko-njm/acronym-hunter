@@ -59,7 +59,7 @@ req = rows[0]["id"]
 w.authors.add("Dana Ruiz") if hasattr(w.authors, "add") else None
 w.go("meetings"); app.processEvents()
 mp = w.meetings_page
-check("Meetings is a tab of the Dashboard (3.96.0)", w.stack.currentWidget() is mp
+check("Meetings is a tab of the Overview (3.96.0)", w.stack.currentWidget() is mp
       and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Meetings")
 mid = mp.new_meeting("Pink team debrief", "2026-11-03", participants=["Dana Ruiz", "A. Lee"])
 rec = R_.Record(w.ws.root)
@@ -77,7 +77,7 @@ check("+ Topic points at a requirement with an owner", tid and mp.topics.rowCoun
 w.go("assign"); app.processEvents(); pg.select(req); app.processEvents()
 check("the requirement's card shows the open topic", any("test lab photo" in l.text() for l in getattr(pg, "topic_labels", [])))
 w.go("home"); app.processEvents()
-check("the Effort Dashboard lists the open topics", w.dash_page.fill_topics() == 3
+check("Overview lists the open topics", w.dash_page.fill_topics() == 3
       and any("Phase 2" in l.text() for l in w.dash_page.topic_labels))
 mine = MW.for_effort("Heron", w.efforts.get("Heron"), "Dana Ruiz")
 check("My Work lists the topic for its owner", any(x["kind"] == "topic" and "test lab photo" in x["text"] for x in mine["items"]), mine["items"])

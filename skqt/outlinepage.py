@@ -190,7 +190,7 @@ class OutlinePage(QWidget):
         b.show_text(True)
         fs = F.factors(R.Record(self.host.ws.root)) if self.host.ws is not None else []
         if not fs:
-            self.host.status("No evaluation factors yet: add them on Shred > Evaluation, or pick another start.")
+            self.host.status("No evaluation factors yet: add them on Shred > Evaluation Criteria, or pick another start.")
             return b.blank()
         tops = [f for f in fs if not f.get("parent")]
         lines, n = [], 0

@@ -12,7 +12,7 @@ import shredtypes as ST
 from . import design as D
 
 NONE = "No deliverables yet"
-GO = "Go to Dashboard > Deliverables to add a deliverable"
+GO = "Go to Overview > Deliverables to add a deliverable"
 
 
 def _rec(page):
@@ -50,7 +50,7 @@ def deliverable_row(page, it):
         page.add(c)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["xs"])
         row.addWidget(D.label(GO + ".", "muted"))
-        page.deliv_go = D.button("Open Deliverables", None, lambda: go_deliverables(page), "Dashboard > Deliverables, to add one")
+        page.deliv_go = D.button("Open Deliverables", None, lambda: go_deliverables(page), "Overview > Deliverables, to add one")
         row.addWidget(page.deliv_go); row.addStretch(1)
         page.body_add_layout(row)
         return 1

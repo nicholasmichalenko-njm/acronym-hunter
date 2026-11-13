@@ -37,8 +37,8 @@ check("the rules know their own words", {k for k, *_r in G.RULES} >= {"review", 
 bad = lambda rule, s: any(k == rule and b.search(o.sub("", s)) for k, _say, b, o in G.RULES)          # noqa: E731
 check("finds: Open in Review, add them in Library, 3 sentences, not sorted, Global value, Acronym Finder, Decide in Compare",
       all([bad("review", "Open in Review"), bad("library", "add them in Library"), bad("sentence", "3 sentences"),
-           bad("sorted", "not sorted"), bad("global", "Global value"), bad("acronyms-page", "Acronym Finder"),
-           bad("compare-page", "Decide in Compare"), bad("production-menu", "Production > Templates")]))
+           bad("sorted", "not sorted"), bad("global", "Global value"), bad("acronyms-page", "Acros & Abs Finder"), bad("names-4290", "the Dashboard"), bad("names-4290", "Rules & Dates"),
+           bad("compare-page", "Decide in Compare"), bad("compare-page", "Decide in Changes"), bad("production-menu", "Production > Templates")]))
 check("keeps: Color Reviews, Review by hand, the Effort Library, sorted by category, Compare two drafts",
       not any([bad("review", "Color Reviews"), bad("review", "Review by hand"), bad("library", "the Effort Library"),
                bad("sorted", "sorted by category"), bad("compare-page", "Compare two drafts")]))
@@ -51,9 +51,9 @@ check("the menu, the stepper, Documents' panel and the List read them there", al
       [f for f, s in src.items() if "SW." not in s])
 from skqt import toolshome as TH
 names = {k: v[0] for k, v in TH.TOOLS.items()}
-check("Quick tools' tiles: Shred, Documents, Changes, Acros & Abs, Quick shred, Dashboard", names["assign"] == "Shred" and names["library"] == "Documents"
-      and names["compare"] == "Changes" and names["acronyms"] == "Acros & Abs" and names["acrfinder"] == "Acros & Abs Finder"
-      and names["shredreq"] == "Quick shred" and names["home"] == "Dashboard", names)
+check("Quick tools' tiles: Shred, Documents, Changes, Acronyms, Quick shred, Overview", names["assign"] == "Shred" and names["library"] == "Documents"
+      and names["compare"] == "Amendments" and names["acronyms"] == "Acronyms" and names["acrfinder"] == "Acronym Finder"
+      and names["shredreq"] == "Quick shred" and names["home"] == "Overview", names)
 check("... no two tiles share a name", len(set(names.values())) == len(names))
 k = sum(checks)
 print(f"GLOSSARY 4200 {'PASS' if k == len(checks) and checks else 'FAIL'} ({k}/{len(checks)})")

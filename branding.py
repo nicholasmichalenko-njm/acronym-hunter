@@ -254,7 +254,7 @@ SECTIONS = (("health", "Effort health (the numbers on top)", "wide"),           
             ("custfocus", "Evaluation and hot buttons", "half"),                                      # 2.99.0
             ("graphics", "Graphic needs", "half"),                                                    # 3.0.4
             ("themes", "Win themes (to edit; they show under the header)", "half"),                   # 3.2.0
-            ("coverage", "Volumes, people and page budget", "half"),  # 3.12.0; 3.16.0: set them here (4.26.0: Compliance review is Shred's bar)
+            ("coverage", "Volumes, people and page allocation", "half"),  # 3.12.0; 3.16.0: set them here (4.26.0: Compliance review is Shred's bar)
             ("pastdue", "Past due", "half"), ("acronyms", "Acronyms and QA/QC", "half"),
             ("people", "Who has what", "wide"),
             ("meetings", "Meeting notes", "wide"), ("evalcrit", "Evaluation criteria", "half"),   # 3.63.0

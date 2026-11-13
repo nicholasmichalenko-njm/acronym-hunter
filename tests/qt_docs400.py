@@ -109,7 +109,7 @@ check("a second version: changes from its last version not reviewed yet", rows.g
       == "Not reviewed yet" and lp.d_versions.count() == 2, rows)
 check("... its next thing: Review changes", lp.b_read.text().startswith("Review changes"), lp.b_read.text())
 lp.review_selected(); app.processEvents()
-check("... which opens Documents > Changes", w.stack.currentWidget() is w.compare_space and w.step_btns["library"].isChecked(), (w.stack.currentWidget(), lp.lib.doc(dL["id"])["versions"][-1]))
+check("... which opens Documents > Amendments", w.stack.currentWidget() is w.compare_space and w.step_btns["library"].isChecked(), (w.stack.currentWidget(), lp.lib.doc(dL["id"])["versions"][-1]))
 w.close()
 print(f"QT DOCS 400 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

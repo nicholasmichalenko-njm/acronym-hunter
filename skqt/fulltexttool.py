@@ -71,7 +71,7 @@ class FullTextWindow(QMainWindow):
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Choose files...", None, lambda: self.pick_files()))
         row.addWidget(D.button("Choose a folder...", None, lambda: self.pick_folder()))
-        self.b_last = D.button("Acros && Abs Finder's files", "ghost", lambda: self.from_last_scan(), "The files Acros & Abs Finder's open list scanned")
+        self.b_last = D.button("Acronym Finder's files", "ghost", lambda: self.from_last_scan(), "The files Acronym Finder's open list scanned")
         self.b_last.setVisible(bool(config_dir))
         row.addWidget(self.b_last)
         self.lbl = D.label("No files chosen.", "muted"); row.addWidget(self.lbl, 1)
@@ -115,7 +115,7 @@ class FullTextWindow(QMainWindow):
     def from_last_scan(self):
         got = self.set_files(last_scan_files(self.config_dir)) if self.config_dir else []
         if not got:
-            self.lbl.setText("Acros & Abs Finder has no scanned files on this PC yet.")
+            self.lbl.setText("Acronym Finder has no scanned files on this PC yet.")
         return got
 
     def go(self, wait=False):

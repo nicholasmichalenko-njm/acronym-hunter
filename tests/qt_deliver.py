@@ -73,7 +73,7 @@ itL = next(it for it in M.items if (it.get("section") or "").startswith("L.4.2")
 check("3.16.0: the matrix column Evaluated by (Section M) comes from the crosswalk", "evaluated_by" in MDZ.COLUMNS
       and MDZ._value(M, itL, "evaluated_by", SDZ.inherited_lm(M) if hasattr(SDZ, "inherited_lm") else {}, {}).startswith("M.1"),
       MDZ._value(M, itL, "evaluated_by", {}, {}))
-check("... 4.3.0: the crosswalk is Matrix & Outline's L to M tab", w.step_btns["matrix"].isChecked() and w.assign_page.views.current() == "lm"
+check("... 4.3.0: the crosswalk is Matrix & Outline's Crosswalk tab", w.step_btns["matrix"].isChecked() and w.assign_page.views.current() == "lm"
       and w.crosswalk_page.isVisibleTo(w.assign_page))
 # assign a few so the matrix and the setup have content
 by = lambda s: next(it for it in M.items if s in it["text"])

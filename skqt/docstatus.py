@@ -113,7 +113,7 @@ def status(page, d, st=None):
         out.append(("Pieces", SW.of_document(pc[0], pc[1]), WARN if pc[1] else OK))
     ac = _acros(page, d)
     if ac is not None:
-        out.append(("Acros & Abs", f"{ac[0]} found" + (f", {ac[1]} to decide" if ac[1] else ", all decided"), WARN if ac[1] else OK))
+        out.append(("Acronyms", f"{ac[0]} found" + (f", {ac[1]} to decide" if ac[1] else ", all decided"), WARN if ac[1] else OK))
     ch = _changes(page, d)
     if ch is not None:
         opened, left = ch

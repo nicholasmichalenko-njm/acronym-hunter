@@ -60,9 +60,9 @@ w.read_page.read([PDF], OUT)
 check("extracted", wait(lambda: w.review is not None and not w.read_page.running()))
 from skqt.mainwin import TABS, HEAD_OF
 from skqt import navrail as NR
-check("Shred's four tabs: Requirements, Rules & Dates, Evaluation, Acros & Abs",
-      [t for _k, t in TABS["assign"]] == ["Requirements", "Rules & Dates", "Evaluation", "Acros & Abs"], TABS["assign"])
-check("... the Dashboard has no Submission Rules; Matrix & Outline no Evaluation", "requirements" not in [k for k, _t in TABS["home"]]
+check("Shred's four tabs: Requirements, Submission Checklist, Evaluation, Acronyms",
+      [t for _k, t in TABS["assign"]] == ["Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"], TABS["assign"])
+check("... the Overview has no Submission Rules; Matrix & Outline no Evaluation", "requirements" not in [k for k, _t in TABS["home"]]
       and "evalcrit" not in [k for k, _t in TABS["matrix"]] and HEAD_OF["requirements"] == "assign" and HEAD_OF["evalcrit"] == "assign")
 M = w.review.M
 pg = w.assign_page
@@ -79,7 +79,7 @@ def key(s, k):
 key("12-point", Qt.Key_U); key("December 15", Qt.Key_D); key("realism", Qt.Key_E)
 w.go("requirements"); app.processEvents()
 rp = w.requirements_page
-check("Rules & Dates opens inside Shred, its title Rules & Dates", w.stack.currentWidget() is rp and w.page_title.text() == "Shred"
+check("Submission Checklist opens inside Shred, its title Submission Checklist", w.stack.currentWidget() is rp and w.page_title.text() == "Shred"
       and w.step_btns["assign"].isChecked(), w.page_title.text())
 tops = {rp.tree.topLevelItem(i).text(0): rp.tree.topLevelItem(i) for i in range(rp.tree.topLevelItemCount())}
 kids = [g.child(j) for g in tops.values() for j in range(g.childCount())]
@@ -99,17 +99,17 @@ ep = w.evalcrit_page
 rows = [ep.mtab.item(i, 1).text() for i in range(ep.mtab.rowCount())]
 check("Evaluation lists the piece the shred said is an Evaluation", any("realism" in t for t in rows)
       and w.stepper.isVisibleTo(w), rows)
-check("... and says what the shred said it is", any(ep.mtab.item(i, 2).text() == "Evaluation" for i in range(ep.mtab.rowCount())))
+check("... and says what the shred said it is", any(ep.mtab.item(i, 2).text() == "Evaluation Criterion" for i in range(ep.mtab.rowCount())))
 check("the stepper counts them", w.stepper.chips["requirements"].ct.text() == "2 from the shred"
       and w.stepper.chips["evalcrit"].ct.text() == "1 from the shred",
       (w.stepper.chips["requirements"].ct.text(), w.stepper.chips["evalcrit"].ct.text()))
 # step 5: the Acro List folded into Acros & Abs
 bar = w.acronym_page.bar
-check("Acros & Abs > The list: More opens the whole acro list and the lists to submit; Export makes the acro lists",
+check("Acronyms > The list: More opens the whole acro list and the lists to submit; Export makes the acro lists",
       bar.action("The whole acro list...") is not None and bar.action("Lists to submit, by volume") is not None
       and bar.action("Import a list...") is not None and bar.action("The list: the whole effort...") is not None)
 bar.action("The whole acro list...").trigger(); app.processEvents()
-check("... the whole list opens inside Acros & Abs", (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page) and w.step_btns["assign"].isChecked()
+check("... the whole list opens inside Acronyms", (w.stack.currentWidget() is w.acronym_page and w.acronym_page.tab_stack.currentWidget() is w.acrlist_page) and w.step_btns["assign"].isChecked()
       and w.stepper.chips["acronyms"].styleSheet().count("2px solid") == 1 and "acrlist" not in w.stepper.chips)
 w.close()
 print(f"QT RULES 410 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

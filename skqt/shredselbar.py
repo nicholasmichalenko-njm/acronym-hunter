@@ -77,7 +77,7 @@ def build(page, rows):
         ty = types.get(key) or {}
         if not ty.get("shown", True):
             continue
-        b = QPushButton(ty.get("name", key)); b.setCheckable(True)
+        b = QPushButton(ty.get("name", key).replace("&", "&&")); b.setCheckable(True)
         on = all(ST.has(it, key) for it in rows)
         b.setChecked(on)
         color = ty.get("color") or "#64748B"

@@ -90,13 +90,13 @@ class DashPage(QWidget):
         self.comp_text = self.comp.add(D.label("", "muted"))
         # coverage by volume
         ap = lambda: self.host.assign_page                # 3.16.0: the response plan is set here, not in Structure or Review
-        self.vol = D.Card("Volumes, people and page budget", "The volumes, who leads and writes each section, its pages, and "
+        self.vol = D.Card("Volumes, people and page allocation", "The volumes, who leads and writes each section, its pages, and "
                           "the requirements and context placed in each.")
         from .adaptive import FlowLayout
         vrow = QWidget(); vf = FlowLayout(vrow, D.SPACE["s"])
         for text, fn, tip in (("Volumes...", lambda: ap().volumes_dialog(), "The response's volumes"),
                               ("People...", lambda: ap().people_dialog(), "Who leads and who writes each section"),
-                              ("Page budget...", lambda: ap().budget_dialog(), "Pages for each section, within each volume's limit")):
+                              ("Page Allocation...", lambda: ap().budget_dialog(), "Pages for each section, within each volume's limit")):
             vf.addWidget(D.button(text, None, fn, tip))
         self.vol.add(vrow)
         self.vol_table = _table(["Volume", "Sections", "Requirements", "With an owner", "", "Context"], (0, 80, 100, 110, 140, 80))

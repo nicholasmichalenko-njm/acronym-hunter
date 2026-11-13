@@ -188,7 +188,7 @@ class HomePage(QWidget):
         self.timeline = D.Card("Timeline", "The effort's paper trail, newest first.")
         # 3.12.0: one card for how the proposal goes in, its formatting and its page limits (2.94.0, 2.96.0)
         self.sub_card = D.Card("Submission requirements", "What the customer documents require, with where each came from. "
-                               "Click a requirement to open it in Rules & Dates; Edit changes what it says here.")
+                               "Click a requirement to open it in Submission Checklist; Edit changes what it says here.")
         from PySide6.QtWidgets import QTabWidget
         self.sub_tabs = QTabWidget(); self.sub_tabs.setDocumentMode(True)
         self.sub_tab_pages = {}
@@ -465,7 +465,7 @@ class HomePage(QWidget):
                 self.body.addLayout(hl)
         for k, c in self.cards.items():
             c.setVisible(k in self.shown)
-        self.role_pill.setText(f"Dashboard for: {self.lay['role']}" + ("  (customized)" if self.lay["custom"] or widths else ""))
+        self.role_pill.setText(f"Overview for: {self.lay['role']}" + ("  (customized)" if self.lay["custom"] or widths else ""))
         return self.shown
 
     def customize(self, answer=None):
@@ -788,7 +788,7 @@ class HomePage(QWidget):
             if x["required"]:
                 col = QVBoxLayout(); col.setSpacing(0)
                 val = ClickLabel(f"Required: {x['value']}", lambda rr=x["row"]: self.open_rule(rr))
-                val.setToolTip("Open it in Rules & Dates: the piece, its history, edit or confirm")
+                val.setToolTip("Open it in Submission Checklist: the piece, its history, edit or confirm")
                 val.setStyleSheet(f"color:{t['text']};font-weight:600;")
                 col.addWidget(val)
                 if x["where"]:
@@ -826,7 +826,7 @@ class HomePage(QWidget):
             lab = D.label(x["label"], None, wrap=False); lab.setMinimumWidth(130); row.addWidget(lab, 0, Qt.AlignTop)
             col = QVBoxLayout(); col.setSpacing(0)
             v = ClickLabel(x["value"], lambda rr=x.get("row"): self.open_rule(rr)); v.setStyleSheet(f"color:{t['text']};font-weight:600;")
-            v.setToolTip("Open it in Rules & Dates")
+            v.setToolTip("Open it in Submission Checklist")
             col.addWidget(v)
             if x["where"]:
                 col.addWidget(D.label(x["where"], "muted"))

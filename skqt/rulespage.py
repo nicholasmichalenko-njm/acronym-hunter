@@ -49,7 +49,7 @@ class RulesPage(QWidget):
         self._loading = False
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(D.SPACE["m"])
         top = D.Card("Rules", "Every rule the app follows and checks, in one list. A rule's values live where they always "
-                     "have (Production Standards, Effort Formatting, the Acros & Abs List); each rule links there.")
+                     "have (Production Standards, Effort Formatting, the Acronym List); each rule links there.")
         self.summary = QLabel(""); self.summary.setTextFormat(Qt.RichText); self.summary.setWordWrap(True); top.add(self.summary)
         sw = QHBoxLayout(); sw.setSpacing(D.SPACE["s"])
         sw.addWidget(D.label("Show", "label", wrap=False))

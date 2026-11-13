@@ -27,7 +27,7 @@ BUILTIN = (("submit", "Submission", "Submission Rules and the dashboard dates"),
            ("question", "Customer question", "Customer Q&A"),
            ("keydate", "Key date", "the effort calendar"),
            ("factor", "Evaluation factor", "Evaluation and hot buttons"),
-           ("pagelimit", "Page limit", "the page budget"),
+           ("pagelimit", "Page limit", "the page allocation"),
            ("deliverable", "Deliverable", "the deliverables board"),
            ("detail", "Effort detail", "the Effort Record"),
            ("hot", "Hot button", "Evaluation and hot buttons"),
@@ -36,7 +36,7 @@ BUILTIN = (("submit", "Submission", "Submission Rules and the dashboard dates"),
 NAME = {k: n for k, n, _f in BUILTIN}
 FEEDS_TEXT = {k: f for k, _n, f in BUILTIN}
 BIN_KEYS = {"objective": "O", "keypoint": "K"}            # the two new bins most used while reading get their own key
-FEEDS = (("setup", "Response Setup"), ("matrix", "a matrix column"), ("truth", "Wall of Truth"), ("dashboard", "Effort Dashboard"))
+FEEDS = (("setup", "Response Setup"), ("matrix", "a matrix column"), ("truth", "Wall of Truth"), ("dashboard", "Overview"))
 COLORS = ("#7C3AED", "#0E7490", "#B45309", "#BE185D", "#15803D", "#1D4ED8", "#9F1239", "#4D7C0F", "#6D28D9")
 FORMAT_KINDS = (("measured", "Measured (a value: font, margins, page limit)"), ("written", "Written (text: a marking, a label, a phrase)"))
 WRITTEN_CHECKS = (("phrase", "A phrase check (Audit looks for these words)"), ("final", "A Final Checks item (someone ticks it)"))

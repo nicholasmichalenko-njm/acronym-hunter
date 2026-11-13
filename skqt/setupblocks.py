@@ -52,7 +52,7 @@ class BlockList(QListWidget):
             if fl:
                 row.setText(row.text().replace("\n", f"  ·  {fl[0]['text']}\n", 1))
                 row.setForeground(D.color("warn"))
-                row.setToolTip(row.toolTip() + "\n" + "\n".join(x["text"] for x in fl) + "\nIt keeps its place. Decide the change in Changes.")
+                row.setToolTip(row.toolTip() + "\n" + "\n".join(x["text"] for x in fl) + "\nIt keeps its place. Decide the change in Amendments.")
             self.addItem(row)
         self.setVisible(self.count() > 0)
         return self.count()
@@ -76,7 +76,7 @@ class BlockList(QListWidget):
         fl = (getattr(self, "amend", None) or {}).get(iid)
         if fl:                                                    # 3.89.0 decision 6
             from . import amendflags as AF
-            m.addAction(f"Open the change in Changes ({fl[0]['text']})", lambda: AF.open_change(self.pg.host, fl[0]))
+            m.addAction(f"Open the change in Amendments ({fl[0]['text']})", lambda: AF.open_change(self.pg.host, fl[0]))
         if run:
             m.exec(at or self.viewport().mapToGlobal(self.visualItemRect(self.currentItem()).bottomLeft()))
         return m

@@ -63,7 +63,7 @@ check("Documents has no Customer Q&A tab", "custqa" not in [k for k, _t in TABS[
 w.go("assign"); app.processEvents()
 check("Shred's title bar has Q&A; the drawer is closed", w.qa_btn.isVisibleTo(w) and w.qa_btn.text() == "Q&&A" and not w.qa_drawer.isVisible())
 w.go("home"); app.processEvents()
-check("... the Dashboard does not", not w.qa_btn.isVisibleTo(w))
+check("... the Overview does not", not w.qa_btn.isVisibleTo(w))
 w.go("assign"); app.processEvents()
 M = w.review.M
 pg = w.assign_page

@@ -72,7 +72,7 @@ class DraftStatusPage(QWidget):
         self.card.body.addWidget(self.draft)
         v.addWidget(self.card)
         self.vols = []
-        self.s_card = D.Card("Sections", "Not started: none of the author's own words yet. Near budget: half the page budget or "
+        self.s_card = D.Card("Sections", "Not started: none of the author's own words yet. Near budget: half the page allocation or "
                              "more. Over budget: past it. Pages are counted from words; Word's own count is in the line above.")
         self.s_table = _table(["Section", "Status", "Words", "Pages", "Budget", "Requirements removed", "Moved"], 0, 260)
         for i, wd in enumerate((0, 110, 70, 60, 60, 150, 70)):

@@ -76,7 +76,7 @@ class MakeTemplatesDialog(QDialog):
         stb.addWidget(self.starts_t)
         # 3.32.0: a prepaginated setup
         self.prepag = QCheckBox("Keep each section's planned pages (a prepaginated setup)")
-        self.prepag.setToolTip("A section with pages set in the page budget (a first-level section, or one that starts a Word "
+        self.prepag.setToolTip("A section with pages set in the page allocation (a first-level section, or one that starts a Word "
                                "section) gets its pages in the setup: empty pages after its content, and the next section "
                                "starts on a new page. Placed Quick Parts count with their measured pages.")
         stb.addWidget(self.prepag)

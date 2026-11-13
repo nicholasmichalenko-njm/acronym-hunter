@@ -190,7 +190,7 @@ class Detail(QScrollArea):
                 self.v.addWidget(D.label(x[0].upper() + x[1:]))
             if c["changed_reqs"]:
                 self.v.addWidget(D.label(f"{len(c['changed_reqs'])} requirement(s) changed by a customer version: " + ", ".join(c["changed_reqs"][:8])))
-            self.v.addWidget(D.button("Open Changes", None, lambda: pg.host.go("compare")), 0, Qt.AlignLeft)
+            self.v.addWidget(D.button("Open Amendments", None, lambda: pg.host.go("compare")), 0, Qt.AlignLeft)
         # checks
         self.v.addWidget(D.SectionTitle("Submission check"))
         if c["checked"]:

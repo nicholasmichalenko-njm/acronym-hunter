@@ -2509,7 +2509,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "4.28.2"            # keep in step with version_info.txt
+APP_VERSION = "4.29.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3395,7 +3395,7 @@ def status_kind(st):
     return "other"
 LOC_MAX_LINES = 3   # Locations wrap to at most this many lines in the table; double-click a row for all of them
 MANUAL_CATEGORIES = ["Acronym", "Abbreviation", "Unit", "Other"]
-FOUND_FILTERS = ("All documents", "Customer documents", "Ours", "Both")     # 2.38.0: where a term was found
+FOUND_FILTERS = ("All documents", "Customer documents", "Internal", "Both")     # 2.38.0: where a term was found
 COLUMNS = (  # id, heading, base width, anchor
     ("term", "Term / Unit", 120, "w"),
     ("category", "Type", 170, "w"),

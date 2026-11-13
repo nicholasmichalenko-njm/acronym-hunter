@@ -17,9 +17,9 @@ def check(name, ok, info=""):
 
 
 t = ST.load(None)
-check("nine types in order (4.19.0 adds Structure)", [v["name"] for v in t.values()] == ["Requirement", "Instruction", "Rule", "Date", "Evaluation",
-                                                                    "Deliverable", "Information", "Not applicable", "Structure"])
-check("four tabs, none named Shred", [n for _k, n in ST.TABS] == ["Requirements", "Rules & Dates", "Evaluation", "Acros & Abs"])
+check("nine types in order (4.19.0 adds Structure)", [v["name"] for v in t.values()] == ["Requirement", "Content Instruction", "Format & Submission", "Key Date", "Evaluation Criterion",
+                                                                    "Deliverable", "Information", "Not applicable", "Response Structure"])
+check("four tabs, none named Shred", [n for _k, n in ST.TABS] == ["Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"])
 check("each type's tab", [ST.tab_of(k) for k in ST.KEYS] == ["requirements", "requirements", "rules", "rules", "evaluation",
                                                             "requirements", "requirements", "requirements", "requirements"])
 check("Place offers only what the proposal must answer", [k for k in ST.KEYS if ST.placed(k)] ==

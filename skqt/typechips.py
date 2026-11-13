@@ -35,7 +35,7 @@ def add(page, rows):
         t = types.get(key) or {}
         if not t.get("shown", True):
             continue
-        b = QPushButton(f"{t.get('name', key)}  {t.get('short', '')}".strip()); b.setCheckable(True)
+        b = QPushButton(f"{t.get('name', key)}  {t.get('short', '')}".strip().replace("&", "&&")); b.setCheckable(True)   # 4.29.0: Format & Submission
         b.setObjectName("typeChip")
         on = all(ST.has(it, key) for it in rows)
         b.setChecked(on)

@@ -225,4 +225,7 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 4.28.2 | An effort picks a named template for each volume (Setup > More > Templates for the volumes...). The pick is stored as that volume's template file (templatesetup), so one path writes the setup on any template | Answer 23 |
 | 4.28.2 | The Template entry opens the named list; the Effort Profiles' list is its second tab, From profiles (page key tplprofiles) | Answer 23 |
 | 4.28.2 | Team defaults is on the Team page, not in Settings | Nicholas 2026-11-12, answer 12 |
+| 4.29.0 | The names of the naming plan, on screen: Overview (Dashboard), Submission Checklist (Rules & Dates), Evaluation Criteria, Crosswalk (L to M), Amendments (Changes), Acronyms (Acros & Abs; reverses 4.20.0), Themes, Page Allocation, Source; the five piece type names. Keys, shortcuts and saved values do not change. tools/glossary.py holds the retired words | Nicholas 2026-11-12 08:47 to 09:28, the recording 04:35 |
+| 4.29.0 | The words in saved and exported files (Sentence, Page budget, sheet names) change in one later step with a format number and a reader for the old, not with the screen | The saved-format rule |
+| 4.29.0 | The Overview's first tab is At a glance, since no tab repeats its menu entry's name (4.0.0, decision 16). Nicholas to confirm the word | Built overnight; on the question list |
 

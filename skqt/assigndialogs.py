@@ -60,7 +60,7 @@ def budget_dialog(self, run=True):
         return d
     d.exec()
     if d.saved:
-        self.after("Page budget saved.")
+        self.after("Page Allocation saved.")
     return d.saved
 
 

@@ -44,7 +44,7 @@ def effort_menu(w):
     Tools."""
     m = QMenu(w)
     if w.effort_name:
-        m.addAction("Dashboard", lambda: w.go("overview"))
+        m.addAction("Overview", lambda: w.go("overview"))
     import unfiled as UF                                       # 4.27.2: Unfiled is a list under Quick tools, not an effort to switch to
     others = [w.effort_box.itemText(i) for i in range(w.effort_box.count())
               if w.effort_box.itemText(i) and w.effort_box.itemText(i) not in (w.effort_name, UF.NAME)]

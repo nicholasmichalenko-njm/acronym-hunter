@@ -16,12 +16,12 @@ from . import design as D
 VIEWS = (("assign", "Page", None), ("shredlist", "List", None))   # 4.19.0: List is the shred by the customer's structure   # 4.3.0: placing, L to M and
 VIEW_OF = {"assign": "assign", "shredlist": "shredlist"}  # Coverage: Matrix & Outline
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
-CHIPS = (("assign", "Requirements"), ("requirements", "Rules & Dates"), ("evalcrit", "Evaluation"), ("acronyms", "Acros & Abs"))
+CHIPS = (("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
 CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Rules & Dates and Evaluation moved in; the Acro List
                                                           # opens from Acros & Abs
-STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and your next step"),
+STEP_TITLES = {"home": ("Overview", "Where the effort is, what is left, and your next step"),
                "library": ("Documents", "The solicitation package: complete, current and readable"),
-               "assign": ("Shred", "What every piece of the customer's text is, and its acros and abs"),
+               "assign": ("Shred", "What every piece of the customer's text is, and its acronyms"),
                "matrix": ("Matrix & Outline", "What we answer, and where in our structure"),
                "setups": ("Setup", "Who writes what, when and how long; the setup in Word"),
                "drafts": ("Drafts", "The team's drafts read back: where each section stands"),
@@ -29,7 +29,7 @@ STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and you
                "tools": ("Quick tools", "Any tool on any file, with no effort needed; and what is not filed yet"),
                "calendar": ("Calendar", "The month, the day's list and the next dated things"),
                "tasks": ("Tasks", "This effort's tasks by gate, and yours across efforts"),
-               "graphics": ("Graphics", "Every graphic, the customer's and ours: its version, its words read, its acros and abs swept"),
+               "graphics": ("Graphics", "Every graphic, the customer's and ours: its version, its words read, its acronyms swept"),
                "redline": ("Prepare for Redline", "A Word file of each PDF and picture in Documents, with a reviewer's comments placed as tracked changes; checked word for word; the exceptions table")}
 
 
@@ -59,7 +59,7 @@ def _circle(n, state, t):
     return f"background:transparent;color:{t['rail_text']};border:2px solid {t['rail_ring']};"
 
 
-SUB = {"redline": "Documents", "graphics": "Documents", "calendar": "the Dashboard", "tasks": "the Dashboard"}   # 4.25.5: Graphics; 4.27.1           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
+SUB = {"redline": "Documents", "graphics": "Documents", "calendar": "the Overview", "tasks": "the Overview"}   # 4.25.5: Graphics; 4.27.1           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
 
 
 class StepButton(QPushButton):

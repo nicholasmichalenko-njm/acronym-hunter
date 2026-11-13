@@ -280,7 +280,7 @@ class DecideBar(QFrame):
         it = CAP.add_sentence(M, f, text, how="typed")
         if it is None:
             return ""
-        it["loc"] = f"{f} ({r.get('section') or vb['label']}, from Changes)"
+        it["loc"] = f"{f} ({r.get('section') or vb['label']}, from Amendments)"
         it["new"] = f"New in {d['name']} {vb['label']}"
         R.req([it], section)
         self.page.review.add_history(it["id"], "added", "", it["text"], d["name"], vb["label"])

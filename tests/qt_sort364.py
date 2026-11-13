@@ -46,7 +46,7 @@ F.add_factor(RR.Record(ws0.root), "Technical Approach", importance="More importa
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("Theme tags (was Sort) is Quick tools' (4.19.0), not a Shred view", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["sort"] == "tools" and "sort" not in w.stepper.views)
+check("Themes (was Sort) is Quick tools' (4.19.0), not a Shred view", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["sort"] == "tools" and "sort" not in w.stepper.views)
 w.go("sort"); app.processEvents()
 sp = w.sort_page
 n = len(TP.sortable(w.review.M.items))

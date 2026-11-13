@@ -7,7 +7,7 @@ import datetime
 import shredwords as SW
 
 STEPS = (("library", "Documents", "The solicitation package: complete, current and readable"),
-         ("assign", "Shred", "What every piece of the customer's text is, and its acros and abs"),
+         ("assign", "Shred", "What every piece of the customer's text is, and its acronyms"),
          ("matrix", "Matrix & Outline", "What we answer, and where in our structure"),
          ("setups", "Setup", "Who writes what, when and how long; the setup in Word"),
          ("drafts", "Drafts", "The team's drafts read back: where each section stands"),
@@ -22,7 +22,7 @@ THEN = {"library": "Shred, what every piece of the customer's text is",       # 
 
 def _acros(n):
     """4.0.0: the team's words for acronyms, abbreviations, units and symbols."""
-    return "1 acro or ab" if n == 1 else f"{n} acros and abs"
+    return "1 acro or ab" if n == 1 else f"{n} acronyms"
 
 
 def _plural(n, word, many=None):
@@ -206,7 +206,7 @@ def next_step(sts, f):
     if k == "library":
         if f["compare"]:
             return {"key": k, "go": "compare", "title": f"Review the {_plural(f['compare'], 'change')} a new version made",
-                    "button": "Open Changes", "then": then,
+                    "button": "Open Amendments", "then": then,
                     "why": "Each changed passage: no impact, shred it again, or ask a question."}
         n = f["to_check"]
         t = (f"Decide what the {'new document is' if n == 1 else str(n) + ' new documents are'} used for") if n else "Add the customer's documents"
@@ -220,7 +220,7 @@ def next_step(sts, f):
         if r["undecided"]:
             return {"key": k, "go": "assign", "title": f"Shred the {_plural(r['undecided'], 'piece')} left", "button": "Open Shred",
                     "then": then, "why": "What each piece of the customer's text is and asks of you."}
-        return {"key": k, "go": "acronyms", "title": f"Decide the {_acros(f['acronyms'] or 0)} left", "button": "Open Acros & Abs",
+        return {"key": k, "go": "acronyms", "title": f"Decide the {_acros(f['acronyms'] or 0)} left", "button": "Open Acronyms",
                 "then": then, "why": "Each acronym, abbreviation, unit or symbol on the customer's pages: in the list with its definition, or not one."}
     if k == "matrix":
         return {"key": k, "go": "place", "title": f"Place the {_plural(now.get('unplaced', 0), 'requirement')} left",
@@ -230,7 +230,7 @@ def next_step(sts, f):
                 "why": "Who writes what, when and how long, and the setup in Word for the authors."}
     if k == "drafts":
         return {"key": k, "go": "drafts", "title": "Read the drafts back", "button": "Open Drafts", "then": then,
-                "why": "Where each section stands against its page budget and requirements."}
+                "why": "Where each section stands against its page allocation and requirements."}
     return {"key": k, "go": "finalcheck", "title": "Run the Final Check", "button": "Open Submit", "then": then,
             "why": "One report: the submission rules, the page limits, the acronyms and every check."}
 

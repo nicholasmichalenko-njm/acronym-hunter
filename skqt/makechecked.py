@@ -62,7 +62,7 @@ def make_rule(page, it, answer=None):
     k = register(page).add(kind or "Format", about or "", says, source=source_of(page, it))
     if k:
         diag.activity("shred_rule_made_checked")
-        page.host.toast("Checked from now on: it is on Rules & Dates, and Effort Formatting and Submit read it")
+        page.host.toast("Checked from now on: it is on Submission Checklist, and Effort Formatting and Submit read it")
     else:
         page.host.status("Nothing was made: say what the rule says.")
     return k
@@ -100,7 +100,7 @@ def add_row(page, rows):
         done = made(page, it)
         page.checked_btn = D.button("Checked (make another...)" if done else TEXT, "ghost", lambda: make_rule(page, it),
                                     "A rule Effort Formatting and Submit check, filled from this piece. Until then the piece is "
-                                    "only listed on Rules & Dates")
+                                    "only listed on Submission Checklist")
         row.addWidget(page.checked_btn)
     if "date" in ks:
         page.checked_date_btn = D.button(TEXT if "rule" not in ks else "Make the date checked...", "ghost", lambda: make_date(page, it),

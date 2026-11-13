@@ -76,7 +76,7 @@ def key(s, k):
 it = key("(IMS)", Qt.Key_L)
 check("L: an Instruction (a requirement designated L), its type kept", it["decision"] == "Keep" and it["lm"] == "L" and it["piece"] == "instruction")
 it = key("12-point", Qt.Key_U)
-check("U: a Rule: the customer's, kept as a Rule (Rules & Dates)", it["decision"] == "Customer" and it["piece"] == "rule"
+check("U: a Rule: the customer's, kept as a Rule (Submission Checklist)", it["decision"] == "Customer" and it["piece"] == "rule"
       and ST.tab_of(ST.type_of(it)) == "rules" and not ST.placed("rule"))
 it = key("December 15", Qt.Key_D)
 check("D: a Date", it["piece"] == "date" and it["decision"] == "Customer")

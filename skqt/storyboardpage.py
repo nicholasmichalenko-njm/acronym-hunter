@@ -160,7 +160,7 @@ class StoryboardPage(QWidget):
         sb, f = SB.get(r, lab), SB.facts(r, M, lab)
         self.title.setText(f"Storyboard: {lab}")
         self.facts.setText(f"<b>Lead</b> {html.escape(f['lead'] or 'not named')}  ·  <b>Writers</b> {html.escape(f['with'] or '-')}"
-                           f"  ·  <b>Page budget</b> {(PB.fmt(f['pages']) + ' pages') if f['pages'] else 'not set (Page budget... in Shred)'}"
+                           f"  ·  <b>Page Allocation</b> {(PB.fmt(f['pages']) + ' pages') if f['pages'] else 'not set (Page Allocation... in Shred)'}"
                            f"  ·  <b>{len(f['reqs'])}</b> requirement(s)")
         self.status.setCurrentText(sb["status"])
         self.message.setText(sb["message"])

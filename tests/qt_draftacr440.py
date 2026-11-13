@@ -70,7 +70,7 @@ DV.set_folder(w.ws, vols[0], F1); DV.set_folder(w.ws, vols[1], F2)
 
 ap.b_drafts.trigger(); app.processEvents()
 pg = w.draftacr_page
-check("In our drafts on Acros & Abs opens Drafts > Acronyms", w.stack.currentWidget() is pg and w._tab_keys[:3] == ["drafts", "draftacr", "techedit"],
+check("In our drafts on Acronyms opens Drafts > Acronyms", w.stack.currentWidget() is pg and w._tab_keys[:3] == ["drafts", "draftacr", "techedit"],
       w._tab_keys)
 check("one main button, Check the drafts", pg.bar.main is pg.b_check and pg.table.rowCount() == 2)
 rows = pg.check(); app.processEvents()
@@ -79,7 +79,7 @@ check("each volume checked against the list", n1["before"] == 1 and n1["unlisted
 check("... the counts in the table", [pg.table.item(0, c).text() for c in (2, 3, 4)] == ["1", "0", "1"]
       and pg.table.item(1, 4).text() == "2", [[pg.table.item(i, c).text() for c in range(6)] for i in range(2)])
 z = s.results.get("ZQX") or {}
-check("a term not in the list goes back to Acros & Abs, marked From our drafts", z.get("from_drafts") == vols
+check("a term not in the list goes back to Acronyms, marked From our drafts", z.get("from_drafts") == vols
       and z.get("locations") == [f"From our drafts: {vols[0]}"] and "WVR" in s.results, z)
 check("... kept with the session", "ZQX" in (w.ws.load_session() or {}).get("manual_items", {}))
 check("... shown here until it is decided", DV.pending(s) == {"WVR": [vols[1]], "ZQX": vols} and pg.pending_list.rowCount() == 2
@@ -89,7 +89,7 @@ pg.check()
 check("checking again adds nothing twice", len([t for t in s.results if t == "ZQX"]) == 1 and "below to decide" not in pg.said.text(), pg.said.text())
 # 4.23.2: decided here, on the term's row (no jump to Acros & Abs)
 from PySide6.QtWidgets import QPushButton
-check("4.23.2: no Decide them in Acros & Abs; each term has its meaning line and two buttons", pg.bar.action("Decide them in Acros & Abs") is None
+check("4.23.2: no Decide them in Acronyms; each term has its meaning line and two buttons", pg.bar.action("Decide them in Acronyms") is None
       and pg.pending_terms == ["WVR", "ZQX"] and [b.text() for b in pg.pending_list.cellWidget(0, 3).findChildren(QPushButton)]
       == ["Add to effort list", "Not a term"])
 pg.pending_list.cellWidget(0, 2).setText("Wide View Radiometer")
@@ -99,7 +99,7 @@ check("Add to effort list on the row: in the list with the meaning typed", s.eff
 pg.pending_list.cellWidget(0, 3).findChildren(QPushButton)[1].click(); app.processEvents()
 check("Not a term on the row: decided, and the card folds away", s.effort.rows["ZQX"]["Status"] == "Not a term" and DV.pending(s) == {}
       and not pg.p_card.isVisibleTo(w), DV.pending(s))
-check("it is the same decision on Acros & Abs", ap.session is s and s.results["WVR"].get("effort") == "In the list")
+check("it is the same decision on Acronyms", ap.session is s and s.results["WVR"].get("effort") == "In the list")
 pg.table.selectRow(0)
 dlg = pg.fix(); app.processEvents()
 check("Fix in a copy: the 3.92.0 check on the selected volume's draft", dlg is not None and dlg.path == p1

@@ -143,7 +143,7 @@ class LibraryView(QWidget):
         import qpmeasure as QM                    # 3.32.0: a Quick Part's pages, measured by Word or typed
         self.measure_btn = D.button("Measure pages", None, lambda: self.measure(), "Word on this PC counts the pages each "
                                     "selected Quick Part fills (all on the shelf when none is selected). The page plan, "
-                                    "the page budget and a prepaginated setup use them.")
+                                    "the page allocation and a prepaginated setup use them.")
         self.measure_btn.setEnabled(QM.available())
         row.addWidget(self.measure_btn)
         row.addWidget(D.button("Pages...", None, lambda: self.type_pages(), "Type the pages a Quick Part fills"))

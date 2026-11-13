@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+NAMES (4.29.0)
+  Each thing is named by what it governs. Only the words on screen changed: saved efforts open as before, and
+  every key and shortcut is the same.
+  - The menu's Dashboard is the Overview. Its first tab is At a glance; All cards is the next.
+  - Shred's tabs: Requirements, Submission Checklist (was Rules & Dates), Evaluation Criteria (was Evaluation),
+    Acronyms (was Acros & Abs).
+  - Matrix & Outline: Crosswalk (was L to M). Documents: Amendments (was Changes). Quick tools: Themes (was
+    Theme tags). Acronym Finder and Acronym List (were Acros & Abs Finder and Acros & Abs List).
+  - Piece types: Content Instruction (was Instruction), Format & Submission (was Rule), Key Date (was Date),
+    Evaluation Criterion (was Evaluation), Response Structure (was Structure). Requirement, Deliverable,
+    Information and Not applicable stay. A type your team renamed keeps the team's name.
+  - Page Allocation (was Page budget) on screen. Source (was Required by) on a required heading.
+  - Where a term was found: Internal (was Ours).
+  - Files keep their words for now: the matrix workbook, the setup and the kickoff packet still say Page budget
+    and Sentence where they did. They change together in the next step, with a reader for the old words.
+
 A TEMPLATE OF ITS OWN (4.28.2)
   - Templates > Template lists the templates you name. A template is a name and a pick: which style sets (in
     order), which Quick Part set, which pages a document starts with. The page and the text's layout come from

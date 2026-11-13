@@ -110,7 +110,7 @@ class GraphicsPage(QWidget):
             if keep and g["id"] == keep:
                 t.selectRow(r)
         n, words, sweep, needs = GL.counts(every)
-        self.count.setText(f"{n} graphic" + ("" if n == 1 else "s") + f": {words} with words to confirm, {sweep} to sweep for acros "
+        self.count.setText(f"{n} graphic" + ("" if n == 1 else "s") + f": {words} with words to confirm, {sweep} to sweep for acronyms "
                            f"and abs. {needs} graphic need" + ("" if needs == 1 else "s") + " open." if every else "")
         self.empty.setVisible(not every); self.table.setVisible(bool(every))
         return len(self.rows)
@@ -226,15 +226,15 @@ class GraphicsPage(QWidget):
             for s in ("Needed", "In work", "Done"):
                 a = m.addAction(s, lambda s=s: self.set_status(s)); a.setCheckable(True); a.setChecked(g["status"] == s)
         else:
-            m.addAction("Open it in Acros & Abs", lambda: self.open_row())
+            m.addAction("Open it in Acronyms", lambda: self.open_row())
             m.addAction("Show its document", lambda: self.open_file())
             m.addSeparator()
             a = m.addAction("Words read: confirmed", lambda: self.set_words(not g["words_ok"])); a.setCheckable(True); a.setChecked(g["words_ok"])
-            a = m.addAction("Acros and abs: swept", lambda: self.set_swept(g["acros_state"] != "swept")); a.setCheckable(True)
+            a = m.addAction("Acronyms: swept", lambda: self.set_swept(g["acros_state"] != "swept")); a.setCheckable(True)
             a.setChecked(g["acros_state"] == "swept")
             if g["kind"] == "file":
                 m.addSeparator()
-                m.addAction("Find acros and abs in it now", lambda: self.scan())
+                m.addAction("Find acronyms in it now", lambda: self.scan())
         if pos is not None:
             m.exec(self.table.viewport().mapToGlobal(pos))
         return m

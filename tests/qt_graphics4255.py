@@ -104,8 +104,8 @@ gp.select("doc:" + dG["id"])
 g = gp.current()
 m = gp.menu(None)
 check("right-click a graphic: open it, show its document, the two marks, scan it now",
-      [a.text() for a in m.actions() if a.text()] == ["Open it in Acros & Abs", "Show its document", "Words read: confirmed",
-                                                      "Acros and abs: swept", "Find acros and abs in it now"], [a.text() for a in m.actions()])
+      [a.text() for a in m.actions() if a.text()] == ["Open it in Acronyms", "Show its document", "Words read: confirmed",
+                                                      "Acronyms: swept", "Find acronyms in it now"], [a.text() for a in m.actions()])
 gp.set_words(True); gp.set_swept(True)
 g = gp.current()
 check("tick both marks: Confirmed and Swept, kept with the effort", g["words"] == "Confirmed" and g["acros"] == "Swept"

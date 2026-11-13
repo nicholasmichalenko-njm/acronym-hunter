@@ -722,10 +722,10 @@ class CustomizeDialog(QDialog):
     def __init__(self, parent, lay, names, me, team=None, config_dir=""):
         super().__init__(parent)
         self.team, self.config_dir = team or {}, config_dir
-        self.setWindowTitle("Customize the Effort Dashboard")
+        self.setWindowTitle("Customize Overview")
         self.setMinimumWidth(460)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("Your Effort Dashboard on this PC. It is yours alone: it changes no one else's, and it is not saved in "
+        v.addWidget(D.label("Your Overview on this PC. It is yours alone: it changes no one else's, and it is not saved in "
                             "the effort.", "muted"))
         f = QFormLayout(); v.addLayout(f)
         self.role = QComboBox(); self.role.addItems(list(BR.ROLE_NAMES)); self.role.setCurrentText(lay["role"])

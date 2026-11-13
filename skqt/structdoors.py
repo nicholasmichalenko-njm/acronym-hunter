@@ -111,7 +111,7 @@ class Preview(QDialog):
         v = QVBoxLayout(self)
         v.addWidget(D.label("Read from the pieces typed Structure. Fix a level or a title the reading got wrong, add what it "
                             "missed, then put them in. Each keeps where the customer required it.", "muted"))
-        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Level", "Heading", "Page limit", "Required by"])
+        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Level", "Heading", "Page limit", "Source"])
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.t.setColumnWidth(0, 70); self.t.setColumnWidth(1, 360); self.t.setColumnWidth(2, 90)
         self.t.horizontalHeader().setStretchLastSection(True)

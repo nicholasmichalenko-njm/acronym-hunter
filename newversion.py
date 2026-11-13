@@ -53,7 +53,7 @@ def merge(M, old_file, new_file, items, heads, src, label=""):
     C.link_items(M.items)
     M.headings += heads
     M.sources += src
-    M.log("matrix", f"new version {label or new_file}: {kept} kept, {added} new, {waiting} for Changes")
+    M.log("matrix", f"new version {label or new_file}: {kept} kept, {added} new, {waiting} for Amendments")
     M.pending = True
     return {"kept": kept, "added": added, "waiting": waiting, "rows": add}
 
@@ -82,5 +82,5 @@ def extract(host, doc_id):
     if w is None:
         rp._merge = None
         return None
-    host.status(f"Extracting {label}: the same text keeps its pieces; changes wait in Documents > Changes.")
+    host.status(f"Extracting {label}: the same text keeps its pieces; changes wait in Documents > Amendments.")
     return w

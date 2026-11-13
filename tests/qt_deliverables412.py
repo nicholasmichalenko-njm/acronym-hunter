@@ -65,10 +65,10 @@ check("Capture > Deliverable types the piece and shows Which deliverable", ST.ha
       and pg.deliv_pick is not None)
 check("with none, the drop-down says so", not pg.deliv_pick.isEnabled() and pg.deliv_pick.currentText() == PC.NONE)
 lab = [l.text() for l in pg.card.findChildren(type(theme.label("x"))) if PC.GO in l.text()]
-check("and says Go to Dashboard > Deliverables to add a deliverable", bool(lab) and pg.deliv_go is not None)
+check("and says Go to Overview > Deliverables to add a deliverable", bool(lab) and pg.deliv_go is not None)
 pg.deliv_go.click(); app.processEvents()
 dp = w.deliverables_page
-check("its button opens Dashboard > Deliverables", w.stack.currentWidget() is not pg and dp.isVisible())
+check("its button opens Overview > Deliverables", w.stack.currentWidget() is not pg and dp.isVisible())
 a = DL.add(rec(), "Program Management Plan (CDRL A001)", "Plan")
 b = DL.add(rec(), "Monthly status report", "Other")
 w.go("assign"); app.processEvents()

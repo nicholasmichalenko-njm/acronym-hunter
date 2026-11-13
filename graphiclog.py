@@ -10,7 +10,7 @@ WORDS_KEY = "graphic_words_ok"
 PICTURE_EXTS = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp", ".svg", ".emf", ".wmf")
 CUSTOMER_SIDE = ("customer", "bidders", "qa")
 INSIDE_MARKS = (", image ", ", vector ")
-COLUMNS = ["Graphic", "In", "Source", "Version", "Owner", "Status", "Words read", "Acros and abs"]
+COLUMNS = ["Graphic", "In", "Source", "Version", "Owner", "Status", "Words read", "Acronyms"]
 FILTERS = (("", "Every graphic"), ("customer", "Customer"), ("ours", "Internal"), ("need", "Needs"), ("todo", "Left to do"))
 
 

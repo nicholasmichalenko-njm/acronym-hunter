@@ -60,7 +60,7 @@ class KickoffDialog(QDialog):
         v = QVBoxLayout(self)
         v.addWidget(D.label("One Word file per author: for each section they lead or write, the customer's requirements word "
                             "for word with where each is, how it is scored, the objectives, hot buttons and key points captured "
-                            "for it, its win themes, open meeting topics, the customer's answers, the page budget and the dates. "
+                            "for it, its win themes, open meeting topics, the customer's answers, the page allocation and the dates. "
                             "The effort's marking sits at the top and bottom of every page.", "muted"))
         self.list = QListWidget(); v.addWidget(self.list, 1)
         people = KO.authors(host.review.M) if host.review is not None else {}

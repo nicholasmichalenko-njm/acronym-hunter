@@ -16,7 +16,7 @@ from .adaptive import FlowLayout
 
 OFFICE = (".docx", ".xlsx", ".pptx")
 # what a dropped file can be used for: key -> (what it says, the extensions it takes, None for any the reader takes)
-USES = (("acrfinder", "Find acros and abs (Acros & Abs Finder, its own window)", None),
+USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
         ("acronyms", "Find acronyms in what I am working on", None),
         ("firstuse", "Check first use (First Use Check)", (".docx",)),
         ("copyreview", "Copy review (Technical Edit) of what I am working on", (".docx",)),
@@ -29,24 +29,24 @@ USES = (("acrfinder", "Find acros and abs (Acros & Abs Finder, its own window)",
         ("redline", "Prepare it for redline (a Word file beside it)",                           # 4.22.0: a file outside any effort
          (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")))
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
-TOOLS = {"acrfinder": ("Acros & Abs Finder", "Scan any files for acros and abs, apart from any effort", "window"),
+TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart from any effort", "window"),
          "firstuse": ("First Use Check", "Your Word files' first uses", "window"),
          "fulltext": ("Full Text", "Every word in the files, as text", "window"),
-         "acronyms": ("Acros & Abs", "Scan and the acronym list", "page"), "acrlist": ("Acros & Abs List", "The effort's list", "page"),
+         "acronyms": ("Acronyms", "Scan and the acronym list", "page"), "acrlist": ("Acronym List", "The effort's list", "page"),
          "assign": ("Shred", "Every piece of the customer's documents, on the page", "page"), "matrix": ("Matrix", "The compliance matrix", "page"),
-         "library": ("Documents", "The customer's documents", "page"), "compare": ("Changes", "Two versions, what changed", "page"),
+         "library": ("Documents", "The customer's documents", "page"), "compare": ("Amendments", "Two versions, what changed", "page"),
          "structure": ("Setup", "The sections and each author's starting draft", "page"), "storyboards": ("Storyboards", "One sheet per section", "page"),
          "drafts": ("Draft Status", "A draft read back", "page"), "truth": ("Wall of Truth", "One approved way to state each fact", "page"),
          "reviews": ("Color Reviews", "Review packets and comments", "page"), "qa": ("Submission Check", "The volumes you will submit", "page"),
          "checks": ("Final Checks", "The PDF package, cross-references", "page"), "templates": ("Templates", "Every template the profiles make", "page"),
          "profiles": ("Effort Profiles", "Profiles built by picking", "page"), "fixcopy": ("Fix a Copy", "Fixes into a dated copy", "page"),
-         "audit": ("Audit", "Files against every standard", "page"), "home": ("Dashboard", "Where the effort stands", "page"),
+         "audit": ("Audit", "Files against every standard", "page"), "home": ("Overview", "Where the effort stands", "page"),
          "mywork": ("My Work", "Your work in every effort", "page"), "refs": ("Team References", "The lists the team keeps", "page"),
          "custqa": ("Customer Q&A", "Questions to the customer", "page"),
          "techedit": ("Technical Edit", "Copy review of a draft", "page"),
          "shredreq": ("Quick shred", "Every requirement in one file, with no effort", "page"),
          "shredacc": ("Shred accuracy", "How well the reader finds requirements, on answer keys", "page"),     # 4.19.0: off Shred
-         "sort": ("Theme tags", "Cross-cutting themes on requirements, for filtering and assignments", "page")}
+         "sort": ("Themes", "Cross-cutting themes on requirements, for filtering and assignments", "page")}
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
              "Proposal Manager": ["home", "shredreq", "assign", "reviews", "mywork", "acrfinder", "qa"],
              "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],
@@ -145,7 +145,7 @@ class ToolsHome(QWidget):
         self.drop = DropZone(self.files_in); v.addWidget(self.drop)
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Choose files...", "primary", lambda: self.choose()))
-        row.addWidget(D.button("Paste a picture", None, lambda: self.paste(), "A screenshot or a copied figure, read in Acros & Abs Finder"))
+        row.addWidget(D.button("Paste a picture", None, lambda: self.paste(), "A screenshot or a copied figure, read in Acronym Finder"))
         row.addStretch(1)
         pins = D.Card("Pinned tools", "One click each. Edit pins... to change them.",
                       actions=(D.button("Edit pins...", "ghost", lambda: self.edit_pins()),))
@@ -232,7 +232,7 @@ class ToolsHome(QWidget):
                     out.append("Document:   " + (d.get("name") or ""))
             except Exception:  # noqa: BLE001
                 diag.swallowed()
-        for key, one, many in (("terms", "acro or abb", "acros and abs"), ("matrix", "compliance matrix", "compliance matrices"),
+        for key, one, many in (("terms", "acro or abb", "acronyms"), ("matrix", "compliance matrix", "compliance matrices"),
                                ("context", "piece of context", "pieces of context"), ("notes", "note", "notes")):
             n = int(c.get(key) or 0)
             if n:

@@ -365,7 +365,7 @@ class RecordPage(StageTableMixin, QWidget):
         full = QPlainTextEdit(); full.setReadOnly(True); full.setMaximumHeight(140); v.addWidget(full)
         t.currentCellChanged.connect(lambda r_, *_a: full.setPlainText(rows[r_].get("summary") or "No summary written") if 0 <= r_ < len(rows) else None)
         if not rows:
-            full.setPlainText("No overviews yet. Export overview... on the Effort Dashboard writes the first.")
+            full.setPlainText("No overviews yet. Export overview... on Overview writes the first.")
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         open_btn = bb.addButton("Open", QDialogButtonBox.ActionRole)
 

@@ -58,7 +58,7 @@ class MyWorkPage(QWidget):
         t.cellDoubleClicked.connect(lambda r, _c: self.open_row(r))
         self.table = t; self.list_card.add(t)
         v.addWidget(self.list_card)
-        self.eff_card = D.Card("By effort", "Where each effort stands, and the sections this person leads or writes with their page budgets.")
+        self.eff_card = D.Card("By effort", "Where each effort stands, and the sections this person leads or writes with their page allocations.")
         self.eff_box = QVBoxLayout(); self.eff_box.setSpacing(D.SPACE["s"]); self.eff_card.body.addLayout(self.eff_box)
         v.addWidget(self.eff_card)
         v.addStretch(1)

@@ -118,7 +118,7 @@ def to_wall(page, term, answer=None):
     means = (row.get("Definition") or d.get("selected_definition") or "").strip()
     if means == "Keep All Possibilities":
         means = ""
-    pre = {"label": term, "kind": "Term", "value": term, "source": "Acros & Abs",
+    pre = {"label": term, "kind": "Term", "value": term, "source": "Acronyms",
            "notes": f"Means here: {means}" if means else "Means here: "}
     wp = page.host.truth_page
     out = wp.truth_dialog(answer=dict(pre, **answer)) if answer is not None else wp.truth_dialog(prefill=pre)

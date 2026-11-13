@@ -20,8 +20,8 @@ from .doctypeui import follow, type_box
 REQ_GROUPS = (("structure", "Structure and page limits", ("Deliverable", "Page limit")), ("format", "Format", ("Format", "File")),
               ("submission", "Submission and dates", ("Delivery", "Copies", "Contact", "Due", "Questions due")))
 USED_BY = {"Deliverable": "Matrix & Outline, Submit", "Page limit": "Matrix & Outline, Setup", "Format": "Setup, Submit",
-           "File": "Submit", "Delivery": "Submit", "Copies": "Submit", "Contact": "Submit", "Due": "Dashboard, Submit",
-           "Questions due": "Dashboard"}
+           "File": "Submit", "Delivery": "Submit", "Copies": "Submit", "Contact": "Submit", "Due": "Overview, Submit",
+           "Questions due": "Overview"}
 
 
 def _esc(s):
@@ -204,7 +204,7 @@ class DocsPage(QWidget):
                                  "Files in the effort's customer documents folder not added yet")
         top.addWidget(self.b_folder)
         top.addWidget(D.button("Add files...", "primary", lambda: self.add()))
-        card = D.Card("Documents and their versions", "Every version is kept with its text, so Changes works even when the file moves.")
+        card = D.Card("Documents and their versions", "Every version is kept with its text, so Amendments works even when the file moves.")
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document / version", "Initial", "Type", "File", "Added", "Pieces",
                                                               "Changes", "Reviewed"])
         self.tree.setColumnWidth(0, 260); self.tree.setColumnWidth(1, 60); self.tree.setColumnWidth(2, 100)
@@ -510,13 +510,13 @@ class RequirementsPage(QWidget):
         for _gk, label, kinds in REQ_GROUPS:
             mine = [r for r in shown if r["kind"] in kinds]
             nr = sum(1 for r in mine if r["to_review"])
-            g = QTreeWidgetItem([f"{label} ({len(mine)})", "none found yet" if not mine else "", f"{nr} to decide in Changes" if nr else "", ""])
+            g = QTreeWidgetItem([f"{label} ({len(mine)})", "none found yet" if not mine else "", f"{nr} to decide in Amendments" if nr else "", ""])
             f = g.font(0); f.setBold(True); g.setFont(0, f)
             self.tree.addTopLevelItem(g)
             for r in mine:
                 st, tone = self.state(r)
                 lc = None if r["manual"] else self.last_change(r)
-                by = ("Typed in" if r["manual"] else (f"{lc[2]}" + (" (decide in Changes)" if r["to_review"] else "")) if lc
+                by = ("Typed in" if r["manual"] else (f"{lc[2]}" + (" (decide in Amendments)" if r["to_review"] else "")) if lc
                       else ("Set aside" if r["hidden"] else r.get("version") or "Original"))
                 it = QTreeWidgetItem([r["subject"], "" if lc else r["value"], by, "" if r["manual"] else f"{r['doc']}, {r['version']}",
                                       USED_BY.get(r["kind"], "")])
@@ -633,7 +633,7 @@ class RequirementsPage(QWidget):
         k = r["key"]
         lc = None if r["manual"] else self.last_change(r)
         if lc:
-            row.addWidget(D.button("Open the change in Changes", "primary" if r["to_review"] else None,
+            row.addWidget(D.button("Open the change in Amendments", "primary" if r["to_review"] else None,
                                    lambda: self.open_change(k), "The change on both versions, with its decision"))
         if not r["manual"]:
             row.addWidget(D.button("Confirm", None, lambda: self.act("confirm", k)))

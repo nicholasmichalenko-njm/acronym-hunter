@@ -48,12 +48,12 @@ hp = w.home_page
 bn = hp.banner
 
 # ---------------------------------------------------------------- one page
-check("the menu has the Effort Dashboard and no Dashboard", "home" in w.step_btns and "dashboard" not in w.step_btns
-      and w.step_btns["home"].text() == "Dashboard")
-check("the page is called Dashboard (3.96.0)", w.page_title.text() == "Dashboard")
+check("the menu has Overview and no Overview", "home" in w.step_btns and "dashboard" not in w.step_btns
+      and w.step_btns["home"].text() == "Overview")
+check("the page is called Overview (3.96.0)", w.page_title.text() == "Overview")
 w.go("dashboard"); app.processEvents()
-check("the old Dashboard route opens the Effort Dashboard", w.stack.currentWidget() is hp)
-check("the Dashboard's numbers and cards are on it for the proposal manager", all(k in hp.shown for k in ("health",
+check("the old Overview route opens Overview", w.stack.currentWidget() is hp)
+check("the Overview's numbers and cards are on it for the proposal manager", all(k in hp.shown for k in ("health",
       "pastdue", "acronyms")) and "coverage" not in hp.shown and "people" not in hp.shown and hp.health.isVisibleTo(w)
       and "compliance" not in hp.shown and not w.dash_page.comp.isVisibleTo(w) and w.dash_page.data is not None)     # 4.26.0: the bar is Shred's
 

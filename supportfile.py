@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.29.0": ["Names: the Dashboard is the Overview. Rules & Dates is Submission Checklist. L to M is Crosswalk.",
+               "Changes is Amendments. Acros & Abs is Acronyms. Theme tags is Themes. Evaluation is Evaluation Criteria.",
+               "Piece types: Content Instruction, Format & Submission, Key Date, Evaluation Criterion, Response Structure."],
     "4.28.2": ["A template is its own named thing: Templates > Template. Name it, pick what goes in, make it.",
                "An effort picks a template for each volume: Setup > More > Templates for the volumes...",
                "Team defaults moved from Settings to the Team page."],

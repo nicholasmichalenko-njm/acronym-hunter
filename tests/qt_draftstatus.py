@@ -109,7 +109,7 @@ check("... and each section Dana leads says its draft status", any(x["label"] ==
 w.go("dashboard"); app.processEvents()
 dp = w.dash_page
 txt = " ".join(l.text() for l in dp.draft_labels)
-check("the Effort Dashboard shows the drafts and the data calls", "1 near budget" in txt and "Not started: " + RK in txt
+check("Overview shows the drafts and the data calls", "1 near budget" in txt and "Not started: " + RK in txt
       and "1 data call(s)" in txt and "Overdue: DC-1" in txt, txt)
 memo = docxw.Doc(); memo.rich([("A Kestrel memo with no structure in it.", None)]); mp = os.path.join(tmp, "memo.docx"); memo.save(mp)
 pg.pick(mp); pg.read()

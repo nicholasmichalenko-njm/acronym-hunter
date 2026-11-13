@@ -90,7 +90,7 @@ check("the compliance bar is Shred's: one line under the document row, with the 
       and pg.progress_lbl.text() == SW.progress(n["shredded"], n["total"]) + ", " + SW.left(n["left"]), pg.progress_lbl.text())
 check("... its last part reads Not shredded", n["segments"][-1][2] == "Not shredded" and n["segments"][-1][0] == n["left"])
 w.go("home"); app.processEvents()
-check("... and the Dashboard no longer shows the Compliance review card", "compliance" not in w.home_page.shown and not w.dash_page.comp.isVisibleTo(w))
+check("... and the Overview no longer shows the Compliance review card", "compliance" not in w.home_page.shown and not w.dash_page.comp.isVisibleTo(w))
 w.go("assign"); app.processEvents()
 
 # ---- the bar at the selection
@@ -175,12 +175,12 @@ card.close_card(); app.processEvents()
 check("Sort mode is off on Shred and its key does nothing", not pg.sort_on and not vis(pg.sort_btn))
 w.go("sort"); app.processEvents()
 sp = w.pages["sort"]
-check("Theme tags: Sort and Overview; the Structure view is gone", [sp.view.itemText(i) for i in range(sp.view.count())] == ["Sort", "Overview"])
+check("Themes: Sort and Overview; the Structure view is gone", [sp.view.itemText(i) for i in range(sp.view.count())] == ["Sort", "Overview"])
 
 # ---- Rules & Dates with nothing in it; the menu's words
 w.go("requirements"); app.processEvents()
 rp = w.requirements_page
-check("Rules & Dates with rules in it shows its groups and its bar", not rp.empty.isVisible() and rp.cbar.isVisibleTo(w))
+check("Submission Checklist with rules in it shows its groups and its bar", not rp.empty.isVisible() and rp.cbar.isVisibleTo(w))
 w.close()
 print(f"QT SHRED 4260 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

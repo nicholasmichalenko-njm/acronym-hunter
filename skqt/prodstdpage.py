@@ -1917,7 +1917,7 @@ class StandardsPage(QWidget):
         if scope in ("effort", "effortvol"):
             said = (self.host.ws.get("prod_std", {}) or {}).get("said") or []
             self.eff_said.setText(("From the RFP: " + "; ".join(said)) if said else
-                                  "Nothing read from the RFP yet. Fill from the RFP's formatting rules reads Shred > Rules & Dates.")
+                                  "Nothing read from the RFP yet. Fill from the RFP's formatting rules reads Shred > Submission Checklist.")
         self.binder.load()
         self.fill_row_scope()
         self.load_tables()
@@ -2157,7 +2157,7 @@ class StandardsPage(QWidget):
         self.host.ws.set("prod_std", eff)
         diag.activity("prod_standards_from_rfp", n=len(said))
         self.host.status(f"{len(said)} formatting rule(s) read from the RFP." if said else
-                         "The RFP's formatting rules are not in Rules & Dates yet (capture them in the shred).")
+                         "The RFP's formatting rules are not in Submission Checklist yet (capture them in the shred).")
         self.switch(force=True)
         return over
 

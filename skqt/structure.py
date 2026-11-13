@@ -32,7 +32,7 @@ class StructurePage(QWidget):
         v.setSpacing(D.SPACE["m"])
         v.addWidget(D.label("The sections of your response. Build them beside the page in Shred as you read; start or replace "
                             "them here from the RFP or a Word outline. The matrix and the Response Setup follow this order. "
-                            "Volumes, people and the page budget are on the Effort Dashboard.", "muted"))
+                            "Volumes, people and the page allocation are on Overview.", "muted"))
         bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
         bar.addWidget(D.label("Start from:", wrap=False))
         bar.addWidget(D.button("What the RFP prescribes", None, self.from_prescribed,

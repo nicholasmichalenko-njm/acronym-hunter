@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QStackedWidget, QTabBar, QVBoxLayout, QWidget
 
 import diag
 
-KEYS = (("structure", "Our structure"), ("lm", "L to M"), ("coverage", "Coverage"))
+KEYS = (("structure", "Our structure"), ("lm", "Crosswalk"), ("coverage", "Coverage"))
 TIPS = {"structure": "The response structure and the target section's panel",
         "lm": "Each Section L instruction with the Section M factors that evaluate it, and the gaps (the L/M crosswalk)",
         "coverage": "Every piece of every file by decision, and the word-for-word text check"}
