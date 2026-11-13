@@ -1882,6 +1882,33 @@ def apply_client_overlay(findings, m):
             d["status"] = f"CHOOSE (client list: {len(cdefs)} meanings)"
     return findings
 
+# 4.24.0: the scan's four further shapes
+BARE_UNITS = ("mAh", "mA", "mV", "mW", "kVA", "MVA", "kV", "kWh", "MWh", "GWh", "kW", "kHz", "MHz", "GHz", "THz", "dBm", "dBi",
+              "dBW", "dB", "pH", "kPa", "MPa", "GPa", "hPa", "mL", "kN", "kbps", "Mbps", "Gbps")
+DIGIT_TERMS = {"2G", "3G", "4G", "5G", "6G", "2D", "3D", "4D", "4K", "8K"}       # known names, whatever stands around them
+_UNIT_LETTERS = set("AVWKNJCFTGLMSH")        # 4A, 5V, 9G: a number and a unit written without the space
+_LABEL_WORDS = {"section", "appendix", "table", "figure", "option", "phase", "part", "item", "step", "annex", "attachment",
+                "exhibit", "paragraph", "para", "block", "level", "tier", "type", "class", "group", "room", "building", "gate",
+                "lot", "task", "clin", "volume", "tab", "page", "note", "row", "column", "zone", "stage", "mod", "rev", "version",
+                "line", "case", "clause", "chapter", "area", "site", "unit", "bay", "grade", "form", "schedule", "category"}
+HYPHEN_PREFIXES = {"re", "co", "un", "de", "in", "on", "no", "to", "up", "pre", "non", "mid", "sub", "bi", "tri", "ex", "by", "at",
+                   "as", "so", "do", "go", "of", "or", "an", "if", "is", "it", "my", "we", "he", "us", "be", "add", "all", "one",
+                   "two", "off", "out", "set", "top", "end", "low", "new", "old", "big", "day", "run", "per"}
+
+
+def digit_term(text, match):
+    """A digit before one capital is a term (5G, 3D) when it is a known name, or when it stands as a describing word:
+    after a small word that is not a label (section 3B, option 2A) and before a small word, its letter not a unit's."""
+    tok = match.group(1)
+    if tok in DIGIT_TERMS:
+        return True
+    if tok[1] in _UNIT_LETTERS:
+        return False
+    before = re.search(r"([A-Za-z]+)\s+$", text[max(0, match.start(1) - 24):match.start(1)])
+    after = re.match(r"\s+[a-z]{2,}", text[match.end(1):match.end(1) + 12])
+    return bool(before and after and before.group(1).islower() and before.group(1) not in _LABEL_WORDS)
+
+
 def build_matcher():
     """Load the database, client lists, corrections, ignore list, and patterns once per scan."""
     refresh_ocr_ignore()
@@ -1914,6 +1941,11 @@ def build_matcher():
         "paren_short_re": re.compile(r'\(([A-Z][0-9]{1,2}|[0-9][A-Z])\)'),          # (C2), (J6), (5G): one letter and digits, given in brackets
         "dotted_re": re.compile(r'(?<![\w.])((?:[A-Z]\.){2,5})(?![\w])'),            # U.S., U.K., D.C.
         "lowlead_re": re.compile(r'(?<![\w-])([a-z]{1,2}[A-Z]{2,}[A-Za-z0-9]{0,6})(?![\w-])'),   # eMASS, iOS, eCFR
+        # 4.24.0 (Nicholas 2026-11-12, answer 15): four more shapes (tests/test_acrshapes4240.py)
+        "digitlead_re": re.compile(r'(?<![\w.,/-])([1-9][A-Z])(?![\w-])'),                  # 5G, 3D, 4K: a digit before one capital
+        "bareunit_re": re.compile(r'(?<![\w.-])(' + '|'.join(BARE_UNITS) + r')(?![\w-])'),  # mA, pH, dBm with no number before
+        "hyphen_name_re": re.compile(r'(?<![\w-])([A-Z][a-z]{1,2}-[A-Z][a-z]{1,2})(?![\w-])'),   # Wi-Fi, Hi-Fi, Li-Po
+        "lowone_re": re.compile(r'(?<![\w-])([a-z][A-Z][a-z]{2,8})(?![\w-])'),               # xApp, iPad: a small letter before one capital
     }
 
 _HITS = None   # terms recorded in the chunk being matched (for first use)
@@ -2241,8 +2273,38 @@ def match_chunks(findings, chunks, m):
                 else:
                     record_candidate(findings, tok, kind, loc_label)
 
+        # 4.24.0: a digit before one capital (5G, 3D); a known unit with no number; a hyphenated name (Wi-Fi); a small
+        # letter before one capital (xApp). Each keeps to the shape that is rarely anything else.
+        digit_spans = []
+        for match in m['digitlead_re'].finditer(text):
+            tok = match.group(1)
+            if in_code(match.span(1)) or not digit_term(text, match):
+                continue
+            digit_spans.append(match.span(1))
+            if tok in findings or tok in m['exclude_db'] or tok.upper() in m['exclude_upper']:
+                continue
+            if tok in m['include_db']:
+                record_included(findings, tok, loc_label, m['include_db'])
+            else:
+                record_candidate(findings, tok, "Acronym (Candidate)", loc_label)
+        for key, kind in (("bareunit_re", "Unit (Candidate)"), ("hyphen_name_re", "Acronym (Candidate)"), ("lowone_re", "Acronym (Candidate)")):
+            for match in m[key].finditer(text):
+                tok = match.group(1)
+                if in_code(match.span(1)) or tok in findings or tok in m['exclude_db'] or tok.upper() in m['exclude_upper']:
+                    continue
+                if key == "hyphen_name_re" and tok.split("-")[0].lower() in HYPHEN_PREFIXES:
+                    continue   # Re-Do, Co-Op, Pre-Bid in a heading: an ordinary word with a prefix
+                if key == "lowone_re" and tok.lower() in m['common_words']:
+                    continue   # tHe: a slip of the keys, not a name
+                if tok in m['include_db']:
+                    record_included(findings, tok, loc_label, m['include_db'])
+                else:
+                    record_candidate(findings, tok, kind, loc_label)
+
         for match in m['unit_re'].finditer(text):
             ucand = match.group(1)
+            if any(a <= match.start() < b for a, b in digit_spans):
+                continue   # 4.24.0: the G of 5G is not a unit
             if in_code(match.span()) or any(a <= match.start() < b for a, b in code_spans):
                 continue   # "28V" inside PCU-28V is part of a code, not a measurement; nor is the word after F-35 (4.23.3)
             if ucand in m['ocr_fixes']:

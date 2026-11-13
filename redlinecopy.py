@@ -33,6 +33,32 @@ def depth(text):
     return 1
 
 
+COVER_CHARS = 600      # a page with fewer letters than this, no numbered heading and no table reads as a cover
+
+
+def _cover_lines(paras, table_pages=()):
+    """4.24.0 (Nicholas 2026-11-12, answer 26): a cover's large lines are plain paragraphs that look the same (their
+    size, weight, color and font), not headings: a heading shows in Word's navigation pane and in a table of contents,
+    and a title, a date and a company name do not belong there. A cover: a page with little text, no numbered heading
+    and no table. The paragraphs are changed in place."""
+    by_page = {}
+    for p in paras:
+        by_page.setdefault(p["page"], []).append(p)
+    n = 0
+    for page, ps in by_page.items():
+        heads = [p for p in ps if p["kind"] == "heading"]
+        if not heads or page in table_pages or any(_DEPTH.match(p["text"] or "") for p in heads):
+            continue
+        if sum(len(p["text"]) for p in ps) >= COVER_CHARS:
+            continue
+        for p in heads:
+            p["kind"], p["level"], p["cover"] = "text", 0, True
+            if not p.get("bold"):
+                p.pop("bold", None)
+            n += 1
+    return n
+
+
 def _sha(path):
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -122,6 +148,7 @@ def plan(pdf, name=None):
                     out[-1]["color"] = st["color"]
                 if ln0.get("size") and abs(ln0["size"] - body_size) > 0.6:
                     out[-1]["size"] = round(ln0["size"], 1)
+    _cover_lines(out, {t["page"] + 1 for t in tables})
     for t in tables:
         box = t.get("box")
         if box is None:

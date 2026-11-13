@@ -49,6 +49,19 @@ check("the header's rule is the paragraph's border", "<w:pBdr>" in part(out, "wo
 check("the cover keeps no header (a different first page), and the numbering starts where the PDF's does",
       "<w:titlePg/>" in doc and "w:pgNumType" in doc)
 check("the running lines are not in the body", "Solicitation KGS-26-R-0007</w:t>" not in doc and ">Page 1<" not in doc)
+import redlinecopy as _RC4240
+_cv = [dict(kind="heading", level=1, text="Kestrel Ground Station", page=1, bold=True, size=28.0),
+       dict(kind="text", level=0, text="Issued 12 November 2026", page=1),
+       dict(kind="heading", level=1, text="L.1 General Instructions", page=2, bold=True),
+       dict(kind="heading", level=1, text="Summary", page=3, bold=True), dict(kind="text", level=0, text="x" * 700, page=3),
+       dict(kind="heading", level=1, text="Volumes", page=4, bold=True)]
+_n = _RC4240._cover_lines(_cv, table_pages={4})
+check("4.24.0: a cover's large line is a plain paragraph that keeps its size and weight, not a heading", _n == 1
+      and _cv[0]["kind"] == "text" and _cv[0]["size"] == 28.0 and _cv[0]["bold"] and _cv[0].get("cover"), _cv[0])
+check("4.24.0: a numbered heading, a heading on a full page and one on a page with a table stay headings",
+      [p["kind"] for p in _cv[2:]] == ["heading", "heading", "text", "heading"])
+check("4.24.0: in the Word file the cover has no Heading style and the first heading is L.1", "Kestrel Ground Station" in doc.split('w:val="Heading')[0]
+      and "L.1 General" in doc.split('w:val="Heading')[1].split("</w:p>")[0], "cover")
 check("a heading keeps its own font beside the body's", 'w:ascii="Helvetica"' in doc or 'w:ascii="Arial"' in doc, "no heading font")
 check("the caption keeps its slant", "<w:i/>" in doc)
 check("the table is a Word table", res["tables"] == 1 and "<w:tbl>" in doc)
