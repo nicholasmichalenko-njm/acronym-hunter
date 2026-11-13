@@ -62,9 +62,9 @@ w.go("library"); app.processEvents()
 SP.auto_tick(w)
 check("adding starts the shred: the documents are extracted in the background, no page change", w.read_page.running()
       and w.stack.currentWidget() is w.library_page)
-check("... both of them, whatever their role (Section L builds the matrix, the SOW is context)",
+check("... 4.25.2: only what is marked For the shred (Section L); the SOW is Reference and is not extracted",
       wait(lambda: w.review is not None and not w.read_page.running())
-      and sorted(w.review.files()) == ["Osprey_SOW.pdf", "Osprey_Section_L.pdf"], w.review.files() if w.review else None)
+      and sorted(w.review.files()) == ["Osprey_Section_L.pdf"], w.review.files() if w.review else None)
 check("... with no question asked", not asked, asked)
 # 4.6.0: the acronym scan follows, on the same timer
 ap = w.acronym_page
@@ -72,15 +72,15 @@ before = w.stack.currentWidget()
 wk = SP.auto_scan(w)
 check("4.6.0: once the documents are extracted, Acros & Abs scans them, in the background, no page change",
       (wk is not None or (ap.session and ap.session.last_scan)) and w.stack.currentWidget() is before)   # the timer may be first
-check("... and finds their terms", wait(lambda: ap.worker is None) and ap.session.results
+check("... and finds their terms, the Reference document's too (GCS)", wait(lambda: ap.worker is None) and ap.session.results
       and {"IMS", "GCS"} <= set(ap.session.results.keys() if hasattr(ap.session.results, "keys") else []), list(ap.session.results)[:10] if ap.session.results else None)
 check("... the same documents are not scanned again", SP.auto_scan(w) is None)
 w._acr_seen = None
 check("... not even after the window forgets (the last scan holds them)", SP.auto_scan(w) is None)
 lib1 = DV.Library(ws.p("documents")).load()
 P3 = os.path.join(CD, "Osprey_CDRL.pdf"); pdfmini.write(P3, [["A001 MONTHLY STATUS", "The Program Management Review (PMR) is monthly."]], size=9)
-lib1.add(P3, DI.read(P3), doc_name="CDRL", role="context", initial="A", dtype="Attachment")
-check("a new document waits for its extraction first", SP.auto_scan(w) is None)
+lib1.add(P3, DI.read(P3), doc_name="CDRL", role="matrix", initial="A", dtype="Attachment")
+check("a new document marked For the shred waits for its extraction first", SP.auto_scan(w) is None)
 ap.worker = object()
 check("... and extraction waits while a scan runs (one reader at a time)", SP.auto_tick(w) is None)
 ap.worker = None
