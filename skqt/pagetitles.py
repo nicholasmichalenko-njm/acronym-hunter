@@ -13,7 +13,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "shredlist": ("List", "Every piece of the shred under the customer's headings: what is decided, what is left"),
           "shredreq": ("Quick shred", "Every requirement in one file, labelled Requirement, Instruction (L), Evaluation (M) or SOW task; export a draft matrix or file it to an effort"),
           "techedit": ("Technical Edit", "Copy review: mechanics, consistency, Chicago style, plain language, the customer's words and leftovers, with the edited copy as tracked changes"),
-          "tools": ("Your Tools", "Drop any file and pick what to do with it, your pinned tools, recent files and your efforts"),
+          "tools": ("Quick tools", "Drop any file and pick what to do with it, your pinned tools, recent files and your efforts"),
           "refs": ("Team References", "The lists the team keeps, read by every space: dictionaries, banned phrases, the acronym database, the Exclusion List, fixes for misread text"),
           "profiles": ("Effort Profiles", "Each effort type's profiles, built by picking from the libraries, with the RFP's size limits checked as you pick"),
           "templates": ("Templates", "Every Word template the profiles make: ready, needs review or blocked, and why; make one or all"),

@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE TOP BAR AND QUICK TOOLS (4.27.2)
+  - Quick note. The top bar's button opens the note at once (Ctrl+Shift+N). Issue or idea left the bar: it is in
+    Settings > Updates and help (Issues and ideas...) and on Ctrl+Shift+I.
+  - Undo left the top bar. Ctrl+Z undoes the last change on the page, as before. After a change the foot of the
+    window says what Undo would put back; click it to undo. History, beside it, lists what the page can still undo,
+    newest first: pick a line and everything down to it is undone.
+  - Quick tools (it was Your Tools) is at the bottom of the menu, above Team. It is no longer in the effort switcher.
+  - Unfiled is a list on Quick tools: what you made with a tool before it belonged to an effort, with Open, Make it
+    an effort..., Add to an effort... and Clear.... It is not an effort to switch to, and All Efforts has no card
+    for it. What was unfiled before is still there.
+
 TASKS, CALENDAR, ACTIVITY (4.27.1)
   - Tasks, in the menu under the Dashboard. Two views on one page:
       This effort: its tasks by gate, late ones first. Add a task... takes what, who, by when and what it is about.

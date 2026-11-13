@@ -1,5 +1,5 @@
 """The menu as the effort's path (3.96.0; canvas "Navigation", boards 1 and 3; claude/stationkeeper-navigation-3.93.md):
-the effort switcher at the top (another effort, All Efforts, My Work, Your Tools); the Dashboard and the steps (4.0.0: six),
+the effort switcher at the top (another effort, All Efforts, My Work, Quick tools); the Dashboard and the steps (4.0.0: six),
 each with what is left (done, a count, next, a date); Team and Settings at the foot; Ctrl+K goes to any page or tool by
 name. Inside the Shred step its tabs are a visual stepper with counts (4.0.0: Extract, Requirements, Acros & Abs, Acro List) and
 its other pages are ways to see it (Our structure, List, Sort, L to M, Coverage). Every page in a step ends with
@@ -26,6 +26,7 @@ STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and you
                "setups": ("Setup", "Who writes what, when and how long; the setup in Word"),
                "drafts": ("Drafts", "The team's drafts read back: where each section stands"),
                "finalcheck": ("Submit", "The last checks, then what happens after"),
+               "tools": ("Quick tools", "Any tool on any file, with no effort needed; and what is not filed yet"),
                "calendar": ("Calendar", "The month, the day's list and the next dated things"),
                "tasks": ("Tasks", "This effort's tasks by gate, and yours across efforts"),
                "graphics": ("Graphics", "Every graphic, the customer's and ours: its version, its words read, its acros and abs swept"),

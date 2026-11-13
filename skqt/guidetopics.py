@@ -9,7 +9,7 @@ TOPICS = [
   ["The menu on the left is the effort's path: the Dashboard, then six steps in the order of the work: 1 Documents, "
    "2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts, 6 Submit. Each step says what is left and none is ever locked; "
    "Prepare for Redline sits under Documents. A step's pages are tabs under its title. Team holds the team's own tools; Settings is last.",
-   "The effort's name at the top opens All Efforts and Your Tools: any tool on any file, with no effort needed.",
+   "The effort's name at the top opens All Efforts and Quick tools: any tool on any file, with no effort needed.",
    "Your role decides which of the team's tools show.",
    "Start an effort on All Efforts, or open one you already have.",
    "Add the customer's documents in Documents: each is extracted as it arrives. In Shred, say what every piece is, on "
@@ -19,7 +19,7 @@ TOPICS = [
   ["Press F1 on any page to open this Guide at that page.",
    "Press Ctrl+K to find a page, an effort, a piece or a person from anywhere.",
    "Every decision saves as you make it. Closing the app never loses work."]),
- ("tools", "Home", "Your Tools",
+ ("tools", "Home", "Quick tools",
   "The first screen: drop any file and pick what to do with it, your pinned tools, the files you opened from here, and your "
   "efforts and Unfiled.",
   "Whenever you start: a quick job on any document, or the effort you are working on.",
@@ -197,11 +197,11 @@ TOPICS = [
    "Place in the section puts an answer into the response structure as context: the section's author sees it in the setup, "
    "the kickoff packet and Everything for this section."],
   ["Show: Overdue lists calls past their due date with no answer. The Author drafts gate can hold until every call is answered."]),
- ("shredreq", "Your Tools", "Quick shred",
+ ("shredreq", "Quick tools", "Quick shred",
   "Every requirement in one file, with no matrix to set up: an RFP, a draft RFP or a statement of work. Each one labelled "
   "Requirement, Instruction (L), Evaluation (M) or SOW task, with its section, page and the words that make it one.",
   "The day an RFP or draft RFP drops, before any effort exists; or any time you need a quick list.",
-  ["Choose a file... (or drop it on Your Tools and pick Find the requirements).",
+  ["Choose a file... (or drop it on Quick tools and pick Find the requirements).",
    "Filter by kind. Select a row: the piece with its words in bold, and where it is.",
    "Export the matrix...: a draft compliance matrix in Excel, one row per requirement.",
    "File to an effort...: reads the file into that effort's shred, where each requirement gets its decision."],
@@ -257,7 +257,7 @@ TOPICS = [
    "Press Run the text check. If anything is missing, press Add the missing lines: they go in their place in the document.",
    "Documents shows the same thing a document at a time."],
   ["Every extraction runs the text check too, and says the result in the status bar."]),
- ("sort", "Your Tools", "Theme tags",
+ ("sort", "Quick tools", "Theme tags",
   "Themes that run across sections (cybersecurity, transition, staffing) on requirements, for filtering and "
   "assignments. They never make headings: our outline starts on Matrix & Outline.",
   "After the documents are shredded, and whenever an amendment adds requirements.",
@@ -287,7 +287,7 @@ TOPICS = [
    "Press Export the matrix..., or Export the compliance package... for the matrix with its reports.",
    "Save as the team default keeps this layout for new efforts."],
   ["The exported workbook is a dated copy. Exports are never overwritten."]),
- ("shredacc", "Your Tools", "Accuracy",
+ ("shredacc", "Quick tools", "Accuracy",
   "How well the shred finds requirements, measured on your own set of public RFPs: recall (the real requirements it "
   "finds), precision (its flags that are real) and the kind, against the 95% target, release by release.",
   "Whenever you add an RFP to the set, and after each release.",
@@ -317,7 +317,7 @@ TOPICS = [
    "hides the sentences that stayed the same. Redline (Word)... exports the changes marked; Tracked changes (Word)... "
    "saves a Word file where each change is a tracked change to accept or reject. Two Word files are compared by Word "
    "itself (formatting kept) when Word is on this PC; other files as their text.",
-   "Final Checks' Open in Changes, and dropping two files on Your Tools, open Any two files with both picked."],
+   "Final Checks' Open in Changes, and dropping two files on Quick tools, open Any two files with both picked."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
  ("structure", "Matrix & Outline", "Outline",
   "Our response structure: volumes and sections at H1 to H9. Start our structure offers two doors to the one outline: "
@@ -430,11 +430,11 @@ TOPICS = [
    "Press Export the lists (Word)... or Export (Excel)...",
    "Record in the effort list notes which volume uses each term."],
   []),
- ("acrtool", "Your Tools", "Acros & Abs Finder (its own window)",
+ ("acrtool", "Quick tools", "Acros & Abs Finder (its own window)",
   "The acronym scan as a tool in its own window, for quick jobs with no effort: scan any files, check each term's meaning "
   "and where it was found, export the list, check first use in your own Word files.",
   "When you need a list of a document's acronyms and their meanings, or to check a submittal's first uses, fast.",
-  ["Open it from Home (Your Tools: a pin, or drop a file and pick Find acronyms), from Acronyms > Open in its own window, or start the program with "
+  ["Open it from Home (Quick tools: a pin, or drop a file and pick Find acronyms), from Acronyms > Open in its own window, or start the program with "
    "the acronyms switch (a shortcut to Stationkeeper.exe with /acronyms or the double-hyphen form opens only this window).",
    "Scan files... or Scan a folder...: every acronym, abbreviation, unit and symbol, in typed text and in pictures, with its "
    "meaning. Select a term: its card shows where it was found, the picture or page with every reading boxed (yellow is "
@@ -450,11 +450,11 @@ TOPICS = [
    "Symbols: beside the definition box, Greek letters, subscripts, superscripts, math, accents, units and arrows. Right-click "
    "a box, or press Ctrl+Shift+Space, to make the selection subscript, superscript or normal text (H₂O, m²)."],
   ["Its list is its own, on this PC, apart from every effort; it reopens with the last scan."]),
- ("firstuse", "Your Tools", "First Use Check (its own window)",
+ ("firstuse", "Quick tools", "First Use Check (its own window)",
   "One or more Word files checked on their own: where each acronym is first used, and every acronym used before it is "
   "defined, never defined, or spelled out more than once.",
   "Before a document goes out, or whenever you need to know a draft's first uses fast, with no effort open.",
-  ["Open it from Home (Your Tools: a pin, or drop Word files and pick Check first use), from Submission Check, or start the program with "
+  ["Open it from Home (Quick tools: a pin, or drop Word files and pick Check first use), from Submission Check, or start the program with "
    "the firstuse switch and the Word files after it.",
    "Add Word files (or drop them on the window) in the order they are read. First use restarts in each file, in each section "
    "of each file, or runs across all the files. Press Check.",
@@ -467,11 +467,11 @@ TOPICS = [
    "Entries in a table of contents never count as a first use.",
    "Export the report to Excel."],
   ["Submission Check does the same for an effort's volumes and also compares each spell-out with the effort's acronym list."]),
- ("fulltext", "Your Tools", "Full Text (its own window)",
+ ("fulltext", "Quick tools", "Full Text (its own window)",
   "Every word in the files you choose, typed text exactly and picture text through the reader (equations in linear form), "
   "shown in one box and saved as text.",
   "When you need a document's words as plain text: to search it, compare it, or paste it somewhere else.",
-  ["Open it from Home (Your Tools: a pin, or drop files and pick Pull out all the text), or start the program with the fulltext switch.",
+  ["Open it from Home (Quick tools: a pin, or drop files and pick Pull out all the text), or start the program with the fulltext switch.",
    "Choose files..., Choose a folder..., or Acros & Abs Finder's files (the files its open list scanned). Press Read all the text; "
    "Stop ends it.",
    "Save as one .txt..., Save one .txt per file... (each named after its file, with _fulltext), or Copy."],
@@ -495,7 +495,7 @@ TOPICS = [
   ["The draft itself is never changed.",
    "Spelling uses an English word list and the team's custom dictionaries (Team References); banned phrases come from Team "
    "References; acronyms are read from the acronym list, and fixes to them stay in Acronyms.",
-   "Drop a Word file on Your Tools and pick Copy review to use it with no effort open."]),
+   "Drop a Word file on Quick tools and pick Copy review to use it with no effort open."]),
  ("reviews", "Drafts", "Color Reviews",
   "Color team review packets: a Word file with every requirement under its section, for reviewers to give a verdict "
   "and comments, read back onto each requirement.",
@@ -538,7 +538,7 @@ TOPICS = [
    "Each PDF shows its pages against the limit, page size, fonts not embedded, pages with no searchable text and size.",
    "Leftovers (3.57.0): tick the drafts (Add files... for others) and press Check for leftovers. It finds the setup's "
    "reference text and file properties, hidden text, white text on a light page, comments, tracked changes and "
-   "placeholders; each row says why it matters. Drop a Word file on Your Tools and pick Check for leftovers for the same.",
+   "placeholders; each row says why it matters. Drop a Word file on Quick tools and pick Check for leftovers for the same.",
    "Cross-references and numbering: tick the drafts and press Check the drafts. It finds figures and tables out of "
    "order or repeated, mentions with no caption, captions never mentioned, pictures and tables with no caption, and "
    "Word's \u201cError! Reference source not found.\u201d",
@@ -791,8 +791,8 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
 # 3.75.0, 4.20.1: the Guide reads in the menu's order (the six steps; a tab's page after its menu item)
 _ORDER = ("path home calendar tasks deliverables record meetings exportall library read compare datacalls redline graphics assign verify requirements evalcrit "
           "custqa acronyms acrlist lists structure matrix crosswalk prove impact setups effortfmt storyboards drafts techedit reviews truth "
-          "finalcheck qa checks postsub keywords team formatstd styles qpstd layoutstd designs profiles templates studio "
-          "rules audit applyword fixcopy refs settings efforts mywork tools shredreq shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path
+          "finalcheck qa checks postsub keywords tools team formatstd styles qpstd layoutstd designs profiles templates studio "
+          "rules audit applyword fixcopy refs settings efforts mywork shredreq shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):
     _last = float(_ORDER.index(_t[0])) if _t[0] in _ORDER else _last + 0.001

@@ -1,6 +1,6 @@
 """4.20.0: one word for one thing (claude/stationkeeper-glossary-4.20.md). No text the program shows uses a word the
 glossary retired (tools/glossary.py; a string kept on purpose is in tools/glossary_allow.json with its reason, and every
-entry there still matches a string). The shred's counts read the same on every surface (shredwords). Your Tools' tiles
+entry there still matches a string). The shred's counts read the same on every surface (shredwords). Quick tools' tiles
 carry the pages' names of today. Fictional (Kestrel)."""
 import json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -51,7 +51,7 @@ check("the menu, the stepper, Documents' panel and the List read them there", al
       [f for f, s in src.items() if "SW." not in s])
 from skqt import toolshome as TH
 names = {k: v[0] for k, v in TH.TOOLS.items()}
-check("Your Tools' tiles: Shred, Documents, Changes, Acros & Abs, Quick shred, Dashboard", names["assign"] == "Shred" and names["library"] == "Documents"
+check("Quick tools' tiles: Shred, Documents, Changes, Acros & Abs, Quick shred, Dashboard", names["assign"] == "Shred" and names["library"] == "Documents"
       and names["compare"] == "Changes" and names["acronyms"] == "Acros & Abs" and names["acrfinder"] == "Acros & Abs Finder"
       and names["shredreq"] == "Quick shred" and names["home"] == "Dashboard", names)
 check("... no two tiles share a name", len(set(names.values())) == len(names))

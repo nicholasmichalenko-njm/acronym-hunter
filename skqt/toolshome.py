@@ -1,4 +1,4 @@
-"""Home > Your Tools (3.53.0, the first screen): drop any file (or choose files, or paste a picture) and pick what to do with
+"""Home > Quick tools (3.53.0, the first screen): drop any file (or choose files, or paste a picture) and pick what to do with
 it from the tools that take that kind of file (plan decision 3: ask which tool); your pinned tools, one click each
 (decision 4: a starting set by role, changed freely); the files you last opened from here; your efforts and Unfiled.
 Any tool works on loose files in Unfiled or on the effort you are working on (the Working on box, top right).
@@ -155,9 +155,21 @@ class ToolsHome(QWidget):
         rf = D.Card("Recent files", "Open one again with any tool."); g.addWidget(rf, 0, 0)
         self.recent = QListWidget(); self.recent.setMinimumHeight(170); rf.add(self.recent)
         self.recent.itemDoubleClicked.connect(lambda it: self.files_in([it.data(Qt.UserRole)]))
-        ef = D.Card("Your efforts", "Double-click to work on one. Unfiled holds work not filed yet."); g.addWidget(ef, 0, 1)
+        ef = D.Card("Your efforts", "Double-click to work on one."); g.addWidget(ef, 0, 1)
         self.eff = QListWidget(); self.eff.setMinimumHeight(170); ef.add(self.eff)
         self.eff.itemDoubleClicked.connect(lambda it: self.work_on(it.data(Qt.UserRole)))
+        # 4.27.2 (Nicholas 2026-11-12 21:25, answer 4): Unfiled is a list here, not an effort
+        self.uf_card = D.Card("Unfiled", "What you made with a tool before it belonged to an effort. File it when you know where it goes.")
+        self.uf_list = QListWidget(); self.uf_list.setMinimumHeight(110); self.uf_list.setMaximumHeight(200); self.uf_card.add(self.uf_list)
+        self.uf_list.itemDoubleClicked.connect(lambda _it: self.open_unfiled())
+        ur = FlowLayout(None, D.SPACE["s"]); self.uf_card.body.addLayout(ur)
+        self.uf_open = D.button("Open", None, lambda: self.open_unfiled(), "Work on what is unfiled with any page")
+        self.uf_make = D.button("Make it an effort...", "primary", lambda: self.host.make_unfiled_effort(), "Unfiled becomes a named effort with its own folder")
+        self.uf_add = D.button("Add to an effort...", None, lambda: self.host.efforts_page.add_unfiled_to(), "Chosen documents and the terms join an effort you have")
+        self.uf_clear = D.button("Clear...", "ghost", lambda: (self.host.efforts_page.clear_unfiled(), self.refresh()), "Empty it (a copy is kept)")
+        for b in (self.uf_open, self.uf_make, self.uf_add, self.uf_clear):
+            ur.addWidget(b)
+        v.addWidget(self.uf_card)
         v.addStretch(1)
         self.pins = []
 
@@ -190,18 +202,56 @@ class ToolsHome(QWidget):
         self.eff.clear()
         h = self.host
         import unfiled as UF
-        names = [n for n in h.efforts.names() if not (h.efforts.get(n) or {}).get("archived")]
+        names = [n for n in h.efforts.names() if not (h.efforts.get(n) or {}).get("archived") and n != UF.NAME]
         cur = h.effort_name
-        for n in sorted(names, key=lambda x: (x != cur, x == UF.NAME, x.casefold())):
-            label = n + ("   (working on)" if n == cur else "")
-            if n == UF.NAME:
-                try:
-                    label += "   " + (UF.summary_text(UF.counts(h.efforts)) or "empty")
-                except Exception:  # noqa: BLE001
-                    diag.swallowed()
-            it = QListWidgetItem(label); it.setData(Qt.UserRole, n); self.eff.addItem(it)
-        if UF.NAME not in names:
-            it = QListWidgetItem("Unfiled   (start here with no effort)"); it.setData(Qt.UserRole, UF.NAME); self.eff.addItem(it)
+        for n in sorted(names, key=lambda x: (x != cur, x.casefold())):
+            it = QListWidgetItem(n + ("   (working on)" if n == cur else "")); it.setData(Qt.UserRole, n); self.eff.addItem(it)
+        if not names:
+            self.eff.addItem(QListWidgetItem("No efforts yet. All Efforts starts one."))
+        self.fill_unfiled()
+
+    def unfiled_rows(self):
+        """What Unfiled holds, one line each: its documents by name, then its terms, its matrix and its notes as counts."""
+        import unfiled as UF
+        h = self.host
+        out = []
+        try:
+            c = UF.counts(h.efforts)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            c = {}
+        info = h.efforts.get(UF.NAME) or {}
+        path = info.get("path", "")
+        if info.get("unfiled") and path and os.path.isfile(path):
+            try:
+                import docversions as DV
+                import workspace as W
+                for d in DV.Library(os.path.join(W.data_dir_for(path), "documents")).load().all:
+                    out.append("Document:   " + (d.get("name") or ""))
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+        for key, one, many in (("terms", "acro or abb", "acros and abs"), ("matrix", "compliance matrix", "compliance matrices"),
+                               ("context", "piece of context", "pieces of context"), ("notes", "note", "notes")):
+            n = int(c.get(key) or 0)
+            if n:
+                out.append(f"{n} {one if n == 1 else many}")
+        return out
+
+    def fill_unfiled(self):
+        rows = self.unfiled_rows()
+        self.uf_list.clear()
+        for r in rows:
+            self.uf_list.addItem(QListWidgetItem(r))
+        if not rows:
+            self.uf_list.addItem(QListWidgetItem("Nothing unfiled. A tool used with no effort open keeps its work here."))
+        for b in (self.uf_make, self.uf_add, self.uf_clear):
+            b.setEnabled(bool(rows))
+        import unfiled as UF
+        self.uf_add.setEnabled(bool(rows) and any(n != UF.NAME for n in self.host.efforts.names()))
+        return rows
+
+    def open_unfiled(self):
+        return self.host.efforts_page.open_unfiled()
 
     def working_on(self):
         return self.host.effort_name or "Unfiled"

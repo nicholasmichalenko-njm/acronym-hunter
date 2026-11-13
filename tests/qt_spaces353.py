@@ -74,7 +74,7 @@ check("Found in pictures: only the terms read from a picture", pics == {"KGS", "
 page.f_pics.setChecked(False)
 tw.close()
 
-# ---- the spaces, Home (Your Tools) and Team References
+# ---- the spaces, Home (Quick tools) and Team References
 from skqt import mainwin as MW
 from skqt import toolshome as TH
 heads = [g for g, _i in MW.RAIL]
@@ -91,7 +91,7 @@ check("a space that works on an effort opens on Unfiled when nothing is open", w
 w.close_effort(); app.processEvents()
 w.go("tools"); app.processEvents()
 home = w.tools_page
-check("Your Tools opens with no effort", w.stack.currentWidget() is home and w.page_title.text() == "Your Tools")
+check("Quick tools opens with no effort", w.stack.currentWidget() is home and w.page_title.text() == "Quick tools")
 check("pins start from the role's set", home.pins == TH.load_pins(cfg, home.role()) and len(home.pins) >= 4, home.pins)
 check("... Edit pins keeps your choice", home.edit_pins(["fulltext", "refs"]) == ["fulltext", "refs"] and TH.load_pins(cfg) == ["fulltext", "refs"])
 docx = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")
@@ -110,7 +110,7 @@ check("... and it is a recent file", RF.shown(cfg)[0]["path"] == docx and home.r
 import unfiled as UF
 check("Working on: Unfiled is always there", w.effort_box.findText(UF.NAME) >= 0 and "Unfiled" in w.effort_box.toolTip())
 w.go("tools"); w.work_on(UF.NAME); app.processEvents()
-check("... working on Unfiled keeps you on Your Tools", w.effort_name == UF.NAME and w.stack.currentWidget() is home)
+check("... working on Unfiled keeps you on Quick tools", w.effort_name == UF.NAME and w.stack.currentWidget() is home)
 added = []
 w.library_page.add = lambda paths=None, **k: added.append(list(paths or [])) or 1      # the Library asks where each file goes
 got = home.files_in([docx], use="library")

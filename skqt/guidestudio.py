@@ -144,7 +144,7 @@ PATH = ("path", "Getting started", "The effort's path",
    "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acros & Abs). Submit: the last checks.",
    "The Dashboard is the map: one card per step, Your next step with one button, and this week's dates.",
    "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",
-   "The effort switcher at the top of the menu holds another effort, All Efforts and Your Tools. Ctrl+K goes to any page or "
+   "The effort switcher at the top of the menu holds another effort, All Efforts and Quick tools. Ctrl+K goes to any page or "
    "tool by name."],
   ["Nothing is locked: open any step in any order. A step is done when what it counts is done."])
 

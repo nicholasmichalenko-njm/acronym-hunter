@@ -675,7 +675,7 @@ class RailEffort(QFrame):
         self.name = QLabel(""); self.name.setObjectName("railEffortName"); self.name.setWordWrap(True)
         self.stage = QLabel(""); self.stage.setObjectName("railEffortStage")
         v.addWidget(self.cap); v.addWidget(self.name); v.addWidget(self.stage, 0, Qt.AlignLeft)
-        self.setToolTip("The open effort and its stage. Click for another effort, All Efforts, My Work or Your Tools.")
+        self.setToolTip("The open effort and its stage. Click for another effort, All Efforts, My Work or Quick tools.")
         self.setVisible(True)                                   # 3.96.0: the effort switcher, always there
 
     def set(self, name, stage="", color=""):
@@ -691,7 +691,7 @@ class RailEffort(QFrame):
         self.setVisible(True)
 
     def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton:                         # 3.96.0: another effort, All Efforts, My Work, Your Tools
+        if e.button() == Qt.LeftButton:                         # 3.96.0: another effort, All Efforts, My Work, Quick tools
             from .frame import effort_menu
             effort_menu(self.host).exec(self.mapToGlobal(self.rect().bottomLeft()))
         super().mousePressEvent(e)

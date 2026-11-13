@@ -2,7 +2,7 @@
 
 The card shows the place: a PDF page drawn whole with the typed find boxed (and stepping through finds and places),
 typed text in Word or PowerPoint with the find highlighted, and a picture inside a file drawn with the reader's lines
-boxed (the reader is stood in for: no OCR engine in the test container). Acronym Finder opens from Home (Your Tools) and
+boxed (the reader is stood in for: no OCR engine in the test container). Acronym Finder opens from Home (Quick tools) and
 alone (--acronyms), keeps its own list apart from every effort, scans, exports the list (Word, Excel, CSV) and checks
 first use in Word files. Fictional content."""
 import csv, io, os, sys, tempfile, time, zipfile
@@ -72,7 +72,7 @@ check("a file no longer on this PC says so", fv5.state == "missing" and "not on 
 
 # ---- Acronym Finder
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
-import skqt.toolshome as TH                                     # 3.53.0: the tools are on Home (Your Tools)
+import skqt.toolshome as TH                                     # 3.53.0: the tools are on Home (Quick tools)
 check("Acronym Finder is a tool on Home", "acrfinder" in TH.TOOLS and TH.TOOLS["acrfinder"][2] == "window")
 tw = w.open_tool("acronyms"); app.processEvents()
 check("it is a window of its own, with its own list apart from every effort", tw.isVisible() and tw is not w

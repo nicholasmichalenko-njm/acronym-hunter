@@ -1,7 +1,7 @@
 """3.54.0 Technical Edit in its own space, offscreen: a draft reviewed on Unfiled; filters; the selected finding shown;
 Accept, Skip here (kept for the next review), Skip in this effort (the rule off), Add to the style sheet (a term, a word);
 Make the edited copy (tracked changes, the draft unchanged); readability by section; the style sheet's terms, rules and
-words, exported for authors; Copy review from Your Tools; Technical Edit in the menu. Fictional content."""
+words, exported for authors; Copy review from Quick tools; Technical Edit in the menu. Fictional content."""
 import hashlib, os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -95,9 +95,9 @@ check("... ticking a rule turns it back on", "customer_terms" not in pg.sheet()[
 sp = pg.export_sheet(os.path.join(tmp, "Style sheet.docx"))
 txt = zipfile.ZipFile(sp).read("word/document.xml").decode("utf-8")
 check("Export the style sheet: a Word file for authors", "Kestrel spacecraft bus" in txt and "one to nine spelled out" in txt)
-# Your Tools
+# Quick tools
 from skqt import toolshome as TH
-check("Copy review is offered for a Word file on Your Tools", "copyreview" in {k for k, _t in TH.uses_for([draft])}
+check("Copy review is offered for a Word file on Quick tools", "copyreview" in {k for k, _t in TH.uses_for([draft])}
       and "copyreview" not in {k for k, _t in TH.uses_for([os.path.join(tmp, "x.pdf")])})
 w.go("tools"); app.processEvents()
 pg.found = []

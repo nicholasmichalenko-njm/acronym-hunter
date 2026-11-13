@@ -1,6 +1,6 @@
 """Compare (3.55.0, decision 4: one Compare space): Customer versions (the effort's Library documents, each change
 decided, the impact on requirements; the page from 2.85.0) and Any two files (our drafts, loose files, anything the reader
-takes: sentence by sentence, the changes by heading, the redline in Word). Final Checks and Your Tools open it with two
+takes: sentence by sentence, the changes by heading, the redline in Word). Final Checks and Quick tools open it with two
 files picked. Rules only (changereview, compareany); nothing leaves the PC."""
 import html
 import os
@@ -173,6 +173,6 @@ class CompareSpace(QWidget):
             self.customer.refresh()
 
     def show_files(self, older, newer):
-        """Opens Any two files with both picked and compared (Final Checks, Your Tools)."""
+        """Opens Any two files with both picked and compared (Final Checks, Quick tools)."""
         self.tabs.setCurrentIndex(1)
         return self.files.set_files(older, newer)

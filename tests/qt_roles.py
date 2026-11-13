@@ -59,9 +59,9 @@ w.go("efforts"); app.processEvents()
 from skqt import frame as FR                                  # 3.75.0: the card opens a menu: the Dashboard, another effort
 m = FR.effort_menu(w)
 m.actions()[0].trigger(); app.processEvents()
-check("... and its menu opens the Dashboard; All Efforts, My Work and Your Tools are there too (3.96.0)",
+check("... and its menu opens the Dashboard; All Efforts is there too (3.96.0; 4.27.2: Quick tools is in the menu)",
       m.actions()[0].text() == "Dashboard" and w.stack.currentWidget() is w.overview_page
-      and [a.text() for a in m.actions()][-2:] == ["All Efforts", "Your Tools"])
+      and [a.text() for a in m.actions()][-1] == "All Efforts")
 w.step_btns[marked[0]].click(); app.processEvents()
 check("a stage tool opens its page", w.stack.currentWidget() is not w.notice_page or w.notice_page.why is not None)
 MO.save(stage_tools=False); w.refresh_access(); app.processEvents()

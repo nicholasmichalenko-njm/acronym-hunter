@@ -187,7 +187,7 @@ class PreparePage(QWidget):
             self.refresh()
         f, cf = self._folders()
         if r is None and path is not None and not any(path == x[2] for x in self.rows):
-            f, cf = os.path.dirname(path), ""               # a file outside the effort (Your Tools): beside the file
+            f, cf = os.path.dirname(path), ""               # a file outside the effort (Quick tools): beside the file
         f = f or os.path.dirname(path)
         try:
             if RP.kind(path) == "picture" or RP.page_form(path, cf, make=False) == "":

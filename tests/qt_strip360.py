@@ -1,5 +1,5 @@
 """3.60.0, offscreen. Compare > Any two files > Tracked changes (Word)...: Word's own Compare for two Word files when Word
-is on the PC (here a stand-in), the text of both otherwise; Plan > Setup > Strip setup... and Your Tools' Strip the setup
+is on the PC (here a stand-in), the text of both otherwise; Plan > Setup > Strip setup... and Quick tools' Strip the setup
 out make a clean copy beside the volume. Fictional content."""
 import os, sys, tempfile, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -58,7 +58,7 @@ res = w.setups_page.strip_files([vol])
 check("Plan > Setup > Strip setup...: a clean copy beside the volume", res and os.path.isfile(res[0]["out"]) and res[0]["paragraphs"] == 1,
       (res, has_style_def))
 import skqt.toolshome as TH
-check("Your Tools offers Strip the setup out for a Word file", "strip" in [k for k, _t in TH.uses_for([vol])])
+check("Quick tools offers Strip the setup out for a Word file", "strip" in [k for k, _t in TH.uses_for([vol])])
 r2 = w.tools_page.run("strip", [vol])
 check("... and makes the copy", r2 and r2[0]["out"] != res[0]["out"] and os.path.isfile(r2[0]["out"]))
 w.close()

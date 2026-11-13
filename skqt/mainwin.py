@@ -38,7 +38,7 @@ from .settingspage import SettingsPage
 # 4.0.0 (claude/stationkeeper-six-steps-plan-4.0.md, canvas "Six Steps"): six steps. Documents makes the package complete,
 # current and readable; Shred says what every piece of the customer's text is; Matrix & Outline decides what we answer and
 # where; Setup, Drafts (the team writes in Word; the app reads the drafts back) and Submit. Pages not yet rebuilt sit in
-# the step they belong to (3.96.0: the menu is the effort's path; All Efforts, My Work and Your Tools are in the switcher).
+# the step they belong to (3.96.0: the menu is the effort's path; All Efforts, My Work and Quick tools are in the switcher).
 def _WAU():
     return __import__("skqt.watchauto", fromlist=["x"])     # 4.25.1: the effort's own folder, watched
 
@@ -46,10 +46,10 @@ def _WAU():
 RAIL = [("Effort", [("home", "Dashboard"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
-        ("Team", [("team", "Team")]),
+        ("Team", [("tools", "Quick tools"), ("team", "Team")]),      # 4.27.2: Quick tools at the bottom of the menu
         ("Settings", [("settings", "Settings")])]
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))
-SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
+SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Quick tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.27.0, 4.27.1
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
@@ -74,7 +74,7 @@ TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
-REVIEW_VIEWS = ("shredlist",)          # 4.19.0: Page and List; the quick shred, Accuracy and Theme tags are Your Tools
+REVIEW_VIEWS = ("shredlist",)          # 4.19.0: Page and List; the quick shred, Accuracy and Theme tags are Quick tools
 TOOL_PAGES = ("shredreq", "shredacc", "sort")
 TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
 # the menu entry each page lights up
@@ -96,7 +96,7 @@ GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 
 GROUP_OF.update({k: "Deliverables" for k in ("redline", "rcheck", "exceptions")})   # 4.25.3: opened from a deliverable's tile
 GROUP_OF.update({"graphics": "Documents", "calendar": "The effort", "tasks": "The effort"}); RAIL_OF.update({k: k for k in ("graphics", "calendar", "tasks")})   # 4.25.5, 4.27.1
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
-GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Your Tools' own
+GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Quick tools' own
 
 
 def members(key):
@@ -984,7 +984,7 @@ class MainWindow(QMainWindow):
 
     def refresh_undo(self):
         t = self.undo_text()
-        self.undo_btn.setEnabled(bool(t))
+        self.undo_btn.setEnabled(bool(t)); __import__("skqt.undoline", fromlist=["x"]).refresh(self, t)     # 4.27.2: the line at the foot
         self.undo_btn.setToolTip(f"Undo: {t} (Ctrl+Z)" if t else "Nothing to undo on this page")
         return t
 

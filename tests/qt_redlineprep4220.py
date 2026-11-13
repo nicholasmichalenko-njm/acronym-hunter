@@ -1,7 +1,7 @@
 """4.22.0 offscreen: Prepare for Redline in the window. Under Documents; every PDF and picture in Documents is a row
 with its state and one Prepare button (a Word file is not listed); no More menu; right-click for the other layout,
 a copy without the comments and where the file is; Put its comments into my Word file... writes a dated copy of the
-person's file; Check lists the comments; Your Tools prepares a file outside the effort beside it. Fictional content
+person's file; Check lists the comments; Quick tools prepares a file outside the effort beside it. Fictional content
 (the Kestrel program)."""
 import hashlib, os, shutil, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -105,11 +105,11 @@ check("Documents: a picture's right-click offers Prepare for redline", "Prepare 
 lp.select(dW["id"]); app.processEvents()
 acts = [a.text() for a in DS.row_menu(lp, run=False).actions()]
 check("... a Word file's does not", acts and "Prepare for redline" not in acts, acts)
-# Your Tools: a file outside the effort
+# Quick tools: a file outside the effort
 loose = os.path.join(tmp, "loose"); os.makedirs(loose)
 other = os.path.join(loose, "Model contract.pdf"); shutil.copy2(BASE, other)
 uses = dict(TH.uses_for([other]))
-check("Your Tools offers Prepare it for redline for a PDF or a picture, not for a Word file", "redline" in uses
+check("Quick tools offers Prepare it for redline for a PDF or a picture, not for a Word file", "redline" in uses
       and "redline" in dict(TH.uses_for([PIC])) and "redline" not in dict(TH.uses_for([DOCX])), list(uses))
 out = pp.prepare(path=other); app.processEvents()
 check("... and the Word file goes beside the file", out and os.path.dirname(out) == loose and os.path.isfile(out), out)

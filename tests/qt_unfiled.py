@@ -31,11 +31,11 @@ def check(name, ok, info=""):
 cfg = A.CONFIG_DIR
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Home is first in the menu", list(w.step_btns)[0] == "home" and ("efforts", "All Efforts") in __import__("skqt.mainwin", fromlist=["x"]).SWITCHER)   # 3.53.0: Your Tools first
+check("Home is first in the menu", list(w.step_btns)[0] == "home" and ("efforts", "All Efforts") in __import__("skqt.mainwin", fromlist=["x"]).SWITCHER)   # 3.53.0: Quick tools first
 w.go("efforts"); app.processEvents()
 hp = w.efforts_page
-check("no efforts yet: Add an Effort, or start without one", hp.empty.isVisibleTo(w) and hp.add_btn.text() == "+ Add an Effort"
-      and hp.start_btn.isVisibleTo(w) and not hp.uf_card.isVisibleTo(w))
+check("no efforts yet: Add an Effort (4.27.2: starting without one is Quick tools, in the menu)", hp.empty.isVisibleTo(w)
+      and hp.add_btn.text() == "+ Add an Effort" and not hp.start_btn.isVisibleTo(w) and not hp.uf_card.isVisibleTo(w) and "tools" in w.step_btns)
 base = os.path.join(A.DATA_DIR, "Efforts")
 hp.add_effort({"name": "Heron", "path": os.path.join(base, "Heron", "Heron_Effort_List.xlsx")})
 check("+ Add an Effort makes the effort with its folders and opens it", w.effort_name == "Heron"
@@ -74,7 +74,12 @@ check("tools work in Unfiled: Read RFP made a matrix and filed its document", c[
 w.unfiled_strip.refresh()
 check("the strip counts what Unfiled holds", "compliance matrix" in w.unfiled_strip.text.text() and w.unfiled_strip.mk.isEnabled())
 w.go("efforts"); app.processEvents()
-check("Home shows the Unfiled card while it holds work", hp.uf_card.isVisibleTo(w) and "2 terms" in hp.uf_text.text(), hp.uf_text.text())
+w.go("tools"); app.processEvents()
+tl = w.pages["tools"]
+urows = [tl.uf_list.item(i).text() for i in range(tl.uf_list.count())]
+check("4.27.2: Quick tools lists what is unfiled (All Efforts no longer has the card)", not hp.uf_card.isVisibleTo(w)
+      and any(x.startswith("Document:") for x in urows) and "2 acros and abs" in urows and tl.uf_make.isEnabled(), urows)
+w.go("efforts"); app.processEvents()
 check("Unfiled is not one of the effort cards", "Unfiled" not in hp.cards)
 docs = UF.documents(w.efforts)
 n = hp.add_unfiled_to({"target": "Heron", "docs": [d[0] for d in docs], "terms": True})

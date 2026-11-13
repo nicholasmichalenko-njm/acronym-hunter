@@ -1,6 +1,6 @@
 """3.57.0 Focus and file safety, offscreen. The pages set aside (My Work, Draft Status, Wall of Truth, Storyboards, Data
-calls, Color Reviews, Kickoff packets) leave the menu, the tabs and Your Tools' pins, and come back with Show the pages
-set aside; Final Checks > Leftovers finds the setup's reference text in a file Make the setup wrote; Your Tools' Check for
+calls, Color Reviews, Kickoff packets) leave the menu, the tabs and Quick tools' pins, and come back with Show the pages
+set aside; Final Checks > Leftovers finds the setup's reference text in a file Make the setup wrote; Quick tools' Check for
 leftovers; a file in a OneDrive folder says so when read. Fictional content."""
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -46,7 +46,7 @@ import unfiled as UF
 w.work_on(UF.NAME); w.go("structure"); app.processEvents()
 check("Setup's Kickoff packets is set aside", not w.structure_page.b_kickoff.isVisible() and not w.setups_page.a_kickoff.isVisible())
 import skqt.toolshome as TH
-check("Your Tools never pins a set-aside page", not set(TH.load_pins(cfg, "Author")) & MF.hidden({}),
+check("Quick tools never pins a set-aside page", not set(TH.load_pins(cfg, "Author")) & MF.hidden({}),
       TH.load_pins(cfg, "Author"))
 modes.save(show_set_aside=True)
 w.refresh_access(); w.go("structure"); app.processEvents()
@@ -75,7 +75,7 @@ check("Final Checks > Leftovers: a file added and checked", got and cp.l_table.r
       cp.l_sum.text())
 check("... exported", os.path.isfile(cp.export_leftovers(os.path.join(tmp, "left.xlsx"))))
 w.go("tools"); app.processEvents()
-check("Your Tools offers Check for leftovers for a Word file", "leftovers" in [k for k, _t in TH.uses_for([vol])])
+check("Quick tools offers Check for leftovers for a Word file", "leftovers" in [k for k, _t in TH.uses_for([vol])])
 cp.l_table.setRowCount(0)
 w.tools_page.run("leftovers", [vol]); app.processEvents()
 check("... and runs it on Final Checks", w.stack.currentWidget() is cp and cp.l_table.rowCount() >= 2)

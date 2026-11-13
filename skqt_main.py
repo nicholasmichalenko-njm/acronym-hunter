@@ -146,7 +146,7 @@ def main(argv=None):
         title = (f"Stationkeeper {A.APP_VERSION} is ready. Reopening your work" if after else f"Opening {cur}")
         _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), w.go("tools"), _QT.singleShot(600, then)))   # 3.53.0: Home first
     else:
-        w.go("tools")                                # 3.53.0: Your Tools: drop a file, a pinned tool, an effort or Unfiled
+        w.go("tools")                                # 3.53.0: Quick tools: drop a file, a pinned tool, an effort or Unfiled
         if _real(w):
             w.status("Pick what to work on in Working on (top right), or use a tool on any file.")
         _QT.singleShot(800, then)

@@ -33,8 +33,8 @@ app = QApplication([]); D.apply(app)
 from skqt import modes as _modes
 _modes.save(show_set_aside=False, hide_other_roles=False)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1440, 900); w.show(); app.processEvents()
-check("4.27.1: twelve entries: the Dashboard with Calendar and Tasks, six steps, Graphics under Documents, Team, Settings", [b.text() for b in w.step_btns.values()] ==
-      ["Dashboard", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Team", "Settings"],
+check("4.27.2: thirteen entries: the Dashboard with Calendar and Tasks, six steps, Graphics under Documents, Quick tools, Team, Settings", [b.text() for b in w.step_btns.values()] ==
+      ["Dashboard", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Quick tools", "Team", "Settings"],
       [b.text() for b in w.step_btns.values()])
 check("the steps are numbered 1 to 6", [b.circle.text() for k, b in w.step_btns.items() if k not in ("redline", "graphics", "calendar", "tasks")][1:7] == ["1", "2", "3", "4", "5", "6"])
 check("the effort switcher is there with nothing open", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text().startswith("No effort open"))
@@ -46,7 +46,8 @@ check("each step says what is left: add files, next", w.step_btns["library"].bad
 check("the switcher names the effort", w.rail_effort.name.text().startswith("Kestrel"))
 from skqt import frame as FR
 acts = [a.text() for a in FR.effort_menu(w).actions() if a.text()]
-check("the switcher holds the Dashboard, All Efforts and Your Tools", acts[0] == "Dashboard" and acts[-2:] == ["All Efforts", "Your Tools"], acts)
+check("the switcher holds the Dashboard and All Efforts (4.27.2: Quick tools is at the bottom of the menu)", acts[0] == "Dashboard" and acts[-1] == "All Efforts"
+      and "Quick tools" not in acts and "tools" in w.step_btns, acts)
 # Documents
 w.rail_go("library"); app.processEvents()
 check("Documents: Customer, Ours, Changes (4.2.0: Text check is Shred's Fix text; 4.6.0: Customer and Ours)", w._tab_keys[:2] == ["library", "compare"] and "verify" not in w._tab_keys
@@ -75,7 +76,7 @@ w.stepper.see("shredlist"); app.processEvents()
 check("List is a way to see Shred (4.19.0: the shred by the customer's structure): the menu stays on Shred",
       w.stack.currentWidget() is w.shredlist_page and w.step_btns["assign"].isChecked()
       and w.stepper.views["shredlist"].isChecked() and w.page_title.text() == "Shred")
-check("Shred's views are Page and List; Sort and Accuracy are Your Tools' (4.19.0)", list(w.stepper.views) == ["assign", "shredlist"]
+check("Shred's views are Page and List; Sort and Accuracy are Quick tools' (4.19.0)", list(w.stepper.views) == ["assign", "shredlist"]
       and __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["shredacc"] == "tools")
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()

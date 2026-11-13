@@ -1,5 +1,5 @@
 """Shred > Requirements (3.55.0): one file in, every requirement out, no matrix to set up. Choose a file (or drop one on
-Your Tools and pick Find the requirements); each requirement with its kind, section, page and the words that make it one;
+Quick tools and pick Find the requirements); each requirement with its kind, section, page and the words that make it one;
 filter by kind; Export the matrix... writes a draft compliance matrix (Excel); File to an effort... reads the file into
 that effort's Review. Rules only (shredquick.py); nothing leaves the PC."""
 import html

@@ -9,12 +9,11 @@ SENTENCES = {"assign", "prove", "shredreq", "sort", "matrix", "crosswalk", "eval
 
 
 def simplify(w):
-    from . import quicknote as QNV
-    m = QMenu(w.note_btn)
-    m.addAction("Note...", lambda: QNV.open_note(w)).setToolTip("A quick note from this page (Ctrl+Shift+N)")
-    m.addAction("Issue or idea...", lambda: w.open_issues()).setToolTip("Something to fix or a wish, for the person who builds "
-                                                                        "Stationkeeper (Ctrl+Shift+I)")
-    w.note_btn.setMenu(m)
+    # 4.27.2 (Nicholas's recording 07:05): the button is Quick note and opens the note; Issue or idea is in Help (the
+    # Guide's Issues and ideas..., Ctrl+Shift+I); Undo is Ctrl+Z, with a line at the foot and History (skqt/undoline)
+    w.note_btn.setText("Quick note")
+    w.note_btn.setToolTip("A note from this page, kept with the effort (Ctrl+Shift+N)")
+    __import__("skqt.undoline", fromlist=["x"]).install(w)
     w.issue_btn.setVisible(False)
     w.effort_box.setVisible(False)
     w.statusBar().addPermanentWidget(w.saved)
@@ -46,8 +45,9 @@ def effort_menu(w):
     m = QMenu(w)
     if w.effort_name:
         m.addAction("Dashboard", lambda: w.go("overview"))
+    import unfiled as UF                                       # 4.27.2: Unfiled is a list under Quick tools, not an effort to switch to
     others = [w.effort_box.itemText(i) for i in range(w.effort_box.count())
-              if w.effort_box.itemText(i) and w.effort_box.itemText(i) != w.effort_name]
+              if w.effort_box.itemText(i) and w.effort_box.itemText(i) not in (w.effort_name, UF.NAME)]
     if others:
         m.addSeparator()
         for name in others[:15]:
@@ -58,8 +58,7 @@ def effort_menu(w):
     from .modes import settings
     if "mywork" not in MF.hidden(settings()):                  # My Work is set aside for now
         m.addAction("My Work", lambda: w.go("mywork"))
-    m.addAction("Your Tools", lambda: w.go("tools"))
-    return m
+    return m                                                   # 4.27.2: Quick tools is at the bottom of the menu
 
 
 def switch(w, name):

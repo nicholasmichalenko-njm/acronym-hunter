@@ -1,7 +1,7 @@
 """3.55.0 Shred and Compare, offscreen. Shred > Requirements: one file in, every requirement out, each labelled by kind
 (Requirement, Instruction (L), Evaluation (M), SOW task); filter; the draft matrix in Excel; File to an effort reads it
 into Review. Compare: one space with Customer versions and Any two files (sentence by sentence, changes by heading, the
-redline in Word); Final Checks' Open in Compare and two files dropped on Your Tools open it. Fictional content."""
+redline in Word); Final Checks' Open in Compare and two files dropped on Quick tools open it. Fictional content."""
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -42,7 +42,7 @@ check("the draft compliance matrix: one row per requirement, the matrix's column
       and hdr[:4] == ["ID", "Kind", "Section", "Section title"], (n, ws.max_row, hdr))
 
 from skqt import mainwin as MW
-check("the quick shred (Requirements) is Your Tools' (4.19.0); the Matrix with Matrix & Outline", MW.RAIL_OF["shredreq"] == "tools"
+check("the quick shred (Requirements) is Quick tools' (4.19.0); the Matrix with Matrix & Outline", MW.RAIL_OF["shredreq"] == "tools"
       and "shredlist" in MW.REVIEW_VIEWS and MW.RAIL_OF["matrix"] == "matrix")
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.rail_go("shredreq"); app.processEvents()
@@ -86,7 +86,7 @@ import zipfile
 check("the redline in Word", red and "batteries" in zipfile.ZipFile(red).read("word/document.xml").decode("utf-8"))
 from skqt import toolshome as TH
 uses = [k_ for k_, _t in TH.uses_for([a, b])]
-check("two files on Your Tools: Compare first; one file: Find the requirements", uses[0] == "compare" and "shred" not in uses
+check("two files on Quick tools: Compare first; one file: Find the requirements", uses[0] == "compare" and "shred" not in uses
       and "shred" in [k_ for k_, _t in TH.uses_for([rfp])])
 w.go("tools"); app.processEvents()
 check("... Compare opens with both picked", w.tools_page.files_in([a, b], use="compare") == "compare" and w.stack.currentWidget() is cs

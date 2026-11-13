@@ -155,7 +155,7 @@ class EffortsHome(QWidget):
         self.grid_box = QWidget(); self.flow = FlowLayout(self.grid_box, D.SPACE["m"])
         outer.addWidget(self.grid_box)
         self.empty = D.EmptyState("No efforts yet", "+ Add an Effort starts one: its own folder with Customer Documents, Volumes, "
-                                  "Response Setup and Exports. Or start without one: Unfiled works with every tool.")
+                                  "Response Setup and Exports. Or start without one: Quick tools, at the bottom of the menu, works on any file.")
         outer.addWidget(self.empty)
         outer.addStretch(1)
         self.cards = {}
@@ -186,8 +186,8 @@ class EffortsHome(QWidget):
         c = UF.counts(reg)
         self.uf_counts = c
         has = not UF.empty(c)
-        self.uf_card.setVisible(has)
-        self.start_btn.setVisible(not has and not UF.is_unfiled(reg, h.effort_name))
+        self.uf_card.setVisible(False)             # 4.27.2 (answer 4): Unfiled is a list under Quick tools, not a card here
+        self.start_btn.setVisible(False)
         self.uf_text.setText("Holds " + UF.summary_text(c) + "." if has else "")
         self.add_to_btn.setEnabled(bool(rows))
 

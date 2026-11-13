@@ -74,7 +74,7 @@ def apply(page, mode):
         page.shred_check.setVisible(on)
         if page.view.pan_tool:                                       # the Pan tool is gone: Space, the middle button
             page.toggle_pan(False)
-        if getattr(page, "sort_on", False):                          # 4.26.0 (answer 30): Sort mode is Your Tools > Sort's;
+        if getattr(page, "sort_on", False):                          # 4.26.0 (answer 30): Sort mode is Quick tools > Sort's;
             page.sort_on = False; page.sort_btn.setChecked(False)    # here the keys 1 to 9 file nothing
         page.show_queue()
         if mode != "shred":

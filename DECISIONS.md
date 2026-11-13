@@ -209,4 +209,7 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 4.27.0 | The Wall of Truth shows on the Overview as one line that stays up; the assembled wall is still Drafts > Wall of Truth and Drafts keeps Check the drafts | Answer 20 |
 | 4.27.1 | Tasks and Calendar are menu entries under the Dashboard with no step number; Activity is a tab of the Dashboard. All three read the effort record (tasks, the calendar, the timeline); nothing new is stored | Nicholas 2026-11-12 21:25, answer 2 |
 | 4.27.1 | Tasks brings back what My Work did (set aside 3.57.0) as its second view, Mine, across efforts, in Late, Today, This week, Later. My Work's own page stays set aside; its code and data are the same | Answer 2 |
+| 4.27.2 | The top bar holds Quick note only (it opens the note); Issue or idea is in Settings > Updates and help and Ctrl+Shift+I. Undo is off the bar: Ctrl+Z, a line at the foot that says what it would put back, and History (skqt/undoline) | Nicholas's recording 07:05 to 07:30 |
+| 4.27.2 | Your Tools is named Quick tools and is a menu entry at the bottom, above Team; it left the effort switcher | Nicholas's recording 05:25; the plan board's menu |
+| 4.27.2 | Unfiled is a list on Quick tools, not an effort to switch to and not a card on All Efforts. Underneath it is still kept as it was (Stationkeeper Data, Efforts, Unfiled), so nothing unfiled is lost and every tool still works with no effort open | Nicholas 2026-11-12 21:25, answer 4 |
 

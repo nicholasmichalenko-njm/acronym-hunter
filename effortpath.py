@@ -1,6 +1,6 @@
 """The path strip (3.63.0): the moves of an effort with what is true about each, shaped by the kind of request.
 
-Read, Requirements, Structure, Setup and Check (4.19.0: Sort left the path; topics are Theme tags in Your Tools). Nothing is locked: every step opens its page in any
+Read, Requirements, Structure, Setup and Check (4.19.0: Sort left the path; topics are Theme tags in Quick tools). Nothing is locked: every step opens its page in any
 order, and a step is done when its count says so or when it is switched off for this effort. The request type sets
 which steps matter and their words, never the rules. Kept in the effort record ("path"). Rules only; nothing leaves the PC.
 

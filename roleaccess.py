@@ -16,7 +16,7 @@ import json, os
 
 PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
-ALWAYS = {"shredlist", "redline", "rcheck", "exceptions", "markups", "graphics", "overview", "tasks", "calendar", "activity", "efforts", "mywork", "home", "deliverables", "evalcrit", "sort", "settings", "tools", "refs"}   # 3.63.0: Evaluation Criteria   # 3.53.0: Your Tools, Team References
+ALWAYS = {"shredlist", "redline", "rcheck", "exceptions", "markups", "graphics", "overview", "tasks", "calendar", "activity", "efforts", "mywork", "home", "deliverables", "evalcrit", "sort", "settings", "tools", "refs"}   # 3.63.0: Evaluation Criteria   # 3.53.0: Quick tools, Team References
 TOOLS = {
     "Production": {"studio", "applyword", "shredreq", "shredacc", "techedit", "library", "ours", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
