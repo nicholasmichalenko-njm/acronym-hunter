@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ACROS & ABS (4.26.1)
+  - Combine. Select two or more finds side by side on the page and the bar reads Combine into, with the one term
+    they spell (U and S: US). Change it if the reading is off, type its definition, and the bar says what Add to
+    effort list will add before you press it. The finds on that page become part of the term. Add each as its own
+    term is still there.
+  - Not a term here. X takes a find off this page only; the term stays a find everywhere else. When the term is
+    found in other places too, the bar has Not a term everywhere in this effort (n). Undo puts either back.
+  - Plural of, A form of and Part of a longer term are on the bar. More and Show in the list are gone.
+  - The tabs: On the page; Everything found (every find of the scan, with chips Undecided, Added to effort list and
+    Not a term); Effort list (what you added; Not a term is a filter away).
+  - The page shows beside the list in Everything found.
+  - On the page has a document picker. It follows the document open in Shred > Requirements until you pick one.
+  - A single letter read apart inside a word on large or spaced type (the S of DEFENSE) is joined back to its word,
+    so it is not found as a term.
+
 SHRED, SIMPLER (4.26.0)
   - The bar at the selection. Select one piece or several and a small bar shows just above them: the types as
     chips, Combine for several pieces, Split once you clicked the word to split before, and Take the selected

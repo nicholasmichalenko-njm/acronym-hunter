@@ -393,8 +393,8 @@ TOPICS = [
   "Lists to submit, by volume, builds each volume's list from what it uses.",
   "At the start (scan the customer's documents), throughout (add terms and their definitions), and at the end (the lists you submit).",
   ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
-   "For each term: Add to effort list (adding it is the decision; there is no approval) or Not a term (this effort, on "
-   "every later scan and new document version). A term in the list with no definition shows No definition yet.",
+   "Tabs: On the page, Everything found, Effort list. On the page: Add to effort list, or Not a term here (this page only; "
+   "Not a term everywhere in this effort is beside it). Select finds side by side to combine them into one term.",
    "From a picture, The picture says something else... offers Part of a longer term... (VW in MOC-VW, held where they "
    "sit together), Misread letters... and Not text. Each fix also saves a training sample with the effort.",
    "More holds Plural of, A form of, Another way of writing, Part of a longer term, Add to this PC's database and Remove "

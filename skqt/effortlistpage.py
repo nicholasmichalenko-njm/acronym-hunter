@@ -15,6 +15,7 @@ from .adaptive import FlowLayout
 COLS = ["Term", "Definition", "Type", "Status", "Found in", "Notes"]
 TONE = {"In the list": "ok", "Not a term": "faint", "No definition yet": "warn"}
 NODEF = "No definition yet"
+ADDED = "Added to effort list"            # 4.26.1: the Effort list tab holds what was added; Not a term is a filter away
 
 
 class EffortListPage(QWidget):
@@ -88,7 +89,7 @@ class EffortListPage(QWidget):
         self.p_unused = D.Pill("", "accent"); self.p_unused.hide(); top.addWidget(self.p_unused)
         top.addStretch(1)
         f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
-        self.f_status = QComboBox(); self.f_status.addItems(["All statuses"] + E.STATUSES + [NODEF])
+        self.f_status = QComboBox(); self.f_status.addItems([ADDED, "All statuses"] + E.STATUSES + [NODEF])   # 4.26.1: opens on what was added
         self.f_status.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_kind = QComboBox(); self.f_kind.addItem("All kinds", "")                      # 3.37.0: by kind
         for k in ("Acronym", "Abbreviation", "Unit", "Symbol"):
@@ -158,7 +159,7 @@ class EffortListPage(QWidget):
         unused = self.unused_terms()
         use = self.f_use.currentIndex()
         self.terms = [t for t in (L.order if L is not None else []) if t in rows
-                      and (st == "All statuses" or self.status_of(rows[t]) == st)
+                      and (st == "All statuses" or (self.status_of(rows[t]) != "Not a term" if st == ADDED else self.status_of(rows[t]) == st))
                       and (not kind or str(rows[t].get("Type", "") or "").casefold().startswith(kind.casefold()))
                       and (use == 0 or unused is None or ((t in unused) == (use == 2)))
                       and (not q or q in t.casefold() or q in rows[t].get("Definition", "").casefold())]

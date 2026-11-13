@@ -95,8 +95,8 @@ check("3.93.0: Show on the page opens the place it was found, its finds selected
       and ap.onpage.selected() and all(x["term"] == "SOW" for x in ap.onpage.selected()), (ap.onpage.state, ap.onpage.key))
 ap.tabs.setCurrentIndex(1); app.processEvents()
 ap.select("SOW"); app.processEvents()
-check("3.93.0: The list's card has Show on the page, no page beside it", getattr(ap, "where_view", None) is None
-      and ap.b_onpage.isVisibleTo(ap))
+check("4.26.1: Everything found shows the page beside the card", getattr(ap, "where_view", None) is not None
+      and ap.mid.isVisibleTo(ap))
 import copy
 s.results["SOWs"] = copy.deepcopy(s.results["SOW"]); s.results["SOWs"]["effort"] = ""; s.results["SOWs"]["status"] = "Needs Review"
 check("a plural's singular is guessed", s.singular_guess("SOWs") == "SOW" and s.singular_guess("ICD's") == "ICD" and s.singular_guess("SOW") == "")
@@ -152,7 +152,11 @@ ap.f_status.setCurrentIndex(0); app.processEvents()
 # the effort list itself
 w.go("acrlist"); app.processEvents()
 lp = w.acrlist_page
-check("the effort list: every term in the workbook", set(lp.terms) == set(E.EffortList(LIST).load().rows) and lp.pills["In the list"].text().endswith("in the list"))
+rows_ = E.EffortList(LIST).load().rows
+check("4.26.1: the Effort list opens on what was added (Not a term is a filter away)", lp.f_status.currentText() == "Added to effort list"
+      and set(lp.terms) == {t for t, r in rows_.items() if r["Status"] != "Not a term"} and "SCOPE" not in lp.terms, lp.terms)
+lp.f_status.setCurrentText("All statuses"); app.processEvents()
+check("the effort list: every term in the workbook", set(lp.terms) == set(rows_) and lp.pills["In the list"].text().endswith("in the list"))
 lp.edit_definition("Statement of Work (SOW)", "SOW")
 check("Edit definition (the term in brackets is taken off)", E.EffortList(LIST).load().rows["SOW"]["Definition"] == "Statement of Work"
       or E.EffortList(LIST).load().rows["SOW"]["Definition"].startswith("Statement of Work"), E.EffortList(LIST).load().rows["SOW"]["Definition"])

@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.26.1": ["Acros & Abs: select finds side by side and the bar combines them into one term, said before you press.",
+               "Not a term is for this page only; everywhere in this effort is the second choice.",
+               "The tabs are On the page, Everything found and Effort list. The page shows beside the list.",
+               "On the page has a document picker that follows the document open in Shred."],
     "4.26.0": ["Shred: select pieces and a bar shows above them with the types, Combine, Split and Take the selected suggestions.",
                "This document is shredded is a checkbox. Add missed text: drag a box, right-click inside it.",
                "A piece typed Rule or Date has Make it checked... on its pane. Counts say not shredded.",

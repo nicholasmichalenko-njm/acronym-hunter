@@ -18,7 +18,7 @@ OP.available = lambda: False
 from PIL import Image
 from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QMouseEvent, QTextCursor
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 import pictures as PIC
 from skqt import design as D
@@ -65,15 +65,15 @@ for t in ("TT8C", "DC", "DC-RVM"):                                   # the pictu
     if t not in s.results:
         AM.add_manual(s, t, "Acronym", "", document=PKEY, to=("results",))
 ap.fill(); app.processEvents()
-check("two tabs: On the page and The list (4.6.0: and Every term, the Acro List's table)", [ap.tabs.tabText(i) for i in range(ap.tabs.count())]
-      == ["On the page", "The list", "Every term"]
+check("4.26.1: three tabs: On the page, Everything found, Effort list", [ap.tabs.tabText(i) for i in range(ap.tabs.count())]
+      == ["On the page", "Everything found", "Effort list"]
       and ap.head_w.isVisible())
 check("it opens on On the page while finds are left to decide", ap.tabs.currentIndex() == 0 and ap.tab_stack.currentWidget() is op)
 check("On the page has one main button, Page done, and at most five commands", ap.on_bar.main is ap.b_pagedone
       and len(ap.on_bar.commands) <= 5 and ap.bars.currentWidget() is ap.on_bar)
 keys = [op.list.item(i).data(Qt.UserRole) for i in range(op.list.count()) if op.list.item(i).data(Qt.UserRole)]
 check("the pages with finds are listed, by file", PKEY in keys and any("Program_Manual.pdf (p." in k for k in keys)
-      and "to decide" in op.foot.text(), (keys, op.foot.text()))
+      and "undecided" in op.foot.text(), (keys, op.foot.text()))
 
 # ---- a PDF page: the typed finds where they are written
 pdf6 = next(k for k in keys if k.endswith("(p.6)"))
@@ -124,10 +124,11 @@ op.select([i for i, x in enumerate(op.items) if x["term"] == "kWh"] or op.sel[:1
 nt = op.selected()[0]["term"]
 n_drawn = len(op._drawn)
 SB.key(op, "X"); app.processEvents()
-check("X says Not a term", s.results[nt].get("effort") == "Not a term" or s.results[nt].get("excluded"), nt)
+check("4.26.1: X says Not a term here: this page only, the term stays in the effort",
+      not any(AG.place_of(l) == op.key for l in s.results[nt].get("locations", [])) and s.results[nt].get("effort") != "Not a term", nt)
 check("... and takes it off the page at once", len(op._drawn) < n_drawn and "Undo" in op.undo_lab.text(), (len(op._drawn), n_drawn))
 op.undo_last(); app.processEvents()
-check("Undo puts it back as it was", s.results[nt].get("effort") != "Not a term" and not s.results[nt].get("excluded")
+check("Undo puts it back as it was", any(AG.place_of(l) == op.key for l in s.results[nt].get("locations", [])) and not s.results[nt].get("excluded")
       and len(op._drawn) == n_drawn, s.results[nt].get("effort"))
 
 # ---- a picture: read with doubt, partly found, never found
@@ -191,14 +192,16 @@ ap.tabs.setCurrentIndex(1); app.processEvents()
 check("The list: Add a term is its main button (4.23.0; In our drafts is in More)", ap.bars.currentWidget() is ap.bar and ap.bar.main is ap.b_addterm
       and len(ap.bar.commands) <= 5, ap.bar.labels())
 ap.show_in_list("EPS"); app.processEvents()
-check("The list shows no page beside the card", getattr(ap, "where_view", None) is None and not ap.mid.isVisible())
-check("Show on the page is on the card", getattr(ap, "b_onpage", None) is not None and ap.b_onpage.isVisible())
-ap.b_onpage.click(); app.processEvents(); op.wait(); app.processEvents()
+check("4.26.1: Everything found shows the page beside the list", getattr(ap, "where_view", None) is not None and ap.mid.isVisible())
+ap.show_on_page(ap.current()); app.processEvents(); op.wait(); app.processEvents()
 check("... it opens the term's page with its finds selected", ap.tabs.currentIndex() == 0
       and op.selected() and all(x["term"] == "EPS" for x in op.selected()), (op.key, op.sel))
-check("Show in the list from the bar", op.bar is not None)
-SB.more(op, op.bar, run=False).actions()[0].trigger(); app.processEvents()
-check("... goes to the term's row in The list", ap.tabs.currentIndex() == 1 and ap.current() == "EPS", ap.current())
+labs = [b.text() for b in op.bar.findChildren(QPushButton)] if op.bar is not None else []
+check("4.26.1: the bar holds what More held (Plural of, A form of, Part of a longer term); More and Show in the list are gone",
+      all(x in labs for x in ("Plural of...", "A form of...", "Part of a longer term...")) and "More" not in labs
+      and not hasattr(SB, "more"), labs)
+check("... its buttons read Add to effort list and Not a term here", any(x.startswith("Add to effort list") for x in labs)
+      and any(x.startswith("Not a term here") for x in labs), labs)
 
 print(f"{sum(checks)}/{len(checks)} passed")
 w.close()

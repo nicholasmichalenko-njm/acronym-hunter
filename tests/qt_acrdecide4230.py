@@ -56,14 +56,15 @@ check("In our drafts and the report are in More, not on the face", ap.bar.action
 ex = [a.text() for a in ap.bar.export_menu.actions()]
 check("one export: the list, whole or one per volume", ex == ["The list: the whole effort...", "The list: one per volume..."], ex)
 shown = [n for n, b in ap.count_btns.items() if not b.isHidden()]
-check("the counts row shows To decide and In the list only", shown == ["To decide", "In the list"], shown)
+check("the counts row shows Undecided, Added to effort list and Not a term (4.26.1)", shown == ["To decide", "In the list", "Not a term"]
+      and ap.count_btns["To decide"].text().startswith("Undecided ") and ap.count_btns["In the list"].text().startswith("Added to effort list "), shown)
 more = [a.text() for a in ap.bar.more_menu.actions()]
 check("the other filters are in More, with their counts", all(any(m.startswith(f"Show only: {n} (") for m in more)
-      for n in ("Needs a choice", "No definition yet", "On pictures", "Not a term")), more)
-ap.count_acts["Not a term"].trigger(); app.processEvents()
-check("a filter picked in More filters the list and is ticked", AL.current_count(ap) == "Not a term" and ap.count_acts["Not a term"].isChecked())
-ap.count_acts["Not a term"].trigger(); app.processEvents()
-check("... picked again, every term shows", AL.current_count(ap) is None and not ap.count_acts["Not a term"].isChecked())
+      for n in ("Needs a choice", "No definition yet", "On pictures")), more)
+ap.count_acts["On pictures"].trigger(); app.processEvents()
+check("a filter picked in More filters the list and is ticked", AL.current_count(ap) == "On pictures" and ap.count_acts["On pictures"].isChecked())
+ap.count_acts["On pictures"].trigger(); app.processEvents()
+check("... picked again, every term shows", AL.current_count(ap) is None and not ap.count_acts["On pictures"].isChecked())
 # ---- decide and move on
 AL.pick_count(ap, "To decide"); app.processEvents()
 todo = [t for t in ap.terms if P.passes(s.results[t], "To decide", AL.kind_of(s.results[t]))]

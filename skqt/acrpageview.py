@@ -35,6 +35,9 @@ class PageText(QTextBrowser):
         e.accept()
 
 
+EVERY_DOC = "Every document"
+
+
 class OnPage(QWidget):
     def __init__(self, page):
         super().__init__()
@@ -49,7 +52,15 @@ class OnPage(QWidget):
         self.state = "none"
         h = QHBoxLayout(self); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["m"])
         left = QVBoxLayout(); left.setSpacing(D.SPACE["s"])
-        left.addWidget(D.label("PAGES WITH FINDS TO DECIDE", "faint", wrap=False))
+        left.addWidget(D.label("PAGES WITH UNDECIDED FINDS", "faint", wrap=False))
+        from PySide6.QtWidgets import QComboBox                  # 4.26.1 (answer 19): its own document picker; it follows
+        self.doc_pick = QComboBox(); self.doc_pick.setMaximumWidth(320)      # the document open in Shred until you pick
+        self.doc_pick.setToolTip("The pages of one document, or of every document. It follows the document open in "
+                                 "Shred > Requirements until you pick one here.")
+        self.doc_pick.addItem(EVERY_DOC, "")
+        self.doc_pick.currentIndexChanged.connect(lambda _i: self.fill(keep=False) if not self._filling else None)
+        self._filling, self._followed = False, None
+        left.addWidget(self.doc_pick)
         self.list = QListWidget(); self.list.setMinimumWidth(240); self.list.setMaximumWidth(320)
         self.list.setTextElideMode(Qt.ElideMiddle); self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list.currentItemChanged.connect(lambda cur, _prev: self._picked(cur))
@@ -58,7 +69,7 @@ class OnPage(QWidget):
         h.addLayout(left)
         mid = QVBoxLayout(); mid.setSpacing(D.SPACE["s"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"])
-        for name, col, fill in (("to decide", AG.COLORS["decide"], "rgba(252,231,161,160)"), ("in the list", AG.COLORS["list"], "transparent"),
+        for name, col, fill in (("undecided", AG.COLORS["decide"], "rgba(252,231,161,160)"), ("added to effort list", AG.COLORS["list"], "transparent"),
                                 ("read with doubt", AG.COLORS["doubt"], "transparent"), ("selected", AG.COLORS["sel"], "rgba(46,123,224,60)")):
             sw = QFrame(); sw.setFixedSize(12, 12); sw.setStyleSheet(f"QFrame{{border:2px solid {col};background:{fill}}}")
             top.addWidget(sw); top.addWidget(D.label(name, "muted", wrap=False))
@@ -101,9 +112,50 @@ class OnPage(QWidget):
             return []
         return AG.pages(s.results, AG.done_set(s.ws))
 
+    def shown_pages(self):
+        """The pages of the document picked (every document: all of them)."""
+        only = self.doc_pick.currentData()
+        return [p for p in self.pages() if not only or p["name"] == only]
+
+    def docs(self, pgs=None):
+        """The documents that have pages with finds, in the pages' order."""
+        return list(dict.fromkeys(p["name"] for p in (pgs if pgs is not None else self.pages())))
+
+    def follow(self):
+        """4.26.1 (answer 19): show the pages of the document open in Shred > Requirements, once each time that document
+        changes. A pick made here stays until then. Returns the name followed, or None."""
+        ap = getattr(self.page.host, "assign_page", None)
+        name = getattr(ap, "file", None) if ap is not None else None
+        if not name or name == self._followed or name not in self.docs():
+            return None
+        self._followed = name
+        self._fill_docs()
+        i = self.doc_pick.findData(name)
+        if i >= 0 and i != self.doc_pick.currentIndex():
+            self.doc_pick.setCurrentIndex(i)            # fills the list for it
+        return name
+
+    def _fill_docs(self, pgs=None):
+        names = self.docs(pgs)
+        have = [self.doc_pick.itemData(i) for i in range(1, self.doc_pick.count())]
+        if have == names:
+            return
+        keep = self.doc_pick.currentData()
+        self._filling = True
+        self.doc_pick.clear(); self.doc_pick.addItem(EVERY_DOC, "")
+        for n in names:
+            self.doc_pick.addItem(n, n)
+        self.doc_pick.setCurrentIndex(max(0, self.doc_pick.findData(keep or "")))
+        self._filling = False
+        self.doc_pick.setVisible(len(names) > 1)
+
     def fill(self, keep=True):
         """The page list again (after any decision); the page shown stays."""
         pgs = self.pages()
+        self._fill_docs(pgs)
+        only = self.doc_pick.currentData()
+        if only:
+            pgs = [p for p in pgs if p["name"] == only]
         cur = self.key if keep else None
         self.list.blockSignals(True)
         self.list.clear()
@@ -115,7 +167,7 @@ class OnPage(QWidget):
                 f = hd.font(); f.setBold(True); hd.setFont(f); hd.setForeground(QColor(t["text"]))
                 self.list.addItem(hd); last = p["name"]
             n = p["to_decide"]
-            it = QListWidgetItem(f"    {p['label']}    " + ("done" if p["done"] else f"{n} to decide" if n else "decided"))
+            it = QListWidgetItem(f"    {p['label']}    " + ("done" if p["done"] else f"{n} undecided" if n else "decided"))
             it.setData(Qt.UserRole, p["key"])
             it.setForeground(QColor(t["faint"] if (p["done"] or not n) else t["warn"]))
             self.list.addItem(it)
@@ -123,7 +175,7 @@ class OnPage(QWidget):
                 self.list.setCurrentItem(it)
         self.list.blockSignals(False)
         tot = AG.totals(pgs)
-        self.foot.setText(f"{tot['to_decide']} to decide in {tot['pages_left']} page(s). {tot['pages_done']} page(s) done."
+        self.foot.setText(f"{tot['to_decide']} undecided in {tot['pages_left']} page(s). {tot['pages_done']} page(s) done."
                           if pgs else "")
         if not pgs:
             self.key = None
@@ -132,7 +184,7 @@ class OnPage(QWidget):
             self.go(AG.next_page(pgs) or pgs[0]["key"])
         else:
             self.redraw()
-        self.left_lab.setText(f"{self.left_here()} to decide on this page" if self.key else "")
+        self.left_lab.setText(f"{self.left_here()} undecided on this page" if self.key else "")
         return pgs
 
     def left_here(self):
@@ -227,7 +279,7 @@ class OnPage(QWidget):
         QTimer.singleShot(0, self._reframe)                # again once the view has its size
         self.draw_boxes()
         self.where.setText(self.key + (f"   {note}" if note else ""))
-        self.left_lab.setText(f"{self.left_here()} to decide on this page")
+        self.left_lab.setText(f"{self.left_here()} undecided on this page")
         return self.items
 
     def frame(self):
@@ -333,7 +385,7 @@ class OnPage(QWidget):
         self.state = "text"
         self.stack.setCurrentWidget(self.text)
         self.draw_text()
-        self.left_lab.setText(f"{self.left_here()} to decide on this page")
+        self.left_lab.setText(f"{self.left_here()} undecided on this page")
         return self.items
 
     def draw_text(self):
@@ -482,7 +534,10 @@ class OnPage(QWidget):
         if self.undo is None:
             return 0
         words, was = self.undo
-        n = AG.undo_not_term(self.session, was)
+        if isinstance(was, dict) and "__here__" in was:                # 4.26.1: Not a term on this page only
+            n = __import__("acrplace").undo(self.session, was["__here__"])
+        else:
+            n = AG.undo_not_term(self.session, was)
         self.undo = None
         self.undo_lab.setText("")
         self.decided(f"{words}: back as before")
@@ -490,8 +545,9 @@ class OnPage(QWidget):
 
     def redraw(self):
         if self.state == "picture":
-            self.items = AG.resolve(list(_PICS.get(self.key, (None, [], []))[2]) + AG.line_finds(self.lines, self.terms_here()),
-                                    self.session.results)
+            here = self.terms_here()                       # 4.26.1: a find taken off this page only is not drawn here
+            kept = [x for x in _PICS.get(self.key, (None, [], []))[2] if x.get("term") in here]
+            self.items = AG.resolve(kept + AG.line_finds(self.lines, here), self.session.results)
             self.items.sort(key=lambda x: (round(x["box"][1] / 12), x["box"][0]))
             self.draw_boxes()
         elif self.state == "text":
@@ -505,7 +561,7 @@ class OnPage(QWidget):
             return None
         AG.set_done(s.ws, self.key, True)
         diag.activity("acronym_page_done")
-        nxt = AG.next_page(self.pages(), self.key)
+        nxt = AG.next_page(self.shown_pages(), self.key)
         self.fill()
         if nxt:
             self.go(nxt)
@@ -514,7 +570,7 @@ class OnPage(QWidget):
         return nxt
 
     def next_page(self):
-        nxt = AG.next_page(self.pages(), self.key)
+        nxt = AG.next_page(self.shown_pages(), self.key)
         if nxt:
             self.go(nxt)
         else:

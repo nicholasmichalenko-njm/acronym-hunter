@@ -19,8 +19,9 @@ from .commandbar import CommandBar
 from .splitlines import SplitView
 
 KEEP_COLS = (0, 5, 6)                       # Term, Status, Definition; the rest stay in Export and Details
-SHOWN_COUNTS = ("To decide", "In the list")   # 4.23.0: what is left and what is done; the rest filter from More
-LIST_COLS = (0, 1, 5, 6, 9)                 # 3.93.0 The list: Term, Type, Status, Definition, Source (the tool: KEEP_COLS)
+SHOWN_COUNTS = ("To decide", "In the list", "Not a term")   # 4.23.0: what is left and what is done; 4.26.1: and Not a term
+SAYS = {"To decide": "Undecided", "In the list": "Added to effort list"}     # 4.26.1: what the chips read (the filters keep their saved words)
+LIST_COLS = (0, 5, 6)                       # 4.26.1: Term, Status, Definition, with the page beside them (was five columns, no page)
 
 
 def install(page):
@@ -98,8 +99,8 @@ def install(page):
         split.addWidget(page.decide)
         split.setSizes([300, 1200])
         lv.addWidget(split, 1)
-        page.mid.setVisible(False)                         # 3.93.0: the page is the other tab (the tool keeps it here)
-        split.setSizes([760, 740])
+        page.list_only = False                             # 4.26.1 (Nicholas's recording 05:00): the page shows beside the
+        split.setSizes([460, 1040])                        # list in Everything found too (3.93.0 hid it there)
         page.split = split
     page.table.setMinimumWidth(240)
     for c in range(page.table.columnCount()):
@@ -138,7 +139,7 @@ def fill_counts(page):
     c = P.count_of(s.results, kind_of) if s else {k: 0 for k in P.COUNTS}
     want = current_count(page)
     for name, b in page.count_btns.items():
-        b.setText(f"{name} {c[name]}")
+        b.setText(f"{SAYS.get(name, name)} {c[name]}")
         b.setChecked(name == want)
     for name, act in getattr(page, "count_acts", {}).items():
         act.setText(f"Show only: {name} ({c[name]})"); act.setChecked(name == want)

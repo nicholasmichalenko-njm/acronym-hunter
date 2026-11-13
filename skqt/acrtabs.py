@@ -10,13 +10,13 @@ import diag
 from . import design as D
 from .commandbar import CommandBar
 
-TABS = ("On the page", "The list")
-EVERY = "Every term"                      # 4.6.0: the Acro List's table, a tab of its own (fold_list)
+TABS = ("On the page", "Everything found")   # 4.26.1: was The list: every find of the scan, with Undecided, Added to effort list, Not a term
+EVERY = "Effort list"                     # 4.26.1: was Every term (4.6.0: the Acro List's table, a tab of its own): what was added
 
 
 def install(page, v):
     from .acrpageview import OnPage
-    page.list_only = True                                  # the list without the page beside it (the tool: False)
+    page.list_only = True                                  # until acrlayout puts the page beside the list (4.26.1)
     page.onpage = OnPage(page)
     page.tabs = QTabBar(); page.tabs.setDrawBase(False); page.tabs.setExpanding(False)
     for name in TABS:
@@ -48,6 +48,7 @@ def switch(page, i):
     page.tab_stack.setCurrentIndex(i)
     page.bars.setCurrentIndex(i)
     if i == 0:
+        page.onpage.follow()                              # 4.26.1: the document open in Shred
         page.onpage.fill()
     elif i == 2 and getattr(page, "every", None) is not None:
         page.every.refresh()
@@ -70,6 +71,7 @@ def after_fill(page):
             page.tabs.setCurrentIndex(0 if left else 1)      # switch() fills the page
             return page.tabs.currentIndex()
     if page.tabs.currentIndex() == 0 and has:
+        page.onpage.follow()
         page.onpage.fill()
     return page.tabs.currentIndex()
 

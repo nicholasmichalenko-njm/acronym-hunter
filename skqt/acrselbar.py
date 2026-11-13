@@ -8,7 +8,7 @@ import html
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage
-from PySide6.QtWidgets import (QButtonGroup, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLineEdit, QMenu, QPushButton,
+from PySide6.QtWidgets import (QButtonGroup, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLineEdit, QPushButton,
                                QVBoxLayout)
 
 import acrpage as P
@@ -25,7 +25,7 @@ def _frame(host):
                     f"QFrame#selBar QLabel{{color:{t['text']};background:transparent;border:0}}")
     sh = QGraphicsDropShadowEffect(f); sh.setBlurRadius(22); sh.setOffset(0, 6); sh.setColor(QColor(0, 0, 0, 90))
     f.setGraphicsEffect(sh)
-    f.setMinimumWidth(380); f.setMaximumWidth(460)
+    f.setMinimumWidth(420); f.setMaximumWidth(560)                 # 4.26.1: the choices are on the bar
     v = QVBoxLayout(f); v.setContentsMargins(14, 12, 14, 12); v.setSpacing(8)
     f.keys = {}
     f.kind = None
@@ -116,24 +116,81 @@ def decide_bar(op, host, items):
         f.typed.textEdited.connect(lambda _t: _pick(f, 0))
         v.addWidget(f.typed)
     else:
-        for t in terms[:5]:
-            sg = AS.suggestions(s.results.get(t) or {})
-            v.addWidget(D.label(f"<b>{html.escape(t)}</b>  " + (f"{html.escape(sg[0]['definition'])} <span style='color:gray'>"
-                                f"({html.escape(sg[0]['source'])})</span>" if sg else "<span style='color:gray'>no definition found "
-                                "yet</span>")))
+        import acrplace as AP
+        f.whole = QLineEdit(AP.combined(items)); f.whole.setPlaceholderText("The one term these spell")
+        r = QHBoxLayout(); r.addWidget(D.label("Combine into", "muted", wrap=False)); r.addWidget(f.whole, 1); v.addLayout(r)
+        f.typed = QLineEdit(); f.typed.setPlaceholderText("Its definition (type it, or leave it empty for now)")
+        v.addWidget(f.typed)
+        f.says = D.label("", "muted"); v.addWidget(f.says)
+        f.whole.textChanged.connect(lambda _t: _say_combine(f))
     types = {AG.type_of(s.results.get(t) or {}) for t in terms}
     _chips(f, v, types.pop() if len(types) == 1 else None)
-    f.main, f.b_not, f.b_more = _buttons(v, [("Add to the list  Enter", "primary", lambda: add(op, f)),
-                                             ("Not a term  X", None, lambda: not_term(op, f.terms)), (None, None, None),
-                                             ("More", "ghost", lambda: more(op, f))])
+    import acrplace as AP
+    n_all = sum(AP.places(s, t) for t in terms)
+    n_here = sum(len(AP.here(s, t, op.key)) for t in terms)
+    if len(terms) > 1:
+        f.main, f.b_each, f.b_not = _buttons(v, [("Add to effort list  Enter", "primary", lambda: combine(op, f)),
+                                                 ("Add each as its own term", None, lambda: add(op, f)),
+                                                 ("Not a term here  X", None, lambda: not_term(op, f.terms))])
+        _say_combine(f)
+    else:
+        f.main, f.b_not = _buttons(v, [("Add to effort list  Enter", "primary", lambda: add(op, f)),
+                                       ("Not a term here  X", None, lambda: not_term(op, f.terms))])
+    f.b_not.setToolTip("Only on this page. The term stays a find everywhere else in the effort.")
+    f.b_everywhere = None
+    row2 = []
+    if n_all > n_here:
+        row2.append((f"Not a term everywhere in this effort ({n_all})", "ghost", lambda: not_term(op, f.terms, everywhere=True)))
+    if len(terms) == 1:                        # 4.26.1: what More held, on the bar (Show in the list is gone)
+        t = terms[0]
+        from . import acrpart as APT
+        row2 += [("Plural of...", "ghost", lambda: (op.page.plural(t), op.decided())),
+                 ("A form of...", "ghost", lambda: (op.page.form(t), op.decided())),
+                 ("Part of a longer term...", "ghost", lambda: (APT.part_of(op.page, t), op.decided()))]
+    f.choices = _buttons(v, row2) if row2 else []
+    if n_all > n_here:
+        f.b_everywhere = f.choices[0]
+    f.b_more = None
     f.keys["enter"] = f.main.click
     f.keys["X"] = f.b_not.click
     return f
 
 
+def _say_combine(f):
+    """What goes in the list, said before the button is pressed."""
+    w = " ".join(f.whole.text().split())
+    f.says.setText(f"Add to effort list adds one term, {w}. {', '.join(f.terms[:5])} on this page become part of it."
+                   if w else "Type the one term these spell, or add each as its own term.")
+    return w
+
+
+def combine(op, f):
+    """Several finds side by side are one term: it goes in the effort's list, and the finds on this page become part of it
+    (acrparts: where they sit together), so they are not left to decide here."""
+    import acrmore as AM
+    import acrparts as APS
+    import acrplace as AP
+    s = op.session
+    whole = " ".join(f.whole.text().split())
+    if not whole:
+        op.page.host.status("Type the one term these spell first.")
+        return None
+    typ = chosen_type(f) or "Acronym"
+    dfn = f.typed.text().strip()
+    parts = [t for t in f.terms if t != whole]
+    for t in parts:
+        APS.set_part(s, t, whole, places=AP.here(s, t, op.key))
+    if whole not in s.results:
+        AM.add_manual(s, whole, typ, dfn, document=op.key, to=("results",))
+    AG.set_type(s, [whole], typ)
+    s.add([whole], dfn)
+    diag.activity("acronym_page_combined", n=len(parts))
+    return op.decided(f"{whole}: in the effort list ({', '.join(parts[:4])} on this page are part of it)")
+
+
 def _state_words(d):
     st = AG.state_of(d)
-    return {"decide": "to decide", "list": "in the list", "not": "not a term", "tied": "tied to another term"}[st]
+    return {"decide": "undecided", "list": "added to effort list", "not": "not a term", "tied": "tied to another term"}[st]
 
 
 def _pick(f, k):
@@ -171,30 +228,24 @@ def add(op, f):
     return op.decided(f"{', '.join(f.terms[:4])}{'...' if len(f.terms) > 4 else ''}: in the list")
 
 
-def not_term(op, terms, why=None):
-    """Not a term: every place of the terms comes off the page at once; Undo puts them back as they were."""
+def not_term(op, terms, why=None, everywhere=False):
+    """Not a term. 4.26.1: on this page only (the term stays a find everywhere else); everywhere=True: in the whole
+    effort, as before. Undo puts them back as they were."""
+    import acrplace as AP
     s = op.session
+    words = ", ".join(terms[:4]) + ("..." if len(terms) > 4 else "")
+    if not everywhere:
+        took = AP.not_here(s, terms, op.key)
+        if took:
+            diag.activity("acronym_page_not_term_here", n=len(terms))
+            return op.decided("", undo=(words + ", on this page", {"__here__": took}))
     was = AG.before(s, terms)
     if s.effort is None:
         s.exclude(terms, True)
     else:
         s.set_status(terms, "Not a term")
     diag.activity("acronym_page_not_term", n=len(terms))
-    return op.decided("", undo=(", ".join(terms[:4]) + ("..." if len(terms) > 4 else ""), was))
-
-
-def more(op, f, run=True):
-    m = QMenu(f)
-    t = f.terms[0]
-    m.addAction("Show in the list").triggered.connect(lambda: op.page.show_in_list(t))
-    if len(f.terms) == 1:
-        m.addAction("Plural of...").triggered.connect(lambda: (op.page.plural(t), op.decided()))
-        m.addAction("A form of...").triggered.connect(lambda: (op.page.form(t), op.decided()))
-        from . import acrpart as APT
-        m.addAction("Part of a longer term...").triggered.connect(lambda: (APT.part_of(op.page, t), op.decided()))
-    if run:
-        m.exec(f.b_more.mapToGlobal(f.b_more.rect().bottomLeft()))
-    return m
+    return op.decided("", undo=(words, was))
 
 
 # ------------------------------------------------------------------ partly found
@@ -208,7 +259,7 @@ def partial_bar(op, host, items):
                         f"{lg['shared']}.", "muted"))
     f.main, f.b_keep, f.b_not = _buttons(v, [(f"Use {lg['whole']}  Enter", "primary", lambda: use_whole(op, t, lg["whole"])),
                                              (f"Keep {t} too", None, lambda: keep_part(op)),
-                                             ("Not a term  X", None, lambda: not_term(op, [t]))])
+                                             ("Not a term here  X", None, lambda: not_term(op, [t]))])
     v.addWidget(D.label("Letters joined by a hyphen can be one term for the whole effort: The list, More.", "muted"))
     f.keys["enter"] = f.main.click
     f.keys["X"] = f.b_not.click

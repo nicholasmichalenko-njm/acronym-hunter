@@ -911,6 +911,7 @@ def _ocr_detail(image_bytes):
                 tiled += _ocr_lines(clean_img[y:y + tile, x:x + tile], x, y)
         lines = _merge_lines(lines, tiled)
     lines.sort(key=lambda t: (round(t[1] / 20), t[0]))
+    lines = __import__("ocrjoin").join_split_letters(lines)     # 4.26.1: DEFEN, S, E read apart on title type is one word
     text = "\n".join(t[4] for t in lines)
     readings = [(back(t), t[4], t[5], "read") for t in lines]
     _DOCTR_BOXES.boxes = []
@@ -2508,7 +2509,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "4.26.0"            # keep in step with version_info.txt
+APP_VERSION = "4.26.1"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

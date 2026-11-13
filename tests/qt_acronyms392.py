@@ -55,17 +55,17 @@ while ap.worker is not None and time.time() - t0 < 240:
 s = ap.session
 check("the scan is noted on the effort's timeline", P.timeline(s.ws) and P.timeline(s.ws)[-1]["what"] == "Scan", P.timeline(s.ws))
 c = P.count_of(s.results, lambda d: "excluded" if d.get("excluded") else A.status_kind(d.get("status", "")))
-check("the counts on the page", ap.count_btns["To decide"].text() == f"To decide {c['To decide']}" and c["To decide"] > 0,
+check("the counts on the page (4.26.1: the chip reads Undecided)", ap.count_btns["To decide"].text() == f"Undecided {c['To decide']}" and c["To decide"] > 0,
       [b.text() for b in ap.count_btns.values()])
 ap.count_btns["To decide"].click(); app.processEvents()
 check("a count clicked filters the list", ap.f_status.currentText() == "To decide" and ap.count_btns["To decide"].isChecked())
-check("the list shows the term, its type, state, definition and source", [c_ for c_ in range(ap.table.columnCount()) if not ap.table.isColumnHidden(c_)] == [0, 1, 5, 6, 9])
+check("4.26.1: the list shows the term, its state and definition, with the page beside it", [c_ for c_ in range(ap.table.columnCount()) if not ap.table.isColumnHidden(c_)] == [0, 5, 6])
 from skqt import acrlayout as _AL
 _AL.next_to_decide(ap); app.processEvents()
 t = ap.current()
 check("Next to decide selects a term to decide", t is not None and P.passes(s.results[t], "To decide", "other"), t)
-check("3.93.0: the customer's page is the On the page tab, not beside the list", ap.where_view is None and not ap.mid.isVisible()
-      and (getattr(ap, "b_onpage", None) is not None if s.results[t].get("locations") else True))
+check("4.26.1: the customer's page shows beside the list too", not ap.mid.isHidden()
+      and (ap.where_view is not None if s.results[t].get("locations") else True))
 # a term with suggestions: keys
 s.results["GSaaS"] = {"count": 2, "category": "Acronym", "status": "Needs Review", "locations": ["Kestrel_Technical_Volume.docx para 2"],
                       "custdef_all": [{"definition": "Ground Station as a Service", "where": "RFP p. 41"}],
