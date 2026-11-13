@@ -146,7 +146,7 @@ check("Found in: a customer file scanned is the customer's, not ours", s.found_i
 ap.f_status.setCurrentText("To decide"); app.processEvents()
 check("the status filter (3.76.0): To decide holds the terms not in the list yet",
       [ap.f_status.itemText(i) for i in range(ap.f_status.count())] == ["All statuses", "To decide", "In the list", "No definition yet",
-                                                                        "Needs a choice", "No longer found", "Not a term"]
+                                                                        "Needs a choice", "No longer found", "Ignored"]
       and ap.terms and not any(s.results[x].get("effort") for x in ap.terms))
 ap.f_status.setCurrentIndex(0); app.processEvents()
 # the effort list itself

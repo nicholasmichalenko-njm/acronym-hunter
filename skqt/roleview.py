@@ -104,6 +104,8 @@ class RolesCard(D.Card):
         self.add(D.label("Preview tools for this team", "label"))
         self.prev = {}
         for key, (name, what) in RA.PREVIEW.items():
+            if key in RA.ALWAYS_ON:                          # 4.29.1: on for everyone, so not a choice
+                continue
             cb = QCheckBox(f"{name} (it {what})"); self.add(cb); self.prev[key] = cb
             cb.toggled.connect(lambda on, k=key: self.set_preview(k, on))
         self.prev_note = self.add(D.label("", "muted"))

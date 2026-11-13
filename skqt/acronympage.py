@@ -102,13 +102,13 @@ class AcronymPage(QWidget):
             top.addWidget(p)
         f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
         self.f_type = QComboBox(); self.f_type.addItem(A.ALL_TYPES)
-        self.f_status = QComboBox(); self.f_status.addItems(list(STATUS))   # 3.34.1: the few that matter
+        self.f_status = QComboBox(); self.f_status.addItems(list(STATUS)); __import__("skqt.acrwords", fromlist=["x"]).relabel(self.f_status)   # 3.34.1: the few that matter
         self.f_found = QComboBox(); self.f_found.addItems(list(A.FOUND_FILTERS))
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
         self.f_search.setMinimumWidth(280)
         from . import symbols as SYM
         SYM.attach(self.f_search)                                       # 3.50.0: search for H₂O, µm, Δv
-        self.f_excl = QCheckBox("Show Not a term")
+        self.f_excl = QCheckBox("Show ignored")
         self.f_pics = QCheckBox("Found in pictures")                     # 3.53.0: only terms read from a picture
         self.f_pics.setToolTip("Only the terms read from pictures: image files, pictures in documents, diagrams and charts")
         self.f_pics.toggled.connect(lambda _on: self.fill())
@@ -230,7 +230,7 @@ class AcronymPage(QWidget):
         s = self.session
         if s is None:
             return []
-        ftype, fstat, ffound = self.f_type.currentText(), self.f_status.currentText(), self.f_found.currentText()
+        ftype, fstat, ffound = self.f_type.currentText(), __import__("skqt.acrwords", fromlist=["x"]).key(self.f_status.currentText()), self.f_found.currentText()
         q = self.f_search.text().strip().casefold()
         out = []
         for term, d in s.results.items():
@@ -389,8 +389,8 @@ class AcronymPage(QWidget):
             r1.addWidget(D.button("Put back in the list", None, lambda: self.set_status(terms, "In the list"),
                                   "It is a term after all: back in this effort's list"))
         else:
-            r1.addWidget(D.button("Not a term", "danger", lambda: self.set_status(terms, "Not a term"),
-                                  "Not a term in this effort: this scan and every later one, new document versions too"))
+            r1.addWidget(D.button("Ignore in this effort", "danger", lambda: self.set_status(terms, "Not a term"),
+                                  "Ignored in this effort: this scan and every later one, new document versions too"))
         # 4.23.1: The picture says something else... is gone: a wrong reading is fixed in Reads as; Part of a longer term
         # and Not text are under More
         self.more_btn = D.button("More", "ghost", lambda: AP.more_menu(self, terms))

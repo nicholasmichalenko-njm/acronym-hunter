@@ -322,7 +322,7 @@ class Stepper(QWidget):
 
 
 class NextBar(QFrame):
-    """The bar at the bottom of a page in a step: what is left on this step, and the next step."""
+    """Was the bar at the bottom of a page in a step (3.96.0). 4.29.1: it shows on no step."""
     def __init__(self, w):
         super().__init__()
         self.w = w
@@ -338,19 +338,10 @@ class NextBar(QFrame):
         self.setVisible(False)
 
     def show_for(self, step, rail_of):
-        e = rail_of.get(step, step)
-        if e == "assign":                           # 4.26.0 (answer 18): Shred's Next: Matrix & Outline is gone; it committed
-            self.setVisible(False)                  # nothing the menu does not, and the menu says what is left
-            return None
-        b = NS.bar(e, self.w.steps_now) if self.w.ws is not None and e in NS.NAME else None
-        if not b:
-            self.setVisible(False)
-            return None
-        self.left.setText("On this step: " + b["left"])
-        self.target = b["go"]
-        self.btn.setText(b["button"].replace("&", "&&") + "  →"); self.btn.setVisible(bool(b["button"])); self.when.setVisible(bool(b["button"]))
-        self.setVisible(True)
-        return b
+        """4.29.1 (Nicholas 2026-11-13 answer 10): no bar under any step. The menu says what is left on each step and
+        holds every step; the bar repeated both."""
+        self.setVisible(False)
+        return None
 
     def go(self):
         return self.w.rail_go(self.target) if self.target else None

@@ -45,7 +45,7 @@ class DraftAcrPage(QWidget):
         self.said = self.card.add(D.label("Not checked yet.", "muted"))
         v.addWidget(self.card)
         self.p_card = D.Card("From our drafts, still to decide", "Terms our drafts use that are not in the list. Type what "
-                             "each means (it may stay empty), then Add to effort list, or Not a term.")
+                             "each means (it may stay empty), then Add to effort list, or Ignore in this effort.")
         p = self.pending_list = QTableWidget(0, 4); p.setHorizontalHeaderLabels(["Term", "In", "Means", ""])
         p.verticalHeader().setVisible(False); p.setSelectionMode(QAbstractItemView.NoSelection); p.setMinimumHeight(140)
         p.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -149,7 +149,7 @@ class DraftAcrPage(QWidget):
             p.setCellWidget(i, 2, means)
             box = QWidget(); h = QHBoxLayout(box); h.setContentsMargins(4, 0, 4, 0); h.setSpacing(D.SPACE["s"])
             h.addWidget(D.button("Add to effort list", "primary", lambda _c=False, t=term: self.decide(t, True)))
-            h.addWidget(D.button("Not a term", "danger", lambda _c=False, t=term: self.decide(t, False)))
+            h.addWidget(D.button("Ignore in this effort", "danger", lambda _c=False, t=term: self.decide(t, False)))
             p.setCellWidget(i, 3, box)
             p.setRowHeight(i, 38)
         self.p_card.setVisible(bool(pend))

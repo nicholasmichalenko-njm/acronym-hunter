@@ -35,7 +35,7 @@ E.Registry(os.path.join(cfg, "efforts.json")).put("Kestrel", path=LIST)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("the menu: Setup in Plan, no Structure Builder of its own", [k for k, _t in MW.TABS["setups"]] == ["setups", "effortfmt"] and MW.RAIL_OF["storyboards"] == "setups")
+check("the menu: Setup in Plan, no Structure Builder of its own", [k for k, _t in MW.TABS["setups"]] == ["setups", "effortfmt", "studio"] and MW.RAIL_OF["storyboards"] == "setups")
 w.go("structure"); app.processEvents()
 sp = w.setups_page
 check("the Structure Builder's links open Setup", w.stack.currentWidget() is sp and w.page_title.text() == "Setup")

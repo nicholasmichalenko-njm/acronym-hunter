@@ -22,6 +22,19 @@ def suggested(page, it):
     return SUGGESTED.get(rec.get("cat") or "", "")
 
 
+def pane(page, chips):
+    """4.29.1 (Nicholas 2026-11-13 answer 8): the types show once. While the bar sits at the selection the pane says
+    which types the piece has; the pane's own chips show only when there is no bar (the piece is off the page shown)."""
+    try:
+        w, say = getattr(page, "type_w", None), getattr(page, "type_say", None)
+        if w is not None:
+            w.setVisible(bool(chips))
+        if say is not None:
+            say.setVisible(not chips)
+    except RuntimeError:                 # the card was drawn again under it
+        page.type_w = page.type_say = None
+
+
 def add(page, rows):
     """The chips and the two actions, added to the card. Returns the chips {key: button}."""
     from .adaptive import FlowLayout
@@ -48,6 +61,10 @@ def add(page, rows):
         fl.addWidget(b)
         page.type_chips[key] = b
     page.add(w)
+    page.type_w = w
+    names = [(types.get(k) or {}).get("name", k) for k in ST.KEYS if all(ST.has(it, k) for it in rows)]
+    page.type_say = page.add(D.label((", ".join(names) if names else "No type yet") + ". Set on the bar at the selection.", "muted"))
+    pane(page, getattr(page, "sel_bar", None) is None)        # 4.29.1: the bar at the selection holds the types
     import captureuse as CU                                  # 4.21.0: where what was said here goes
     have = [k for k in ST.KEYS if all(ST.has(it, k) for it in rows)]
     say = CU.line(have, {k: (types.get(k) or {}).get("name", k) for k in have})

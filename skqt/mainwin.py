@@ -63,13 +63,13 @@ TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("deliverab
                    ("acronyms", "Acronyms")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
         "matrix": [("outline", "Outline"), ("place", "Place"), ("matrix", "Matrix"), ("crosswalk", "Crosswalk"),
                    ("prove", "Coverage")],                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
-        "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
+        "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting"), ("studio", "Template Studio")],   # 4.29.1: it works on the open effort's volume
         "drafts": [("drafts", "Status"), ("draftacr", "Acronyms"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
                    ("truth", "Wall of Truth"), ("markups", "Reviewer markups")],   # 4.25.3: a reviewer's commented PDF of a draft                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.8.0
-        "templates": [("templates", "Templates"), ("tplprofiles", "From profiles"), ("profiles", "Effort Profiles"), ("studio", "Template Studio")],   # 4.28.0, 4.28.2
+        "templates": [("templates", "Templates"), ("tplprofiles", "From profiles"), ("profiles", "Effort Profiles")],   # 4.28.0, 4.28.2; 4.29.1: Template Studio is Setup's
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another

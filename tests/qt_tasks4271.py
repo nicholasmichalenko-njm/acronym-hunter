@@ -108,6 +108,16 @@ got = cp.pick(due_day)
 check("pick a day: its list shows", any(k == "due" for k, _t in got) and str(due_day.day) in cp.day_card.title.text(), (got, cp.day_card.title.text()))
 cp.bar.main.click(); app.processEvents()
 check("Today brings today back", cp.day == today and cp.day_card.title.text() == "Today")
+# 4.29.1 (answer 17 of 2026-11-13): Add a date... on Calendar
+soon = today + datetime.timedelta(days=9)
+cp.pick(soon)
+eid = cp.add_date(answer={"kind": "Review", "title": "Pink team review", "date": soon.isoformat(), "start": "09:00", "end": "", "zone": "",
+                          "owner": "", "location": "", "details": ""})
+app.processEvents()
+check("Calendar has Add a date... beside Today", cp.add_btn.text() == "Add a date..." and eid is not None)
+check("... the date shows on its day and in Coming up", any("Pink team review" in tx for _k, tx in cp.cal_data.get(soon, []))
+      and any("Pink team review" in x[3] for x in cp.ahead), cp.cal_data.get(soon))
+cp.pick(today)
 
 # Activity
 w.go("activity"); app.processEvents()

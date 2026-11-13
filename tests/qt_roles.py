@@ -122,9 +122,8 @@ rc = w.settings_page.roles_card
 check("Settings says the role and where it comes from; only the proposal manager sets Preview tools",
       "Author" in rc.role_text.text() and "People in this effort" in rc.role_text.text() and not rc.prev["fixcopy"].isEnabled())
 MO.save(my_name="J. Smith"); w.go("settings"); app.processEvents()
-check("the proposal manager can", w.profile()[0] == RA.PM and rc.prev["template"].isEnabled())
-rc.prev["template"].setChecked(True)
-check("... turning Make a template on", RA.preview_on(cfg, "template"))
+check("the proposal manager can", w.profile()[0] == RA.PM and rc.prev["fixcopy"].isEnabled())
+check("4.29.1: making a template is on for everyone, with no box to tick", RA.preview_on(cfg, "template") and "template" not in rc.prev)
 
 # ---------------------------------------------------------------- the team pack carries it
 pack = os.path.join(tmp, f"Team{TP.EXT}")

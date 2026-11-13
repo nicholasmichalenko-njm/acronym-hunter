@@ -103,8 +103,11 @@ def load(config_dir):
         return {}
 
 
+ALWAYS_ON = ("template",)      # 4.29.1 (Nicholas 2026-11-13 answer 23): making a template is on for everyone
+
+
 def preview_on(config_dir, key):
-    return key in (load(config_dir).get("preview_on") or [])
+    return key in ALWAYS_ON or key in (load(config_dir).get("preview_on") or [])
 
 
 def set_preview(config_dir, key, on):

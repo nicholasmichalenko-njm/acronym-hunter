@@ -522,7 +522,7 @@ class OnPage(QWidget):
         """Every decision ends here: the page and the list are drawn again; the page shown stays."""
         if undo is not None:
             self.undo = undo
-            self.undo_lab.setText(f"{html.escape(undo[0])}: Not a term. <a href='u'>Undo</a>")
+            self.undo_lab.setText(f"{html.escape(undo[0])}: ignored. <a href='u'>Undo</a>")
         if msg:
             self.page.host.toast(msg)
         self.sel, self.new_text, self.new_area = [], "", None

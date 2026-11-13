@@ -131,16 +131,16 @@ def decide_bar(op, host, items):
     if len(terms) > 1:
         f.main, f.b_each, f.b_not = _buttons(v, [("Add to effort list  Enter", "primary", lambda: combine(op, f)),
                                                  ("Add each as its own term", None, lambda: add(op, f)),
-                                                 ("Not a term here  X", None, lambda: not_term(op, f.terms))])
+                                                 ("Ignore here  X", None, lambda: not_term(op, f.terms))])
         _say_combine(f)
     else:
         f.main, f.b_not = _buttons(v, [("Add to effort list  Enter", "primary", lambda: add(op, f)),
-                                       ("Not a term here  X", None, lambda: not_term(op, f.terms))])
+                                       ("Ignore here  X", None, lambda: not_term(op, f.terms))])
     f.b_not.setToolTip("Only on this page. The term stays a find everywhere else in the effort.")
     f.b_everywhere = None
     row2 = []
     if n_all > n_here:
-        row2.append((f"Not a term everywhere in this effort ({n_all})", "ghost", lambda: not_term(op, f.terms, everywhere=True)))
+        row2.append((f"Ignore in this effort ({n_all})", "ghost", lambda: not_term(op, f.terms, everywhere=True)))
     if len(terms) == 1:                        # 4.26.1: what More held, on the bar (Show in the list is gone)
         t = terms[0]
         from . import acrpart as APT
@@ -259,7 +259,7 @@ def partial_bar(op, host, items):
                         f"{lg['shared']}.", "muted"))
     f.main, f.b_keep, f.b_not = _buttons(v, [(f"Use {lg['whole']}  Enter", "primary", lambda: use_whole(op, t, lg["whole"])),
                                              (f"Keep {t} too", None, lambda: keep_part(op)),
-                                             ("Not a term here  X", None, lambda: not_term(op, [t]))])
+                                             ("Ignore here  X", None, lambda: not_term(op, [t]))])
     v.addWidget(D.label("Letters joined by a hyphen can be one term for the whole effort: The list, More.", "muted"))
     f.keys["enter"] = f.main.click
     f.keys["X"] = f.b_not.click

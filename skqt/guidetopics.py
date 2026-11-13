@@ -393,8 +393,8 @@ TOPICS = [
   "Lists to submit, by volume, builds each volume's list from what it uses.",
   "At the start (scan the customer's documents), throughout (add terms and their definitions), and at the end (the lists you submit).",
   ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
-   "Tabs: On the page, Everything found, Effort list. On the page: Add to effort list, or Not a term here (this page only; "
-   "Not a term everywhere in this effort is beside it). Select finds side by side to combine them into one term.",
+   "Tabs: On the page, Everything found, Effort list. On the page: Add to effort list, or Ignore here (this place only; "
+   "Ignore in this effort is beside it). Select finds side by side to combine them into one term.",
    "From a picture, The picture says something else... offers Part of a longer term... (VW in MOC-VW, held where they "
    "sit together), Misread letters... and Not text. Each fix also saves a training sample with the effort.",
    "More holds Plural of, A form of, Another way of writing, Part of a longer term, Add to this PC's database and Remove "
@@ -402,11 +402,11 @@ TOPICS = [
    "Add to the database keeps the term and its meaning in this PC's acronym database, apart from the effort's list "
    "(usually after submission). Add a term... adds one by hand: to this scan, the effort list, the database, or all three.",
    "The card: the meaning, then two lines. Reads as is the term: fix it there if it was read wrong, and the list gets what you type. Means is the definition: pick one, type one, or leave it empty. "
-   "Add to effort list and Not a term each move to the next term to decide. More has Part of a longer term, Plural of, A form of, Another way of writing and Add to the Wall of Truth.",
+   "Add to effort list and Ignore each move to the next term to decide. More has Part of a longer term, Plural of, A form of, Another way of writing and Add to the Wall of Truth.",
    "The preview boxes what the scan read. Page < and > go through every page or picture of the file. Click a box to see "
    "what it read, or select words in a passage: Put in Reads as and Put in Means carry them to the card's two lines. A "
    "reading fixed on a picture is kept for every later scan on this PC. Find < and > step through the finds and come back to the place. Drag to draw a box: Read this area again, Add as a term...; right-drag or Space to move.",
-   "Why is a term missing? Type a term you expected: the Exclusion List, Not a term, a plural or form you set, the filters, or "
+   "Why is a term missing? Type a term you expected: the Exclusion List, Ignored, a plural or form you set, the filters, or "
    "what the last scan read (with near misses in pictures). Save as the answer key... makes your decided scan the key of "
    "your acronym set (a folder outside the repository), scored by each build.",
    "The table: click a heading to sort (again to turn it around); Ctrl+wheel or Ctrl+plus and minus change the text size; "
@@ -590,7 +590,7 @@ TOPICS = [
    "Needs review: a newer library version waits on its profile, or the profile changed since the template was made. "
    "Blocked: a size is under the RFP's limit, or a value does not make a template; fix it on Effort Profiles.",
    "Open in Word opens the last one made; Open the folder shows them all."],
-  ["Making templates is a Preview tool until it is turned on in Settings > Preview tools.",
+  ["Making templates is on for everyone (4.29.1).",
    "Each template's name counts up a version every time it is made again."]),
  ("rules", "Team", "Rules",
   "Every rule the app follows and checks, in one list: the production rules for our documents (Rule 1 to 13 and the "
@@ -650,7 +650,7 @@ TOPICS = [
    "A file in a OneDrive or SharePoint folder: people editing it online can't be seen from here, so the copy is the "
    "version synced to this PC. Fix it when the writers are done.",
    "Each fix is one guarded change that may touch only what it declares; anything else is refused.",
-   "Fix a Copy and Make a .dotx template are Preview tools: off for the team until the proposal manager turns them on."]),
+   "Fix a Copy is a Preview tool: off for the team until the proposal manager turns it on. Making a template is on for everyone."]),
  ("refs", "Team", "Team References",
   "Every list the team keeps, in one place: banned phrases, this PC's acronym database, the Exclusion List, fixes for misread "
   "text, the team's Wall of Truth and the custom dictionaries for Word.",

@@ -27,7 +27,7 @@ def install(page, v):
                              "The next page with finds to decide (pages marked done are skipped)")
     page.b_pagedone = ob.primary("Page done", lambda: page.onpage.page_done(),
                                  "This page is done: marked with the effort, and the next page with finds shows")
-    page.show_not_act = ob.more("Show Not a term", lambda: _show_not(page), checkable=True)
+    page.show_not_act = ob.more("Show ignored", lambda: _show_not(page), checkable=True)
     ob.more("Every page to do again", lambda: again(page), "Clears the Page done marks")
     page.bars = QStackedWidget()
     page.bars.addWidget(ob); page.bars.addWidget(page.bar)

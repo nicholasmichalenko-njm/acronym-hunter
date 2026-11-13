@@ -1,6 +1,6 @@
 """The Guide's Template Studio and Formatting Standards topics (3.66.0), Apply in Word (3.67.0) and Verify (3.84.0), put back in the menu's order by guidetopics. Text only."""
 STUDIO = \
-("studio", "Templates", "Template Studio",
+("studio", "Setup", "Template Studio",
   "One volume's template in one place, read from where its parts live: the profile's cover, headers and footers, table "
   "of contents, fonts, numbering and table looks; this effort's own formatting; the RFP's formatting rules; the sections and "
   "numbering; and the field recipes.",

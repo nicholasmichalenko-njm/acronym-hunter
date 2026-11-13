@@ -129,7 +129,7 @@ SB.keep_part(op); app.processEvents()                    # it was read with doub
 t1 = op.selected()[0]["term"]
 labs = labels(op.bar)
 check("one find: Add to effort list, Not a term here, and what More held on the bar", any(x.startswith("Add to effort list") for x in labs)
-      and any(x.startswith("Not a term here") for x in labs) and all(x in labs for x in ("Plural of...", "A form of...", "Part of a longer term..."))
+      and any(x.startswith("Ignore here") for x in labs) and all(x in labs for x in ("Plural of...", "A form of...", "Part of a longer term..."))
       and "More" not in labs, labs)
 n_places = AP.places(s, t1)
 check("... Not a term everywhere shows its count only when the term is found in other places too",
@@ -140,7 +140,7 @@ s.results[t1].setdefault("locations", []).append("Elsewhere.docx (para 3)")
 op.select(vis[:1]); app.processEvents()
 SB.keep_part(op); app.processEvents()
 check("found in another place too: Not a term everywhere in this effort (n)", op.bar.b_everywhere is not None
-      and op.bar.b_everywhere.text() == f"Not a term everywhere in this effort ({AP.places(s, t1)})", labels(op.bar))
+      and op.bar.b_everywhere.text() == f"Ignore in this effort ({AP.places(s, t1)})", labels(op.bar))
 SB.key(op, "X"); app.processEvents()
 check("X is Not a term here: off this page, still found elsewhere, not Not a term in the effort",
       not AP.here(s, t1, op.key) and "Elsewhere.docx (para 3)" in s.results[t1]["locations"] and s.results[t1].get("effort") != "Not a term"

@@ -1,7 +1,7 @@
 """Calendar (4.27.1; Nicholas's recording 2026-11-12 08:20: "the calendar is very important ... I want it before the
 fold"; answer 2: a menu entry of its own). The month with every dated thing marked, the picked day's list, and the next
 dated things beside it. It reads the effort's calendar (the due date, questions due, stages, gate goals, tasks,
-reviews and meetings); nothing is stored here. The Dashboard's calendar card on All cards is the same data.
+reviews and meetings). 4.29.1: Add a date... adds a due date or an event on the day picked. The Dashboard's calendar card on All cards is the same data.
 Rules only (No AI); nothing leaves the PC."""
 import datetime
 import html
@@ -36,6 +36,8 @@ class CalendarPage(QWidget):
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.bar = CommandBar()
         self.bar.primary("Today", lambda: self.pick(datetime.date.today()), "This month, and today's list")
+        self.add_btn = self.bar.add("Add a date...", lambda: self.add_date(),      # 4.29.1 (Nicholas 2026-11-13 answer 17)
+                                    "A due date, a meeting, a review or a milestone on the day picked")
         v.addWidget(self.bar)
         self.empty = D.EmptyState("No effort open", "Open an effort to see its dates.", "All Efforts", lambda: host.go("efforts"))
         v.addWidget(self.empty, 1)
@@ -110,6 +112,11 @@ class CalendarPage(QWidget):
             qd = QDate(d.year, d.month, d.day)
             self.cal.setDateTextFormat(qd, f); self._painted.append(qd)
         return len(self._painted)
+
+    def add_date(self, answer=None):
+        """Add a date... on the day picked: the same form as the Overview's (a due date or an event). Returns its id."""
+        from .calview import entry_dialog
+        return entry_dialog(self, "Meeting", None, self.day, answer)
 
     def pick(self, day):
         self.day = day

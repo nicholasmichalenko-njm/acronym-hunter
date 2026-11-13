@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QAbstractButton, QDialog, QDialogButtonBox, QFram
 import acrpage as P
 import app_gui as A
 import diag
+from . import acrwords as W
 from . import design as D
 from .adaptive import FlowLayout
 from .commandbar import CommandBar
@@ -20,7 +21,7 @@ from .splitlines import SplitView
 
 KEEP_COLS = (0, 5, 6)                       # Term, Status, Definition; the rest stay in Export and Details
 SHOWN_COUNTS = ("To decide", "In the list", "Not a term")   # 4.23.0: what is left and what is done; 4.26.1: and Not a term
-SAYS = {"To decide": "Undecided", "In the list": "Added to effort list"}     # 4.26.1: what the chips read (the filters keep their saved words)
+SAYS = {"To decide": "Undecided", "In the list": "Added to effort list", "Not a term": "Ignored"}     # 4.26.1: what the chips read (the filters keep their saved words)
 LIST_COLS = (0, 5, 6)                       # 4.26.1: Term, Status, Definition, with the page beside them (was five columns, no page)
 
 
@@ -79,7 +80,7 @@ def install(page):
     bar.more_sep()
     for name in P.COUNTS:
         if name not in SHOWN_COUNTS:
-            act = bar.more(f"Show only: {name}", lambda n=name: pick_count(page, n))
+            act = bar.more(f"Show only: {W.shown(name)}", lambda n=name: pick_count(page, n))
             act.setCheckable(True)                         # ticked when it is the filter (set in fill_counts)
             page.count_acts[name] = act
     page.counts_row.addWidget(page.f_search)
@@ -150,7 +151,7 @@ def fill_counts(page):
 def current_count(page):
     if page.f_pics.isChecked():
         return "On pictures"
-    st = page.f_status.currentText()
+    st = W.key(page.f_status.currentText())
     return st if st in P.COUNTS else None
 
 
@@ -159,7 +160,7 @@ def pick_count(page, name):
     on = current_count(page) != name
     page.f_pics.blockSignals(True); page.f_status.blockSignals(True)
     page.f_pics.setChecked(on and name == "On pictures")
-    page.f_status.setCurrentText(name if on and name != "On pictures" else page.f_status.itemText(0))
+    page.f_status.setCurrentText(W.shown(name) if on and name != "On pictures" else page.f_status.itemText(0))
     page.f_pics.blockSignals(False); page.f_status.blockSignals(False)
     page.fill()
     return current_count(page)
@@ -281,7 +282,7 @@ def card_more(page, t):
             box.addWidget(f)
             page.suggest_widgets.append(f)
         body.insertLayout(1, box)
-        body.insertWidget(2, D.label("Keys: 1 to 4 pick · Enter adds to the list · X says Not a term", "muted"))
+        body.insertWidget(2, D.label("Keys: 1 to 4 pick · Enter adds to the list · X ignores it here", "muted"))
         page.pick = 1
         mark_pick(page)
     lg = P.longer(s.results, t)

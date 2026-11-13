@@ -114,7 +114,7 @@ check("text size: larger, then back to normal", AX.text_size(page, 1) > before a
 page.select(pick); app.processEvents()
 menu = AX.row_menu(page, run=False)
 acts = [a.text() for a in menu.actions() if a.text()]
-check("the right-click menu holds the actions (3.76.0: no Omit or Exclusion List)", {"Add to the effort list", "Not a term",
+check("the right-click menu holds the actions (3.76.0: no Omit or Exclusion List)", {"Add to the effort list", "Ignore in this effort",
       "Add to this PC's database", "Details...", "Fix a misread..."} <= set(acts) and not any("Omit" in x or "Exclusion" in x for x in acts), acts)
 txt = AX.details(page, run=False)
 check("Details: every value of the term, copyable", pick in txt and "Where it was found:" in txt)

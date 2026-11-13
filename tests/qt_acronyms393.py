@@ -201,7 +201,7 @@ check("4.26.1: the bar holds what More held (Plural of, A form of, Part of a lon
       all(x in labs for x in ("Plural of...", "A form of...", "Part of a longer term...")) and "More" not in labs
       and not hasattr(SB, "more"), labs)
 check("... its buttons read Add to effort list and Not a term here", any(x.startswith("Add to effort list") for x in labs)
-      and any(x.startswith("Not a term here") for x in labs), labs)
+      and any(x.startswith("Ignore here") for x in labs), labs)
 
 print(f"{sum(checks)}/{len(checks)} passed")
 w.close()

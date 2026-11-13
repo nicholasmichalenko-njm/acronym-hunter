@@ -43,8 +43,8 @@ def build(page, t, kind_tone):
     hint = AS.not_a_term_hint(t)
     if hint and not d.get("excluded") and d.get("effort") != "Not a term":
         hr = QHBoxLayout(); hr.setSpacing(D.SPACE["s"])
-        hr.addWidget(D.label(f"Suggested: Not a term. {hint}.", "muted"), 1)
-        hr.addWidget(D.button("Not a term", "ghost", lambda: page.set_status([t], "Not a term")))
+        hr.addWidget(D.label(f"Suggested: ignore in this effort. {hint}.", "muted"), 1)
+        hr.addWidget(D.button("Ignore in this effort", "ghost", lambda: page.set_status([t], "Not a term")))
         body.addLayout(hr)
     means = AS.meanings(d)
     if means:
@@ -133,7 +133,7 @@ def build(page, t, kind_tone):
     inner = QVBoxLayout(); inner.setContentsMargins(0, 0, 0, 0); inner.setSpacing(D.SPACE["s"])
     pills = QHBoxLayout(); pills.setSpacing(D.SPACE["s"])
     if d.get("effort"):
-        pills.addWidget(D.Pill(f"Acronym list: {d['effort']}" + ("" if ((d.get("list_definition") or "").strip() or d["effort"] == "Not a term") else ", no definition yet"),
+        pills.addWidget(D.Pill(f"Acronym list: {__import__('skqt.acrwords', fromlist=['x']).shown(d['effort'])}" + ("" if ((d.get("list_definition") or "").strip() or d["effort"] == "Not a term") else ", no definition yet"),
                             "ok" if (d.get("list_definition") or "").strip() and d["effort"] == "In the list" else "head" if d["effort"] == "Not a term" else "warn"))
     if d.get("from_drafts"):                                  # 4.4.0: Drafts > Acronyms sent it here
         pills.addWidget(D.Pill("From our drafts: " + ", ".join(d["from_drafts"]), "warn" if not d.get("effort") else "ctx"))

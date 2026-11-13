@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFileDialog, 
 import diag
 import effortfolders as EF
 import effort as E
+from . import acrwords as W
 from . import design as D
 from .adaptive import FlowLayout
 
@@ -58,7 +59,7 @@ class EffortListPage(QWidget):
         self.bar.primary("Edit definition...", lambda: self.edit_definition(), "The selected term's definition (double-click works too)")
         self.bar.add("Import a list...", lambda: IV.import_list(self), "Any Excel or CSV list, merged into this one: new terms "
                      "come in, the same meaning fills empty fields, a second meaning is kept for review")
-        self.bar.add("Not a term", lambda: self.set_status("Not a term"), "The selected terms are not terms in this effort")
+        self.bar.add("Ignore in this effort", lambda: self.set_status("Not a term"), "The selected terms are ignored in this effort")
         self.bar.add("Scan...", lambda: self.host.go("acronyms"), "Scan the customer's documents or your drafts")
         self.bar.more("Put back in the list", lambda: self.set_status("In the list"))
         self.bar.more("Take out of the list", lambda: self.remove())
@@ -83,13 +84,13 @@ class EffortListPage(QWidget):
         self.bar.export("Every effort's list...", lambda: LX.export_all(self), "Every effort's acronym list in one workbook")
         v.addWidget(self.bar)
         top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
-        self.pills = {k: D.Pill(f"0 {k.lower()}", TONE[k]) for k in E.STATUSES + [NODEF]}
+        self.pills = {k: D.Pill(f"0 {W.shown(k).lower()}", TONE[k]) for k in E.STATUSES + [NODEF]}
         for p in self.pills.values():
             top.addWidget(p)
         self.p_unused = D.Pill("", "accent"); self.p_unused.hide(); top.addWidget(self.p_unused)
         top.addStretch(1)
         f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
-        self.f_status = QComboBox(); self.f_status.addItems([ADDED, "All statuses"] + E.STATUSES + [NODEF])   # 4.26.1: opens on what was added
+        self.f_status = QComboBox(); self.f_status.addItems([ADDED, "All statuses"] + E.STATUSES + [NODEF]); W.relabel(self.f_status)   # 4.26.1: opens on what was added
         self.f_status.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_kind = QComboBox(); self.f_kind.addItem("All kinds", "")                      # 3.37.0: by kind
         for k in ("Acronym", "Abbreviation", "Unit", "Symbol"):
@@ -153,7 +154,7 @@ class EffortListPage(QWidget):
     def fill(self):
         L = self.L
         rows = L.rows if L is not None else {}
-        st, q = self.f_status.currentText(), self.f_search.text().strip().casefold()
+        st, q = W.key(self.f_status.currentText()), self.f_search.text().strip().casefold()
         kind = self.f_kind.currentData() or ""
         keep = set(self.selected())
         unused = self.unused_terms()
@@ -176,7 +177,7 @@ class EffortListPage(QWidget):
                 val = self.status_of(r) if col == "Status" else str(r.get(col, "") or "")
                 if col == "Found in" and not val and t not in ((self.session.results if self.session else {}) or {}):
                     val = "not found in this effort's documents yet"
-                it = QTableWidgetItem(val)
+                it = QTableWidgetItem(W.shown(val) if col == "Status" else val)
                 if col == "Status":
                     it.setForeground(D.color(TONE.get(val, "accent")))
                 self.table.setItem(i, c, it)
@@ -184,7 +185,7 @@ class EffortListPage(QWidget):
                 self.table.selectRow(i)
         for k, p in self.pills.items():
             n = sum(1 for r in rows.values() if (self.status_of(r) == k or (k == E.IN and r["Status"] == E.IN)))
-            p.setText(f"{n} {k.lower()}")
+            p.setText(f"{n} {W.shown(k).lower()}")
 
     @staticmethod
     def status_of(r):

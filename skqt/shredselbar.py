@@ -34,6 +34,7 @@ def close(page):
     b, page.sel_bar = getattr(page, "sel_bar", None), None
     if b is not None:
         b.hide(); b.setParent(None); b.deleteLater()
+    __import__("skqt.typechips", fromlist=["x"]).pane(page, True)
 
 
 def wanted(page):
@@ -47,6 +48,7 @@ def wanted(page):
 
 def refresh(page):
     """Build the bar for what is selected now (or take it away). Returns the bar or None."""
+    from . import typechips as TC
     try:
         close(page)
         rows = wanted(page)
@@ -54,7 +56,8 @@ def refresh(page):
             return None
         page.sel_bar = build(page, rows)
         page.sel_bar.show()
-        place(page)
+        if place(page) is not None:
+            TC.pane(page, False)                 # 4.29.1: the types show here, not on the pane as well
         return page.sel_bar
     except Exception:  # noqa: BLE001
         diag.swallowed()

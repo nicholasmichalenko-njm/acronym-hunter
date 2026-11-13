@@ -91,7 +91,7 @@ check("checking again adds nothing twice", len([t for t in s.results if t == "ZQ
 from PySide6.QtWidgets import QPushButton
 check("4.23.2: no Decide them in Acronyms; each term has its meaning line and two buttons", pg.bar.action("Decide them in Acronyms") is None
       and pg.pending_terms == ["WVR", "ZQX"] and [b.text() for b in pg.pending_list.cellWidget(0, 3).findChildren(QPushButton)]
-      == ["Add to effort list", "Not a term"])
+      == ["Add to effort list", "Ignore in this effort"])
 pg.pending_list.cellWidget(0, 2).setText("Wide View Radiometer")
 pg.pending_list.cellWidget(0, 3).findChildren(QPushButton)[0].click(); app.processEvents()
 check("Add to effort list on the row: in the list with the meaning typed", s.effort.rows["WVR"]["Status"] == "In the list"

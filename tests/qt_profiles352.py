@@ -124,7 +124,7 @@ check("the template's name counts up a version", "v2" in os.path.basename(next(j
 check("Take out: gone from this effort type", pg.take_out() is True and cp not in PRL.effort_type_of(PRL.load(cfg), eid)["profiles"])
 from skqt import mainwin as MW
 check("Production Standards is off the menu (3.69.0); Effort Profiles in the Team group, Templates its tab (3.75.0)",
-      "prodstd" not in [k for _g, it in MW.RAIL for k, _t in it] and MW.GROUP_OF.get("profiles") == "Templates" and [k for k, _t in MW.TABS["templates"]] == ["templates", "tplprofiles", "profiles", "studio"])   # 4.28.0, 4.28.2
+      "prodstd" not in [k for _g, it in MW.RAIL for k, _t in it] and MW.GROUP_OF.get("profiles") == "Templates" and [k for k, _t in MW.TABS["templates"]] == ["templates", "tplprofiles", "profiles"])   # 4.28.0, 4.28.2, 4.29.1
 n = sum(checks)
 print(f"QT PROFILES 3.52 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.stdout.flush()

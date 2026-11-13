@@ -75,7 +75,7 @@ add_btn = [b for b in ap.card_area.findChildren(QPushButton) if b.text() == "Add
 add_btn.click(); app.processEvents()
 check("Add to effort list adds the term", todo[0] in s.effort.rows and s.effort.rows[todo[0]]["Status"] == "In the list")
 check("... and moves to the next term to decide", ap.current() == todo[1], (ap.current(), todo[1]))
-nt = [b for b in ap.card_area.findChildren(QPushButton) if b.text() == "Not a term"][0]
+nt = [b for b in ap.card_area.findChildren(QPushButton) if b.text() == "Ignore in this effort"][0]
 nt.click(); app.processEvents()
 check("Not a term moves to the next one too", s.effort.rows[todo[1]]["Status"] == "Not a term" and ap.current() == todo[2], (ap.current(), todo[2]))
 AL.add_current(ap); app.processEvents()

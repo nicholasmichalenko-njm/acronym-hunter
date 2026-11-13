@@ -108,7 +108,7 @@ def row_menu(page, at=None, run=True):
     if nt:                                                    # 3.76.0: no approval, no Omit; Not a term is the one decision
         m.addAction("Put back in the list").triggered.connect(lambda: page.set_status(terms, "In the list"))
     else:
-        m.addAction("Not a term").triggered.connect(lambda: page.set_status(terms, "Not a term"))
+        m.addAction("Ignore in this effort").triggered.connect(lambda: page.set_status(terms, "Not a term"))
     m.addSeparator()
     m.addAction("Add to this PC's database").triggered.connect(lambda: add_to_db(page, terms))
     if s.effort is not None and any(t in s.effort.rows for t in terms):
