@@ -436,7 +436,8 @@ def pasted_folder(page):
     try:                                         # 4.25.1 (Nicholas 16:49): a pasted picture is a file in the effort's
         import effortlib as EL                   # folder, with the effort's graphics, where a person can find it
         er = EL.root(page.host.effort_path) if ws is not None and page.host.effort_path else ""
-        if er and os.path.isdir(er):
+        cfg = os.path.normcase(os.path.abspath(page.host.config_dir)) + os.sep
+        if er and os.path.isdir(er) and not os.path.normcase(os.path.abspath(er)).startswith(cfg):   # not the Finder's own space
             root = os.path.join(er, EL.TOPS["graphics"], "Pasted pictures")
     except Exception:  # noqa: BLE001
         diag.swallowed()
