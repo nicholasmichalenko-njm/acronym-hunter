@@ -47,6 +47,8 @@ class RecordPage(StageTableMixin, QWidget):
         self.bar.more_sep()
         self.bar.more("Back up now", lambda: self.backup_now())
         self.bar.more("Restore...", lambda: self.restore_dialog(), "Put back an earlier copy of this effort")
+        self.bar.more("Open the backups folder", lambda: self.open_backups(),      # 4.30.1: the app data folder is hidden
+                      "The copies kept in this effort's own data, opened in File Explorer (that folder is hidden there)")
         self.bar.export("Effort status (Word)...", lambda: self.status_export(), "Where the effort stands, for leadership")
         self.bar.export("Effort summary (Word)...", lambda: self.status_export(final=True), "The effort with its complete history")
         self.bar.export("Save effort package...", lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off")
@@ -567,6 +569,21 @@ class RecordPage(StageTableMixin, QWidget):
         ok = sf.restore(pts[pick])
         self.refresh() if self.host.ws is not None else None
         return pts[pick] if ok else None
+
+    def open_backups(self, open_it=True):
+        """4.30.1: the effort's backups in File Explorer (their folder is hidden with the app's data). Returns the folder."""
+        import hidefolders as HF
+        if self.host.ws is None:
+            self.host.status("Open an effort first.")
+            return ""
+        d = HF.backups_folder(self.host.ws.root)
+        if open_it and not os.environ.get("AH_TEST"):
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl.fromLocalFile(d))
+        diag.activity("qt_backups_folder_opened")
+        self.host.status("The effort's backups are in " + d)
+        return d
 
     def backup_now(self, folder=None):
         """Back up the open effort to the backup folder set in Keep safe (folder: tests)."""

@@ -87,6 +87,11 @@ def main(argv=None):
         design.apply(app)
     import diag
     diag.activity("qt_started")
+    try:                                             # 4.30.1: the program's own working folders are out of sight
+        import hidefolders as _HF
+        _HF.program(A.BASE_DIR)
+    except Exception:                                # noqa: BLE001
+        pass
     import supportfile as SF                         # 2.81.0: two starts in a row that never finished: a safe start
     safe = SF.begin(A.SANDBOX_DIR) if "--selftest" not in args else False
     if "--firstuse" in args or "/firstuse" in args:          # 3.50.0: First Use Check alone

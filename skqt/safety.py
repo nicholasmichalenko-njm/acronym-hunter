@@ -436,6 +436,11 @@ class Safety:
         self.done_sig = self.signature()          # what is on disk now is what the next backup compares with
         self.rev_sig = self.done_sig
         self.seen_sig, self.list_mtime, self.result = None, None, None
+        try:                                      # 4.30.1: the effort's app data folder is out of sight (hidefolders)
+            import hidefolders as HF
+            HF.effort(h.ws.root)
+        except Exception:
+            diag.swallowed()
         try:
             import lineage as LG
             LG.ensure(h.ws.root)

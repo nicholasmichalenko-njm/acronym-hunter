@@ -18,7 +18,7 @@ ALLOW = os.path.join(ROOT, "tools", "glossary_allow.json")
 SKIP_DIRS = {"tests", "tools", ".git", "_local_sandbox", "build", "dist", "__pycache__", "test_samples", "prototypes",
              "training_kit_src", "claude", "docs"}
 # What's new keeps each release's words as they were; the Trainer is its own program with its own steps
-SKIP_FILES = {"supportfile.py", "trainerkit.py", "skqt_training.py", "formats.py", os.path.join("skqt", "trainingwin.py")}
+SKIP_FILES = {"supportfile.py", "whatsnew.py", "trainerkit.py", "skqt_training.py", "formats.py", os.path.join("skqt", "trainingwin.py")}
 
 # (rule, what to say instead, the retired use, the uses that stay)
 RULES = [
