@@ -14,6 +14,7 @@ def after_added(host, made, lib, run=None):
     not while tests run). Returns the summaries (host.last_changes)."""
     import whatchanged as WC
     out = []
+    page_copies(host, made, lib)
     M = host.review.M if host.review is not None else None
     for d, v in made or []:
         if d.get("category", "customer") != "customer":
@@ -45,6 +46,27 @@ def after_added(host, made, lib, run=None):
             for s in out:
                 WhatChangedDialog(host, s).exec()
     return out
+
+
+def page_copies(host, made, lib, run=None):
+    """4.25.0 (answer 2): the text of a document is checked by itself. Its page copy (a Word, Excel or PowerPoint file,
+    a picture, a scanned PDF) is started in the background the moment it is added, so its pages to look at show on
+    Documents without opening anything. run: start them (default: not while tests run). Returns the files asked for."""
+    if run is None:
+        run = not os.environ.get("AH_TEST")
+    asked = []
+    for d, v in made or []:
+        if d.get("category", "customer") != "customer":
+            continue
+        try:
+            path = lib.path_of(v)
+            if path and os.path.isfile(path):
+                asked.append(path)
+                if run:
+                    host.verify_page.pdf_of(path, make=True)
+        except Exception:
+            diag.swallowed()
+    return asked
 
 
 class WhatChangedDialog(QDialog):

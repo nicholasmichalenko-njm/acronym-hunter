@@ -99,13 +99,13 @@ def status(page, d, st=None):
     v = _verify(page, d)
     if d.get("category", "customer") == "customer":
         if v is None:
-            out.append(("Text check", "Not checked yet (its page copy is made when it opens in Text check)", NONE))
+            out.append(("Text check", "Checked by itself when the document is extracted", NONE))
         else:
             ver, pages, look = v
             out.append(("Text check", f"{ver} of {pages} pages checked" + (f"; {look} to look at" if look else ""),
                         WARN if look else OK if ver == pages else NONE))
     text, _tone, key = page.review_state(d, st)
-    shred = {"unread": ("Not extracted yet", NONE), "needs": (text.replace("Needs reviewing", "In progress"), WARN),
+    shred = {"unread": ("Not extracted yet", NONE), "needs": (text.replace("Shred in progress", "In progress"), WARN),
              "reviewed": ("Marked shredded", OK), "not_needed": ("Left out", NONE)}[key]
     out.append(("Shred", shred[0], shred[1]))
     pc = _pieces(page, d)                                      # 4.1.0: its pieces and its acros and abs
@@ -130,7 +130,7 @@ def status(page, d, st=None):
         out.append(("Used as context", f"{SW.pieces(nt)} taken from it in the shred", OK))
     n = len(d.get("versions") or [])
     if not getattr(page, "focus", False):                    # 4.6.0: the panel lists the versions once
-        out.append(("Versions", f"{n} version(s); the latest governs" if n > 1 else "1 version", NONE))
+        out.append(("Versions", f"{n} version(s); the latest is the one in use" if n > 1 else "1 version", NONE))
     try:                                                       # 4.8.0: Redline's copy of it
         from . import redlinepage as RLP
         import redlineprep as RP
@@ -143,9 +143,8 @@ def status(page, d, st=None):
     nxt = None
     if key == "not_needed":                                  # left out: nothing to do until it is put back
         return out, None
-    if v is not None and v[2]:
-        nxt = (f"Check the text ({v[2]} page(s) to look at)", "verify")
-    elif ch is not None and (not ch[0] or ch[1]):
+    look = v[2] if v is not None else 0           # 4.25.0 (answer 2): the text is checked by itself; pages to look at never
+    if ch is not None and (not ch[0] or ch[1]):   # stand before the shred. They are a status, and the last thing offered.
         nxt = ("Review changes" + (f" ({ch[1]} left)" if ch[0] and ch[1] else ""), "compare")
     elif key == "unread":
         nxt = ("Shred it", "read")
@@ -154,7 +153,7 @@ def status(page, d, st=None):
     elif key == "needs":
         nxt = ("Continue the shred", "assign")
     elif key == "reviewed":
-        nxt = ("Open in Shred", "assign")
+        nxt = (f"Look at {look} page(s)", "verify") if look else ("Open in Shred", "assign")
     return out, nxt
 
 

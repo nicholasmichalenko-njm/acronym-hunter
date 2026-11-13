@@ -50,7 +50,7 @@ SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your T
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
-        "library": [("library", "Customer"), ("ours", "Ours"), ("compare", "Changes"),   # 4.6.0: Customer and Ours
+        "library": [("library", "List"), ("compare", "Changes"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
         self.docs_page = DocsPage(self)
         from .librarypage import LibraryPage
         self.library_page = LibraryPage(self)        # 2.83.0
-        self.ours_page = LibraryPage(self, side="ours")   # 4.6.0: our own documents, a tab of their own
+        self.ours_page = self.library_page           # 4.25.0: one list; "ours" opens it on its Internal chip
         self.lists_page = self.acrlist_page.submit    # 2.86.0; 3.37.0: shown in the Acronym List (Show > Lists to submit)
         self.requirements_page = RequirementsPage(self)
         self.compare_page = ComparePage(self)
@@ -1053,6 +1053,11 @@ class MainWindow(QMainWindow):
             ok = self.go("assign")
             if ok is not False:
                 __import__("skqt.fixtext", fromlist=["x"]).toggle(self.assign_page, True)
+            return ok
+        if step == "ours":                           # 4.25.0: our own documents are the Internal chip of the one list
+            ok = self.go("library")
+            if ok is not False:
+                __import__("skqt.docfocus", fromlist=["x"]).set_side(self.library_page, "ours")
             return ok
         if step == "custqa":                         # 4.1.0: the Q&A log is a drawer beside Shred, Matrix & Outline, Drafts
             return __import__("skqt.qadrawer", fromlist=["x"]).go(self, RAIL_OF)

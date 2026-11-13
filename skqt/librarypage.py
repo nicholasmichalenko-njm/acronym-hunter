@@ -219,9 +219,9 @@ class IntakeDialog(QDialog):
 
 # ====================================================================== the page
 class LibraryPage(QWidget):
-    def __init__(self, host, side="customer"):
+    def __init__(self, host, side="all"):
         super().__init__()
-        self.doc_side = side                         # 4.6.0: Customer or Ours (docfocus)
+        self.doc_side = side                         # 4.25.0: all, customer or ours (the chips; docfocus)
         self.host = host
         self.lib = None
         self.worker = None
@@ -454,7 +454,7 @@ class LibraryPage(QWidget):
                 nodes[path] = it
         self.tree.expandToDepth(0)
         und, miss = lib.undecided(), self.missing()
-        n_docs = len([d for d in lib.all if __import__("skqt.docfocus", fromlist=["x"]).side_of(d) == self.doc_side]) \
+        n_docs = len([d for d in lib.all if __import__("skqt.docfocus", fromlist=["x"]).in_side(self, d)]) \
             if getattr(self, "focus", False) else len(lib.all)                 # 4.6.0: this tab's documents
         self.p_docs.setText(f"{n_docs} document" + ("" if n_docs == 1 else "s"))
         self.p_und.setText(f"{len(und)} role(s) to confirm" if und else "every role confirmed"); self.p_und.set_tone("warn" if und else "ok")
@@ -533,7 +533,7 @@ class LibraryPage(QWidget):
             self.table.setItem(r, 5, ri)
             hits = self.found.get(d["id"]) or []
             self.table.setItem(r, 6, _item(hits[0][1][:160] if hits else ("name or tags" if self.search.text().strip() else "")))
-        here = [d for d in self.lib.all if DF.side_of(d) == self.doc_side] if focused else self.lib.all
+        here = [d for d in self.lib.all if DF.in_side(self, d)] if focused else self.lib.all
         self.empty.setVisible(not here); self.table.setVisible(bool(here))
         if keep:
             self.select(keep)
@@ -791,19 +791,19 @@ class LibraryPage(QWidget):
         f = v.get("file", "")
         if f in st["files"]:
             if f in st["done"]:
-                return "Reviewed", "ok", "reviewed"
+                return "Shredded", "ok", "reviewed"
             tot, dec = st["files"][f]
-            return (f"Needs reviewing: {dec}/{tot} decided" if tot else "Needs reviewing"), "warn", "needs"
+            return (f"Shred in progress: {dec}/{tot} decided" if tot else "Shred in progress"), "warn", "needs"
         if not st["matrix"] or self.lib.role_of(d) == "matrix":
-            return "Not read yet", "accent", "unread"
+            return "Not shredded", "accent", "unread"
         try:
             import ctxdocs as CX
             from .ctxassign import PREFIX
             if f"{PREFIX}{d['name']} ({CX.doc_tag(d, self.lib)})" in st["done"]:
-                return "Reviewed", "ok", "reviewed"
+                return "Shredded", "ok", "reviewed"
         except Exception:
             diag.swallowed()
-        return "Needs reviewing", "warn", "needs"
+        return "Shred in progress", "warn", "needs"
 
     def show_review(self, d):
         """4.0.0: the status panel: what has been done to the document and its next thing (docstatus)."""

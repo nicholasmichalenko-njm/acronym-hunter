@@ -182,24 +182,23 @@ check("the document's panel counts what was taken", "3 piece(s) taken" in w.libr
 # 3.16.0: the Library is where reading starts: a Review column, the review box's button, new files with Add and Ignore
 lp = w.library_page
 w.go("library"); lp.refresh(); app.processEvents()
-sc = [lp.table.horizontalHeaderItem(c).text() for c in range(lp.table.columnCount())].index("Shred")   # 4.6.0: a progress chip
-col = {lp.table.item(r, 0).data(Qt.UserRole): lp.table.item(r, sc).text() for r in range(lp.table.rowCount())}
-check("3.16.0: the Shred column: the matrix's document says how many sentences are decided", col[dL["id"]].endswith("decided")
+col = {x["id"]: lp.review_state(x)[0].replace("Shred in progress: ", "").replace("Shred in progress", "In progress") for x in lp.lib.all}   # 4.25.0: the panel's words; the list has no Shred column
+check("3.16.0: where the shred stands: the matrix's document says how many sentences are decided", col[dL["id"]].endswith("decided")
       and "/" in col[dL["id"]], col)
 check("... a context document needs reviewing too", col[d["id"]] == "In progress" or col[d["id"]].endswith("decided"), col[d["id"]])
 check("... 4.1.0: Requirements is Shred's first tab; the documents are Documents' first tab", w._tab_keys[:1] == ["library"]
       and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]][:1] == ["assign"])
 lp.select(dL["id"]); lp.show_doc()
 check("... 4.0.0: the status panel leads the side: Continue the shred", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue the shred"
-      and lp.rv_state.text().startswith("Needs reviewing"), lp.b_read.text())
+      and lp.rv_state.text().startswith("Shred in progress"), lp.b_read.text())
 ws.set("assign_reviewed", {"Section_L_print.pdf": "2026-11-02 10:00"}); lp.refresh(); lp.select(dL["id"]); lp.show_doc()
-check("... Mark reviewed makes it Reviewed, and the button Open in Shred", lp.rv_state.text() == "Reviewed"
+check("... Mark reviewed makes it Reviewed, and the button Open in Shred", lp.rv_state.text() == "Shredded"
       and lp.b_read.text() == "Open in Shred", lp.b_read.text())
 pD = os.path.join(B, "Section_L.docx")
 libx = DV.Library(ws.p("documents")).load()
 dD, _vD = libx.add(pD, DI.read(pD), doc_name="Section L Word", role="matrix", initial="LW", dtype="Section L")
 lp.refresh(); lp.select(dD["id"]); lp.show_doc()
-check("... a document not in the matrix yet: Not read yet, Shred it", lp.rv_state.text() == "Not read yet"
+check("... a document not in the matrix yet: Not read yet, Shred it", lp.rv_state.text() == "Not shredded"
       and lp.b_read.text() == "Shred it", lp.b_read.text())
 n0 = len(w.review.files())
 got = lp.read_many([dD["id"]], answer=True)

@@ -1,13 +1,11 @@
 """Documents, as designed (4.6.0; claude/stationkeeper-documents-changes-plan-4.6.md, step 1; the six-steps board 1;
 claude/stationkeeper-documents-decisions-2026-11-10.md, decision 4).
 
-Two tabs, Customer and Ours, take the place of the category and folder tree: Customer holds what the customer issued
-(their documents, the bidders library, Q&A); Ours holds the rest (our documents, graphics, categories of our own). The
-header has Find, More (folders, watched folders, the Library folder...) and one main button, Add documents.... The
-table: Document (with "N versions" when there are more than one), Type, Governing version, and three progress chips:
-Text (pages checked), Shred (where its shred stands) and Acros & Abs (found and to decide). The panel says what
-has been done, lists the versions once and offers one next thing; More about this document, Initial and type, and See
-where its text went are on the row's right-click.
+4.25.0 (claude/stationkeeper-documents-board-2026-11-12.html, step A; Nicholas 16:14): one list. Three chips, All,
+Customer and Internal, take the place of the Customer and Ours tabs. The table: Document (with "N versions"), Type,
+Source (Customer or Internal, with a light tint on the row), Version, and Status, which is empty unless the document
+needs the person (pages to look at, changes to review, a file edited). How far the shred and the acros and abs are
+shows on their own screens and in the panel, not here. The header has Find, More and one main button, Add documents....
 
 The focus changes what the page shows, never what it can do (as shredfocus did for Shred in 4.5.0). SK_DOCS_CLASSIC=1
 keeps the page as it was, for the tests written before 4.6.0 that drive its tree. Rules only (No AI); nothing leaves the PC."""
@@ -16,8 +14,11 @@ import os
 import diag
 
 CUSTOMER_SIDE = ("customer", "bidders", "qa")
-SIDES = (("customer", "Customer"), ("ours", "Ours"))
-COLUMNS = ["Document", "Type", "Governing version", "Text", "Shred", "Acros & Abs"]
+# 4.25.0 (Documents board 2026-11-12, step A): one list. All, Customer and Internal are chips over it, not two tabs;
+# "ours" stays the saved word for the side, Internal is what a person reads.
+SIDES = (("all", "All"), ("customer", "Customer"), ("ours", "Internal"))
+SIDE_NAMES = {"customer": "Customer", "ours": "Internal"}
+COLUMNS = ["Document", "Type", "Source", "Version", "Status"]
 
 
 def classic():
@@ -28,7 +29,23 @@ def side_of(d):
     return "customer" if d.get("category", "customer") in CUSTOMER_SIDE else "ours"
 
 
-def install(page, side="customer"):
+def in_side(page, d):
+    """The document shows under the chip picked (All shows every one)."""
+    return getattr(page, "doc_side", "all") == "all" or side_of(d) == page.doc_side
+
+
+def set_side(page, side):
+    """Pick a chip: all, customer or ours (shown as Internal)."""
+    page.doc_side = side if side in dict(SIDES) else "all"
+    for k, b in getattr(page, "side_btns", {}).items():
+        b.blockSignals(True); b.setChecked(k == page.doc_side); b.blockSignals(False)
+    if getattr(page, "focus", False) and page.lib is not None:
+        fill_types(page)
+        page.refresh() if hasattr(page, "refresh") else page.fill()
+    return page.doc_side
+
+
+def install(page, side="all"):
     """Called at the end of LibraryPage.__init__. Leaves the page as it was under SK_DOCS_CLASSIC."""
     page.doc_side = side
     page.focus = not classic()
@@ -53,6 +70,15 @@ def install(page, side="customer"):
     # the tree becomes the two tabs; a type filter beside Find instead of the role filter
     page.tree.parentWidget().setVisible(False)
     page.role_f.setVisible(False)
+    from . import design as D0
+    page.side_btns = {}
+    for i, (k, n) in enumerate(SIDES):
+        b = D0.button(n, None, None, {"all": "Every document", "customer": "What the customer issued",
+                                      "ours": "Our own documents: past proposals, resumes, graphics, notes"}[k])
+        b.setCheckable(True); b.setChecked(k == page.doc_side)
+        b.clicked.connect(lambda _c=False, k=k: set_side(page, k))
+        _bar_of(page).insertWidget(i, b)
+        page.side_btns[k] = b
     page.type_f = QComboBox()
     page.type_f.currentIndexChanged.connect(lambda _i: page.fill())
     _bar_of(page).addWidget(page.type_f)
@@ -69,7 +95,7 @@ def install(page, side="customer"):
     hh.setStretchLastSection(False)
     for c in range(len(COLUMNS)):
         hh.setSectionResizeMode(c, QHeaderView.Stretch if c == 0 else QHeaderView.Interactive)
-    for c, w in enumerate((260, 110, 200, 100, 130, 110)):
+    for c, w in enumerate((260, 130, 100, 200, 200)):
         if c:
             t.setColumnWidth(c, w)
     # the panel: Versions once, one next thing; the rest on the right-click
@@ -79,10 +105,9 @@ def install(page, side="customer"):
     from . import design as D
     lay = page.empty.parentWidget().layout()
     i = lay.indexOf(page.empty)
-    new = D.EmptyState("No customer documents yet" if side == "customer" else "None of our documents yet",
-                       "Add the solicitation package: each document is extracted as it arrives, ready to shred."
-                       if side == "customer" else "Our own documents (past proposals, resumes, graphics), kept for context "
-                       "and reference.", "Add documents...", lambda: page.add())
+    new = D.EmptyState("No documents yet",
+                       "Add the solicitation package and your own documents (past proposals, resumes, graphics): each "
+                       "one is extracted as it arrives.", "Add documents...", lambda: page.add())
     lay.insertWidget(i, new)
     page.empty.hide(); page.empty.setParent(None)
     page.empty = new
@@ -114,7 +139,7 @@ def fill_types(page):
     page.type_f.clear()
     page.type_f.addItem("Every type", "")
     for k, n in page.lib.categories():
-        if side_of({"category": k}) == page.doc_side:
+        if in_side(page, {"category": k}):
             page.type_f.addItem(n, k)
     page.type_f.setCurrentIndex(max(0, page.type_f.findData(keep or "")))
     page.type_f.blockSignals(False)
@@ -122,38 +147,29 @@ def fill_types(page):
 
 def shown(page, docs):
     """The documents of this tab (and of the type picked)."""
-    docs = [d for d in docs if side_of(d) == page.doc_side]
+    docs = [d for d in docs if in_side(page, d)]
     k = page.type_f.currentData() if getattr(page, "type_f", None) is not None else ""
     if k:
         docs = [d for d in docs if d.get("category", "customer") == k]
     return docs
 
 
-# ------------------------------------------------------------------ the progress chips
-def chips(page, d, st=None, terms=None):
-    """{column: (text, tone)} for Text, Shred and Acros & Abs. tone: ok, warn, accent, faint."""
+# ------------------------------------------------------------------ a status, only when the document needs you
+def needs(page, d):
+    """(text, tone) when the document needs the person, ("", "") when it does not (4.25.0). How far its shred and its
+    acros and abs are is on their own screens, and in the panel."""
     from . import docstatus as DS
-    out = {}
-    if d.get("category", "customer") == "customer":
-        v = DS._verify(page, d)
-        if v is None:
-            out["Text"] = ("Not checked", "faint")
-        else:
-            ver, pages, look = v
-            out["Text"] = (f"{look} to look at" if look else f"{ver}/{pages} pages" if ver < pages else "Checked",
-                           "warn" if look else "ok" if ver >= pages else "accent")
-    else:
-        out["Text"] = ("", "faint")
-    text, _tone, key = page.review_state(d, st)
-    out["Shred"] = {"unread": ("Not extracted", "accent"), "not_needed": ("Left out", "faint"), "reviewed": ("Done", "ok"),
-                    "needs": (text.replace("Needs reviewing: ", "").replace("Needs reviewing", "In progress"), "warn")}[key]
-    t = (terms or {}).get((d.get("versions") or [{}])[-1].get("file", ""))
-    if t:
-        found, decide = t
-        out["Acros & Abs"] = (f"{decide} to decide" if decide else f"{found} found", "warn" if decide else "ok")
-    else:
-        out["Acros & Abs"] = ("", "faint")
-    return out
+    if d.get("withdrawn") or page.lib.role_of(d) == "not_needed":
+        return "", ""
+    ch = DS._changes(page, d)
+    if ch is not None and (not ch[0] or ch[1]):
+        return ("Changes to review" + (f" ({ch[1]})" if ch[0] and ch[1] else ""), "warn")
+    v = DS._verify(page, d)
+    if v is not None and v[2]:
+        return (f"{v[2]} page" + ("" if v[2] == 1 else "s") + " to look at", "warn")
+    if DS._edited(page, d):
+        return ("The file was edited: read it again", "warn")
+    return "", ""
 
 
 def term_counts(page):
@@ -190,25 +206,28 @@ def fill_row(page, r, d, st, terms, item):
     page.table.setItem(r, 0, it)
     typ = d.get("type") if d.get("category", "customer") == "customer" and d.get("type") else page.lib.category_name(d.get("category", "customer"))
     page.table.setItem(r, 1, item(typ or ""))
+    side = side_of(d)
+    page.table.setItem(r, 2, item(SIDE_NAMES[side]))
     gv = vs[-1] if vs else {}
     gov = (gv.get("label") or "") + (f"  ·  {gv.get('added', '')[:10]}" if gv.get("added") else "")
-    page.table.setItem(r, 2, item(gov, None, gv.get("file", "")))
-    for c, (k, (txt, tone)) in enumerate(chips(page, d, st, terms).items(), start=3):
-        ci = item(txt)
-        if txt:
-            ci.setForeground(D.color(tone)); ci.setIcon(D.dot_icon(D.color(tone)))
-        page.table.setItem(r, c, ci)
+    page.table.setItem(r, 3, item(gov, None, gv.get("file", "")))
+    txt, tone = needs(page, d)
+    ci = item(txt)
+    if txt:
+        ci.setForeground(D.color(tone)); ci.setIcon(D.dot_icon(D.color(tone)))
+    page.table.setItem(r, 4, ci)
+    tint = D.color("cust_soft" if side == "customer" else "accent_soft")     # a light tint says whose it is
+    for c in range(len(COLUMNS)):
+        page.table.item(r, c).setBackground(tint)
 
 
 def fill(page, docs, item):
     """Fills the focused table; returns True when it did (the classic fill runs otherwise)."""
     if not getattr(page, "focus", False):
         return False
-    st = page.review_states()
-    terms = term_counts(page)
     page.table.setRowCount(len(docs))
     for r, d in enumerate(docs):
-        fill_row(page, r, d, st, terms, item)
+        fill_row(page, r, d, None, None, item)
     return True
 
 

@@ -38,7 +38,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "datacalls": ("Data calls", "What the team needs from its own experts: what, for which section, how much, an example, owner and due date"),
           "meetings": ("Meetings", "Who met, what was said, and the topics to follow up until each is considered"),
           "reviews": ("Color Reviews", "Color team review packets, read back onto each requirement"),
-          "library": ("Documents", "The customer's documents, each with what has been done to it and what is next"),
+          "library": ("Documents", "Every document of the effort, the customer's and your own, and what each needs from you"),
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
           "requirements": ("Rules & Dates", "Every rule and date the customer sets: found in the documents or said in the shred, with where each came from"),
           "custqa": ("Customer Q&A", "The questions we submit to the customer: their exact wording, our question, status and the answer"),

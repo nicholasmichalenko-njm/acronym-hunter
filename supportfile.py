@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.25.0": ["Documents is one list. All, Customer and Internal (the new word for Ours) are chips above it; the two tabs are gone.",
+               "The columns: Document, Type, Source, Version, Status. Status is empty unless a document needs you.",
+               "Pages to look at no longer stand before the shred: the panel offers Shred it first.",
+               "The panel says Not shredded, Shred in progress, Shredded."],
     "4.24.0": ["All Efforts: Efforts and Archived are two buttons. An archived effort can be deleted from Stationkeeper (right-click); its files stay unless you tick the box.",
                "Dashboard: click the due date to set it. The fold button stays in one place.",
                "Settings is in sections by subject: Appearance, General, Efforts, People, Document types, Shred and responses, Team data and training, Updates and help. Stages, gates and roles and Roles and Preview tools are not shown for now.",

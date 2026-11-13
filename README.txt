@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENTS: ONE LIST (4.25.0)
+  - Documents is one list. Three chips above it, All, Customer and Internal, show every document, the customer's, or
+    your own (Internal is the new word for Ours). The Customer and Ours tabs are gone; the first tab is List.
+  - The columns: Document, Type, Source (Customer or Internal, with a light tint on the row), Version (was Governing
+    version) and Status. Status is empty unless the document needs you: pages to look at, changes to review, a file
+    that was edited. How far the shred and the acros and abs are shows on Shred and Acros & Abs, and in the panel.
+  - The text is checked by itself when a document is extracted. Pages to look at never stand before the shred: the
+    panel's button is Shred it or Continue the shred, and Look at N page(s) is offered once the document is shredded.
+  - The panel's words: Not shredded, Shred in progress, Shredded (were Not read yet, Needs reviewing, Reviewed).
+
 SMALL THINGS FROM AN EVENING OF QUESTIONS (4.24.0)
   - All Efforts: two buttons at the top, Efforts and Archived, take the place of Show archived. Right-click an archived
     effort: Restore, or Delete from Stationkeeper.... Delete takes the effort off this PC's list and nothing more. Its

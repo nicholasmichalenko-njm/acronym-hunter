@@ -155,12 +155,13 @@ TOPICS = [
  ("library", "Documents", "Documents",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
-  ["Press Add documents... (Customer or Ours; Add a folder... is under More). Stationkeeper suggests the type, its "
-   "initial (R, A1, TO1) and whether it is a new version of a document you have.",
+  ["One list holds every document. All, Customer and Internal above it show every one, the customer's, or your own.",
+   "Press Add documents... (Add a folder... is under More). Stationkeeper suggests the type, its "
+   "initial (RFP, Amd1, TO1) and whether it is a new version of a document you have.",
    "Watched folders... checks the customer folder and any folder you add for new, changed and missing files. New files "
    "show at the top of Documents: Add to Documents... or Ignore. The same words are never added twice.",
-   "Each row shows how far the document is: its text, its shred and its acros and abs. Select one: the panel says "
-   "what has been done and offers the next step.",
+   "Status is empty unless a document needs you: pages to look at, changes to review, a file edited. Select a "
+   "document: the panel says what has been done and offers the next step.",
    "The same document, edited: adding it again offers Replace the file. The document and its version stay, it is read "
    "again and its pieces keep their types. Right-click a document for Replace the file..., Read it again and "
    "Delete..., which moves it to the effort's Trash (More > Trash... puts it back).",

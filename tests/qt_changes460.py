@@ -89,8 +89,9 @@ from skqt import changecards as CC, docfocus as DF
 # Documents: Customer and Ours
 w.rail_go("library"); app.processEvents()
 lp, op = w.library_page, w.ours_page
-check("Documents' tabs: Customer, Ours, Changes, Data calls", [t for _k, t in __import__("skqt.mainwin", fromlist=["x"]).TABS["library"]]
-      == ["Customer", "Ours", "Changes", "Data calls"])
+check("4.25.0: Documents' tabs: List, Changes, Data calls; All, Customer and Internal are chips on the list",
+      [t for _k, t in __import__("skqt.mainwin", fromlist=["x"]).TABS["library"]] == ["List", "Changes", "Data calls"]
+      and [b.text() for b in lp.side_btns.values()] == ["All", "Customer", "Internal"] and lp.side_btns["all"].isChecked() and op is lp)
 check("Customer's header: Find, More, Add documents... (the main button)", lp.bar.main.text() == "Add documents..."
       and not lp.b_folder.isVisibleTo(w) and "Add a folder..." in lp.bar.labels() and "Watched folders..." in lp.bar.labels()
       and not lp.tree.isVisibleTo(w), lp.bar.labels())
@@ -99,19 +100,35 @@ ti = w._tab_keys.index("compare")
 check("Changes' tab says how many changes are left to decide", w.page_tabs.tabText(ti).startswith("Changes (")
       and w.page_tabs.tabText(ti).endswith(")"), w.page_tabs.tabText(ti))
 hdr = [lp.table.horizontalHeaderItem(c).text() for c in range(lp.table.columnCount())]
-check("the columns: Document, Type, Governing version, Text, Shred, Terms", hdr == DF.COLUMNS, hdr)
+check("4.25.0: the columns: Document, Type, Source, Version, Status", hdr == DF.COLUMNS == ["Document", "Type", "Source", "Version", "Status"], hdr)
 names = {lp.table.item(r, 0).text(): r for r in range(lp.table.rowCount())}
 row = next(r for n, r in names.items() if "versions" in n)
 check("the document says how many versions it has", lp.table.item(row, 0).text().endswith("2 versions"), list(names))
-check("its governing version is the amendment", lp.table.item(row, 2).text().startswith("Amendment 1"), lp.table.item(row, 2).text())
-check("its Shred chip says where its shred stands", lp.table.item(row, 4).text() != "", lp.table.item(row, 4).text())
+check("its version is the amendment, its source Customer, with the customer's tint", lp.table.item(row, 3).text().startswith("Amendment 1")
+      and lp.table.item(row, 2).text() == "Customer" and lp.table.item(row, 0).background().color() == theme.color("cust_soft"), lp.table.item(row, 3).text())
+check("4.25.0: Status is empty unless the document needs you (here: its changes to review)", lp.table.item(row, 4).text().startswith("Changes to review")
+      and all(lp.table.item(r, 4).text() in ("",) or "to" in lp.table.item(r, 4).text() or "edited" in lp.table.item(r, 4).text() for r in range(lp.table.rowCount())),
+      [lp.table.item(r, 4).text() for r in range(lp.table.rowCount())])
 lp.table.selectRow(row); lp.show_doc(); app.processEvents()
 check("the panel: what has been done, no Versions row, the versions listed once, one button",
       "Versions" not in [x[0] for x in lp.status_now] and lp.d_versions.count() == 2 and not lp.b_more.isVisibleTo(w)
       and not lp.b_taken2.isVisibleTo(w), [x[0] for x in lp.status_now])
-w.go("ours"); op.refresh(); app.processEvents()
-check("Ours holds none of the customer's documents (the empty state shows one way in)", op.table.rowCount() == 0
-      and op.empty.isVisibleTo(w) and w._tab_keys[:3] == ["library", "ours", "compare"], op.table.rowCount())
+n_all = lp.table.rowCount()
+w.go("ours"); app.processEvents()
+check("4.25.0: Internal (the old Ours) is a chip of the same list: none of the customer's documents, one way in", lp.doc_side == "ours"
+      and lp.side_btns["ours"].isChecked() and lp.table.rowCount() == 0 and lp.empty.isVisibleTo(w)
+      and w._tab_keys[:2] == ["library", "compare"], lp.table.rowCount())
+DF.set_side(lp, "customer"); app.processEvents()
+check("... Customer shows the customer's; All shows every document", lp.table.rowCount() == n_all and DF.set_side(lp, "all") == "all"
+      and lp.table.rowCount() == n_all)
+from skqt import whatview as WV, docstatus as DS4250
+_d0 = next(x for x in lp.lib.all if x.get("category", "customer") == "customer" and x.get("versions"))
+check("4.25.0: a customer document's page copy is asked for the moment it is added (the text is checked by itself)",
+      WV.page_copies(w, [(_d0, _d0["versions"][-1])], lp.lib, run=False) == [lp.lib.path_of(_d0["versions"][-1])]
+      and WV.page_copies(w, [({"category": "ours"}, {})], lp.lib, run=False) == [])
+_nx = [DS4250.status(lp, x)[1] for x in lp.lib.all]
+check("4.25.0: pages to look at never stand before the shred: no Check the text button ahead of it",
+      not any(n and n[1] == "verify" and lp.review_state(x)[2] != "reviewed" for n, x in zip(_nx, lp.lib.all)), _nx)
 # Rules & Dates: three groups, Used by, Add a rule... the main button
 w.go("requirements"); rp = w.requirements_page; rp.refresh(); app.processEvents()
 tops = [rp.tree.topLevelItem(i).text(0) for i in range(rp.tree.topLevelItemCount())]

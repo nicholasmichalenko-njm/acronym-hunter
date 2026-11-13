@@ -125,7 +125,7 @@ check("a category shows its documents", pg.table.rowCount() == 1 and pg.table.it
 pg.pick_place("all", "")
 pg.search.setText("radiator"); pg.fill()
 got = sorted(pg.table.item(r, 0).text() for r in range(pg.table.rowCount()))
-check("search finds the text in any document", got == ["Attachment J-1 ICD (J)", "Win themes"], got)
+check("search finds the text in any document", got == ["Attachment J-1 ICD (Att)", "Win themes"], got)
 pg.select(by["Win themes"]["id"]); pg.show_doc()
 check("with the sentence it found", pg.d_hits.isVisible() and "radiator" in pg.d_hits.item(0).text().lower())
 pg.search.clear(); pg.fill()
