@@ -102,7 +102,8 @@ class EffortBanner(QFrame):
         self.due_iso = ""
         self.stage_hex = ""
         self.gate_info = {}
-        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
+        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 46, 0); outer.setSpacing(0)   # 4.25.1: room for the fold button,
+        # which sat over the due date in 4.24.0 (Nicholas's recording, 2026-11-12 20:25)
         # 3.12.0: the full banner, and the condensed line that keeps only the essentials on screen
         self.full = QWidget(); self.full.setObjectName("bannerFull"); outer.addWidget(self.full)
         h = QHBoxLayout(self.full); h.setContentsMargins(D.SPACE["l"], D.SPACE["l"], D.SPACE["l"], D.SPACE["m"]); h.setSpacing(D.SPACE["l"])
@@ -142,6 +143,7 @@ class EffortBanner(QFrame):
         self.cond_btn.setVisible(False)                  # 4.24.0: one fold button, in one place (fold_btn, top right)
         # the countdown
         right = QFrame(); right.setObjectName("countdown"); h.addWidget(right, 0, Qt.AlignTop)
+        self.due_box = right
         rv = QVBoxLayout(right); rv.setContentsMargins(D.SPACE["l"], D.SPACE["m"] + 22, D.SPACE["l"], D.SPACE["m"]); rv.setSpacing(0)
         # 4.24.0 (Nicholas 17:00): the due date is set right here: click it (no trip through Edit details)
         right.setCursor(Qt.PointingHandCursor)

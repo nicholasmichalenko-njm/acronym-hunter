@@ -182,6 +182,10 @@ check("4.24.0: the fold button stays in one place, the top right, open or folded
       (x_open, bn.fold_btn.x(), bn.width()))
 bn.fold_btn.click(); app.processEvents()
 check("... and it unfolds from the same button", not bn.condensed)
+from PySide6.QtCore import QRect as _QRect
+_due = _QRect(bn.due_box.mapTo(bn, bn.due_box.rect().topLeft()), bn.due_box.size())
+check("4.25.1: the fold button does not sit over the due date", not _due.intersects(bn.fold_btn.geometry()) and bn.due_box.isVisibleTo(bn),
+      (_due, bn.fold_btn.geometry()))
 bn.set_condensed(False, save=False)
 import effortrec as _ER
 check("4.24.0: with no due date the header says to click it", "Click here to set it" in bn.due.text() or _ER.Record(w.ws.root).data.get("due"), bn.due.text())
