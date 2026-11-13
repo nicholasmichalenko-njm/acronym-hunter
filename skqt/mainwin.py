@@ -44,7 +44,6 @@ def _WAU():
 
 
 RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5: under Documents
-                    # 4.25.3 (answer 2): Prepare for Redline left the menu (it opens from a Deliverables tile).
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Team", [("team", "Team")]),
@@ -52,8 +51,7 @@ RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("graphics"
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics"))
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("overview", "Overview"), ("home", "All cards"),      # 4.27.0: the effort's page on one screen; the cards it had
-                 ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
+TABS = {"home": [("overview", "Overview"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],   # 4.27.0
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "List"), ("compare", "Changes"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
