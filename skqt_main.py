@@ -134,8 +134,6 @@ def main(argv=None):
     from skqt import modes as MO                     # 2.79.0: where is this PC used? (asked once)
 
     def then():                                      # questions and what's new wait until the work is back on screen
-        if not MO.mode():
-            MO.ask_mode(w)
         HC.after_update(w)
 
     if safe:

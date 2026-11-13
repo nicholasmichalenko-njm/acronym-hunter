@@ -57,7 +57,7 @@ class TeamRoles(QWidget):
             cb.activated.connect(lambda _k, name=n, c=cb: self.save_role(name, c.currentText()))
             cb.lineEdit().editingFinished.connect(lambda name=n, c=cb: self.save_role(name, c.currentText()))
             t.setCellWidget(i, 1, cb)
-        self.note.setText("Roles save as you pick them. The role list is in Settings > Stages, gates and roles; type any other."
+        self.note.setText("Roles save as you pick them. Type any role that is not listed."
                           if names else f"No names show in {self.host.effort_name} yet. Choose people adds names from the "
                           "author list; add new names in Settings > Author list.")
 
@@ -93,7 +93,6 @@ class PeopleRolesDialog(QDialog):
         self.roles = TeamRoles(host); v.addWidget(self.roles, 1)
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Choose people...", None, lambda: self.choose()))
-        row.addWidget(D.button("Edit the role list...", "ghost", lambda: self.edit_list()))
         row.addStretch(1)
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.accept); bb.accepted.connect(self.accept)
         v.addWidget(bb)
@@ -104,8 +103,3 @@ class PeopleRolesDialog(QDialog):
         self.roles.fill()
         return got
 
-    def edit_list(self):
-        self.accept()
-        self.host.go("settings")
-        self.host.settings_page.focus_process()
-        self.host.settings_page.process_card.tabs.setCurrentIndex(2)

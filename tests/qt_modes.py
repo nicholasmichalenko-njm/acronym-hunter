@@ -50,12 +50,11 @@ LIST = make_effort(os.path.join(tmp, "PC1"), "Heron")
 E.Registry(os.path.join(cfgA, "efforts.json")).put("Heron", path=LIST, customer_dir=os.path.join(os.path.dirname(LIST), "Customer documents"))
 app = QApplication([]); D.apply(app)
 a = MainWindow(app, cfgA, A.APP_VERSION); a.resize(1500, 950); a.show()
-check("no mode yet: no badge; the suggestion follows OneDrive for work", MO.mode() == "" and "Offline" not in a.windowTitle()
-      and WM.suggest() == WM.CONNECTED and a.mode_chip.text() == "Mode not set")
-MO.ask_mode(a, answer="offline")
-check("Offline: the title and the chip say so; the steps say nothing leaves this PC", "Offline" in a.windowTitle()
-      and a.mode_chip.text() == "Offline"
-      and "nothing leaves this PC except files you save" in a.settings_page.mode.steps.text() if (a.settings_page.mode.fill() or True) else False)
+check("4.24.0: nothing is asked: a PC with no team folder is Offline, and the title says so", MO.mode() == WM.OFFLINE
+      and "Offline" in a.windowTitle() and not hasattr(MO, "ask_mode") and a.settings_page.mode.team_lbl.text() == "Team folder: none"
+      and a.settings_page.mode.none_btn.isHidden())
+check("4.24.0: the card has no mode choice and no SCIF-ready switch", not a.settings_page.mode.findChildren(__import__("PySide6.QtWidgets", fromlist=["QRadioButton"]).QRadioButton)
+      and not hasattr(MO, "seal_dialog"))
 check("2.97.0: a setting of Secured from before 2.97 reads as Offline (never locked for anyone)", WM.get({"work_mode": "secured"}) == WM.OFFLINE)
 a.safety.test_dir = None
 os.environ.pop("AH_TEST")
@@ -63,8 +62,12 @@ MO.save(backup_dir=os.path.join(OD, "Backups"))
 check("Offline: a backup folder that OneDrive uploads is flagged", "leave this PC" in a.safety.status_text(), a.safety.status_text())
 MO.save(backup_dir="")
 TEAM = os.path.join(OD, "Proposal Center - Efforts")
-a.settings_page.mode.choose(WM.CONNECTED)
+check("4.24.0: connected in the settings with no team folder reads as Offline", WM.get({"work_mode": "connected"}) == WM.OFFLINE
+      and WM.get({"work_mode": "connected", "team_dir": TEAM}) == WM.CONNECTED and WM.get({"work_mode": "offline", "team_dir": TEAM}) == WM.OFFLINE)
 a.settings_page.mode.choose_team(TEAM)
+check("4.24.0: Stop using it: Offline again, the folder untouched; choosing it again is Connected", a.settings_page.mode.no_team()
+      and MO.mode() == WM.OFFLINE and os.path.isdir(TEAM) and "Offline" in a.windowTitle()
+      and a.settings_page.mode.choose_team(TEAM) and not a.settings_page.mode.none_btn.isHidden())
 check("Connected: the title says so; backups go to the team folder", "Connected" in a.windowTitle()
       and a.safety.backup_dir() == os.path.join(TEAM, "Backups"))
 os.environ["AH_TEST"] = "1"

@@ -54,8 +54,6 @@ def wait(cond, secs=60):
 
 
 w.open_effort("Osprey")
-check("the chip: no mode chosen yet", w.mode_chip.text() == "Mode not set")
-w.settings_page.mode.choose(WM.OFFLINE)
 check("Offline: the chip says so", w.mode_chip.text() == "Offline" and "Offline" in w.windowTitle())
 check("no sensitivity set: no training data, and the chip says why", secure.EFFORT_LEVEL == -1 and not A.corrections_on()
       and "sensitivity is not set" in w.mode_chip.toolTip(), w.mode_chip.toolTip())
@@ -102,18 +100,18 @@ check("declared above CUI: refused", not SG.training_gate(par, pic2, answer=S.CO
 check("words read in the Trainer marked above CUI are not kept", not SG.training_lines(["TOP SECRET//SCI", "orbit"], said.append))
 # SCIF-ready
 card = w.settings_page.mode
-check("SCIF-ready needs SCIF-READY typed", card.choose(WM.SECURED, answer=("scif", True)) is False and not secure.ACTIVE
-      and w.mode_chip.text() == "Offline")
 os.makedirs(os.path.join(w.seal_dirs[1], "training_data")); open(os.path.join(w.seal_dirs[1], "training_data", "labels.txt"), "w").write("x")
-check("typed: sealed in the program folder and the data folder", card.choose(WM.SECURED, answer=("SCIF-READY", True))
-      and secure.ACTIVE and all(os.path.isfile(os.path.join(d, secure.SEAL)) for d in w.seal_dirs))
+secure.seal(w.seal_dirs[0], w.seal_dirs[1], clear=True)       # 4.24.0: no switch in the app; a copy sealed before stays sealed
+w.title(); w.show_mode_chip(); card.fill()
+check("sealed in the program folder and the data folder", secure.ACTIVE
+      and all(os.path.isfile(os.path.join(d, secure.SEAL)) for d in w.seal_dirs))
 check("... the training data kept before is deleted, and logging stopped", not os.path.exists(os.path.join(w.seal_dirs[1], "training_data"))
       and diag.OFF and diag.LOG_DIR is None)
 check("... the chip and the title say SCIF-ready", w.mode_chip.text() == "SCIF-ready" and "SCIF-ready" in w.windowTitle()
       and "no logs" in w.mode_chip.toolTip())
-check("... the card is locked", not card.off.isEnabled() and not card.con.isEnabled() and not card.locked.isHidden()
+check("... the card is locked", card.team_btn.isHidden() and not card.locked.isHidden()
       and "cannot be switched back" in card.locked.text())
-card.choose(WM.OFFLINE)
+card.choose_team(os.path.join(tmp, "team")); card.no_team()
 check("it cannot be switched back", WM.get(A.load_settings()) == WM.SECURED and w.mode_chip.text() == "SCIF-ready" and secure.ACTIVE)
 check("no support file, no training data, no Report misreading", HC.make_support_file(w, os.path.join(tmp, "s3.zip")) is None
       and w.settings_page.send_training(out=os.path.join(tmp, "t2.sktrain"), acknowledged=True) is None and not A.corrections_on())

@@ -47,7 +47,6 @@ class RecordPage(StageTableMixin, QWidget):
         self.bar.more_sep()
         self.bar.more("Back up now", lambda: self.backup_now())
         self.bar.more("Restore...", lambda: self.restore_dialog(), "Put back an earlier copy of this effort")
-        self.bar.more("Gate choices and default stages...", lambda: (self.host.go("settings"), self.host.settings_page.focus_process()))
         self.bar.export("Effort status (Word)...", lambda: self.status_export(), "Where the effort stands, for leadership")
         self.bar.export("Effort summary (Word)...", lambda: self.status_export(final=True), "The effort with its complete history")
         self.bar.export("Save effort package...", lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off")
@@ -100,8 +99,7 @@ class RecordPage(StageTableMixin, QWidget):
         # stages and gates
         self.stages = D.Card("Stages and gates", "When each stage starts and ends and its gate. Pick a stage to change it beside "
                                                  "the list (click a date to pick it; the time is optional). Right-click a stage to "
-                                                 "move it earlier or later or remove it. The gate choices are your team's: Settings > "
-                                                 "Stages, gates and roles.")
+                                                 "move it earlier or later or remove it.")
         ed = self.stage_editor()                             # 3.82.0: one row at a time, edited in the panel beside it
         self.stage_table.setMinimumHeight(260)
         self.stage_table.setContextMenuPolicy(Qt.CustomContextMenu)            # 3.75.0: act on the row

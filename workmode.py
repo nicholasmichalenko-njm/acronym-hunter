@@ -1,6 +1,9 @@
 """Work modes (2.79.0; three since 2.97.0). Stationkeeper works fully offline in all of them; the mode decides where
 files go, what the app keeps about itself and which steps it shows.
 
+4.24.0: the mode is no longer asked or chosen. A PC with a team folder (Settings > General > Team folder) is Connected;
+one without is Offline; a sealed copy or the SCIF build is SCIF-ready.
+
 - Offline: this PC on its own, for testing and everyday work on General business, Proprietary and CUI documents.
   Content-free logs and training corrections are kept on this PC. A folder that OneDrive uploads is flagged.
 - Connected: Microsoft 365 with OneDrive. One team folder (a OneDrive-synced SharePoint library) holds the team's
@@ -57,7 +60,8 @@ def suggest():
 
 
 def get(settings):
-    """The mode: SCIF-ready whenever this install is sealed or is the SCIF build, whatever the settings say; a setting
+    """The mode: SCIF-ready whenever this install is sealed or is the SCIF build, whatever the settings say. Otherwise
+    (4.24.0) Connected when a team folder is set and in use, Offline when not: the mode is no longer asked. A setting
     of "secured" from before 2.97.0 without the seal reads as Offline."""
     try:
         import secure
@@ -65,10 +69,8 @@ def get(settings):
             return SECURED
     except Exception:
         pass
-    m = (settings or {}).get("work_mode", "")
-    if m == SECURED:
-        return OFFLINE
-    return m if m in NAMES else ""
+    st = settings or {}
+    return CONNECTED if st.get("work_mode", "") == CONNECTED and st.get("team_dir") else OFFLINE
 
 
 def team_dir(settings):
@@ -90,8 +92,8 @@ def folder_warning(settings, path):
         return ("This folder is uploaded by OneDrive or another sync tool, so files saved here leave this PC. In "
                 "SCIF-ready mode use a local folder or your site's approved transfer location.")
     if m == OFFLINE and is_synced(path):
-        return ("This folder is uploaded by OneDrive or another sync tool, so files saved here leave this PC. In Offline "
-                "mode use a local folder, or choose Connected mode for the team's SharePoint folder.")
+        return ("This folder is uploaded by OneDrive or another sync tool, so files saved here leave this PC. Use a "
+                "local folder, or set the team folder (Settings > General) for the team's SharePoint folder.")
     if m == CONNECTED and path and not is_synced(path):
         return ("This folder is not uploaded by OneDrive, so the team will not see what is saved here. Use the team's "
                 "OneDrive-synced SharePoint folder.")
@@ -121,8 +123,7 @@ def steps(mode):
                 "Backups and effort packages go to the team folder automatically, so progress is never only on this PC.",
                 "Before opening an effort, check who has it open; the app shows it and warns you.",
                 "To hand an effort over, save its package to the team folder; the other person opens it and continues where you were."]
-    return ["Choose where this PC is used: Offline (testing and everyday work), Connected (Microsoft 365 with OneDrive) or "
-            "SCIF-ready (no logs, no training, locked)."]
+    return steps(OFFLINE)
 
 
 # ---------------------------------------------------------------- who has an effort open (Connected mode)

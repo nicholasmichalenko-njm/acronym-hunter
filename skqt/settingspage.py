@@ -25,7 +25,7 @@ class SettingsPage(QWidget):
         inner = QWidget(); inner.setObjectName("page"); sc.setWidget(inner); outer.addWidget(sc)
         v = QVBoxLayout(inner)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
-        from .modes import ModeCard                      # 2.79.0: Secured or Connected
+        from .modes import ModeCard                      # 2.79.0; 4.24.0: the team folder
         self.mode = ModeCard(host)
         v.addWidget(self.mode)
         import tzones as TZ                              # 2.92.0: your own time zone (the submission's is the effort's)
@@ -189,13 +189,16 @@ class SettingsPage(QWidget):
         self.host.status(f"Data copied to {new}. Restart Stationkeeper to use it; the old folder can be deleted afterwards.")
         return new
 
-    SECTIONS = (("This effort", ("eff",)),
-                ("You", ("mode", "look_card", "tz_card")),    # 4.4.0: Appearance had no section since 3.91.0
-                ("The team", ("tl_card", "authors", "process_card", "folders_card", "doctypes_card", "roles_card", "branding_card", "team_card")),
+    # 4.24.0 (Nicholas, 2026-11-12): sections by subject. Each card has one home.
+    SECTIONS = (("Appearance", ("look_card", "branding_card")),
+                ("General", ("tz_card", "mode", "bk", "data")),
+                ("Efforts", ("eff", "folders_card")),
+                ("People", ("authors",)),
+                ("Document types", ("doctypes_card",)),
                 ("Shred and responses", ("ri_card", "re_card", "un_card", "sg_card")),
-                ("Our data and backups", ("ourdata", "bk", "data")),
-                ("Training", ("tr",)),
+                ("Team data and training", ("tl_card", "team_card", "ourdata", "tr")),
                 ("Updates and help", ("up", "sec", "help")))
+    SET_ASIDE = ("process_card", "roles_card")   # 4.24.0: not shown for now; the code, the saved values and the tests stay
 
     def _sections(self, outer, old):
         """3.77.0 (Rule 8): Settings as sections, one shown at a time; the list on the left picks the section."""
@@ -218,6 +221,9 @@ class SettingsPage(QWidget):
             v.addStretch(1)
             self.stack.addWidget(sc); self.scrolls.append(sc)
             self.section_list.addItem(name)
+        for k in self.SET_ASIDE:
+            c = getattr(self, k)
+            c.setParent(self); c.setVisible(False)
         old.setParent(None); old.deleteLater()
         self.section_list.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.section_list.setCurrentRow(0)
@@ -246,6 +252,9 @@ class SettingsPage(QWidget):
         return card
 
     def focus_process(self):
+        """4.24.0: Stages, gates and roles is set aside; nothing to show."""
+        if "process_card" in self.SET_ASIDE:
+            return None
         self.process_card.fill()
         return self.jump(self.process_card)
 

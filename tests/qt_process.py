@@ -39,8 +39,10 @@ sp = w.settings_page
 pc = sp.process_card
 check("Settings has a Stages, gates and roles card with the built-in ones", pc.st.rowCount() == len(PR.DEFAULT_STAGES)
       and pc.gt.rowCount() == 3 and pc.rl.count() == len(PR.DEFAULT_ROLES))
-check("3.77.0: Settings' The team section holds it, and focus reaches it", sp.focus_process() is pc
-      and sp.section_list.currentItem().text() == "The team" and pc.isVisibleTo(sp))
+check("4.24.0: Stages, gates and roles is set aside: in no section, not shown, its code kept", sp.focus_process() is None
+      and not pc.isVisibleTo(sp) and "process_card" in sp.SET_ASIDE
+      and [sp.section_list.item(i).text() for i in range(sp.section_list.count())] == ["Appearance", "General", "Efforts", "People",
+          "Document types", "Shred and responses", "Team data and training", "Updates and help"])
 pc.gt.setCurrentCell(0, 0)
 check("a built-in gate cannot be removed", not pc.remove_gate() and pc.gt.rowCount() == 3)
 pc.gt.item(1, 0).setText("Soft gate: log and move on")
