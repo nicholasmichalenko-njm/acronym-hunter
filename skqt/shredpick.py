@@ -30,7 +30,7 @@ def pending(host, versions=False):
     out = []
     for name, _label, path in CR.effort_docs(host.ws):
         d = lib.doc_of_file(os.path.basename(path))
-        if d is None or lib.role_of(d) == "not_needed" or os.path.basename(path) in have:
+        if d is None or lib.role_of(d) != "matrix" or os.path.basename(path) in have:     # 4.25.2: only what is marked For the shred
             continue
         older = any(v.get("file") in have for v in d.get("versions", [])[:-1])
         if older == versions:

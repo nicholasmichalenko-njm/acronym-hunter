@@ -120,7 +120,8 @@ def status(page, d, st=None):
         out.append(("Changes from its last version", ("Not reviewed yet" if not opened else f"{left} to review" if left else "Reviewed"),
                     WARN if (not opened or left) else OK))
     role = lib.role_of(d)
-    out.append(("Feeds the matrix", "Yes (Place decides what goes in)" if role == "matrix" else "No", OK if role == "matrix" else NONE))
+    marks = ", ".join(lib.marks_of(d))
+    out.append(("Used for", marks or "No mark: left out", OK if marks else NONE))
     try:
         import ctxdocs as CX
         nt = len(CX.Store(page.host.ws.root).load().of_doc(d["id"]))
@@ -195,19 +196,13 @@ def row_menu(page, at=None, run=True):
         return m
     d = page.lib.doc(ids[0])
     m.addAction("Open", lambda: open_file(page, d))
-    tm = m.addMenu("Set type")
-    for k, n in page.lib.categories():
-        a = tm.addAction(n, lambda k=k: page.set_category(k)); a.setCheckable(True); a.setChecked(d.get("category") == k)
-    tm.addSeparator()
-    tm.addAction("Initial and type...", lambda: page.identity())
+    from . import usedfor as UF                                   # 4.25.2: Used for (the marks) and Source
+    UF.menu(page, m, d)
     m.addAction("Add a newer version...", lambda: newer_version(page, d))
     from . import docmanage as DM                                 # 4.17.0: the same version, its file replaced
     m.addAction("Replace the file...", lambda: DM.replace_file(page, d))
     if _edited(page, d):
         m.addAction("Read it again (the file was edited)", lambda: DM.read_again(page, d))
-    out = page.lib.role_of(d) == "not_needed"
-    m.addAction("Put it back" if out else "Leave out", lambda: page.set_role("context" if out else "not_needed",
-                                                                            why="put back" if out else "left out"))
     m.addAction("Show in folder", lambda: show_in_folder(page, d))
     if __import__("redlineprep").kind(path_of(page, d)):          # 4.22.0: a PDF or a picture (4.8.0: a PDF)
         m.addAction("Prepare for redline", lambda: (page.host.go("redline"), page.host.redline_page.select(d["id"])))

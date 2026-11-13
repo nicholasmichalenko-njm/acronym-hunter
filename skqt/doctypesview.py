@@ -27,7 +27,7 @@ class DocTypesCard(D.Card):
                                   D.button("Save", "primary", lambda: self.save())])
         self.host = host
         self.lock_note = self.add(D.label("", "muted"))
-        t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Type", "Initial", "Numbered", "Builds the matrix", "File name words"])
+        t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Type", "Initial", "Numbered", "For the shred", "File name words"])
         t.setColumnHidden(2, True)                      # 4.24.0: numbering is automatic; the value is kept as it was saved
         t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows)
         for i, w in enumerate((200, 80, 90, 130, 0)):
@@ -36,7 +36,7 @@ class DocTypesCard(D.Card):
         t.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
         t.verticalHeader().setDefaultSectionSize(32); t.setProperty("sk_rows_fixed", True); t.setMinimumHeight(300)
         t.horizontalHeaderItem(2).setToolTip("Each document of this type gets the next number: A1, A2, A3")
-        t.horizontalHeaderItem(3).setToolTip("New documents of this type build the compliance matrix (you can change it per document)")
+        t.horizontalHeaderItem(3).setToolTip("New documents of this type are marked For the shred (you can change it per document)")
         t.horizontalHeaderItem(4).setToolTip("Words in a file name that mean this type, with commas between: pricing, cost volume")
         self.table = t
         self.add(t)

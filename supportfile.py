@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.25.2": ["Documents: Used for. Right-click a document > Used for and tick For the shred, Reference, Return it, redlined, Return it, filled in. Several may be ticked.",
+               "The marks take the place of Role. Shred extracts only what is marked For the shred.",
+               "The filter beside Find shows what is For the shred or Returned to the customer, or one folder.",
+               "Source (Customer or Internal) comes from the folder and can be changed for one file. Folders took the place of categories.",
+               "Add a folder... keeps its nested folders and takes every kind of file."],
     "4.25.1": ["Put a file into the effort's folder and it is added to Documents by itself, for reference, where it sits. Any kind of file. A line says what came in.",
                "Documents names the effort's folder above the list; click the path to open it.",
                "The Trash is a folder you can see: Deleted, in the effort's folder. Only Empty the Trash, in the app, removes anything from it.",

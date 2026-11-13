@@ -42,6 +42,11 @@ FILE_TYPES = (".docx", ".pdf", ".pptx", ".xlsx", ".txt", ".doc", ".xls", ".ppt",
               ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")                  # and pictures
 
 
+def _not_documents():
+    import watch
+    return watch.NOT_DOCUMENTS
+
+
 def walk(folder):
     """2.83.0: every document file in a dropped folder, with the folder path it sits in (relative to the folder, with the
     dropped folder's own name first): [(path, relative folder)]."""
@@ -51,8 +56,8 @@ def walk(folder):
     for dp, dns, fns in os.walk(root):
         dns[:] = sorted(d for d in dns if not d.startswith((".", "~", "_")))
         for f in sorted(fns):
-            if f.startswith("~$") or not f.lower().endswith(FILE_TYPES):
-                continue
+            if f.startswith("~$") or f.lower().endswith(_not_documents()):      # 4.25.2: any kind of file is a document
+                continue                                                         # to keep (a kind the reader does not open has no text)
             rel = os.path.relpath(dp, root)
             out.append((os.path.join(dp, f), top if rel == "." else top + "/" + rel.replace(os.sep, "/")))
     return out
@@ -230,7 +235,7 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
         d, v = lib.add(dest, e["sents"], doc_id=doc_id, doc_name=e.get("name", ""), label=e.get("label", ""), sha=e["sha"],
                        initial=e.get("initial", ""), dtype=e.get("type", ""), category=cat, folder=e.get("folder", ""),
                        tags=[t for t in e.get("tags", []) if t not in DV.folder_tags(e.get("folder", ""))], role=e.get("role"),
-                       save=False, role_confirmed=e.get("role") != e.get("suggested_role", e.get("role")), source=src)
+                       save=False, role_confirmed=DV.use_key(e.get("role")) != DV.use_key(e.get("suggested_role", e.get("role"))), source=src)
         if e.get("under") and not d.get("under") and e["choice"] == "new":   # an order, under its contract or RFP
             lib.set_under(d["id"], e["under"], save=False)
         if e.get("sensitivity", -1) > d.get("sensitivity", -1):     # 2.97.0: the highest level found in its versions

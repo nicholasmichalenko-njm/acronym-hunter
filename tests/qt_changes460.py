@@ -91,7 +91,9 @@ w.rail_go("library"); app.processEvents()
 lp, op = w.library_page, w.ours_page
 check("4.25.0: Documents' tabs: List, Changes, Data calls; All, Customer and Internal are chips on the list",
       [t for _k, t in __import__("skqt.mainwin", fromlist=["x"]).TABS["library"]] == ["List", "Changes", "Data calls"]
-      and [b.text() for b in lp.side_btns.values()] == ["All", "Customer", "Internal"] and lp.side_btns["all"].isChecked() and op is lp)
+      and [b.text() for b in lp.side_btns.values()] == ["All", "Customer", "Internal"]
+      and [lp.type_f.itemText(i) for i in range(3)] == ["Every folder", "For the shred", "Returned to the customer"]
+      and lp.side_btns["all"].isChecked() and op is lp)
 check("Customer's header: Find, More, Add documents... (the main button)", lp.bar.main.text() == "Add documents..."
       and not lp.b_folder.isVisibleTo(w) and "Add a folder..." in lp.bar.labels() and "Watched folders..." in lp.bar.labels()
       and not lp.tree.isVisibleTo(w), lp.bar.labels())
@@ -100,15 +102,15 @@ ti = w._tab_keys.index("compare")
 check("Changes' tab says how many changes are left to decide", w.page_tabs.tabText(ti).startswith("Changes (")
       and w.page_tabs.tabText(ti).endswith(")"), w.page_tabs.tabText(ti))
 hdr = [lp.table.horizontalHeaderItem(c).text() for c in range(lp.table.columnCount())]
-check("4.25.0: the columns: Document, Type, Source, Version, Status", hdr == DF.COLUMNS == ["Document", "Type", "Source", "Version", "Status"], hdr)
+check("4.25.0: the columns: Document, Type, Source, Version, Status", hdr == DF.COLUMNS == ["Document", "Type", "Source", "Version", "Used for", "Status"], hdr)
 names = {lp.table.item(r, 0).text(): r for r in range(lp.table.rowCount())}
 row = next(r for n, r in names.items() if "versions" in n)
 check("the document says how many versions it has", lp.table.item(row, 0).text().endswith("2 versions"), list(names))
 check("its version is the amendment, its source Customer, with the customer's tint", lp.table.item(row, 3).text().startswith("Amendment 1")
       and lp.table.item(row, 2).text() == "Customer" and lp.table.item(row, 0).background().color() == theme.color("cust_soft"), lp.table.item(row, 3).text())
-check("4.25.0: Status is empty unless the document needs you (here: its changes to review)", lp.table.item(row, 4).text().startswith("Changes to review")
-      and all(lp.table.item(r, 4).text() in ("",) or "to" in lp.table.item(r, 4).text() or "edited" in lp.table.item(r, 4).text() for r in range(lp.table.rowCount())),
-      [lp.table.item(r, 4).text() for r in range(lp.table.rowCount())])
+check("4.25.0: Status is empty unless the document needs you (here: its changes to review)", lp.table.item(row, 5).text().startswith("Changes to review")
+      and all(lp.table.item(r, 5).text() in ("",) or "to" in lp.table.item(r, 5).text() or "edited" in lp.table.item(r, 5).text() for r in range(lp.table.rowCount())),
+      [lp.table.item(r, 5).text() for r in range(lp.table.rowCount())])
 lp.table.selectRow(row); lp.show_doc(); app.processEvents()
 check("the panel: what has been done, no Versions row, the versions listed once, one button",
       "Versions" not in [x[0] for x in lp.status_now] and lp.d_versions.count() == 2 and not lp.b_more.isVisibleTo(w)

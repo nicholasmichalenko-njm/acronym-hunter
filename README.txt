@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENTS: USED FOR, AND FOLDERS (4.25.2)
+  - Every document says what it is used for. Right-click it > Used for and tick the marks; a document may carry
+    several: For the shred or Reference, and Return it, redlined or Return it, filled in. With no mark it is left
+    out. The list has a Used for column, and the filter beside Find shows For the shred or Returned to the customer.
+  - The marks take the place of Role. For the shred was Builds the matrix; Reference was Context and Reference only;
+    no mark was Not needed (Leave out and Put it back are gone from the menu: untick or tick a mark). Efforts made
+    before read the same: what was saved did not change.
+  - Shred extracts only what is marked For the shred. A document marked Reference can still be opened beside the
+    shred to take pieces from it. Mark a document For the shred and it is extracted.
+  - Source says whose a document is, Customer or Internal. It comes from the folder the file is in; right-click >
+    Source changes it for one file. Nothing moves on disk when you change it.
+  - Folders took the place of categories. The filter beside Find also lists the folders that hold documents (Every
+    folder). Type shows the document type, or for a document without one the kind of file (Word, PDF, Picture).
+    + Category... is gone from More.
+  - Add documents: the table's columns read Source and Used for; set either for many rows at once (select rows, then
+    Source... or Used for...). Add a folder... keeps its nested folders and takes every kind of file; a kind the
+    reader does not open is kept with no text.
+
 DOCUMENTS: THE EFFORT'S FOLDER (4.25.1)
   - Documents names the effort's folder above the list; click the path to open it.
   - Put a file into the effort's folder and it is added to Documents by itself the next time the folders are checked

@@ -51,19 +51,19 @@ class IntakeDialog(QDialog):
         self.plan, self.lib = plan, lib
         v = QVBoxLayout(self)
         new = sum(1 for e in plan if not e.get("dup"))
-        v.addWidget(D.label(f"{new} new file(s), {len(plan) - new} already here. Each file's category comes from the folders "
-                            "it was in; its role from its category and type; a match to a document already here makes it a "
-                            "new version. Change anything, for one row or many (select rows, then Set), then Add. Customer "
+        v.addWidget(D.label(f"{new} new file(s), {len(plan) - new} already here. Each file's source comes from the folders "
+                            "it was in; what it is used for from its source and type; a match to a document already here makes it a "
+                            "new version. Change anything, for one row or many (select rows, then Source or Used for), then Add. Customer "
                             "documents need an initial and a type (the initial starts each requirement's reference).", "muted"))
         bulk = QHBoxLayout(); v.addLayout(bulk)
         bulk.addWidget(D.label("Selected rows:", "label", wrap=False))
-        self.b_cat = QComboBox(); self.b_cat.addItem("Category...", "")
-        for k, n in lib.categories():
-            self.b_cat.addItem(n, k)
+        self.b_cat = QComboBox(); self.b_cat.addItem("Source...", "")       # 4.25.2: Source and Used for, for many rows at once
+        for k, _n in lib.categories():
+            self.b_cat.addItem(DV.source_name(lib, k), k)
         self.b_cat.activated.connect(lambda _i: self.set_rows(category=self.b_cat.currentData()))
         bulk.addWidget(self.b_cat)
-        self.b_role = QComboBox(); self.b_role.addItem("Role...", "")
-        for k, n in DV.ROLES:
+        self.b_role = QComboBox(); self.b_role.addItem("Used for...", "")
+        for k, n in DV.USES:
             self.b_role.addItem(n, k)
         self.b_role.activated.connect(lambda _i: self.set_rows(role=self.b_role.currentData()))
         bulk.addWidget(self.b_role)
@@ -71,7 +71,7 @@ class IntakeDialog(QDialog):
         bulk.addWidget(D.button("Select all", "ghost", lambda: self.table.selectAll()))
         bulk.addStretch(1)
         self.count = D.label("", "muted", wrap=False); bulk.addWidget(self.count)
-        cols = ["File", "From folder", "What it is", "Category", "Role", "Initial", "Type", "Name", "Tags"]
+        cols = ["File", "From folder", "What it is", "Source", "Used for", "Initial", "Type", "Name", "Tags"]
         self.table = QTableWidget(len(plan), len(cols))
         self.table.setHorizontalHeaderLabels(cols)
         self.table.verticalHeader().setVisible(False)
@@ -101,13 +101,13 @@ class IntakeDialog(QDialog):
                 if e["choice"] in ("version", "replace") and e.get("doc"):
                     what.setCurrentIndex(max(0, next((k for k in range(what.count()) if what.itemData(k) == (e["choice"], e["doc"])), 0)))
             cat = QComboBox()
-            for k, n in lib.categories():
-                cat.addItem(n, k)
+            for k, _n in lib.categories():
+                cat.addItem(DV.source_name(lib, k), k)
             cat.setCurrentIndex(max(0, cat.findData(e.get("category", "customer"))))
             role = QComboBox()
-            for k, n in DV.ROLES:
+            for k, n in DV.USES:
                 role.addItem(n, k)
-            role.setCurrentIndex(max(0, role.findData(e.get("role") or "matrix")))
+            role.setCurrentIndex(max(0, role.findData(DV.use_key(e.get("role") or "matrix"))))
             ini = QLineEdit(e.get("initial", "")); ini.setMaxLength(6)
             ini.setProperty("sk_typed", False)                 # 2.94.0: the initial follows the type until you type one
             ini.textEdited.connect(lambda t, w=ini: w.setProperty("sk_typed", bool(t.strip())))
@@ -149,7 +149,7 @@ class IntakeDialog(QDialog):
         w = self.rows[r]
         cat = w["cat"].currentData()
         cust = cat == "customer"
-        w["role"].setCurrentIndex(max(0, w["role"].findData(DV.suggest_role(cat, w["ty"].currentText() if cust else ""))))
+        w["role"].setCurrentIndex(max(0, w["role"].findData(DV.use_key(DV.suggest_role(cat, w["ty"].currentText() if cust else "")))))
         if cust and not w["ini"].text().strip():
             taken = [x["ini"].text().strip() for k, x in enumerate(self.rows) if k != r]
             w["ini"].setText(self.lib.suggest_initial(w["ty"].currentText(), taken))
@@ -158,7 +158,7 @@ class IntakeDialog(QDialog):
     def _type_changed(self, r):
         w = self.rows[r]
         if w["cat"].currentData() == "customer":
-            w["role"].setCurrentIndex(max(0, w["role"].findData(DV.suggest_role("customer", w["ty"].currentText()))))
+            w["role"].setCurrentIndex(max(0, w["role"].findData(DV.use_key(DV.suggest_role("customer", w["ty"].currentText())))))
             e = self.plan[r]
             if not w["ini"].property("sk_typed"):
                 taken = [x["ini"].text().strip() for k, x in enumerate(self.rows) if k != r]
@@ -181,7 +181,7 @@ class IntakeDialog(QDialog):
             if category:
                 w["cat"].setCurrentIndex(max(0, w["cat"].findData(category)))
             if role:
-                w["role"].setCurrentIndex(max(0, w["role"].findData(role)))
+                w["role"].setCurrentIndex(max(0, w["role"].findData(DV.use_key(role))))
         self.b_cat.setCurrentIndex(0); self.b_role.setCurrentIndex(0)
         self.show_count()
         return len(rows)
@@ -949,16 +949,19 @@ class LibraryPage(QWidget):
         if not ids:
             return m
         d = self.lib.doc(ids[0]) if self.lib else None
-        rm = m.addMenu("Role")
-        cur = self.lib.role_of(d) if d else ""
-        for k, n in DV.ROLES:
-            a = rm.addAction(n, lambda k=k: self.set_role(k)); a.setCheckable(True); a.setChecked(k == cur)
-        cm = m.addMenu("Category")
-        for k, n in self.lib.categories() if hasattr(self.lib, "categories") else []:
-            a = cm.addAction(n, lambda k=k: self.set_category(k)); a.setCheckable(True); a.setChecked(bool(d) and d.get("category") == k)
-        cm.addSeparator(); cm.addAction("New category...", lambda: self.new_category())
-        m.addAction("Folder...", lambda: self._ask_and(lambda t: self.set_category(folder=t), "Folder", "Folder (Standards/Test):",
-                                                       (d or {}).get("folder", "")))
+        if d is not None and getattr(self, "focus", False):     # 4.25.2: Used for and Source are on the row's own menu
+            pass
+        else:
+            rm = m.addMenu("Role")
+            cur = self.lib.role_of(d) if d else ""
+            for k, n in DV.ROLES:
+                a = rm.addAction(n, lambda k=k: self.set_role(k)); a.setCheckable(True); a.setChecked(k == cur)
+            cm = m.addMenu("Category")
+            for k, n in self.lib.categories() if hasattr(self.lib, "categories") else []:
+                a = cm.addAction(n, lambda k=k: self.set_category(k)); a.setCheckable(True); a.setChecked(bool(d) and d.get("category") == k)
+            cm.addSeparator(); cm.addAction("New category...", lambda: self.new_category())
+            m.addAction("Folder...", lambda: self._ask_and(lambda t: self.set_category(folder=t), "Folder", "Folder (Standards/Test):",
+                                                           (d or {}).get("folder", "")))
         m.addAction("Tags...", lambda: self._ask_and(lambda t: self.set_tags(t), "Tags", "Tags, with a comma between:",
                                                      ", ".join((d or {}).get("tags", []))))
         m.addSeparator()
@@ -1039,7 +1042,7 @@ class LibraryPage(QWidget):
                 self.host.status("Documents are being read: wait for it, or press Stop.")
             return None
         if paths is None:
-            paths, _ = QFileDialog.getOpenFileNames(self, "Add documents to the library", "", "Documents (*.docx *.pdf *.pptx *.xlsx *.txt *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
+            paths, _ = QFileDialog.getOpenFileNames(self, "Add documents to the library", "", "Documents (*.docx *.pdf *.pptx *.xlsx *.txt *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp);;Every file (*)")
         if not paths:
             return None
         self.lib = DV.Library(self.lib.folder).load()     # 3.15.1: plan against the library as saved now, never a stale copy

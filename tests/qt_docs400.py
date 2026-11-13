@@ -48,9 +48,9 @@ lp.refresh(); lp.select(dL["id"]); lp.show_doc(); app.processEvents()
 check("Documents is step 1: its page and title", w.stack.currentWidget() is lp and w.page_title.text() == "Documents")
 rows = {r[0]: r for r in lp.status_now}
 check("the status panel: text check, shred, feeds the matrix (4.6.0: the versions are listed once, below)",
-      list(rows)[:2] == ["Text check", "Shred"] and "Feeds the matrix" in rows and "Versions" not in rows, list(rows))
+      list(rows)[:2] == ["Text check", "Shred"] and "Used for" in rows and "Versions" not in rows, list(rows))
 check("... not extracted yet; it feeds the matrix", rows["Shred"][1] == "Not extracted yet"
-      and rows["Feeds the matrix"][1].startswith("Yes"), rows)
+      and rows["Used for"][1] == "For the shred", rows)
 check("... one button: its next thing (4.1.0: Shred it)", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Shred it", lp.b_read.text())
 check("... no question: the button extracts it at once and opens Shred (4.1.0)",
       bool(lp.review_selected()) and w.stack.currentWidget() is w.assign_page and w.step_btns["assign"].isChecked())
@@ -61,26 +61,43 @@ check("... and it opens there when done", w.assign_page.file == "Section_L_print
 w.rail_go("library"); app.processEvents()
 lp.select(dS["id"]); lp.show_doc()
 rows = {r[0]: r for r in lp.status_now}
-check("a document that does not feed the matrix says No", rows["Feeds the matrix"][1] == "No")
+check("4.25.2: a document that is not for the shred says Reference", rows["Used for"][1] == "Reference", rows["Used for"])
 m = DS.row_menu(lp, run=False)
 acts = [a.text() for a in m.actions() if a.text()]
-check("the right-click menu: the things about the file, then what left the panel (4.6.0), then Delete... (4.17.0)", acts[:6] == ["Open", "Set type",
-      "Add a newer version...", "Replace the file...", "Leave out", "Show in folder"] and [a for a in acts[6:] if a != "Prepare for redline"]
+check("the right-click menu: the things about the file, then what left the panel (4.6.0), then Delete... (4.17.0)", acts[:6] == ["Open", "Used for", "Source",
+      "Add a newer version...", "Replace the file...", "Show in folder"] and [a for a in acts[6:] if a != "Prepare for redline"]
       == ["Initial and type...", "More about this document...", "Delete..."], acts)   # 4.8.0: Prepare a redline copy for a PDF
-check("... Set type holds the categories and Initial and type", "Initial and type..." in [a.text() for a in m.actions()[1].menu().actions()])
+check("4.25.2: Used for holds the four marks; Source holds Customer and Internal", [a.text() for a in m.actions()[1].menu().actions() if a.text()]
+      == ["For the shred", "Reference", "Return it, redlined", "Return it, filled in"]
+      and [a.text() for a in m.actions()[2].menu().actions()] == ["Customer", "Internal"]
+      and [a.text() for a in m.actions()[1].menu().actions() if a.isChecked()] == ["Reference"])
 check("... Open and Show in folder find the file", os.path.isfile(DS.open_file(lp, lp.lib.doc(dS["id"])))
       and os.path.isdir(DS.show_in_folder(lp, lp.lib.doc(dS["id"]))))
-next(a for a in m.actions() if a.text() == "Leave out").trigger(); app.processEvents()
-check("Leave out: it is left out of the shred", lp.lib.role_of(lp.lib.doc(dS["id"])) == "not_needed")
+from skqt import usedfor as UF
+UF.toggle(lp, "reference"); app.processEvents()
+check("4.25.2: unticking its only mark leaves it with no mark: left out of the shred", lp.lib.role_of(lp.lib.doc(dS["id"])) == "not_needed"
+      and lp.lib.marks_of(lp.lib.doc(dS["id"])) == [])
 lp.select(dS["id"]); lp.show_doc()
 rows = {r[0]: r for r in lp.status_now}
 check("... the panel says Left out, and offers nothing to do", rows["Shred"][1] == "Left out" and not lp.b_read.isVisibleTo(w), (rows, lp.b_read.text()))
-m = DS.row_menu(lp, run=False)
-check("... the menu offers Put it back", "Put it back" in [a.text() for a in m.actions()])
-next(a for a in m.actions() if a.text() == "Put it back").trigger(); app.processEvents()
-check("Put it back: back in, as context", lp.lib.role_of(lp.lib.doc(dS["id"])) == "context")
+UF.toggle(lp, "reference"); UF.toggle(lp, "redline"); app.processEvents()
+check("4.25.2: ticking Reference brings it back; a document may carry several marks", lp.lib.role_of(lp.lib.doc(dS["id"])) == "reference"
+      and lp.lib.marks_of(lp.lib.doc(dS["id"])) == ["Reference", "Return it, redlined"] and lp.lib.returns_of(lp.lib.doc(dS["id"])) == ["redline"])
+from skqt import docfocus as DF4252
+from PySide6.QtCore import Qt
+row = next(r for r in range(lp.table.rowCount()) if lp.table.item(r, 0).data(Qt.UserRole) == dS["id"])
+def _only(key):
+    lp.type_f.setCurrentIndex(lp.type_f.findData(key)); app.processEvents()
+    return [lp.table.item(r, 4).text() for r in range(lp.table.rowCount())]
+check("... the list's Used for column says so, and the filter shows what is returned, or what is for the shred", lp.table.item(row, 4).text() == "Reference, Return it, redlined"
+      and _only("use:returned") == ["Reference, Return it, redlined"] and _only("use:shred") and all("For the shred" in t for t in _only("use:shred"))
+      and len(_only("")) == len(lp.lib.all) and DF4252.COLUMNS[4] == "Used for")
+UF.toggle(lp, "redline"); lp.select(dS["id"])
+check("... Source: Internal and back to Customer changes whose it is; no file moves", UF.set_source(lp, "ours") == 1
+      and lp.lib.doc(dS["id"])["category"] == "ours" and os.path.isfile(lp.lib.path_of(lp.lib.doc(dS["id"])["versions"][-1]))
+      and (lp.select(dS["id"]) or True) and UF.set_source(lp, "customer") == 1 and lp.lib.doc(dS["id"])["category"] in ("customer", "bidders"))
 more = [a.text() for a in lp.doc_menu(run=False).actions() if a.text()]
-check("More about this document: role, category, folder, tags, its name", more[:4] == ["Role", "Category", "Folder...", "Tags..."]
+check("4.25.2: More about this document: tags and its name (Used for and Source are on the row; folders took the place of categories)", more[:1] == ["Tags..."]
       and "Rename..." in more and not lp.b_more.isVisibleTo(w), more)
 # a second version: changes from its last version
 lib1 = DV.Library(ws.p("documents")).load()

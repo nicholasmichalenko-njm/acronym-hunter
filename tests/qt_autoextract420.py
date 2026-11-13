@@ -64,9 +64,15 @@ w.go("library"); app.processEvents()
 SP.auto_tick(w)
 check("adding starts the shred: the documents are extracted in the background, no page change", w.read_page.running()
       and w.stack.currentWidget() is w.library_page)
-check("... both of them, whatever their role (Section L builds the matrix, the SOW is context)",
+check("4.25.2: ... the one marked For the shred (Section L); the SOW, marked Reference, waits for its mark",
       wait(lambda: w.review is not None and not w.read_page.running())
-      and sorted(w.review.files()) == ["Osprey_SOW.pdf", "Osprey_Section_L.pdf"], w.review.files() if w.review else None)
+      and sorted(w.review.files()) == ["Osprey_Section_L.pdf"], w.review.files() if w.review else None)
+import docversions as _DV4252
+_lib = _DV4252.Library(w.ws.p("documents")).load()
+_sow = _lib.doc_of_file("Osprey_SOW.pdf")
+check("4.25.2: mark it For the shred and it is extracted too", _lib.set_role(_sow["id"], "matrix") and SP.auto_tick(w) is not None
+      and wait(lambda: not w.read_page.running() and sorted(w.review.files()) == ["Osprey_SOW.pdf", "Osprey_Section_L.pdf"]),
+      w.review.files() if w.review else None)
 check("... with no question asked", not asked, asked)
 check("nothing is extracted twice", SP.auto_tick(w) is None and not SP.pending(w))
 M = w.review.M

@@ -185,8 +185,7 @@ def guess_type(name):
 # ------------------------------------------------------------------ the document library (2.83.0)
 CATEGORIES = (("customer", "Customer Documents"), ("bidders", "Bidders Library"), ("qa", "Q&A"), ("ours", "Our Documents"),   # 3.78.0: as the folders are named
               ("graphics", "Graphics"))       # 3.78.0: pictures, kept in the Effort Library's Graphics folder
-ROLES = (("matrix", "Builds the matrix"), ("context", "Context"), ("reference", "Reference only"), ("not_needed", "Not needed"))
-ROLE_NAMES = dict(ROLES)
+from docmarks import ROLES, ROLE_NAMES, USES, RETURNS, RETURN_NAMES, SOURCE_NAMES, use_key, source_name, MarksMixin   # 4.25.2: Used for
 MATRIX_TYPES = {"RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Task order", "Delivery order"}
 _CAT_WORDS = (("graphics", r"graphics?\b|pictures?\b|images?\b|figures?\b|art\b"),
               ("qa", r"q\s*&\s*a|\bqa\b|questions?\b|answers?\b"),
@@ -235,7 +234,7 @@ def clean_tags(tags):
     return out
 
 
-class Library(PathsMixin):
+class Library(PathsMixin, MarksMixin):
     def __init__(self, folder):
         self.folder = folder                       # <effort app data>\documents
         self.all = []                              # 2.83.0: every document; .docs is the customer documents

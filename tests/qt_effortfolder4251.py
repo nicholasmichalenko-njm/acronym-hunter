@@ -71,7 +71,7 @@ check("... as one of our own documents, for reference, where it sits", len(lib.a
 check("... with the folder it is in", da is not None and da["folder"] == "06_cost and pricing"
       and next(d for d in lib.all if d["name"].startswith("Kestrel gate"))["folder"] == "03_briefings and approvals/Gate")
 check("... shown under Internal, tinted, with no status", DF.set_side(lp, "ours") == "ours" and lp.table.rowCount() == 2
-      and lp.table.item(0, 2).text() == "Internal" and lp.table.item(0, 4).text() == "")
+      and lp.table.item(0, 2).text() == "Internal" and lp.table.item(0, 4).text() == "Reference" and lp.table.item(0, 5).text() == "")
 DF.set_side(lp, "all")
 f2 = w.watch_now()
 check("checked again: nothing more comes in, nothing offered", not f2["auto"] and not f2["new"] and len(DV.Library(w.ws.p("documents")).load().all) == 2, f2)

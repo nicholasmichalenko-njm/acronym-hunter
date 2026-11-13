@@ -2,8 +2,9 @@
 claude/stationkeeper-documents-decisions-2026-11-10.md, decision 4).
 
 4.25.0 (claude/stationkeeper-documents-board-2026-11-12.html, step A; Nicholas 16:14): one list. Three chips, All,
-Customer and Internal, take the place of the Customer and Ours tabs. The table: Document (with "N versions"), Type,
-Source (Customer or Internal, with a light tint on the row), Version, and Status, which is empty unless the document
+Customer and Internal, take the place of the Customer and Ours tabs (4.25.2: the filter beside Find also shows what is
+For the shred or Returned to the customer, or one folder). The table: Document (with "N versions"), Type, Source (Customer or Internal, with a light tint on the row),
+Version, Used for (4.25.2: the marks, skqt/usedfor.py), and Status, which is empty unless the document
 needs the person (pages to look at, changes to review, a file edited). How far the shred and the acros and abs are
 shows on their own screens and in the panel, not here. The header has Find, More and one main button, Add documents....
 
@@ -17,8 +18,9 @@ CUSTOMER_SIDE = ("customer", "bidders", "qa")
 # 4.25.0 (Documents board 2026-11-12, step A): one list. All, Customer and Internal are chips over it, not two tabs;
 # "ours" stays the saved word for the side, Internal is what a person reads.
 SIDES = (("all", "All"), ("customer", "Customer"), ("ours", "Internal"))
+USES = (("use:shred", "For the shred"), ("use:returned", "Returned to the customer"))   # 4.25.2: in the filter beside Find
 SIDE_NAMES = {"customer": "Customer", "ours": "Internal"}
-COLUMNS = ["Document", "Type", "Source", "Version", "Status"]
+COLUMNS = ["Document", "Type", "Source", "Version", "Used for", "Status"]
 
 
 def classic():
@@ -31,7 +33,8 @@ def side_of(d):
 
 def in_side(page, d):
     """The document shows under the chip picked (All shows every one)."""
-    return getattr(page, "doc_side", "all") == "all" or side_of(d) == page.doc_side
+    side = getattr(page, "doc_side", "all")
+    return side == "all" or side_of(d) == side
 
 
 def set_side(page, side):
@@ -59,6 +62,9 @@ def install(page, side="all"):
         if b is not page.bar.main and b.text() == "New folder...":
             b.setVisible(False)
     page.bar.commands = [b for b in page.bar.commands if b.isVisibleTo(page.bar) or b is page.bar.main]
+    for a in page.bar.more_menu.actions():           # 4.25.2: folders took the place of categories
+        if a.text() == "+ Category...":
+            a.setVisible(False)
     page.bar.main.setText("Add documents...")
     page.bar.main.setToolTip("Pick documents or drop them on the page: each one is extracted as it arrives")
     page.bar.more_sep()
@@ -101,7 +107,7 @@ def install(page, side="all"):
     hh.setStretchLastSection(False)
     for c in range(len(COLUMNS)):
         hh.setSectionResizeMode(c, QHeaderView.Stretch if c == 0 else QHeaderView.Interactive)
-    for c, w in enumerate((260, 130, 100, 200, 200)):
+    for c, w in enumerate((260, 120, 90, 180, 220, 190)):
         if c:
             t.setColumnWidth(c, w)
     # the panel: Versions once, one next thing; the rest on the right-click
@@ -136,18 +142,54 @@ def _only_undecided(page):
     page.role_f.setCurrentIndex(0 if page.role_f.currentIndex() == i else i)
 
 
+KINDS = ((".docx .doc .docm .rtf", "Word"), (".pdf", "PDF"), (".xlsx .xls .xlsm .csv", "Excel"), (".pptx .ppt .pptm", "PowerPoint"),
+         (".png .jpg .jpeg .tif .tiff .bmp .gif .webp .svg .emf .wmf", "Picture"), (".txt .md", "Text"))
+
+
+def kind_of(name):
+    """What kind of file a document is, for one that has no document type (Word, PDF, Picture...)."""
+    ext = os.path.splitext(name or "")[1].lower()
+    for exts, n in KINDS:
+        if ext and ext in exts.split():
+            return n
+    return ext[1:].upper() if ext else ""
+
+
+def folder_of(page, d):
+    """4.25.2 (answer 6: folders replace Category): the folder the document's file is in, as it sits in the effort's
+    folder ("06_cost and pricing/Rates"); for a file kept elsewhere, the folder name it was filed under."""
+    lib = page.lib
+    vs = d.get("versions") or []
+    try:
+        p = lib.path_of(vs[-1]) if vs else ""
+        er = getattr(lib, "effort_root", "") or ""
+        if p and er and os.path.normcase(os.path.abspath(p)).startswith(os.path.normcase(os.path.abspath(er)) + os.sep):
+            rel = os.path.relpath(os.path.dirname(os.path.abspath(p)), os.path.abspath(er)).replace(os.sep, "/")
+            return "" if rel == "." else rel
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return "/".join(x for x in (lib.category_name(d.get("category", "customer")), d.get("folder", "")) if x)
+
+
+def top_folder(page, d):
+    f = folder_of(page, d)
+    return f.split("/")[0] if f else "(the effort's folder)"
+
+
 def fill_types(page):
-    """The type filter: Every type, then the side's categories."""
+    """The folder filter (4.25.2; it listed categories before): Every folder, then the top folders that hold documents."""
     if not page.focus or page.lib is None:
         return
     effort_line(page)
     keep = page.type_f.currentData()
     page.type_f.blockSignals(True)
     page.type_f.clear()
-    page.type_f.addItem("Every type", "")
-    for k, n in page.lib.categories():
-        if in_side(page, {"category": k}):
-            page.type_f.addItem(n, k)
+    page.type_f.addItem("Every folder", "")
+    for k, n in USES:                                   # by what a document is used for, then by folder
+        page.type_f.addItem(n, k)
+    page.type_f.insertSeparator(page.type_f.count())
+    for f in sorted({top_folder(page, d) for d in page.lib.all if in_side(page, d)}, key=str.lower):
+        page.type_f.addItem(f, f)
     page.type_f.setCurrentIndex(max(0, page.type_f.findData(keep or "")))
     page.type_f.blockSignals(False)
 
@@ -170,8 +212,12 @@ def shown(page, docs):
     """The documents of this tab (and of the type picked)."""
     docs = [d for d in docs if in_side(page, d)]
     k = page.type_f.currentData() if getattr(page, "type_f", None) is not None else ""
-    if k:
-        docs = [d for d in docs if d.get("category", "customer") == k]
+    if k == "use:shred":
+        docs = [d for d in docs if page.lib.role_of(d) == "matrix"]
+    elif k == "use:returned":
+        docs = [d for d in docs if page.lib.returns_of(d)]
+    elif k:
+        docs = [d for d in docs if top_folder(page, d) == k]
     return docs
 
 
@@ -225,18 +271,19 @@ def fill_row(page, r, d, st, terms, item):
     elif vs and not page.lib.has_original(vs[-1]):
         it.setForeground(D.color("warn")); it.setToolTip("The original file is not here. Its text and record are.")
     page.table.setItem(r, 0, it)
-    typ = d.get("type") if d.get("category", "customer") == "customer" and d.get("type") else page.lib.category_name(d.get("category", "customer"))
-    page.table.setItem(r, 1, item(typ or ""))
+    typ = d.get("type") if d.get("category", "customer") == "customer" and d.get("type") else kind_of(vs[-1].get("file", "") if vs else "")
+    page.table.setItem(r, 1, item(typ or "", None, "In " + (folder_of(page, d) or "the effort's folder")))
     side = side_of(d)
     page.table.setItem(r, 2, item(SIDE_NAMES[side]))
     gv = vs[-1] if vs else {}
     gov = (gv.get("label") or "") + (f"  ·  {gv.get('added', '')[:10]}" if gv.get("added") else "")
     page.table.setItem(r, 3, item(gov, None, gv.get("file", "")))
+    page.table.setItem(r, 4, item(", ".join(page.lib.marks_of(d))))
     txt, tone = needs(page, d)
     ci = item(txt)
     if txt:
         ci.setForeground(D.color(tone)); ci.setIcon(D.dot_icon(D.color(tone)))
-    page.table.setItem(r, 4, ci)
+    page.table.setItem(r, 5, ci)
     tint = D.color("cust_soft" if side == "customer" else "accent_soft")     # a light tint says whose it is
     for c in range(len(COLUMNS)):
         page.table.item(r, c).setBackground(tint)
