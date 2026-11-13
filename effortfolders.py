@@ -81,13 +81,23 @@ def folder(effort_path, kind, make=True):
 
 
 def _kept(r, p, kind):
-    """4.24.0: an effort made before the tree changed keeps its folders: where the tree's folder for a job is not there
-    and the older one (Customer Documents, Volumes, Response Setup, Exports) is, the older one is used."""
-    if kind in SUBS and not os.path.isdir(p):
+    """4.24.0: an effort made before the tree changed keeps its folders. The older folder for a job (Customer
+    Documents, Volumes, Response Setup, Exports) is used while it holds files, or while the tree's folder is not
+    there; Make the folders in this effort adds the tree to an older effort and changes nothing else. Move the files
+    into the tree's folder and that one is used from then on."""
+    if kind in SUBS:
         old = os.path.join(r, SUBS[kind])
-        if os.path.isdir(old):
+        if os.path.isdir(old) and os.path.normcase(old) != os.path.normcase(p) and (_holds(old) or not os.path.isdir(p)):
             return old
     return p
+
+
+def _holds(p):
+    """A file anywhere under the folder."""
+    for _dp, _dn, fn in os.walk(p):
+        if fn:
+            return True
+    return False
 
 
 def place(effort_path, key, fields=None, ext=None, make=True):
