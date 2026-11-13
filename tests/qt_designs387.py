@@ -47,8 +47,7 @@ LIST = os.path.join(ED, "Kestrel_Effort_List.xlsx"); L = E.EffortList(LIST, "Kes
 E.Registry(os.path.join(cfg, "efforts.json")).put("Kestrel", path=LIST)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Parts (3.95.0, was Section designs) is a tab beside Layout", [k for k, _t in TABS["formatstd"]][-1] == "designs"
-      and dict(TABS["formatstd"])["designs"] == "Parts")
+check("Parts (3.95.0, was Section designs) is a tab beside Layout", ("designs", "Quick Parts") in dict(__import__("skqt.mainwin", fromlist=["x"]).RAIL)["Templates"])   # 4.28.0: a menu entry, named Quick Parts
 w.go("designs"); app.processEvents()
 dp = w.designs_page
 check("empty: one way in", dp.empty.isVisibleTo(w) and dp.bar.main.text() == "Bring in from a document...")

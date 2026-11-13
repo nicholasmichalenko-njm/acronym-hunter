@@ -33,7 +33,7 @@ src = os.path.join(os.path.dirname(HERE), "test_samples", "Kestrel_Technical_Vol
 gl = os.path.join(tmp, "Kestrel Master.dotx"); with_glossary(src, gl, table_hdr=True)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Standards has no Quick Parts tab: they are in Parts", "qpstd" not in dict(TABS["formatstd"]))
+check("Standards has no Quick Parts tab: they are in Parts", "qpstd" not in [k for v in TABS.values() for k, _t in v])   # 4.28.0: Quick Parts is its own menu entry
 w.go("designs"); app.processEvents()
 pp = w.designs_page
 ps = pp.new_set(name="Page-limited RFP")
