@@ -955,6 +955,7 @@ def read_image_bytes(image_bytes, page=False):
     if getattr(_typed_only, "on", False) and not (page and getattr(_typed_only, "pages", False)):
         return ""
     _OCR_CALLS[0] += 1                 # the file has pictures: its saved results depend on the picture reader
+    __import__("scansay").picture()    # 4.30.3: each picture read is said, so a long page moves the bar
     key = hashlib.sha1(image_bytes).hexdigest()
     if key not in _OCR_CACHE:
         try:
@@ -1530,18 +1531,20 @@ def extract_pdf(filepath, filename, status_callback, prefix, chunks):
         for i in range(total_pages):
             check_cancel()
             pnum = i + 1
-            if pnum == 1 or pnum % 5 == 0 or pnum == total_pages:
-                status_callback(f"{prefix} - PDF page {pnum}/{total_pages}...")
+            status_callback(f"{prefix} - PDF page {pnum}/{total_pages}...")       # 4.30.3: every page, not every fifth
             try:
                 page = doc[i]
                 try:
                     digital_text = _pdf_page_text(page)
                     parts = [digital_text]
                     if len(digital_text.strip()) < OCR_CFG["scanned_page_max_chars"]:  # scanned page: OCR it whole
+                        __import__("scansay").pictures(1)
                         pil = page.render(scale=int(OCR_CFG["pdf_scan_dpi"]) / 72.0).to_pil().convert("RGB")
                         parts.append(read_image_bytes(_pil_png(pil), page=True))
                     else:  # digital page: OCR each embedded figure once per document
-                        for obj in page.get_objects(filter=[_pdfium_raw.FPDF_PAGEOBJ_IMAGE], max_depth=5):
+                        objs = list(page.get_objects(filter=[_pdfium_raw.FPDF_PAGEOBJ_IMAGE], max_depth=5))
+                        __import__("scansay").pictures(len(objs))
+                        for obj in objs:
                             try:
                                 pil = obj.get_bitmap(render=False).to_pil()
                                 key = hashlib.sha1(pil.tobytes()).hexdigest()
@@ -1571,10 +1574,17 @@ def extract_pdf(filepath, filename, status_callback, prefix, chunks):
 # 5. LAYER 1: ALL-FORMAT UNPACKER
 # ==============================================================================
 def extract_chunks_from_file(filepath, status_callback, file_idx, total_files):
+    try:
+        return _extract_chunks(filepath, status_callback, file_idx, total_files)
+    finally:
+        __import__("scansay").done()               # 4.30.3: no line is said for a picture read after the file is done
+
+def _extract_chunks(filepath, status_callback, file_idx, total_files):
     filename = os.path.basename(filepath)
     ext = os.path.splitext(filepath)[1].lower()
     chunks = []
     prefix = f"[{file_idx}/{total_files}] {filename}"
+    status_callback = __import__("scansay").wrap(status_callback, filepath, ext)     # 4.30.3: pictures are said too
     if ext in VECTOR_FILE_EXTS:
         status_callback(f"{prefix} - Reading vector graphic...")
         with open(filepath, "rb") as f:
@@ -2439,6 +2449,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
         check_cancel()
         _OCR_CALLS[0] = 0
         chunks, skips, err = scan_file(filepath, status_callback, idx, total)
+        status_callback(f"[{idx}/{total}] {os.path.basename(filepath)} - Matching terms...")   # 4.30.3: the last step is said
         if capture is not None:
             try:
                 capture[os.path.abspath(filepath)] = cache_entry(os.stat(filepath), weak, chunks, skips, err, _OCR_CALLS[0], sigs)
@@ -2509,7 +2520,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "4.30.2"            # keep in step with version_info.txt
+APP_VERSION = "4.30.3"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

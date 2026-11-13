@@ -81,6 +81,28 @@ NOT_DOCUMENTS = (".tmp", ".lnk", ".ini", ".db", ".url", ".skeffort", ".skpkg", "
                  ".bak", ".crdownload", ".partial", ".ds_store", ".lock")
 
 
+APP_DATA = "Stationkeeper Data"   # 4.30.3: what the app publishes for the Word macros (effortdata.FOLDER) is never a document
+
+
+def app_data_docs(lib):
+    """The documents that are only the app's own published files (README, manifest, rules, schema, the effort's template
+    and dictionary under Stationkeeper Data), added by mistake before 4.30.3."""
+    def own(v):
+        return APP_DATA.casefold() in [x.casefold() for x in os.path.normpath(v.get("path") or "").split(os.sep)]
+    return [d for d in lib.all if d.get("versions") and all(own(v) for v in d["versions"])]
+
+
+def drop_app_data(lib):
+    """Take those documents off the list (the files themselves are the app's and stay where they are). Returns their
+    names."""
+    gone = app_data_docs(lib)
+    for d in gone:
+        lib.all.remove(d)
+    if gone:
+        lib.save()
+    return [d.get("name", "") for d in gone]
+
+
 def _skip(name):
     return name.startswith("~$") or name.startswith(".") or name.lower().endswith((".tmp", ".part.pdf"))
 
@@ -93,7 +115,7 @@ def walk(folder, data_dir="", skip=(), any_kind=False, not_in=()):
     skip_dirs = ({_key(data_dir)} if data_dir else set()) | {_key(x) for x in skip if x}
     own = {_key(x) for x in not_in if x}
     for root, dirs, files in os.walk(folder):
-        dirs[:] = [d for d in dirs if not d.startswith(".") and _key(os.path.join(root, d)) not in skip_dirs
+        dirs[:] = [d for d in dirs if not d.startswith(".") and _key(os.path.join(root, d)) not in skip_dirs and d != APP_DATA
                    and not d.endswith((" - app data", "- readable copy (Stationkeeper)")) and "readable copy" not in d.lower()]
         if _key(root) in own:
             continue

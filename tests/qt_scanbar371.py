@@ -69,14 +69,15 @@ t0 = time.time()
 while pg.worker is not None and time.time() - t0 < 120:
     app.processEvents(); time.sleep(0.02)
 app.processEvents()
-check("the bar moved file by file, naming each", any(v >= 33 and "File 2 of 3: Kestrel Part 2.docx" in t for v, t in seen)
+check("the bar moved file by file, naming each", any(v >= 330 and "File 2 of 3: Kestrel Part 2.docx" in t for v, t in seen)
       or any("File 3 of 3" in t for _v, t in seen), seen)
 check("the scan finished and the bar is gone", pg.worker is None and not pg.scanbar.isVisible() and not pg.scan_tick.isActive()
       and "GSE" in (pg.session.results if pg.session else {}))
 # a long scan, by hand: the time left after the pace is known
 pg.scan_prog = SP.Progress(now=time.monotonic() - 12); pg.scanbar.show()
 pg.on_progress("[11/20] Figure 11.png - Running OCR on image...")
-check("half done after 12 seconds: about 10 seconds left", pg.scan_pct.value() == 50 and pg.scan_left.text() == "50% done. About 10 seconds left"
+check("half done after 12 seconds: about 10 seconds left (4.30.3: the bar in thousandths, the time so far beside it)", pg.scan_pct.value() == 500
+      and pg.scan_left.text().startswith("50% done · 12 s so far · About 10 seconds left")
       and pg.scan_where.text() == "File 11 of 20: Figure 11.png, reading the picture", (pg.scan_pct.value(), pg.scan_left.text()))
 pg._end()
 # ---- the Effort Dashboard's condensed header

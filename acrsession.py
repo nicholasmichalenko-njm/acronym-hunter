@@ -121,10 +121,22 @@ class AcronymSession(AcronymRules):
         pass
 
     def _save_effort_list(self, L=None, backup=True):
-        """Save the effort list; False when Excel holds it open (kept pending and in the effort's recovery copy)."""
+        """Save the effort list; False when Excel holds it open (kept pending and in the effort's recovery copy).
+        4.30.3: on the Acronyms page the workbook is written a moment after the last decision, off the window's thread
+        (skqt.acrfast), so adding to a list of thousands does not write the whole workbook for each one."""
         L = L or self.effort
         if L is None:
             return False
+        if getattr(self, "later", None) is not None and L is self.effort:
+            self.list_unsaved = True
+            L.pending = True
+            self.later()
+            return True
+        return self._save_list_now(L, backup)
+
+    def _save_list_now(self, L, backup=True):
+        if L is self.effort:
+            self.list_unsaved = False
         try:
             self.ws.write_recovery("effort", L.path, {"rows": L.rows, "order": L.order, "history": L.history, "keywords": L.keywords})
         except Exception:
@@ -182,17 +194,96 @@ class AcronymSession(AcronymRules):
         return n
 
     def save(self):
+        """Keep the results. 4.30.3: on the Acronyms page this is written a moment after the last decision (later, set by
+        skqt.acrfast), so deciding thousands of finds does not write the whole file each time; flush() writes now."""
+        if getattr(self, "later", None) is not None:
+            self.unsaved = True
+            return self.later()
+        return self.save_now()
+
+    def flush(self):
+        """Write now if anything is waiting (the session, the effort list). Returns True when it wrote."""
+        wrote = False
+        if getattr(self, "list_unsaved", False) and self.effort is not None:
+            self._save_list_now(self.effort)
+            wrote = True
+        if getattr(self, "unsaved", False):
+            self.save_now()
+            wrote = True
+        return wrote
+
+    def snapshot(self):
+        """What is waiting, as it stands now, for write_snapshot on another thread; None when nothing is. The waiting
+        marks are cleared here: a decision made after this is a new wait."""
+        import copy, pickle
+        import picreadings as PR
+        want_s, want_l = getattr(self, "unsaved", False), getattr(self, "list_unsaved", False) and self.effort is not None
+        if not (want_s or want_l):
+            return None
+        out = {"ws": self.ws, "session": None, "list": None}
+        if want_s:
+            PR.flush()
+            out["session"] = pickle.dumps(self._session_state(None))
+            self.unsaved = False
+        if want_l:
+            L = self.effort
+            clone = copy.copy(L)
+            out["list"] = (clone, pickle.dumps({"rows": L.rows, "order": L.order, "history": L.history, "keywords": L.keywords}))
+            self.list_unsaved = False
+        return out
+
+    @staticmethod
+    def write_snapshot(snap):
+        """Write a snapshot (any thread). Returns (session written, list written: True, False when Excel holds it, None
+        when there was none)."""
+        import pickle
+        ws, did_s, did_l = snap["ws"], False, None
+        if snap["list"] is not None:
+            clone, blob = snap["list"]
+            st = pickle.loads(blob)
+            clone.rows, clone.order, clone.history, clone.keywords = st["rows"], st["order"], st["history"], st["keywords"]
+            try:
+                ws.write_recovery("effort", clone.path, st)
+            except Exception:
+                diag.swallowed()
+            try:
+                clone.save()
+                ws.clear_recovery("effort", clone.path)
+                try:
+                    ws.backup(clone.path, "effort")
+                except OSError:
+                    diag.swallowed()
+                did_l = True
+            except (E.ListLocked, OSError):
+                diag.swallowed()
+                did_l = False
+        if snap["session"] is not None:
+            state = pickle.loads(snap["session"])
+            d = ws.load_session() or {}
+            if state.get("last_scan") is None:
+                state["last_scan"] = d.get("last_scan")
+            d.update(state)
+            ws.save_session(d)
+            did_s = True
+        return did_s, did_l
+
+    def save_now(self):
         """Write the results back where the classic window keeps them, so either program resumes them."""
+        self.unsaved = False
         import picreadings as PR
         PR.flush()
         s = self.ws.load_session() or {}
-        s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
-                  "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),
-                  "omitted": getattr(self, "omitted", {}), "parts": getattr(self, "parts", {}), "rules_extra": getattr(self, "rules_extra", {}), "first_use_set": getattr(self, "first_use_set", {}),
-                  "pictures": getattr(self, "pictures", {}),
-                  "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
-                  if self.last_scan else s.get("last_scan")})
+        s.update(self._session_state(s.get("last_scan")))
         self.ws.save_session(s)
+
+    def _session_state(self, last_scan):
+        """What the session file keeps (last_scan: what the file has, for a session that has not scanned)."""
+        return {"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
+                "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),
+                "omitted": getattr(self, "omitted", {}), "parts": getattr(self, "parts", {}), "rules_extra": getattr(self, "rules_extra", {}), "first_use_set": getattr(self, "first_use_set", {}),
+                "pictures": getattr(self, "pictures", {}),
+                "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
+                if self.last_scan else last_scan}
 
     # ------------------------------------------------------------ the scan
     def scan(self, paths, status_callback=None, folder=None):
@@ -230,6 +321,7 @@ class AcronymSession(AcronymRules):
         """The classic window's scan_done without the window."""
         diag.scan_finished(terms=len(results))
         self.results = results
+        self._doc_kinds = None                    # 4.30.3: the files just read count at once in Found in (it was kept 5 seconds)
         for term, item in self.manual_items.items():
             if term not in self.results:
                 self.results[term] = item

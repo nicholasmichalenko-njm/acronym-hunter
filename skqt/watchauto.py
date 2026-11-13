@@ -44,10 +44,32 @@ class _Same(dict):
         return dict(self)
 
 
+def tidy(win):
+    """4.30.3 (Nicholas 2026-11-13 16:34): the app's own published files (Stationkeeper Data: README, manifest, rules,
+    schema, the effort's template and dictionary) were being added as documents. Once per effort each session, any
+    already added are taken off the list; the files stay. Returns their names."""
+    try:
+        page = win.library_page
+        if win.ws is None or page.lib is None or page.running() or getattr(win, "_wa_tidied", None) == win.ws.root:
+            return []
+        win._wa_tidied = win.ws.root
+        import watch as WA
+        gone = WA.drop_app_data(page.lib)
+        if gone:
+            diag.activity("documents_app_files_removed", n=len(gone))
+            page.refresh()
+            win.toast(f"{len(gone)} of the app's own files were taken off Documents (they are not documents): " + ", ".join(gone[:5]))
+        return gone
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return []
+
+
 def came_in(win, found):
     """Add the files that came into the effort's folder, by themselves. Returns the paths it started on ([] when
     there are none, or the page is busy: the next check finds them again). A file tried once this session and not
     added is offered in the strip instead, so nothing is tried over and over."""
+    tidy(win)
     auto = list((found or {}).get("auto") or [])
     if not auto or win.ws is None:
         return []

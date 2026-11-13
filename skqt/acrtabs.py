@@ -49,6 +49,10 @@ def install(page, v):
 def switch(page, i):
     page.tab_stack.setCurrentIndex(i)
     page.bars.setCurrentIndex(i)
+    from . import acrfast as AF
+    AF.flush(page)                                        # 4.30.3: what was decided is written before another tab reads it
+    if i != 0 and getattr(page, "list_stale", False):
+        page.fill()                                       # the list was left unbuilt while On the page was showing
     if i == 0:
         page.onpage.follow()                              # 4.26.1: the document open in Shred
         page.onpage.fill()

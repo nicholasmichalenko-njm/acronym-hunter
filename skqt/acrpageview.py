@@ -542,7 +542,11 @@ class OnPage(QWidget):
             self.page.host.toast(msg)
         self.sel, self.new_text, self.new_area = [], "", None
         self.close_bar()
-        self.page.fill()                         # the list, its counts and this page (acrtabs.after_fill)
+        self.page.from_page = True               # 4.30.3: the list behind this tab is built when it is opened
+        try:
+            self.page.fill()                     # the counts and this page (acrtabs.after_fill)
+        finally:
+            self.page.from_page = False
         return msg
 
     def undo_last(self):

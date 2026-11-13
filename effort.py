@@ -341,13 +341,20 @@ class EffortList:
             r = self.rows[t]
             r["Effort"], r["Client"], r["Solicitation"] = self.name, self.client, self.solicitation   # every row says whose it is
             ws.append([r.get(c, "") for c in COLUMNS])
-            f = fills.get(r.get("Status"))
-            if f:
-                for c in ws[ws.max_row]:
-                    c.fill = PatternFill("solid", fgColor=f)
-        for row in ws.iter_rows(min_row=2):
+        # 4.30.3: the same cells as before (wrapped, top; a Not a term row grey), set once per look and copied. Setting
+        # each cell's look on its own took most of the time of saving a list of thousands.
+        import copy as _copy
+        looks = {}
+        for row in ws.iter_rows(min_row=2, max_row=len(self.order) + 1) if self.order else ():
+            f = fills.get(self.rows[self.order[row[0].row - 2]].get("Status"))
+            if f not in looks:
+                c0 = row[0]
+                if f:
+                    c0.fill = PatternFill("solid", fgColor=f)
+                c0.alignment = Alignment(wrap_text=True, vertical="top")
+                looks[f] = c0._style
             for c in row:
-                c.alignment = Alignment(wrap_text=True, vertical="top")
+                c._style = _copy.copy(looks[f])
         ws.freeze_panes = "B2"
         ws.auto_filter.ref = f"A1:{ws.cell(row=1, column=len(COLUMNS)).column_letter}{max(2, ws.max_row)}"
         dv = DataValidation(type="list", formula1='"' + ",".join(STATUSES) + '"', allow_blank=True)

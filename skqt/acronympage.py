@@ -135,7 +135,7 @@ class AcronymPage(QWidget):
         self.scanbar = QFrame(); self.scanbar.setObjectName("pinStrip")
         sb = QHBoxLayout(self.scanbar); sb.setContentsMargins(D.SPACE["m"], 6, D.SPACE["m"], 6); sb.setSpacing(D.SPACE["m"])
         self.scan_where = D.label("", None, wrap=False); self.scan_where.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self.scan_pct = QProgressBar(); self.scan_pct.setRange(0, 100); self.scan_pct.setTextVisible(False); self.scan_pct.setFixedSize(280, 12)
+        self.scan_pct = QProgressBar(); self.scan_pct.setRange(0, 1000); self.scan_pct.setTextVisible(False); self.scan_pct.setFixedSize(280, 12)
         self.scan_left = D.label("", "muted", wrap=False); self.scan_left.setMinimumWidth(240)
         for w, st in ((self.scan_where, 1), (self.scan_pct, 0), (self.scan_left, 0)):
             sb.addWidget(w, st)
@@ -252,6 +252,9 @@ class AcronymPage(QWidget):
         return AX.sorted_terms(self, sorted(out, key=lambda t: s.sort_key(t, s.results[t])))
 
     def fill(self):
+        from . import acrfast as AF                            # 4.30.3: a decision does not rebuild what is not showing
+        if AF.light(self):
+            return
         s = self.session
         keep = self.current()
         self.terms = self.rows()
@@ -262,7 +265,7 @@ class AcronymPage(QWidget):
         self.empty.setVisible(not has and self.worker is None)
         self.table.setVisible(has or self.worker is not None)
         self.card_area.setVisible(has)
-        self.table.setRowCount(len(self.terms))
+        AF.sync_rows(self)
         fmap = {}                                              # 3.34.1: {term: its plurals and forms}
         for t_, d_ in (s.results.items() if s else []):
             b_ = d_.get("plural_of") or d_.get("form_of")
@@ -272,8 +275,10 @@ class AcronymPage(QWidget):
             d = s.results[t]
             kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
             from .acrextras import source_text
-            vals = [t, d.get("category", ""), d.get("count", 0), s.found_in(d), d.get("change", ""), A.status_text(d.get("status", "")),
+            vals = [t, d.get("category", ""), d.get("count", 0), AF.found_in(self, s, t, d), d.get("change", ""), A.status_text(d.get("status", "")),
                     d.get("selected_definition", ""), s.known_cell(t, d), d.get("effort", ""), source_text(d)]
+            if AF.same(self, i, (vals, kind, d.get("plural_of") or d.get("form_of"), fmap.get(t))):
+                continue
             for c, val in enumerate(vals):
                 it = QTableWidgetItem(str(val))
                 if c == 5:
@@ -630,12 +635,12 @@ class AcronymPage(QWidget):
             return
         self.scan_prog.update(msg)
         self.scan_where.setText(self.scan_prog.where())
-        self.scan_pct.setValue(self.scan_prog.percent())
+        self.scan_pct.setValue(self.scan_prog.permille())      # 4.30.3: thousandths, so a long file moves it
         self.tick_scan()
 
     def tick_scan(self):
         if self.scan_prog is not None and not A.CANCEL.is_set():
-            self.scan_left.setText(f"{self.scan_prog.percent()}% done. {SP.left_words(self.scan_prog.left())}")
+            self.scan_left.setText(self.scan_prog.line())     # 4.30.3: done, so far, left; a slow step says so
 
     def cancel(self):
         A.CANCEL.set()

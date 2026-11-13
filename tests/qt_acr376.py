@@ -19,6 +19,7 @@ OP.available = lambda: False
 from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as D
+import skqt.acrfast as _AF; _AF.AT_ONCE = True     # 4.30.3: these checks read the files straight after a decision
 from skqt.mainwin import MainWindow
 
 checks = []

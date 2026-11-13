@@ -2,6 +2,12 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.30.3": ["Large documents: a decision on Acronyms no longer freezes the window, with thousands of finds. Decide one or many, "
+               "add one or many to the effort list, or switch between Undecided, Added and Ignored.",
+               "Your decisions are saved by themselves a moment after the last one: Saving your decisions, then Decisions saved, "
+               "shows beside the tabs. There is no step to take.",
+               "Reading a file says the page it is on, the picture on that page, the time so far and the time left.",
+               "Documents no longer takes the app's own published files (Stationkeeper Data) as documents."],
     "4.30.2": ["Styles: a set owns its styles. Two sets can each have a style of the same name with its own values; neither replaces the other.",
                "An identical style used by several sets is one style, shown once with the sets that use it.",
                "Bringing styles into a set asks only where that set already has the name with other values: keep the set's, take the "

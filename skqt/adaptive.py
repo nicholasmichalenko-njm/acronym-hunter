@@ -186,19 +186,21 @@ def tune(view):
 
 
 def _hover_text(view):
-    """The full text of a long cell on hover, without changing a cell's own tooltip."""
-    def fill(*_a):
+    """The full text of a long cell on hover, without changing a cell's own tooltip. 4.30.3: only the cells that changed
+    are looked at. It used to look at every cell of the table each time one cell was set, so filling a list of 2,500
+    terms looked at hundreds of millions of cells and the window froze after every decision."""
+    def cells(r0, r1, c0, c1):
         try:
-            for r in range(view.rowCount()):
-                for c in range(view.columnCount()):
+            for r in range(max(0, r0), min(view.rowCount(), r1 + 1)):
+                for c in range(max(0, c0), min(view.columnCount(), c1 + 1)):
                     it = view.item(r, c)
                     if it is not None and not it.toolTip() and len(it.text()) > 30:
                         it.setToolTip(it.text())
         except Exception:
             pass
-    view.model().rowsInserted.connect(fill)
-    view.model().dataChanged.connect(fill)
-    fill()
+    view.model().rowsInserted.connect(lambda _p, first, last: cells(first, last, 0, view.columnCount() - 1))
+    view.model().dataChanged.connect(lambda a, b, *_r: cells(a.row(), b.row(), a.column(), b.column()))
+    cells(0, view.rowCount() - 1, 0, view.columnCount() - 1)
 
 
 def install(app):
