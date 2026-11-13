@@ -92,7 +92,9 @@ txt = " ".join(hdr.read(n).decode("utf-8", "replace") for n in hdr.namelist() if
 check("3.6.1: the headers name this volume and this solicitation, never a sample", "FA8810-26-R-0042" in txt and "Volume I Technical" in txt
       and "EX-26-R-0001" not in txt)
 check("THE GATE: the original is byte for byte unchanged", sha(vol) == before and job.original_ok)
-check("nothing was written beside the original", sorted(os.listdir(os.path.dirname(vol))) == ["Volume I Technical.docx"],
+check("nothing was written beside the original (4.29.2: the plan's Redlines folder sits there, empty)",
+      sorted(x for x in os.listdir(os.path.dirname(vol)) if os.path.isfile(os.path.join(os.path.dirname(vol), x))) == ["Volume I Technical.docx"]
+      and not any(fn for _d, _s, fn in os.walk(os.path.join(os.path.dirname(vol), "Redlines"))),
       os.listdir(os.path.dirname(vol)))
 check("the result shows found before and left after, and every fix", pg.res_card.isVisibleTo(pg) and pg.res_table.rowCount() == 10      # 3.17.0: Graphics
       and pg.res_steps.count() >= 8 and "original is unchanged" in pg.res_text.text(), pg.res_text.text())
