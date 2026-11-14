@@ -21,8 +21,8 @@ import datetime, hashlib, json, os
 FILE = "global_standards.json"
 FORMAT = 1                                      # formats.py "global standards"
 DRAFT, LINKED, INSTALLED, PUBLISHED = "draft", "linked", "installed", "published"
-SOURCE_WORDS = {DRAFT: "not published", LINKED: "from the linked folder", INSTALLED: "installed from a file",
-                PUBLISHED: "published from this PC"}
+SOURCE_WORDS = {DRAFT: "not a version yet", LINKED: "from the linked folder", INSTALLED: "installed from a file",
+                PUBLISHED: "updated from this PC"}
 # parts the team data file does not carry: key: (name, [config files], [config folders])
 MORE = {
     "rules": ("Rules", ["rules.json"], []),
@@ -138,9 +138,9 @@ def line(config_dir):
     s = status(config_dir)
     n = f"{s['parts']} part" + ("" if s["parts"] == 1 else "s") + " on this PC"
     if not s["version"]:
-        return f"Global Standards: draft 1, not published. {n}."
+        return f"Global Standards: not a version yet. {n}."
     head = f"Global Standards version {s['version']}, {SOURCE_WORDS[s['source']]}" + (f", taken {s['taken']}" if s["taken"] else "") + "."
     if not s["changed"]:
         return f"{head} {n}, all as that version has them."
     few = ", ".join(s["changed"][:6]) + (f" and {len(s['changed']) - 6} more" if len(s["changed"]) > 6 else "")
-    return f"{head} Changed on this PC since (draft {s['draft']}): {few}."
+    return f"{head} Changes waiting on this PC: {few}."
