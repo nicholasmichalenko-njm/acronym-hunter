@@ -638,13 +638,22 @@ def where(pdf, place):
         return pg, 0
     if pg - 1 >= len(doc["pages"]):
         return pg, 0
+    # 4.30.4: each page's paragraphs are worked out once for the file. Reading every paragraph of a 700-page file for
+    # each of 3,500 placed sentences made the Matrix take five seconds to open.
+    idx = doc.get("_para_idx")
+    if idx is None:
+        idx = {}
+        for para in doc.get("paras") or ():
+            if para["kind"] == "heading":
+                continue                               # headings are not counted as paragraphs
+            on = {}
+            for pi, li in para["lines"]:
+                on.setdefault(pi, []).append(li)
+            for pi, lis in on.items():
+                idx.setdefault(pi, []).append(lis)
+        doc["_para_idx"] = idx
     lines = doc["pages"][pg - 1]["lines"]
-    k = 0
-    for para in doc.get("paras") or ():
-        mine = [li for pi, li in para["lines"] if pi == pg - 1]
-        if not mine or para["kind"] == "heading":
-            continue                                   # headings are not counted as paragraphs
-        k += 1
+    for k, mine in enumerate(idx.get(pg - 1, ()), 1):
         if any(lines[li]["a"] <= a < lines[li]["b"] + 1 for li in mine):
             return pg, k
     return pg, 0

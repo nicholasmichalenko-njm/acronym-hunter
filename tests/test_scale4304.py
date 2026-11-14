@@ -87,6 +87,31 @@ check("every page's map is the same from its own sentences as from all of them",
 check("a sentence that runs over a page end is on both pages", any(len({pg for pg, _a, _b in PS.parse_place(it["place"])}) > 1 for it in its) is not None
       and all(it in on[pg] for it in its for pg, _a, _b in PS.parse_place(it["place"])))
 
+# ---- where a sentence sits: the same page and paragraph as counting down every paragraph of the file
+def old_where(pdf, place):
+    sp = PS.parse_place(place)
+    if not sp:
+        return 0, 0
+    pg, a, _b = sp[0]
+    doc = PS.doc_of(pdf)
+    if pg - 1 >= len(doc["pages"]):
+        return pg, 0
+    lines = doc["pages"][pg - 1]["lines"]
+    k = 0
+    for para in doc.get("paras") or ():
+        mine = [li for pi, li in para["lines"] if pi == pg - 1]
+        if not mine or para["kind"] == "heading":
+            continue
+        k += 1
+        if any(lines[li]["a"] <= a < lines[li]["b"] + 1 for li in mine):
+            return pg, k
+    return pg, 0
+
+
+got = [PS.where(PDF, it["place"]) for it in its]
+check("every sentence's page and paragraph are what counting down the whole file gives", got == [old_where(PDF, it["place"]) for it in its]
+      and len({g for g in got}) > 10 and PS.where(PDF, "") == (0, 0) and PS.where(PDF, "999:0-5") == (999, 0), got[:5])
+
 # ---- the saved workbook reads as it always did
 for it in M.items[:6]:
     it["decision"] = "Keep"; it["map"] = "1.1 Approach"

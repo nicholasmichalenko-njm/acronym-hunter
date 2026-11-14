@@ -473,10 +473,12 @@ class BuilderPage(QWidget):
 
     def _add_contents(self, node, lab):
         """The section's items as rows under it, before its subsections: drag them to move them."""
+        B = None                                       # 4.30.4: the pieces by id, once for the section, not once per row
         for kind, key, text in self.contents(lab):
             sub = ""
             if kind == "item":
-                it = SD.by_id(self.M).get(key) or {}
+                B = SD.by_id(self.M) if B is None else B
+                it = B.get(key) or {}
                 sub = {"Context": "SUP", "Customer": "CUST"}.get(it.get("decision"), it.get("lm") or "REQ")
             shown = text.split("  ", 1)[-1] if kind == "item" else text      # the Kind column says what it is
             row = QTreeWidgetItem([shown, sub or self.CON_TAG.get(kind, ""), "", "", ""])
