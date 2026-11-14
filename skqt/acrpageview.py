@@ -483,7 +483,7 @@ class OnPage(QWidget):
 
     def close_bar(self):
         if self.bar is not None:
-            self.bar.hide(); self.bar.setParent(None); self.bar.deleteLater()
+            self.bar.hide(); self.bar.deleteLater()        # 4.30.4: it keeps its parent until Qt deletes it (no moment as a window of its own)
         self.bar = None
         return None
 

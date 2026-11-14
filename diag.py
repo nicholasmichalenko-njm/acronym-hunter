@@ -256,13 +256,40 @@ def _write(name, entry):
 _FH_LINE = re.compile(r'File "(?P<f>[^"]+)", line (?P<l>\d+) in (?P<fn>\S+)')
 
 
+def crash_where(raw):
+    """The frames to keep from faulthandler's dump: the thread that crashed first, in full, then two frames of each
+    other thread. 4.30.4: the first twelve frames of the dump were kept, and the dump lists the newest threads first, so
+    a crash with three idle worker threads recorded only those and lost the thread that crashed (Nicholas 2026-11-13
+    20:05). File name, line and function only, as before."""
+    frame = lambda m: f"{os.path.basename(m['f'].replace(chr(92), '/'))}:{m['l']}:{m['fn']}"      # noqa: E731
+    cur, others, block, is_cur = [], [], None, False
+    for line in raw.splitlines():
+        head = line.strip()
+        if head.startswith(("Current thread", "Thread ")) and "most recent call first" in head:
+            if block is not None:
+                (cur if is_cur else others).append(block)
+            block, is_cur = [], head.startswith("Current thread")
+            continue
+        m = _FH_LINE.search(line)
+        if m and block is not None:
+            block.append(frame(m))
+    if block is not None:
+        (cur if is_cur else others).append(block)
+    if not cur and not others:                       # no thread headings (an older or cut-off dump): the frames as they come
+        return [frame(m) for m in _FH_LINE.finditer(raw)][:24]
+    out = ["crashed in this thread:"] + ([f for b in cur for f in b][:24] or ["no Python code (inside a program library)"])
+    for b in others[:8]:
+        out += ["another thread:"] + b[:2]
+    return out
+
+
 def _convert_old_crash():
     """A previous run crashed hard: keep only file name, line and function from faulthandler's dump."""
     p = os.path.join(LOG_DIR, "crash_raw.txt")
     try:
         if os.path.isfile(p) and os.path.getsize(p) > 0:
             raw = open(p, encoding="utf-8", errors="replace").read()
-            where = [f"{os.path.basename(m['f'].replace(chr(92), '/'))}:{m['l']}:{m['fn']}" for m in _FH_LINE.finditer(raw)][:12]
+            where = crash_where(raw)
             kind = "Fatal error"
             for k in ("Segmentation fault", "access violation", "Fatal Python error", "Aborted"):
                 if k.lower() in raw.lower():

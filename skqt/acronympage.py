@@ -117,7 +117,7 @@ class AcronymPage(QWidget):
                                 "list; tick this to see them (greyed, with what they belong to). A search finds them too.")
         for w in (self.f_type, self.f_status, self.f_found):
             w.currentIndexChanged.connect(lambda _i: self.fill())
-        self.f_search.textChanged.connect(lambda _t: self.fill())
+        self.f_search.textChanged.connect(lambda _t: __import__("skqt.acrfast", fromlist=["x"]).typed(self))   # 4.30.4: after a pause
         self.f_excl.toggled.connect(lambda _on: self.fill())
         self.f_forms.toggled.connect(lambda _on: self.fill())
         for w in (self.f_type, self.f_status, self.f_found):
@@ -311,8 +311,8 @@ class AcronymPage(QWidget):
         return sorted(t for t, d in (s.results.items() if s else []) if (d.get("plural_of") or d.get("form_of")) == term)
 
     def current(self):
-        i = self.table.currentRow()
-        return self.terms[i] if 0 <= i < len(self.terms) else None
+        i = self.table.currentRow()                            # 4.30.4: a term picked on the page is the one the keys act on
+        return getattr(self, "pinned", None) or (self.terms[i] if 0 <= i < len(self.terms) else None)
 
     def selected_terms(self):
         rows = sorted({ix.row() for ix in self.table.selectedIndexes()})
@@ -349,7 +349,7 @@ class AcronymPage(QWidget):
     def show_detail(self):
         self._clear()
         s = self.session
-        terms = self.selected_terms()
+        terms = __import__("skqt.acrpick", fromlist=["x"]).terms(self)      # 4.30.4: the list's selection, or a term picked on the page
         if s is None or not terms:
             self.card.title.setText("Term")
             self.body.addWidget(D.label("Select a term to see its definitions, where it was found and the effort list.", "muted"))

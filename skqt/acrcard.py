@@ -114,7 +114,8 @@ def build(page, t, kind_tone):
         page.where_view = FoundView(t, locs, page.path_of, on_meaning=lambda x: _meaning(page, x),
                                     on_find_text=lambda x: page.find_text.setText(x),
                                     on_add_term=lambda text, loc, read, crop: APT.missed(page, text, loc, read, crop))
-        wv = page.where_view                                           # 4.23.1: what is selected on the page goes to a line
+        wv = __import__("skqt.acrpick", fromlist=["x"]).hook(page, page.where_view, t)       # 4.30.4: a term clicked on the page
+        # 4.23.1: what is selected on the page goes to a line
         wv.read_lab.setText("Selected on the page")
         wv.reading.setPlaceholderText("Click a box in the picture, or select words in the passage")
         for b, text, tip, to in ((wv.b_fixread, "Put in Reads as", "These words are how the term is written", page.reads),

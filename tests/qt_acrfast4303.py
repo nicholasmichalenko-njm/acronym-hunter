@@ -102,6 +102,8 @@ check("leaving the page writes what was waiting", not s.unsaved)
 s.later = None; s.unsaved = False; s.save()
 check("a session with no page saves at once, as before", not s.unsaved)
 
+check("4.30.4: the write is on the window's thread unless THREADED is turned on", AF.THREADED is False and getattr(pg, "_saver", None) is None)
+AF.THREADED = True                                      # the other-thread path stays tested for when it is turned back on
 # ---- adding to the effort list: nothing is written per decision; one write, off the window's thread, a moment later
 w.go("acronyms"); app.processEvents(); pg.tabs.setCurrentIndex(1); app.processEvents()
 AF.watch(pg)
@@ -123,6 +125,31 @@ app.processEvents()
 check("a moment later both are written with no step to take, and the page says so", os.path.getmtime(L.path) > lm0 and not s.list_unsaved and not L.pending
       and pg.progress.text().startswith("Decisions saved"), pg.progress.text())
 check("... it said Saving your decisions while it wrote, on another thread (no write on the window's)", seen_saving and list_writes == [])
+check("4.30.4: what follows the write runs on the window's thread, never the writing one (the 4.30.3 crash)", AF.DONE_ON is True, AF.DONE_ON)
+# typing in the search box: one fill after the last key; rows go without a card drawn for each
+fills, cards = [], []
+real_fill, real_card = pg.fill, pg.show_detail
+pg.fill = lambda: (fills.append(1), real_fill())[1]
+pg.show_detail = lambda *a: (cards.append(1), real_card(*a))[1]
+try:
+    pg.table.itemSelectionChanged.disconnect()
+except (RuntimeError, TypeError):
+    pass
+pg.table.itemSelectionChanged.connect(pg.show_detail)
+for ch_ in "ZQXW":
+    pg.f_search.setText(pg.f_search.text() + ch_); app.processEvents()
+check("four keys typed: nothing is filled yet", fills == [])
+t0 = time.time()
+while not fills and time.time() - t0 < 5:
+    app.processEvents(); time.sleep(0.02)
+app.processEvents()
+check("a moment after the last key the list is filled once", fills == [1] and pg.table.rowCount() == len(pg.terms), fills)
+check("... and the term's card was drawn at most twice, not once per row that left", len(cards) <= 2, len(cards))
+pg.f_search.setText(""); t0 = time.time()
+while len(fills) < 2 and time.time() - t0 < 5:
+    app.processEvents(); time.sleep(0.02)
+check("clearing the search brings every row back", pg.table.rowCount() == len(pg.terms) and len(pg.terms) > 50)
+pg.fill, pg.show_detail = real_fill, real_card
 import effort as E2
 back = E2.EffortList(L.path, "Osprey"); back.load()
 check("the workbook on disk holds every one of them", all(t in back.rows for t in todo) and back.rows[todo[0]].get("Definition") == "A made-up definition", len(back.rows))
@@ -139,6 +166,37 @@ check("every cell is wrapped and top-aligned; a Not a term row is grey and the o
       and not str(c_in.fill.fgColor.rgb).endswith("EEEEEE") and sh.max_row == len(back.order) + 1, (c_not.fill.fgColor.rgb, c_in.fill.fgColor.rgb))
 check("leaving wrote the last decision at once", not s.list_unsaved and (lambda b: (b.load(), b.rows[todo[3]].get("Status") == "Not a term")[1])(E2.EffortList(L.path, "Osprey")))
 s._save_list_now = real_l
+AF.THREADED = False
+
+# ---- 4.30.4: a term clicked on the page beside the list is the one decided; a click in the list goes back
+from skqt import acrpick as PK, acrlayout as AL2
+pg.f_status.setCurrentIndex(0); pg.f_search.setText(""); pg.fill(); app.processEvents()
+loc0 = next(l for t in pg.terms for l in (s.results[t].get("locations") or []) if sum(1 for u in pg.terms if l in (s.results[u].get("locations") or [])) >= 2)
+here_terms = [t for t, d_ in s.results.items() if loc0 in (d_.get("locations") or []) and t in pg.terms]
+a_t, b_t = here_terms[0], here_terms[1]
+pg.select(a_t); app.processEvents()
+check("the list's term is on the card", pg.card.title.text() == a_t and pg.current() == a_t and pg.where_view is not None)
+check("a reading that holds another of the scan's terms at this place names it; one that holds none names nothing",
+      PK.term_in(s, f"with the {b_t} in it", loc0, but=a_t) == b_t and PK.term_in(s, "with the thing in it", loc0, but=a_t) is None
+      and PK.term_in(s, f"x{b_t}y", loc0, but=a_t) is None and PK.term_in(s, f"the {b_t} here", "Somewhere else (p.9)", but=a_t) is None)
+c_t = here_terms[2]
+line2 = f"{b_t} sits at the start and at the far end sits {c_t}"
+check("a reading with two terms gives the one nearest the click", PK.term_in(s, line2, loc0, but=a_t, at=0.02) == b_t and PK.term_in(s, line2, loc0, but=a_t, at=0.98) == c_t)
+rows_before, row_before = list(pg.terms), pg.table.currentRow()
+pg.where_view.on_pick(f"Here is the {b_t} and more", loc0); app.processEvents()
+check("a click on that reading puts the clicked term on the card; the list is left as it is, with nothing selected",
+      pg.card.title.text() == b_t and pg.pinned == b_t and pg.terms == rows_before and pg.selected_terms() == [] and pg.table.currentRow() == row_before)
+check("... the page stays on the place it was clicked at", pg.where_view is not None and pg.where_view.locs[pg.where_view.k] == loc0)
+check("... and the keys act on it, not on the list's row", pg.current() == b_t)
+AL2.not_term_current(pg); app.processEvents()
+st_b = s.results[b_t]
+check("Not a term from the keys decides the clicked term; the list's own term is untouched",
+      (st_b.get("excluded") or "Not a term" in str(st_b.get("status")) or st_b.get("effort") == "Not a term")
+      and not (s.results[a_t].get("excluded") or s.results[a_t].get("effort") == "Not a term"), st_b.get("status"))
+pg.select(a_t); app.processEvents()
+check("a click on a row of the list goes back to the list's term", pg.card.title.text() == a_t and pg.pinned is None and pg.current() == a_t)
+pg.where_view.on_pick("no term in these words", loc0); app.processEvents()
+check("a click on a reading with no term in it changes nothing", pg.card.title.text() == a_t and pg.pinned is None)
 
 # ---- the table's hover text looks only at what changed
 t = QTableWidget(300, 6); t.show(); app.processEvents()
