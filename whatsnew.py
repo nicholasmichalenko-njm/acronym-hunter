@@ -15,7 +15,7 @@ WHATS_NEW = {
                "Changing a style from inside a set changes it for that set only, unless you pick every set that uses it.",
                "A set can say what it is used for (RFP, RFI, program documents): More > What this set is used for."],
     "4.30.1": ["The app's own working folders are out of sight in File Explorer: each effort's app data folder and the program's "
-               "_internal and _local_sandbox. The folders you work in are untouched.",
+               "_local_sandbox. The folders you work in are untouched.",
                "Effort Record > More > Open the backups folder reaches the effort's backups whatever File Explorer shows.",
                "Hidden is not locked: File Explorer's Hidden items still shows them."],
     "4.30.0": ["Global Standards: the foundation every effort starts from is one set with a version number (Settings > Team data).",

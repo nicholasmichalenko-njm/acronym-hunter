@@ -1,7 +1,7 @@
 """Out of sight, not locked (4.30.1; Nicholas 2026-11-13 14:41 and 14:43). The folders a person works in stay plain to
 see: the effort's numbered folders and its workbooks. The app's own working folders carry Windows' Hidden mark so nobody
-edits, moves or tidies them by accident: each effort's "<list> - app data" folder, and the program's _internal and
-_local_sandbox. The program's folder and Stationkeeper Data are not hidden.
+edits, moves or tidies them by accident: each effort's "<list> - app data" folder, and the program's _local_sandbox.
+The program's folder, its _internal and Stationkeeper Data are not hidden.
 
 Hidden is not protection: File Explorer's "Hidden items" shows them. OneDrive syncs the files but not the mark, so the
 mark is set again on each PC, every time the effort opens. Open the backups folder (Effort Record > More) reaches the
@@ -10,7 +10,10 @@ Standard library only. Rules only (No AI); nothing leaves the PC."""
 import os
 
 HIDDEN = 0x2
-PROGRAM_FOLDERS = ("_internal", "_local_sandbox")
+# 4.30.3: _internal (the program's own files) is NOT hidden. The first build with it hidden stopped: the build lists the
+# program's files, and a plain listing leaves a hidden folder out. A zip made the same way would leave the program out,
+# so it stays in sight until that is settled with Nicholas.
+PROGRAM_FOLDERS = ("_local_sandbox",)
 
 
 def _attrs(path):
