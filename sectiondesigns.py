@@ -46,7 +46,7 @@ def _now():
 
 # ------------------------------------------------------------------ the library
 def _root(config_dir):
-    return os.path.join(config_dir, FOLDER)
+    return os.path.join(__import__("effortset").base(config_dir), FOLDER)
 
 
 def _index(config_dir):

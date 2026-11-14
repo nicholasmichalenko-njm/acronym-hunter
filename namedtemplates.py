@@ -14,7 +14,7 @@ NEW, READY, REVIEW = "Not made yet", "Ready", "Needs review"
 
 
 def _path(config_dir):
-    return os.path.join(config_dir, FILE)
+    return os.path.join(__import__("effortset").base(config_dir), FILE)
 
 
 def load(config_dir):
@@ -103,7 +103,7 @@ def std_of(config_dir, t, data=None):
     data = data or PRL.load(config_dir)
     std = copy.deepcopy(data["company"])
     std[TS.KEY] = TS.recipe({TS.KEY: t.get("sets") or {}})
-    std["_parts_dir"] = os.path.join(config_dir, "production_parts")
+    std["_parts_dir"] = os.path.join(__import__("effortset").base(config_dir), "production_parts")
     return std
 
 

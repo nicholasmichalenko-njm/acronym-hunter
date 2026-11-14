@@ -128,7 +128,7 @@ def load(config_dir):
     effort types (RFP response, page-limited RFP response, white paper, program deliverables), each holding every
     profile and changing nothing until edited."""
     try:
-        with open(os.path.join(config_dir, FILE), encoding="utf-8") as f:
+        with open(os.path.join(__import__("effortset").base(config_dir), FILE), encoding="utf-8") as f:
             d = json.load(f) or {}
     except (OSError, ValueError):
         d = {}
@@ -162,8 +162,7 @@ def load(config_dir):
 
 
 def save(config_dir, data):
-    os.makedirs(config_dir, exist_ok=True)
-    p = os.path.join(config_dir, FILE)
+    p = os.path.join(__import__("effortset").base(config_dir), FILE); os.makedirs(os.path.dirname(p), exist_ok=True)
     body = {"version": 3, "company": diff(data["company"], COMPANY), "types": data["types"], "default": data.get("default", ""),
             "effort_types": data.get("effort_types", []), "default_effort_type": data.get("default_effort_type", ""),
             "removed_effort_types": data.get("removed_effort_types", []), "starters": 2}
@@ -310,7 +309,7 @@ def for_effort(config_dir, ws=None, data=None, type_id=None):
     std["response_type"] = eff.get("response_type") or (et or {}).get("response_type") or STARTER_RESPONSE.get((et or {}).get("id"), "")
     if "6" not in std["_rules_off"]:
         rule6(std)
-    std["_parts_dir"] = os.path.join(config_dir, "production_parts")     # 3.10.0: where covers and back covers are kept
+    std["_parts_dir"] = os.path.join(__import__("effortset").base(config_dir), "production_parts")     # 3.10.0: where covers and back covers are kept
     return engine_ready(std)
 
 

@@ -499,7 +499,7 @@ class MainWindow(QMainWindow):
         _PS.SPLITS[:] = [lambda path, nm, root=ws.root: _VS.splits(path, _VS.Store(root), nm)]    # 3.92.1
         try:                                       # 2.90.0: a note in the effort's app data folder: the app's files
             import effortfolders as EF
-            EF.note_app_data(ws.root)
+            EF.note_app_data(ws.root); __import__("effortset").enter(self.config_dir, ws.root)   # 4.32.0: the effort's own standards
         except Exception:
             diag.swallowed()
         if self.efforts.current != name:          # 2.84.0: the next start (after an update too) reopens this effort
@@ -859,7 +859,7 @@ class MainWindow(QMainWindow):
                 self.ws.release_lock()
             except Exception:
                 diag.swallowed()
-        self.ws, self.review = None, None
+        self.ws, self.review = None, None; __import__("effortset").leave()
         import outline_ops as _O
         _O.HOOKS[:] = []
         import pagesent as _PS

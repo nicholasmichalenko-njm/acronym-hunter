@@ -32,7 +32,7 @@ class PartError(Exception):
 
 
 def parts_dir(config_dir):
-    return os.path.join(config_dir, FOLDER)
+    return os.path.join(__import__("effortset").base(config_dir), FOLDER)
 
 
 def _blocks(root):

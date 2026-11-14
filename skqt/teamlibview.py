@@ -32,7 +32,8 @@ def tick(w, ask=True):
             T.sync_scores(w.config_dir, w.ws)
         except Exception:  # noqa: BLE001
             diag.swallowed()
-        res = T.tick(w.config_dir)
+        with __import__("effortset").as_global():        # 4.32.0: the workbook holds the Global Standards, effort open or not
+            res = T.tick(w.config_dir)
         said += res.get("said") or []
         if ask and res.get("question"):
             ask_removed(w, res["question"])

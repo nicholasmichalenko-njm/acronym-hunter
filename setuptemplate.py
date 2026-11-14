@@ -554,7 +554,7 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
             std = with_starts(std, st.get("page"), st.get("chapter"))
         std["_template_name"], std["_template_version"] = tname, ver
         std["name"] = f"{tname} v{ver}"
-        std.setdefault("_parts_dir", os.path.join(config_dir, "production_parts"))
+        std.setdefault("_parts_dir", os.path.join(__import__("effortset").base(config_dir), "production_parts"))
         job = PT.make(std, tfolder, "", word=word, parts_dir=std["_parts_dir"])
         if record:
             e = TR.record(config_dir, tname, ver, job.copy, "", getattr(job, "validation", None), effort_name)

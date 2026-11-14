@@ -37,7 +37,7 @@ STATUSES = (("draft", "Draft"), ("approved", "Approved"), ("retired", "Retired")
 
 
 def folder(config_dir):
-    return os.path.join(config_dir, FOLDER)
+    return os.path.join(__import__("effortset").base(config_dir), FOLDER)
 
 
 def _now():

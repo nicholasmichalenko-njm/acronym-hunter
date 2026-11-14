@@ -36,7 +36,7 @@ _SW = re.compile(r"^\\[A-Za-z*#@!]$")
 
 
 def _path(config_dir):
-    return os.path.join(config_dir, FILE)
+    return os.path.join(__import__("effortset").base(config_dir), FILE)
 
 
 def _new_id():
