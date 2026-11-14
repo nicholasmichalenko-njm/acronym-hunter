@@ -117,18 +117,18 @@ TOPICS = [
    "from the customer's words; Open in Shred shows the piece in place."],
   ["Set importance changes a factor's relative importance (Significantly more important to Pass/fail)."]),
  ("effortfmt", "Setup", "Effort Formatting",
-  "This effort's formatting on top of the Company Standards (Default): the values efforts change most up front, each with the "
-  "Company Standards value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",
+  "This effort's formatting on top of the Global Standards: the values efforts change most up front, each with the "
+  "Global Standards value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",
   "An effort needs its own fonts, sizes, margins or header text, or the RFP sets formatting rules.",
   ["Changes apply to: Every volume, or one volume of the effort.",
    "Set a value, or press Use it beside what the RFP says. A value that breaks the RFP's rule shows in red.",
-   "Make it a standard writes this effort's value into the Company Standards (Default), a volume profile or the effort type; Undo the "
+   "Make it a standard writes this effort's value into the Global Standards, a volume profile or the effort type; Undo the "
    "last Make it a standard puts it back.",
    "Every setting... opens Production Standards on this effort (an amber band says so); Back to Effort Formatting returns.",
    "Footer, the team's line (Rule 7) sets the line under the marking in every Rule 7 footer of this effort. Field, beside "
    "each header and footer box, puts a field (page number, A number, volume values, your fields) where the cursor is."],
-  ["Library parts this effort uses lists each part's source: the Company Standards version, a version this effort chose, or its own copy.",
-   "Production Standards itself edits only the Company Standards (Default)."]),
+  ["Library parts this effort uses lists each part's source: the Global Standards version, a version this effort chose, or its own copy.",
+   "Production Standards itself edits only the Global Standards."]),
  ("record", "Overview", "Effort Record",
   "The effort's details, team and roles, stages and gates, status reports, the effort package and backups.",
   "You set up the effort, change its team or stages, hand it to someone, or report status.",
@@ -704,12 +704,12 @@ TOPICS = [
   ["SCIF-ready keeps no logs, no training data and no bug reports, and cannot be switched back.",
    "Your data folder can move: Move the data folder..."]),
  ("prodstd", "Advanced", "Production Standards",
-  "Every rule Fix a Copy uses and every template is made from, in layers: the Company Standards (Default), effort types, volumes, and this effort.",
+  "Every rule Fix a Copy uses and every template is made from, in layers: the Global Standards, effort types, volumes, and this effort.",
   "Once to set the team's rules; for each volume; at the start of each effort to bring in the RFP's.",
-  ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the Company Standards (Default); a volume alone is that volume "
+  ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the Global Standards; a volume alone is that volume "
    "everywhere; an effort type alone is every volume in it; both is that volume in that effort type. This effort only "
    "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back. "
-   "3.36.0: Production Standards edits the Company Standards (Default) only (a blue band says so); one effort's formatting is in "
+   "3.36.0: Production Standards edits the Global Standards only (a blue band says so); one effort's formatting is in "
    "Effort > Effort Formatting, and its Every setting opens this editor on that effort (an amber band).",
    "Document sections (Document parts before 3.45.0): Cover, Front matter, Response, Appendices and Back cover. Each section "
    "shows what applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, "

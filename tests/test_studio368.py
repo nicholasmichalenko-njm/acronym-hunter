@@ -170,7 +170,7 @@ d2["company"].setdefault("graphics", {})["min_ppi"] = 299
 d2["company"].setdefault("style_defs", {})["Kestrel Callout"] = {"font": "Arial", "size": 10}
 rep2 = PSR.report(cfg, d2)
 k2 = {r["key"]: r for r in rep2["rows"]}
-check("values set on this PC are listed by layer, none at risk now", any("Company Standards (Default)" == ln for ln, _w in k2["graphics"]["values"])
+check("values set on this PC are listed by layer, none at risk now", any("Global Standards" == ln for ln, _w in k2["graphics"]["values"])
       and rep2["at_risk"] == 0, rep2["at_risk"])
 check("the places that still open Production Standards are listed", len(rep["links"]) == 6 and rep["links"][0][0].startswith("Setup page"))
 

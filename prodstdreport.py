@@ -1,6 +1,6 @@
 """What retiring Production Standards would lose (3.68.0, Template Studio decision 6: "Production Standards retires after
 a one-time nothing-lost comparison"). Production Standards (Advanced) is the full editor over production_standards.json:
-the Company Standards (Default), the volume profiles and the effort types. The newer pages edit most of it; this report says, for
+the Global Standards, the volume profiles and the effort types. The newer pages edit most of it; this report says, for
 each of its sections, where those values are edited now and which of this PC's own values sit in a section with no other
 editor. It also lists the places in the app that still open Production Standards. Nothing is changed.
 
@@ -54,15 +54,15 @@ LINKS = [         # 3.69.0: where each went; (where, what it does, now)
     ("Rules: where a rule's values live", "Opened the section a rule reads.", "Repointed: Layout, Formatting Standards and Rules."),
     ("Fix a Copy: Production Standards button", "Opened the standard Fix a Copy uses.", "Repointed: Rules > Fix a Copy's checks."),
     ("Assignments: Edit the rules in Production Standards", "Opened the rules.", "Repointed: Rules."),
-    ("Formatting Standards: Put in a standard...", "Carries a library item into the Company Standards (Default), a profile or an "
+    ("Formatting Standards: Put in a standard...", "Carries a library item into the Global Standards, a profile or an "
      "effort type.", "Writes the values directly (it opens no page)."),
 ]
 
 
 def _layers(data):
-    """[(layer name, values the person set there)]: the Company Standards (Default)'s changes, each volume profile's, each effort
+    """[(layer name, values the person set there)]: the Global Standards's changes, each volume profile's, each effort
     type's (shared and per profile)."""
-    out = [("Company Standards (Default)", PRL.diff(data["company"], PRL.COMPANY))]
+    out = [("Global Standards", PRL.diff(data["company"], PRL.COMPANY))]
     for t in data.get("types") or []:
         out.append((f"Volume profile {t.get('name', '')}", PRL.layer_of(t)))
     for e in data.get("effort_types") or []:

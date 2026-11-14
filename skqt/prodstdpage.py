@@ -1,5 +1,5 @@
 """Production > Production Standards (3.6.0): every rule the checks and fixes use, editable value by value, in three
-layers: the Company Standards (Default), a document type, and this effort (the RFP's own rules). A value set at the layer being
+layers: the Global Standards, a document type, and this effort (the RFP's own rules). A value set at the layer being
 edited shows in bold with a Reset button that takes it back to the layer below; everything else is inherited.
 
 Sections: format variables, font rules, styles and heading numbering, table rows (each role's look with every border
@@ -409,7 +409,7 @@ class StandardsPage(QWidget):
         self.dirty = False
         self.binder = Binder(self)
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
-        top = D.Card("Production Standards", "Every rule Fix a Copy uses, in layers: the Company Standards (Default), then a "
+        top = D.Card("Production Standards", "Every rule Fix a Copy uses, in layers: the Global Standards, then a "
                      "volume (one kind of document you deliver), then an effort type (the rules of a kind of effort, "
                      "for every volume in it, and its changes for one volume), then this effort. A value set at the layer you "
                      "edit shows in bold, and Reset takes it back to the layer below.",
@@ -557,8 +557,8 @@ class StandardsPage(QWidget):
                     "setups": ("page_setups", ("checks", "landscape_ok")), "hf": ("hf_layouts", "hf_designs", ("checks", "page_numbers")),
                     "toc": ("toc", ("checks", "toc_forbid")), "lists": ("lists", "list_numbering"),
                     "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",)}
-    LAYER_BELOW = {"team": "the built-in defaults", "type": "the Company Standards (Default)", "etype": "the Company Standards (Default)",
-                   "etp": "the volume in this effort type", "effort": "the Company Standards (Default) for this effort",
+    LAYER_BELOW = {"team": "the built-in defaults", "type": "the Global Standards", "etype": "the Global Standards",
+                   "etp": "the volume in this effort type", "effort": "the Global Standards for this effort",
                    "effortvol": "this effort's values for every volume"}
 
     def show_section(self, i):
@@ -1716,14 +1716,14 @@ class StandardsPage(QWidget):
         if want is not None and self.host.ws is not None:             # 3.36.0: one effort's layer, from Effort Formatting
             self.mode = "effort"
             cur = f"effortvol:{want}" if want else "effort:"
-        else:                                                       # the menu opens the Company Standards (Default)
+        else:                                                       # the menu opens the Global Standards
             self.mode = "team"
             if (cur or "").startswith("effort"):
                 cur = "team:"
         self.scope_box.blockSignals(True)
         self.scope_box.clear()
         if self.mode == "team":
-            self.scope_box.addItem("Company Standards (Default) (every volume starts here)", "team:")
+            self.scope_box.addItem("Global Standards (every volume starts here)", "team:")
             for t in self.data["types"]:
                 self.scope_box.addItem(f"Volume: {t['name']}", "type:" + t["id"])
             for e in self.data.get("effort_types", []):
@@ -1775,15 +1775,15 @@ class StandardsPage(QWidget):
         self.vol_pick.blockSignals(False)
 
     def show_band(self):
-        """3.36.0: a blue band for the Company Standards (Default), an amber one for one effort's formatting."""
+        """3.36.0: a blue band for the Global Standards, an amber one for one effort's formatting."""
         t = D.tokens()
         if self.mode == "effort":
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
                               f"<b>Formatting for {self.host.effort_name} only.</b> Every change here is this effort's; the "
-                              f"Company Standards (Default) and the template library stay as they are.</div>")
+                              f"Global Standards and the template library stay as they are.</div>")
         else:
             self.band.setText(f"<div style='background:{t['accent_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
-                              f"<b>Editing the Company Standards (Default): every effort that uses them.</b> One effort's formatting is in "
+                              f"<b>Editing the Global Standards: every effort that uses them.</b> One effort's formatting is in "
                               f"Effort &gt; Effort Formatting.</div>")
         self.band_back.setVisible(self.mode == "effort")
 
@@ -1924,7 +1924,7 @@ class StandardsPage(QWidget):
         self.show_parts()
         self.fill_profile()                            # 3.33.0
         self.dirty = False
-        self.state.setText({"team": "Company Standards (Default)", "type": "Volume", "etype": "Effort type, every volume",
+        self.state.setText({"team": "Global Standards", "type": "Volume", "etype": "Effort type, every volume",
                             "etp": "Effort type, this volume", "effort": "This effort, every volume",
                             "effortvol": "This effort, this volume"}[scope])
         self.show_problems()

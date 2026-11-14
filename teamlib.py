@@ -1,13 +1,13 @@
 """The team library as files (4.7.0; claude/stationkeeper-team-library-files-decisions-2026-11-10.md, decisions 1 to 4).
 
 The files are the truth; the app keeps a cache it rebuilds from them:
-- Company Standards.xlsx: the values of the Company Standards (Default) and the field recipes (standardsbook). The
+- Global Standards.xlsx: the values of the Global Standards and the field recipes (standardsbook). The
   app's production_standards.json and field_recipes.json are its cache.
 - Content\\: the Word files the standards and the library keep (covers, back covers, title pages, Quick Parts sources,
   header and footer designs), one folder each for the standards' parts and the library's kept files. Edit them in Word;
   the app's copies follow. A file the app keeps (Bring in, a new cover) appears there.
 - <effort> Effort Formatting.xlsx, beside the effort's list: the same sheets with only that effort's changes (a blank
-  cell means the Company Standards (Default) value).
+  cell means the Global Standards value).
 
 Where: Stationkeeper Data\\Team library unless Settings points it at another folder (a SharePoint library synced to
 each PC, so the team shares one). Updates never touch it.
@@ -15,13 +15,14 @@ each PC, so the team shares one). Updates never touch it.
 How the two ways meet: the app writes the workbook after its own changes (marked to write, then written on the next
 tick, so a burst of edits writes once) and reads it when its size or time changed. Excel keeps the file locked while
 it is open: the app waits and says so. A workbook that cannot be read is reported and skipped; the last good reading
-stays. A sync conflict copy ("Company Standards-PCNAME.xlsx") is reported, never read. Nothing is deleted in the move:
+stays. A sync conflict copy ("Global Standards-PCNAME.xlsx") is reported, never read. Nothing is deleted in the move:
 the first run writes the files from the cache, and the JSON stays. Nothing leaves the PC."""
 import hashlib, json, os, re, shutil, time
 
 import diag
 
-BOOK = "Company Standards.xlsx"
+BOOK = "Global Standards.xlsx"
+OLD_BOOK = "Company Standards.xlsx"              # its name from 4.7.0 to 4.30: read and renamed once (4.31.0)
 CONTENT = "Content"
 STATE = "team_library_state.json"
 PAIRS = (("production_parts", "Standards parts"), (os.path.join("template_library", "sources"), "Library files"))
@@ -48,7 +49,16 @@ def _settings():
 
 
 def book_path(config_dir, settings=None):
-    return os.path.join(folder(config_dir, settings), BOOK)
+    """The workbook. One written under its earlier name (Company Standards.xlsx, 4.7.0 to 4.30) is renamed once; while
+    Excel has that one open it is used as it is and renamed the next time."""
+    d = folder(config_dir, settings)
+    new, old = os.path.join(d, BOOK), os.path.join(d, OLD_BOOK)
+    if not os.path.isfile(new) and os.path.isfile(old):
+        try:
+            os.replace(old, new)
+        except OSError:
+            return old
+    return new
 
 
 def _state_path(config_dir):
@@ -438,15 +448,15 @@ def tick(config_dir, settings=None):
     try:
         if not os.path.isfile(p):
             if write_book(config_dir, settings) == "written":
-                said.append("The Company Standards workbook was written in the team library.")
+                said.append("The Global Standards workbook was written in the team library.")
         elif state(config_dir).get("dirty"):
             got = write_book(config_dir, settings)
             if got == "waiting":
-                said.append("The Company Standards workbook is open in Excel: your changes are written when it closes.")
+                said.append("The Global Standards workbook is open in Excel: your changes are written when it closes.")
         else:
             res = read_book(config_dir, settings)
             if res.get("read") and res.get("changed"):
-                said.append(f"Read from the Company Standards workbook: {len(res['changed'])} change(s).")
+                said.append(f"Read from the Global Standards workbook: {len(res['changed'])} change(s).")
             for pr in res.get("problems") or []:
                 said.append(pr)
             if res.get("conflicts"):
@@ -535,7 +545,7 @@ def read_effort_book(ws, effort_path, effort_name, force=False, config_dir=None)
             if lab:
                 tid = by_name.get(lab.casefold()) or (lab if lab in names else None)
                 if tid is None:
-                    problems.append(f"Volume \"{lab}\" is not a volume kind in the Company Standards (Default); "
+                    problems.append(f"Volume \"{lab}\" is not a volume kind in the Global Standards; "
                                     "its rows were not read.")
                     continue
             part["problems"] = []

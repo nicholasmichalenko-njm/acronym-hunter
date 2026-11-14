@@ -1,5 +1,5 @@
-"""The Company Standards workbook (4.7.0; claude/stationkeeper-team-library-files-decisions-2026-11-10.md): the values of
-the Company Standards (Default) in one Excel workbook that people edit in Excel or in the app. The workbook is the
+"""The Global Standards workbook (4.7.0; claude/stationkeeper-team-library-files-decisions-2026-11-10.md): the values of
+the Global Standards in one Excel workbook that people edit in Excel or in the app. The workbook is the
 truth; production_standards.json and field_recipes.json are the app's cache of it, rebuilt from it.
 
 One row per item, wide (decision 1):
@@ -13,7 +13,7 @@ Columns a person adds are kept both ways and never reach Word. The Columns sheet
 
 Sheets: Styles, Table looks, Table types, Heading numbering, List numbering, Page setups, Captions, Fonts allowed,
 Settings (the base fonts, sizes and margins) and Fields (the field recipes). An effort's workbook has the same sheets
-and holds only that effort's changes: a blank cell means the Company Standards (Default) value.
+and holds only that effort's changes: a blank cell means the Global Standards value.
 
 Rules only (No AI); nothing leaves the PC."""
 import copy, datetime, getpass, json, os, re, uuid
@@ -43,7 +43,7 @@ SETTINGS = "Settings"
 FIELDS = "Fields"
 COLUMNS = "Columns"
 ABOUT = "About"
-FORMAT = 2                                   # formats.py "Company Standards workbook" (2: 4.10.0, Volume, Theme, Suggestion rules)
+FORMAT = 2                                   # formats.py "Global Standards workbook" (2: 4.10.0, Volume, Theme, Suggestion rules)
 FIELD_COLS = (("Field code(s)", "codes"), ("Text between", "between"), ("What it does", "note"), ("Where it goes", "where"),
               ("Use case", "use_case"), ("Bookmark it needs", "bookmark"), ("What the bookmark spans", "spans"),
               ("Style it reads", "style"), ("Depends on", "depends"), ("Sample result", "sample"))
@@ -345,7 +345,7 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     ws = wb.create_sheet(ABOUT)
     for row in (("What", "Value"), ("Format", FORMAT), ("Made by", "Stationkeeper"),
                 ("How to use it", "Edit values here or in the app; the app reads what changed and writes what it changes. "
-                 "A blank cell in an effort's workbook means the Company Standards (Default) value; a blank Volume means "
+                 "A blank cell in an effort's workbook means the Global Standards value; a blank Volume means "
                  "every volume, a volume's name means that volume only. Only Approved rows "
                  "reach templates and the macros. Columns you add are kept and never reach Word.")):
         ws.append(list(row))
@@ -622,7 +622,7 @@ def remember_cols(company):
 
 
 def conflict_copies(path):
-    """OneDrive's and SharePoint's copies of the workbook ("Company Standards-PCNAME.xlsx"): reported, never read."""
+    """OneDrive's and SharePoint's copies of the workbook ("Global Standards-PCNAME.xlsx"): reported, never read."""
     d, base = os.path.dirname(path), os.path.splitext(os.path.basename(path))[0]
     try:
         return sorted(f for f in os.listdir(d) if f.lower().endswith(".xlsx") and f != os.path.basename(path)

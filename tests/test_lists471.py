@@ -1,5 +1,5 @@
 """4.7.1: the team's lists as files (listsbook; claude/stationkeeper-team-library-files-decisions-2026-11-10.md, phase 2).
-The small lists are sheets of Company Standards.xlsx (Phrases, Authors, Compliance words, Piece types, Document types),
+The small lists are sheets of Global Standards.xlsx (Phrases, Authors, Compliance words, Piece types, Document types),
 written when the app changes them and read into each list's own file when people change them in Excel. The master
 acronym list is Lists\\Acronyms.csv and each custom dictionary Lists\\Dictionaries\\<name>.dic, both ways. Fictional."""
 import os, sys, tempfile, time

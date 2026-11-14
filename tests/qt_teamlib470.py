@@ -1,4 +1,4 @@
-"""4.7.0 offscreen: the team library in the window. The tick writes Company Standards.xlsx in the team library and says
+"""4.7.0 offscreen: the team library in the window. The tick writes Global Standards.xlsx in the team library and says
 so; Settings > The team shows the Team library card with where it is; Change... points it at another folder (a synced
 SharePoint library) and the workbook is written there; a value changed in Excel reaches Styles' standard on the next
 tick; the open effort's formatting workbook is written beside its list (Effort Formatting's Open this effort's
@@ -39,7 +39,7 @@ w.open_effort("Kestrel"); app.processEvents()
 check("the window ticks the team library every two minutes", w.team_timer.interval() == 120000 and w.team_timer.isActive())
 said = TV.tick(w)
 book = T.book_path(cfg)
-check("the tick writes Company Standards.xlsx in Stationkeeper Data\\Team library and says so", os.path.isfile(book)
+check("the tick writes Global Standards.xlsx in Stationkeeper Data\\Team library and says so", os.path.isfile(book)
       and "Team library" in book and any("written" in s for s in said), (book, said))
 ebook = T.effort_book_path(LIST, "Kestrel")
 check("... and the open effort's formatting workbook beside its list", os.path.isfile(ebook))
@@ -50,7 +50,7 @@ wb = openpyxl.load_workbook(book); ws = wb["Styles"]; hdr = [c.value for c in ws
 ws.cell(2, hdr.index("Size (pt)") + 1).value = 12; wb.save(book); time.sleep(0.02)
 said = TV.read_now(sp)                                          # 4.10.0: Read it now does the two-minute check at once
 check("a value changed in Excel reaches the standard with Read it now, and the status says so",
-      PRL.load(cfg)["company"]["style_defs"]["Body Text"]["size"] == 12 and any("Read from the Company Standards workbook" in s for s in said), said)
+      PRL.load(cfg)["company"]["style_defs"]["Body Text"]["size"] == 12 and any("Read from the Global Standards workbook" in s for s in said), said)
 check("Settings > Team library has Read it now", any(b.text() == "Read it now" for b in sp.tl_card.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QPushButton)))
 seen = []; real_status = w.status; w.status = lambda t: (seen.append(t), real_status(t))
 check("... with nothing new it says so", TV.read_now(sp) == [] and any("no changes" in t for t in seen), seen)
@@ -70,7 +70,7 @@ other = os.path.join(tmp, "SharePoint", "Proposal Team Library"); os.makedirs(ot
 TV.change(sp, other); TV.tick(w)
 check("Change... points it at another folder: the workbook is written there", os.path.isfile(os.path.join(other, T.BOOK)))
 w.go("styles"); app.processEvents()
-check("Styles' More opens the Company Standards workbook", "Open the Company Standards workbook" in w.styles_page.bar.labels())
+check("Styles' More opens the Global Standards workbook", "Open the Global Standards workbook" in w.styles_page.bar.labels())
 w.close()
 print(f"QT TEAMLIB 470 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

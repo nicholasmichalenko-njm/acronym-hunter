@@ -1,4 +1,4 @@
-"""4.7.0: the team library as files (claude/stationkeeper-team-library-files-decisions-2026-11-10.md). The Company Standards
+"""4.7.0: the team library as files (claude/stationkeeper-team-library-files-decisions-2026-11-10.md). The Global Standards
 workbook is written from the standards the first time (nothing deleted), read back after a change in Excel (a value,
 a new row as Draft, a column of your own kept both ways, a renamed row keeping its ID), written after a change in the
 app (marked, then written once), waits while Excel holds it, reports a copy from another PC and a file it cannot read;
@@ -30,8 +30,8 @@ PRL.save(cfg, data)
 check("a change in the app marks the workbook to write", T.state(cfg).get("dirty") is True)
 said = T.tick(cfg, S)["said"]
 book = T.book_path(cfg, S)
-check("the first tick writes Company Standards.xlsx in Stationkeeper Data\\Team library", os.path.isfile(book)
-      and book.endswith(os.path.join("Team library", "Company Standards.xlsx")) and not T.state(cfg).get("dirty"), (book, said))
+check("the first tick writes Global Standards.xlsx in Stationkeeper Data\\Team library", os.path.isfile(book)
+      and book.endswith(os.path.join("Team library", "Global Standards.xlsx")) and not T.state(cfg).get("dirty"), (book, said))
 wb = openpyxl.load_workbook(book)
 check("its sheets", wb.sheetnames == ["Styles", "Table looks", "Table types", "Heading numbering", "List numbering", "Page setups",
                                       "Captions", "Fonts allowed", "Settings", "Fields", "Theme", "Phrases", "Authors", "Compliance words", "Piece types",
@@ -97,7 +97,7 @@ open(book, "wb").write(b"not a workbook")
 r = T.tick(cfg, S)
 check("a workbook that cannot be read is reported; the last good reading stays", r.get("problems")
       and PRL.load(cfg)["company"]["style_defs"]["Body Text"]["size"] == 12, r)
-check("a copy from another PC is reported, never read", "Company Standards-LAPTOP7.xlsx" in (r.get("conflicts") or []), r.get("conflicts"))
+check("a copy from another PC is reported, never read", "Global Standards-LAPTOP7.xlsx" in (r.get("conflicts") or []), r.get("conflicts"))
 # the Word files, both ways
 parts = os.path.join(cfg, "production_parts"); os.makedirs(parts)
 open(os.path.join(parts, "Cover.docx"), "wb").write(b"cover v1")
@@ -142,11 +142,11 @@ check("... holding only the effort's changes", [r[1].value for r in ewb["Styles"
       and "Size (pt)" not in eh and [r[0].value for r in ewb["Settings"].iter_rows(min_row=2)] == ["body_size"], eh)
 ews = ewb["Styles"]; ews.cell(2, eh.index("Font") + 1).value = "Georgia"
 sh_ = [c.value for c in ewb["Settings"][1]]
-ewb["Settings"].cell(2, sh_.index("Value") + 1).value = None  # blank: back to the Company Standards (Default)
+ewb["Settings"].cell(2, sh_.index("Value") + 1).value = None  # blank: back to the Global Standards
 ewb.save(T.effort_book_path(epath, "Kestrel")); time.sleep(0.02)
 T.effort_tick(w, epath, "Kestrel")
 lay = EFM.layer(w)
-check("... edited in Excel: the effort's layer follows; a blank cell means the Company Standards (Default)",
+check("... edited in Excel: the effort's layer follows; a blank cell means the Global Standards",
       lay.get("style_defs", {}).get("Body Text", {}).get("font") == "Georgia" and "body_size" not in (lay.get("variables") or {}), lay)
 # 4.10.0: a Volume column; blank means every volume, a volume kind's name means that volume only
 tid = PRL.load(cfg)["types"][0]["id"]; vname = PRL.load(cfg)["types"][0].get("name") or tid

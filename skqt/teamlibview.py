@@ -66,7 +66,7 @@ def ask_removed(w, cols, run=True, answer=None):
         from PySide6.QtWidgets import QMessageBox
         m = QMessageBox(w)
         m.setWindowTitle("A column was taken out of the workbook")
-        m.setText(f"The Company Standards workbook no longer has: {names}.")
+        m.setText(f"The Global Standards workbook no longer has: {names}.")
         m.setInformativeText("Take it off every row of the standard, or keep the values as they are (the column comes back "
                              "on the next write)? You are asked once.")
         drop = m.addButton("Take it off every row", QMessageBox.AcceptRole)
@@ -85,7 +85,7 @@ def card(page):
     """The Settings card. Returns it."""
     from PySide6.QtWidgets import QHBoxLayout
     import teamlib as T
-    c = D.Card("Team library", "The Company Standards (Default) as files: the values in one Excel workbook (Company "
+    c = D.Card("Team library", "The Global Standards as files: the values in one Excel workbook (Global "
                "Standards.xlsx) and the Word files beside it (covers, title pages, Quick Parts). Edit them in Excel and Word "
                "or here: the app reads what changed and writes what it changes. Point it at a SharePoint library synced "
                "to each PC so the team shares one.")
@@ -97,7 +97,7 @@ def card(page):
                            "Read what changed in the workbook and the files now, without waiting for the two-minute check"))
     row.addWidget(D.button("Open the folder", None, lambda: _open(T.folder(page.host.config_dir))))
     row.addWidget(D.button("Open the workbook", "primary", lambda: _open(T.book_path(page.host.config_dir)),
-                           "Company Standards.xlsx in Excel"))
+                           "Global Standards.xlsx in Excel"))
     row.addStretch(1)
     page.tl_card = c
     fill(page)

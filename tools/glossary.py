@@ -30,9 +30,12 @@ RULES = [
      r"\bLibrary\b",
      r"(Effort|Team|[Tt]emplate|Production|Styles|Parts|Bidders|SK) Library|Library (folders?|files|item|content|Context|moves|parts)"),
     ("production-menu", "Team > ...", r"Production > ", r"$^"),
-    ("global", "Company Standards (the column, the value); Make it a standard. 4.30.0 (Nicholas 2026-11-13, Standards 2): "
-     "Global Standards is the name of the published foundation, beside Effort Standards; no other use of the word",
+    ("global", "Global Standards (the foundation, its column, its value; Nicholas 2026-11-13 13:51 and 2026-11-14), beside "
+     "Effort Standards; no other use of the word",
      r"\b[Gg]lobal(ly)?\b", r"Global Standards"),
+    ("company-standards", "Global Standards (4.31.0: one name for the foundation)", r"Company Standards", r"$^"),
+    ("publish-standards", "update (Update Global Standards; Nicholas 2026-11-14: publish reads as going live to the public)",
+     r"[Pp]ublish(ed|ing|es)? (the |a |to the )?(Global Standards|version)", r"$^"),
     ("sentence", "piece (anything in the shred); requirement only once a piece is typed Requirement",
      r"\b[Ss]entences?\b|\b[Ss]entence\(s\)", r"$^"),
     ("sorted", "shredded (a piece that has a type); placed (a piece in a section)",

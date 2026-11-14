@@ -922,5 +922,13 @@
     "why": "dict key of a Technical Edit hit"
    }
   ]
+ },
+ "teamlib.py": {
+  "company-standards": [
+   {
+    "s": "Company Standards.xlsx",
+    "why": "the workbook's file name from 4.7.0 to 4.30: read and renamed once"
+   }
+  ]
  }
 }

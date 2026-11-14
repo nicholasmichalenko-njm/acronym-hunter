@@ -202,7 +202,7 @@ class StudioPage(QWidget):
             import effortformat as EF
             ch = EF.changed(self.host.config_dir, self.host.ws) if self.host.ws is not None else []
             self.own.setText((f"{len(ch)} value(s) set for this effort only: " + "; ".join(w for w, _g, _m in ch[:6]) + (" ..." if len(ch) > 6 else ""))
-                             if ch else "None: this effort uses the Company Standards (Default).")
+                             if ch else "None: this effort uses the Global Standards.")
         except Exception:  # noqa: BLE001
             diag.swallowed(); self.own.setText("")
         rows2 = []

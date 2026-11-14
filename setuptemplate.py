@@ -66,7 +66,7 @@ def look(opts, k):
 
 
 def set_team_options(config_dir, opts):
-    """3.71.0: Use for every effort: the setup styles into the Company Standards (Default)'s content map."""
+    """3.71.0: Use for every effort: the setup styles into the Global Standards's content map."""
     import prodrules as PRL
     data = PRL.load(config_dir)
     cm = dict(data["company"].get("content_map") or {})

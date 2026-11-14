@@ -39,7 +39,7 @@ rp = w.rules_page
 rp.show_family(3); app.processEvents()
 ed = rp.checks
 check("Rules has Fix a Copy's checks: graphics, Excel and PowerPoint, the words", ed is not None and ed.sections == ["graphics", "office", "terms"]
-      and rp.stack.currentWidget() is rp.checks_box and "Company Standards (Default)" in ed.where.text())
+      and rp.stack.currentWidget() is rp.checks_box and "Global Standards" in ed.where.text())
 it = next(i for i in ed.binder.items if i["path"] == ("graphics", "min_ppi"))
 it["w"].setValue(300)
 check("a change shows Save", ed.dirty and ed.b_save.isEnabled() and it["label"].font().bold())

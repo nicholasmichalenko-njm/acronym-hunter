@@ -1,4 +1,4 @@
-"""4.10.0: the Theme sheet of Company Standards.xlsx (morning answer 12). Word's theme holds twelve colors (text and
+"""4.10.0: the Theme sheet of Global Standards.xlsx (morning answer 12). Word's theme holds twelve colors (text and
 background, six accents, the two hyperlink colors) and two fonts (headings and body). The standard keeps the theme as
 Word's own XML (std["theme"]["xml"]); this sheet shows those fourteen values as rows and writes edits back into the XML,
 so everything else in the theme stays as Word wrote it. A standard with no theme starts from BASE, the Office colors

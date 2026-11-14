@@ -264,7 +264,7 @@ class RulesPage(QWidget):
             self.show_checks()
 
     def show_checks(self):
-        """3.69.0: graphics, Excel and PowerPoint, and the words Fix a Copy reports and fixes, in the Company Standards (Default)."""
+        """3.69.0: graphics, Excel and PowerPoint, and the words Fix a Copy reports and fixes, in the Global Standards."""
         from .stdeditor import GlobalStore, LayerEditor
         if self.checks is None:
             self.checks = LayerEditor(self.host, GlobalStore(self.host.config_dir), ["graphics", "office", "terms"])

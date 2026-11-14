@@ -1,8 +1,8 @@
-"""Effort Formatting (3.36.0): this effort's formatting on top of the Company Standards (Default), on a page of its own under
+"""Effort Formatting (3.36.0): this effort's formatting on top of the Global Standards, on a page of its own under
 Effort. The values efforts change most are up front (body, table and caption fonts and sizes, headings, paper and
-margins, header and footer), each with the Company Standards (Default) value beside it, what the RFP says with Use it, Reset, and Make it
+margins, header and footer), each with the Global Standards value beside it, what the RFP says with Use it, Reset, and Make it
 global. Changes apply to every volume of the effort or to one. Every setting opens the full Production Standards
-editor on this effort's layer. Nothing here changes the Company Standards (Default) except Make it global. Rules only."""
+editor on this effort's layer. Nothing here changes the Global Standards except Make it global. Rules only."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem,
@@ -34,13 +34,13 @@ class EffortFormatPage(QWidget):
         self.host = host
         self.rows, self._loading, self.rfp_map = {}, False, {}
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
-        self.empty = D.EmptyState("Open an effort", "Effort Formatting holds one effort's formatting on top of the Company "
-                                  "Standards (Default). Open an effort from All Efforts.")
+        self.empty = D.EmptyState("Open an effort", "Effort Formatting holds one effort's formatting on top of the Global "
+                                  "Standards. Open an effort from All Efforts.")
         outer.addWidget(self.empty)
         self.body = QWidget(); outer.addWidget(self.body, 1)
         bv = QVBoxLayout(self.body); bv.setContentsMargins(0, 0, 0, 0); bv.setSpacing(D.SPACE["m"])
-        top = D.Card("Effort Formatting", "This effort's formatting. It starts from the Company Standards (Default) (Production "
-                     "Standards) and keeps its own changes here; the Company Standards (Default) and the template library stay as they are.",
+        top = D.Card("Effort Formatting", "This effort's formatting. It starts from the Global Standards (Production "
+                     "Standards) and keeps its own changes here; the Global Standards and the template library stay as they are.",
                      actions=[D.button("Every setting...", "primary", lambda: self.every_setting(),
                                        "The full Production Standards editor on this effort's formatting: every value, table and part")])
         self.band = QLabel(""); self.band.setTextFormat(Qt.RichText); self.band.setWordWrap(True); top.add(self.band)
@@ -66,10 +66,10 @@ class EffortFormatPage(QWidget):
         sc.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         inner = QWidget(); sc.setWidget(inner)
         iv = QVBoxLayout(inner); iv.setContentsMargins(0, 0, 0, 0); iv.setSpacing(D.SPACE["m"])
-        vals = D.Card("The values efforts change most", "The Company Standards value is in grey. Set this effort's own; Reset takes "
-                      "it back to the Company Standards (Default) value. Where the RFP has a rule, it shows beside the value, in red when the value breaks it.")
+        vals = D.Card("The values efforts change most", "The Global Standards value is in grey. Set this effort's own; Reset takes "
+                      "it back to the Global Standards value. Where the RFP has a rule, it shows beside the value, in red when the value breaks it.")
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(D.SPACE["m"]); self.grid.setVerticalSpacing(D.SPACE["xs"])
-        for c, h in enumerate(("", "Company Standards", "This effort", "The RFP says", "", "")):
+        for c, h in enumerate(("", "Global Standards", "This effort", "The RFP says", "", "")):
             if h:
                 self.grid.addWidget(D.label(h, "label", wrap=False), 0, c)
         r = 1
@@ -84,15 +84,15 @@ class EffortFormatPage(QWidget):
         self.grid.setColumnStretch(3, 1)
         vals.body.addLayout(self.grid)
         iv.addWidget(vals)
-        ch = D.Card("Changed for this effort", "Everything this effort sets at this scope, with the Company Standards (Default) value.",
+        ch = D.Card("Changed for this effort", "Everything this effort sets at this scope, with the Global Standards value.",
                     actions=[D.button("Open this effort's workbook", None, lambda: self.open_book(),     # 4.7.0
                                       "This effort's changes as a workbook beside its list: edit it in Excel; a blank cell means the default"),
-                             D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the Company Standards (Default) value"),
+                             D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the Global Standards value"),
                              D.button("Undo the last Make it a standard", "ghost", lambda: self.undo_keep(),
-                                      "Put the Company Standards (Default) back as they were before the last Make it a standard")])
+                                      "Put the Global Standards back as they were before the last Make it a standard")])
         self.changes = QLabel(""); self.changes.setTextFormat(Qt.RichText); self.changes.setWordWrap(True); ch.add(self.changes)
         iv.addWidget(ch)
-        lp = D.Card("Library items this effort uses", "Covers, headers and footers, numbering, table looks: the Company Standards' "
+        lp = D.Card("Library items this effort uses", "Covers, headers and footers, numbering, table looks: the Global Standards' "
                     "pinned version, a version this effort chose, or this effort's own copy (kept in the effort, never added "
                     "to the library unless you save it there).",
                     actions=[D.button("Choose versions or this effort's own...", None, lambda: self.every_setting(section="profile_parts"),
@@ -146,11 +146,11 @@ class EffortFormatPage(QWidget):
             self.grid.addWidget(ed, r, 2)
         rfp = D.label("", "muted"); rfp.setWordWrap(True); rfp.setMinimumWidth(160); self.grid.addWidget(rfp, r, 3)
         use = D.button("Use it", "ghost", lambda _=False, k=key: self.use_rfp(k), "This effort takes the RFP's value")
-        reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the Company Standards (Default) value")
+        reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the Global Standards value")
         box = QHBoxLayout(); box.setSpacing(D.SPACE["xs"]); box.addWidget(use); box.addWidget(reset)
         wbox = QWidget(); wbox.setLayout(box); self.grid.addWidget(wbox, r, 4)
         keep = QToolButton(); keep.setText("Make it a standard"); keep.setPopupMode(QToolButton.InstantPopup)
-        keep.setToolTip("Write this effort's value into the Company Standards (Default), for every effort that uses them")
+        keep.setToolTip("Write this effort's value into the Global Standards, for every effort that uses them")
         menu = QMenu(keep); keep.setMenu(menu)
         menu.aboutToShow.connect(lambda k=key, m=menu: self.fill_keep_menu(k, m))
         self.grid.addWidget(keep, r, 5)
@@ -394,7 +394,7 @@ class EffortFormatPage(QWidget):
             data, eid, default, vols = EFM.ids(self.host.config_dir, self.host.ws)
             t = D.tokens()
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
-                              f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the Company Standards (Default) or "
+                              f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the Global Standards or "
                               f"the template library, unless you choose Make it a standard.</div>")
             self.etype.clear(); self.etype.addItem("None (volumes only)", "")
             for e in data.get("effort_types", []):
@@ -412,18 +412,18 @@ class EffortFormatPage(QWidget):
             self.scope.setCurrentIndex(max(0, self.scope.findData(cur or "")))
             et = PRL.effort_type_of(data, eid)
             prof = PRL.type_of(data, self.tid() or default)["name"]
-            self.inherits.setText("Starts from: the Company Standards (Default) > the " + prof + " profile"
+            self.inherits.setText("Starts from: the Global Standards > the " + prof + " profile"
                                   + (f" > the {et['name']} effort type" if et else "")
                                   + (" > this effort's values for every volume" if self.tid() else "") + ".")
             for key in self.rows:
                 self.show_row(key)
             ch = EFM.changed(self.host.config_dir, self.host.ws, self.tid())
             if ch:
-                self.changes.setText("".join(f"<div style='margin:2px 0'><b>{_esc(w)}</b>: Company Standards {_esc(_show(a))}, "
+                self.changes.setText("".join(f"<div style='margin:2px 0'><b>{_esc(w)}</b>: Global Standards {_esc(_show(a))}, "
                                              f"this effort's <b>{_esc(_show(b))}</b></div>" for w, a, b in ch[:60])
                                      + (f"<div>and {len(ch) - 60} more</div>" if len(ch) > 60 else ""))
             else:
-                self.changes.setText(f"<span style='color:{t['muted']}'>Nothing yet: every value is the Company Standards one.</span>")
+                self.changes.setText(f"<span style='color:{t['muted']}'>Nothing yet: every value is the Global Standards one.</span>")
             pr = EFM.parts(self.host.config_dir, self.host.ws, self.tid())
             self.parts.setRowCount(len(pr))
             for i, (_slot, what, src) in enumerate(pr):

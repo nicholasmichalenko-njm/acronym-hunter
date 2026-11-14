@@ -38,10 +38,10 @@ FORMATSTD = \
    "changes keeps the edits in this version; Save as a new version keeps them as the next one (Draft).",
    "Effort types...: the effort types an item is for (Every effort type, or some). The Effort type box shows the items for one "
    "effort type. Status: Draft (just imported), Approved (ready to build with), Retired (kept, not offered).",
-   "The first time this page opens, your standards become library items: the Company Standards (Default)'s (every effort type), each "
+   "The first time this page opens, your standards become library items: the Global Standards's (every effort type), each "
    "profile's and each effort type's changes as new versions labelled with their names. Nothing is deleted; Production Standards "
    "still makes the templates until Effort Profiles arrive. More > Bring in my standards again adds what changed since.",
-   "Put in a standard... carries the selected items into the Company Standards (Default), a profile or an effort type."],
+   "Put in a standard... carries the selected items into the Global Standards, a profile or an effort type."],
   ["Measuring a Quick Part's pages in Word is a button (Template library > Quick Parts > Measure pages), never automatic.",
    "Quick Parts and Layout get screens of their own in 3.50.0; Effort Profiles and Templates in 3.51.0."])
 
@@ -156,7 +156,7 @@ TEAM = ("team", "Team", "Team",
   ["A tool for another role is not shown; the page shown in its place says who it is for."])
 
 TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
-  "The Company Standards (Default) as files you can edit outside the app: their values in Company Standards.xlsx, and the "
+  "The Global Standards as files you can edit outside the app: their values in Global Standards.xlsx, and the "
   "Word files beside it (covers, title pages, Quick Parts). The app reads what changed and writes what it changes.",
   "When you add a style, a Quick Part or a cover between releases, or the team keeps its standards on SharePoint.",
   ["Settings > The team > Team library: where the files are (Stationkeeper Data\\Team library unless you point it at a "
@@ -165,12 +165,12 @@ TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
    "in the app: the workbook follows. While Excel has it open, the app waits.",
    "Status: only Approved rows reach templates and the macros. Columns you add are kept. Take a property column out and you "
    "are asked once whether to take it off every row.",
-   "Each effort's own workbook sits beside its acronym list: a blank cell means the Company Standards (Default) value. "
+   "Each effort's own workbook sits beside its acronym list: a blank cell means the Global Standards value. "
    "Effort Formatting > Open this effort's workbook.",
    "Field recipes show what a field gives on a sample page while you type it (a caption reads Table 2-2).",
    "The lists: Phrases, Authors, Compliance words, Piece types and Document types are sheets of the workbook; the master "
    "acronym list is Lists\\Acronyms.csv and each dictionary a Word .dic file in Lists\\Dictionaries (4.7.1)."],
-  ["A copy from another PC (Company Standards-PCNAME.xlsx) is reported, never read. Nothing is deleted."])
+  ["A copy from another PC (Global Standards-PCNAME.xlsx) is reported, never read. Nothing is deleted."])
 
 REDLINE = ("redline", "Documents", "Prepare for Redline",
   "A Word file of each PDF and picture in Documents that reads like it, with a reviewer's comments placed as tracked "

@@ -157,8 +157,8 @@ def make(version, out_root=None):
     shutil.copytree(cfg, os.path.join(out, "config"), ignore=shutil.ignore_patterns("*.lock", "*.tmp"))
     try:                                                     # 4.7.0: the Company Standards workbook, from the same standards
         import standardsbook as SB, fieldrecipes as FR
-        SB.write(os.path.join(out, "Company Standards.xlsx"), PRL.load(cfg)["company"], FR.load(cfg))
-        extra["standards_book"] = "Company Standards.xlsx"
+        SB.write(os.path.join(out, "Global Standards.xlsx"), PRL.load(cfg)["company"], FR.load(cfg))
+        extra["standards_book"] = "Global Standards.xlsx"
     except ImportError:
         pass
     expect = {"version": version, "package": os.path.basename(man["path"]), "effort": "Kestrel", "stage": "Author drafts",

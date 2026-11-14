@@ -6,7 +6,7 @@ value it holds, to edit one by one.
 Each item has a name you choose, effort-type tags, a status (Draft, Approved, Retired) and versions. Import from a
 Word file lands each item in its own category, all at once or not at all. The first time the libraries open, the
 standards on this PC become library items (libconvert); nothing is deleted. Until Effort Profiles arrive (3.51.0),
-Put in a standard... carries an item into the Company Standards (Default), a profile or an effort type."""
+Put in a standard... carries an item into the Global Standards, a profile or an effort type."""
 import html
 import os
 
@@ -88,7 +88,7 @@ class LibraryScreen(QWidget):
         ar.addWidget(D.button("Compare...", None, lambda: self.compare(), "Two selected items side by side, or the selected item "
                               "and its previous version"))
         ar.addWidget(D.button("Put in a standard...", None, lambda: self.put_in(), "Until Effort Profiles arrive: carry the selected "
-                              "items into the Company Standards (Default), a profile or an effort type"))
+                              "items into the Global Standards, a profile or an effort type"))
         ar.addWidget(D.button("Take out", "ghost", lambda: self.take_out()))
         self.draw_btn = QToolButton(); self.draw_btn.setText("Draw with Word"); self.draw_btn.setPopupMode(QToolButton.InstantPopup)
         self.draw_btn.setToolTip("Word on this PC draws items as they will print (Quick Parts' pages are counted in the same "
@@ -129,7 +129,7 @@ class LibraryScreen(QWidget):
                 if self.converted:
                     self.lib.load()
                     self.note.setText(f"Your standards are now library items: {self.converted['new'] + self.converted['version']} "
-                                      "item(s) from the Company Standards (Default), profiles and effort types. The standards themselves are unchanged.")
+                                      "item(s) from the Global Standards, profiles and effort types. The standards themselves are unchanged.")
             except Exception:  # noqa: BLE001  the libraries still open; More > Bring in my standards again retries
                 diag.error("library_convert", "The standards could not be converted to library items")
                 self.converted = {}
@@ -385,10 +385,10 @@ class LibraryScreen(QWidget):
         return rows
 
     def targets(self):
-        """[(key, words)] the standards an item can go into: the Company Standards (Default), each profile, each effort type."""
+        """[(key, words)] the standards an item can go into: the Global Standards, each profile, each effort type."""
         import prodrules as PRL
         data = PRL.load(self.host.config_dir)
-        return ([("company", "Company Standards (Default)")] + [("type:" + t["id"], f"Profile: {t['name']}") for t in data["types"]]
+        return ([("company", "Global Standards")] + [("type:" + t["id"], f"Profile: {t['name']}") for t in data["types"]]
                 + [("etype:" + e["id"], f"Effort type: {e['name']}") for e in data.get("effort_types", [])])
 
     def put_in(self, target=None):

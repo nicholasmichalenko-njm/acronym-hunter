@@ -38,7 +38,7 @@ def layer(data, eid, pid):
 
 
 def resolved(data, eid, pid):
-    """The standard the profile makes, everything merged (Company Standards (Default), profile, effort type, its changes)."""
+    """The standard the profile makes, everything merged (Global Standards, profile, effort type, its changes)."""
     return PRL.resolved_type(data, pid, eid)
 
 

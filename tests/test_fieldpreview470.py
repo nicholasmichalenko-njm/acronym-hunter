@@ -34,7 +34,7 @@ check("any other field: Word shows this one", FP.one("HYPERLINK x") == (FP.OTHER
 check("a caption recipe reads Table 2-2", FP.recipe(["STYLEREF 1 \\s", "SEQ Table \\* ARABIC \\s 1"], "-", label="Table") == ("Table 2-2", True))
 check("an appendix caption reads Table A-1", FP.recipe(["STYLEREF 7 \\s", "SEQ TableApp \\* ARABIC \\s 7"], "-",
                                                        label=FP.label_of(["SEQ TableApp \\s 7"]))[0] == "Table A-1")
-p = os.path.join(tempfile.mkdtemp(), "Company Standards.xlsx")
+p = os.path.join(tempfile.mkdtemp(), "Global Standards.xlsx")
 SB.write(p, PRL.load(tempfile.mkdtemp())["company"], FR.starters())
 rows = SB.read(p)["sheets"]["Fields"]
 cap = next(r for r in rows if r["Name"] == "Table caption")

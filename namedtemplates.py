@@ -1,6 +1,6 @@
 """A template as its own named thing (4.28.2; Nicholas 2026-11-12, answer 23). A template has a name you choose and a
 pick of what goes in: style sets in order, the Setup style set, a Quick Part set and the pages a document starts with
-(templatesets holds those rules). The page and the text's layout come from the Company Standards (Default). It belongs
+(templatesets holds those rules). The page and the text's layout come from the Global Standards. It belongs
 to no effort type and no profile. Made, it is a .dotx in the output folder's Templates\\Named folder with its name and
 version in it (templatereg). An effort picks one for each volume: the pick is kept as that volume's template file
 (templatesetup), so the setup is written on it exactly as on a template the team brings.
@@ -97,7 +97,7 @@ def set_recipe(config_dir, tid, sets):
 
 
 def std_of(config_dir, t, data=None):
-    """The standard the template is made from: the Company Standards (Default) with this template's pick."""
+    """The standard the template is made from: the Global Standards with this template's pick."""
     import prodrules as PRL
     import templatesets as TS
     data = data or PRL.load(config_dir)
@@ -136,7 +136,7 @@ def words(config_dir, t, lib=None):
         bits.append(f"Quick Parts: {k['name']}")
     if r["starts"]:
         bits.append(f"starts with {len(r['starts'])} page{'' if len(r['starts']) == 1 else 's'}")
-    return "; ".join(bits) or "Nothing picked yet: the Company Standards (Default) alone"
+    return "; ".join(bits) or "Nothing picked yet: the Global Standards alone"
 
 
 def state(config_dir, t, data=None, lib=None):
@@ -166,13 +166,13 @@ def make(config_dir, out_root, tid, word=None, when=None):
     std = PRL.engine_ready(std_of(config_dir, t, data))
     name = _name(t["name"]) or "Template"
     ver = max(TR.next_version(config_dir, name), int((t.get("made") or {}).get("version") or 0) + 1)   # the count is the template's: a rename keeps it
-    std["_template_name"], std["_template_version"], std["_standard"] = name, ver, "Company Standards (Default)"
+    std["_template_name"], std["_template_version"], std["_standard"] = name, ver, "Global Standards"
     std["name"] = f"{name} v{ver}"
     out = folder(out_root)
     os.makedirs(out, exist_ok=True)
     job = PT.make(std, out, "", word=word, when=when, parts_dir=PP.parts_dir(config_dir))
     try:
-        TR.record(config_dir, name, ver, job.copy, standard="Company Standards (Default)")
+        TR.record(config_dir, name, ver, job.copy, standard="Global Standards")
     except Exception:  # noqa: BLE001  the registry is a convenience; the template is made
         pass
     d = load(config_dir)

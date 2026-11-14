@@ -1,7 +1,7 @@
 """The team's lists as files (4.7.1; claude/stationkeeper-team-library-files-decisions-2026-11-10.md, decision 3, phase 2).
 
 The four tests decide where a list goes: a row defines it, people edit it, two readers use it, and it stays small.
-- Small lists are sheets of the Company Standards workbook (standardsbook): Phrases (banned and avoided, with what to
+- Small lists are sheets of the Global Standards workbook (standardsbook): Phrases (banned and avoided, with what to
   use instead), Authors (who writes, and for which efforts), Compliance words (the words that mark a requirement),
   Piece types (the shred's types: names, keys, colors, shown) and Document types (each with its initial).
 - Large lists stay files of their own in the team library's Lists folder: the master acronym list

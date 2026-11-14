@@ -111,6 +111,13 @@ check("going to another version backs up only what the PC itself changed", got["
       and os.listdir(os.path.join(got["backup"], "config")) == ["banned_words.csv"], (got, os.listdir(os.path.join(got["backup"], "config"))))
 man4 = GF.update(A, F, by="Avery", note="again")
 check("an update never reuses a number, even one an unsound version holds", man4["version"] == 4)
+import teamlib as T
+lib = os.path.join(tmp, "lib"); os.makedirs(lib)
+with open(os.path.join(lib, T.OLD_BOOK), "w") as f:
+    f.write("old")
+p_ = T.book_path(A, {"team_library": lib})
+check("the workbook is Global Standards.xlsx; one under its earlier name is renamed once, with its contents", os.path.basename(p_) == "Global Standards.xlsx"
+      and open(p_).read() == "old" and not os.path.exists(os.path.join(lib, T.OLD_BOOK)) and T.book_path(A, {"team_library": lib}) == p_)
 n = sum(checks)
 print(f"GLOBAL FOLDER 4310 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

@@ -83,7 +83,7 @@ class SettingsPage(QWidget):
         from .teamview import TeamCard                   # 2.89.0: one file sets up every PC the same way
         self.team_card = TeamCard(host)
         v.addWidget(self.team_card)
-        from .teamlibview import card as _team_lib_card       # 4.7.0: Company Standards.xlsx and the Word files beside it
+        from .teamlibview import card as _team_lib_card       # 4.7.0: Global Standards.xlsx and the Word files beside it
         __import__("skqt.globalview", fromlist=["x"]).add_card(self, v)      # 4.30.0: the foundation's version on this PC
         self.tl_card = _team_lib_card(self)
         v.addWidget(self.tl_card)

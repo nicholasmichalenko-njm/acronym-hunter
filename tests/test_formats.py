@@ -107,7 +107,14 @@ check("suggestion scores", json.load(open(os.path.join(cfg, "suggestion_scores.j
 import globalstd as GS                                                   # 4.30.0
 GS.take(cfg, 1, GS.DRAFT)
 check("global standards", json.load(open(os.path.join(cfg, GS.FILE)))["format"] == F.number("global standards") == GS.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 27, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
+import globalfolder as GF                                                # 4.31.0
+with open(os.path.join(cfg, "rules.json"), "w") as f:
+    f.write('{"format": 1, "rules": []}')
+gsf = os.path.join(tmp, "gs"); os.makedirs(gsf)
+man = GF.update(cfg, gsf)
+check("global standards version", man["format"] == json.load(open(os.path.join(gsf, "current.json")))["format"]
+      == json.load(open(os.path.join(gsf, "v0001", "manifest.json")))["format"] == F.number("global standards version") == GF.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 28, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

@@ -1,4 +1,4 @@
-"""4.10.0: the Theme sheet of Company Standards.xlsx (morning answer 12): twelve colors and two fonts as rows, written
+"""4.10.0: the Theme sheet of Global Standards.xlsx (morning answer 12): twelve colors and two fonts as rows, written
 from the standard's theme and read back into Word's theme XML; a standard with no theme starts from the Office base;
 a value that is not a color is reported and kept as it was. Fictional content."""
 import os, sys, tempfile
@@ -19,7 +19,7 @@ def check(name, ok, info=""):
 
 
 tmp = tempfile.mkdtemp()
-p = os.path.join(tmp, "Company Standards.xlsx")
+p = os.path.join(tmp, "Global Standards.xlsx")
 check("the base theme is Word's own shape and reads as the Office colors and fonts", ET.fromstring(TB.BASE.split("?>", 1)[1]) is not None
       and TL.read_theme(TB.BASE)["colors"]["accent1"] == "4472C4" and TL.read_theme(TB.BASE)["minor"] == "Calibri")
 company = {"style_defs": {"Normal": {"font": "Calibri", "size": 11}}}

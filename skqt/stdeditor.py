@@ -1,11 +1,11 @@
-"""A layer of the Company Standards (Default) edited outside Production Standards (3.69.0, retiring Production Standards: decision
+"""A layer of the Global Standards edited outside Production Standards (3.69.0, retiring Production Standards: decision
 1). The same values, in the same file (production_standards.json), shown where people look for them now: Rules (the
 checks Fix a Copy runs), Formatting Standards (allowed styles and the styles the rules read), Effort Profiles (a
 profile's content map, fields and font rules).
 
 LayerEditor(host, store, sections) shows each section (stdsections builds them) with Save and Undo changes. A value set
 in this layer shows in bold; the layer below is what it says when nothing is set here.
-Stores: GlobalStore(config_dir) the Company Standards (Default) (every effort); ProfileStore(config_dir, eid, pid) one profile's
+Stores: GlobalStore(config_dir) the Global Standards (every effort); ProfileStore(config_dir, eid, pid) one profile's
 changes in one effort type. Binder, form rows and a simple table editor live here so Production Standards can retire."""
 import copy
 
@@ -51,9 +51,9 @@ def enum(items, editable=False):
 
 # ---------------------------------------------------------------- where the layer lives
 class GlobalStore:
-    """The Company Standards (Default): every effort."""
+    """The Global Standards: every effort."""
     scope = "team"
-    what = "the Company Standards (Default) (every effort)"
+    what = "the Global Standards (every effort)"
 
     def __init__(self, config_dir):
         self.config_dir = config_dir

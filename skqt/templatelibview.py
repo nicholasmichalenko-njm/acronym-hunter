@@ -46,7 +46,7 @@ def item_icon(lib, i):
 
 
 def where_used(page, lib, iid):
-    """The standards that carry an item by name: the one being edited and the saved Company Standards (Default) and volume
+    """The standards that carry an item by name: the one being edited and the saved Global Standards and volume
     profiles (styles, page setups, Quick Parts, table styles, header and footer designs)."""
     it = lib.get(iid) if iid and not str(iid).startswith("kit:") else None
     if it is None:
@@ -73,7 +73,7 @@ def where_used(page, lib, iid):
         import prodrules as PRL
         data = PRL.load(page.host.config_dir)
         if has(data.get("company") if isinstance(data, dict) else None):
-            out.append("the Company Standards (Default)")
+            out.append("the Global Standards")
         for t in (data.get("types") or []) if isinstance(data, dict) else []:
             if has(t):
                 out.append(t.get("name") or t.get("id") or "a volume profile")

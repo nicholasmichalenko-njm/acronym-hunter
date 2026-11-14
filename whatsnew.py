@@ -2,6 +2,14 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.31.0": ["Global Standards, step 2: Settings > Global Standards has Link a folder... (a SharePoint library synced to this PC, "
+               "or any folder). A PC takes a newer version when the app opens, or at once with Use it now. What the PC itself "
+               "had changed is kept in a dated backup and named once.",
+               "Someone who can write to that folder sees Update Global Standards...: the changes waiting on the PC, each "
+               "with the version's value and this PC's, Put back to drop one, a note, and Update to version N... It needs no "
+               "effort open.",
+               "One name: Company Standards (Default) is Global Standards on every page. The workbook is Global "
+               "Standards.xlsx; the one you have is renamed once."],
     "4.30.8": ["Acronyms: capital-letter terms written together with a slash, an ampersand, a hyphen, a period or an underscore "
                "are offered once: the joined term, or its pieces when each piece is a term of its own. Never both.",
                "More on the card: These are separate terms (on a joined term) and This is one term (on a piece). The answer is "

@@ -27,8 +27,10 @@ templates, and checks. One person builds it, with Claude. Keep this file under t
    five and every screen to its count in `tools/screen_baseline.json` (lower it when a screen loses controls).
 
 ## Words we use
-- **Company Standards (Default)**: the formatting for every effort (was "global standards"; never "team standard"); its
-  values live in the team library's Company Standards.xlsx (4.7.0). **Effort Formatting**: one effort's own.
+- **Global Standards**: the foundation every effort starts from, one set with a version number (never "Company
+  Standards", "team standard" or "publish"): a few people **update** it (Update Global Standards) from the **changes
+  waiting** on their PC (never "draft": a draft is a proposal draft); every PC takes versions from the linked folder
+  (`globalfolder.py`). **Effort Standards**: an effort's own set. **Effort Formatting**: one effort's formatting today.
 - **Rule N**: the production rules (Rules page, `rulebook.py`; check codes RU1 to RU8). **house rules**: this file's list.
 - **effort**, **volume**, **section**, **response structure**, **Used on** (a style's family, set by the user, never
   guessed from its name).

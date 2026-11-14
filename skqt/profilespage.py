@@ -176,7 +176,7 @@ class EffortProfilesPage(QWidget):
             stt = TP.state(std, lib, slot)
             r = self.t.rowCount(); self.t.insertRow(r)
             use = lib.shown_name(stt["item"]) if stt["item"] is not None else (
-                "a version no longer in the library" if stt["pin"] else "the Company Standards (Default)'s values")
+                "a version no longer in the library" if stt["pin"] else "the Global Standards's values")
             for c, text in enumerate((part, what, use, (f"v{stt['newer']['version']} saved" if stt["newer"] else ""))):
                 it = QTableWidgetItem(text); it.setData(Qt.UserRole, slot)
                 if c == 3 and stt["newer"]:

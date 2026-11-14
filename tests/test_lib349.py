@@ -182,7 +182,7 @@ check("not converted yet", not CV.done(cfg5))
 r = CV.ensure(cfg5)
 lib5 = TL.Library(cfg5)
 check("the standards become items once", r and r["new"] > 5 and CV.done(cfg5) and CV.ensure(cfg5) is None)
-g = [i for i in lib5.items if i.get("source") == "Company Standards (Default)"]
+g = [i for i in lib5.items if i.get("source") == "Global Standards"]
 check("the global standard's items are for every effort type, Approved", g and all(LC.effort_types(i) == [LC.ALL] and LC.status(i) == "approved" for i in g))
 bt = [i for i in lib5.items if i["kind"] == "style" and lib5.base_of(i) == "Body Text"]
 check("a profile's change is a new version labelled with the profile", len(bt) == 2 and any(i.get("label") == d["types"][0]["name"]
