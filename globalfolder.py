@@ -22,6 +22,8 @@ Words (Nicholas 2026-11-14): update, not publish; changes waiting, not a draft.
     update(config_dir, folder, by, note)  writes the next version from what this PC holds; returns its manifest
     ready(config_dir, folder)             the manifest of a newer sound version than the PC is on, or None
     take(config_dir, folder, n=None)      puts a version on this PC: {"version", "replaced": [part names], "backup"}
+    put_back(config_dir, folder, files)   a waiting change is dropped: those files are as the version has them again
+    folder(settings) / set_folder(path)   where this PC reads versions from (Settings > Global Standards)
 
 Standard library only. Rules only (No AI); nothing leaves the PC."""
 import datetime, hashlib, json, os, re, shutil
@@ -243,3 +245,46 @@ def take(config_dir, folder, n=None, when=None):
                 pass
     GS.take(config_dir, n, GS.LINKED, by=man.get("by", ""), note=man.get("note", ""), when=when)
     return {"version": n, "replaced": replaced, "backup": backup}
+
+
+def put_back(config_dir, folder, files):
+    """Drop the changes waiting in these files (as waiting() names them): each is as the version in use has it again;
+    one the version does not have leaves. Returns how many files changed. The PC's version does not change."""
+    man = current(folder)
+    if not man:
+        return 0
+    mine = _members(config_dir)
+    n = 0
+    for m in sorted(set(mine) | set(man["files"])):
+        if m.split("/", 1)[1] not in files:
+            continue
+        if m in man["files"]:
+            if m in mine and GS._sha_file(mine[m][1]) == man["files"][m]:
+                continue
+            dst = TD._local_path(config_dir, m)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(_member_path(folder, man["version"], m), dst + ".tmp")
+            os.replace(dst + ".tmp", dst)
+            n += 1
+        elif m in mine:
+            os.remove(mine[m][1]); n += 1
+    return n
+
+
+def folder(settings=None):
+    """The Global Standards folder this PC is linked to ("" when none)."""
+    if settings is None:
+        try:
+            import app_gui as A
+            settings = A.load_settings()
+        except Exception:                                         # noqa: BLE001
+            settings = {}
+    return str((settings or {}).get(SETTING) or "")
+
+
+def set_folder(path):
+    import app_gui as A
+    s = A.load_settings()
+    s[SETTING] = str(path or "")
+    A.save_settings(s)
+    return s[SETTING]

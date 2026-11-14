@@ -20,6 +20,7 @@ def install(w):
     if on():
         w.team_timer.start()
         QTimer.singleShot(4000, lambda: tick(w))
+        QTimer.singleShot(1500, lambda: __import__("skqt.globalview", fromlist=["x"]).at_open(w))   # 4.31.0: a newer version
 
 
 def tick(w, ask=True):
@@ -49,6 +50,9 @@ def tick(w, ask=True):
                 said.append("This effort's formatting workbook: " + pr)
     except Exception:  # noqa: BLE001
         diag.swallowed()
+    more = __import__("skqt.globalview", fromlist=["x"]).watch(w)      # 4.31.0: a newer Global Standards version is ready
+    if more:
+        said.append(more)
     if said:
         w.status("  ".join(said))
     return said
