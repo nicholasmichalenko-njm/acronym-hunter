@@ -399,14 +399,27 @@ def has_text(doc):
     return sum(len(p["lines"]) for p in doc["pages"]) >= 3
 
 
-def place_map(pdf, page_no, items, headings=()):
+def by_page(items):
+    """{page number: the sentences with a place (or a lead-in) on that page}, in the order given. 4.30.4: place_map was
+    handed every sentence of the file for every page, so a 700-page file read each sentence's place 700 times."""
+    out = {}
+    for it in items:
+        pages = {pg for pg, _a, _b in parse_place(it.get("place"))} | {pg for pg, _a, _b in parse_place(it.get("lead_place"))}
+        for pg in pages:
+            out.setdefault(pg, []).append(it)
+    return out
+
+
+def place_map(pdf, page_no, items, headings=(), pd=None):
     """The page map Page view draws, from the sentences' own places (nothing matched again): {"size", "items": [{"id",
     "rects", "words", "part"}], "headings": [rects], "missing": [{"text", "rects"}], "furniture": [boxes], "chars"}.
-    Headers and footers get no box and are never "missing": they cannot be clicked, dragged over or added."""
+    Headers and footers get no box and are never "missing": they cannot be clicked, dragged over or added.
+    pd: the file already open (4.30.4: a caller drawing every page opens it once; it is then left open for the caller)."""
     import pypdfium2 as pdfium
     doc = doc_of(pdf)
     skip = doc.get("skip", set())
-    pd = pdfium.PdfDocument(pdf)
+    mine_pd = pd is None
+    pd = pdfium.PdfDocument(pdf) if mine_pd else pd
     try:
         page = pd[page_no - 1]
         w, h = page.get_size()
@@ -477,7 +490,8 @@ def place_map(pdf, page_no, items, headings=()):
         page.close()
         return out
     finally:
-        pd.close()
+        if mine_pd:
+            pd.close()
 
 
 def merge_places(items):

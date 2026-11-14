@@ -361,7 +361,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("F1"), self, activated=lambda: GD.open_guide(self))
         QShortcut(QKeySequence("Ctrl+Z"), self, activated=lambda: self.undo_here())    # 3.18.2: one Undo for the window
         QShortcut(QKeySequence("Ctrl+Shift+I"), self, activated=lambda: self.open_issues())   # 3.9.0: issues and ideas
-        self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
+        self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=lambda: __import__("skqt.matrixsave", fromlist=["x"]).soon(self))
         __import__("skqt.frame", fromlist=["x"]).simplify(self)         # 3.75.0: a smaller bar on every screen
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()
@@ -1003,6 +1003,7 @@ class MainWindow(QMainWindow):
 
     def save_now(self):
         self.save_timer.stop()
+        __import__("skqt.matrixsave", fromlist=["x"]).settle(self)      # 4.30.4: a write under way finishes first
         if self.review is not None and self.review.M.pending:
             if not self.safety.before_save(self.review.M):
                 self.title()

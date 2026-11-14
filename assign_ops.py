@@ -10,6 +10,16 @@ import setupdoc as SD
 UNDO_STEPS = 40
 
 
+def _copy(x):
+    """A copy for Undo with nothing shared with the original. 4.30.4: several times faster than copy.deepcopy on
+    thousands of pieces (plain lists, dicts and text); anything it cannot take is copied the old way."""
+    try:
+        import pickle
+        return pickle.loads(pickle.dumps(x, pickle.HIGHEST_PROTOCOL))
+    except Exception:  # noqa: BLE001
+        return copy.deepcopy(x)
+
+
 class Review:
     """A matrix being assigned: its decisions, an undo history and the last requirement clicked (what C supports)."""
 
@@ -100,8 +110,8 @@ class Review:
                 extra = self.extra_get()
             except Exception:  # noqa: BLE001
                 extra = None
-        self.undo.append((copy.deepcopy(self.M.items), copy.deepcopy(SD.setup_of(self.M)),
-                          copy.deepcopy(getattr(self.M, "outline", None)), label or "", extra))
+        self.undo.append((_copy(self.M.items), _copy(SD.setup_of(self.M)),
+                          _copy(getattr(self.M, "outline", None)), label or "", extra))
         del self.undo[:-UNDO_STEPS]
         self._fresh = True
 
@@ -143,11 +153,13 @@ class Review:
             return 0
         if not label:                                  # 2.68.0: a requirement before the structure exists; placed later
             self.snap()
-            for it in rows:
-                if it.get("decision") != "Keep":
-                    SD.clear_sections(self.M, it)
-                    C.assign_requirement(self.M.items, [it], "")
-                    self.M.log(it["id"], "compliance requirement (no section yet)")
+            todo = [it for it in rows if it.get("decision") != "Keep"]
+            for it in todo:
+                SD.clear_sections(self.M, it)
+            if todo:
+                C.assign_requirement(self.M.items, todo, "")      # 4.30.4: once for all of them, not once for each
+            for it in todo:
+                self.M.log(it["id"], "compliance requirement (no section yet)")
             if len(rows) == 1:
                 self.last_req = rows[0]["id"]
             self.changed()

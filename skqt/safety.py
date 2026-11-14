@@ -49,7 +49,7 @@ class Safety:
         self.issues = []
         self.disk_mtime = self.disk_sha = None
         self.conflict_answer = None     # tests: "mine" or "theirs"
-        self.snap_timer = QTimer(host, singleShot=True, interval=400, timeout=self.snapshot)
+        self.snap_timer = QTimer(host, singleShot=True, interval=400, timeout=self.snapshot_soon)
         self.timer = QTimer(host, interval=TICK_MS, timeout=self.tick)
         self.timer.start()
 
@@ -270,10 +270,45 @@ class Safety:
     def changed(self):
         self.snap_timer.start()
 
+    def snapshot_soon(self):
+        """4.30.4: the recovery copy after a change, written on another thread. With thousands of pieces, writing it on
+        the window's thread stalled the window a moment after every decision. The matrix is copied here as it stands;
+        a write still running is waited for by trying again; a save waits for it (settle) before it clears the copy."""
+        h = self.host
+        if h.ws is None or h.review is None or not h.review.M.pending:
+            return False
+        t = getattr(self, "_snap_thread", None)
+        if t is not None and t.is_alive():
+            self.snap_timer.start()
+            return False
+        M = h.review.M
+        try:
+            import pickle, threading
+            blob = pickle.dumps({k: v for k, v in vars(M).items() if k not in ("path", "pending")})
+        except Exception:
+            return self.snapshot()                    # something in it cannot be copied this way: written here, as before
+        ws, path = h.ws, M.path
+
+        def write():
+            try:
+                ws.write_recovery("matrix", path, pickle.loads(blob))
+            except Exception:
+                diag.swallowed()
+        self._snap_thread = threading.Thread(target=write, daemon=True)
+        self._snap_thread.start()
+        return True
+
+    def settle(self):
+        """Wait for a recovery copy being written (before it is read, cleared or written again here)."""
+        t = getattr(self, "_snap_thread", None)
+        if t is not None and t.is_alive():
+            t.join(30)
+
     def snapshot(self):
         h = self.host
         if h.ws is None or h.review is None or not h.review.M.pending:
             return False
+        self.settle()
         M = h.review.M
         try:
             h.ws.write_recovery("matrix", M.path, {k: v for k, v in vars(M).items() if k not in ("path", "pending")})
@@ -351,6 +386,7 @@ class Safety:
         if h.ws is None:
             return
         try:
+            self.settle()
             h.ws.clear_recovery("matrix", path)
             h.ws.backup(path, "matrix")
         except Exception:
@@ -359,6 +395,7 @@ class Safety:
     def offer_recovery(self, M):
         """The matrix just opened: changes written to the recovery copy after its last save come back if wanted."""
         h = self.host
+        self.settle()
         rec = h.ws.read_recovery("matrix", M.path) if h.ws is not None else None
         if not rec:
             return False

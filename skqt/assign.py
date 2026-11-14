@@ -103,8 +103,12 @@ class SentenceBox(QGraphicsPathItem):
     def style(self, dec=None, current=None):
         self.dec = self.dec if dec is None else dec
         self.current = self.current if current is None else current
-        col = self.color()
         sel = self.isSelected()
+        sig = (self.dec, self.current, sel, self.hover, self.sg, self.lm, self.mark, D.page_color(self.dec, self.lm))
+        if sig == getattr(self, "_styled", None):          # 4.30.4: drawn this way already (thousands of boxes a click)
+            return
+        self._styled = sig
+        col = self.color()
         fill = QColor("#FDE68A") if (sel and not self.dec) else QColor(col)
         fill.setAlpha((140 if sel else 0) if not self.dec else (115 if sel else (34 if self.dec == "Heading" else 70)))
         if self.mark and not self.dec and not sel:                 # 3.18.1: captured from, not decided yet: a light fill
@@ -1322,9 +1326,14 @@ class AssignPage(QWidget):
         heads = [] if self.cx is not None else [x for x in self.M.headings if x.get("file") in ("", None, self.file)]
         items = [dict(it, place=self.placed[it["id"]][0], lead_place=self.placed[it["id"]][1]) for it in rows if it["id"] in self.placed]
         rects = {}
+        on_page, pd = PS.by_page(items), None                 # 4.30.4: each page gets its own sentences; the file opens once
+        try:
+            pd = __import__("pypdfium2").PdfDocument(self.pdf)
+        except Exception:
+            diag.swallowed()
         for n in range(1, len(self.tops) + 1):
             try:
-                m = PS.place_map(self.pdf, n, items, heads)
+                m = PS.place_map(self.pdf, n, on_page.get(n, []), heads, pd=pd)
             except Exception:
                 diag.swallowed()
                 continue
@@ -1335,6 +1344,8 @@ class AssignPage(QWidget):
             for l, t, r, b in m["headings"]:
                 pen = QPen(QColor("#475569")); pen.setWidthF(0.6); pen.setCosmetic(True)
                 sc.addRect(QRectF(l + MARGIN - 1, t + y0 - 1, r - l + 2, b - t + 2), pen)
+        if pd is not None:
+            pd.close()
         for it in ([] if self.cx is not None else rows):    # 3.19.0: text added from an area its words could not be found
             if not it.get("area"):                           # in (a scanned page, wording fixed, header or footer band):
                 continue                                    # its box is the area it was read from, on top
@@ -1370,9 +1381,23 @@ class AssignPage(QWidget):
         if self.R is None:                                       # 3.34.1: no matrix (a new effort): nothing to color
             return None
         sc = self.view.scene()
+        # 4.30.4: a margin label that reads the same in the same place is kept, not taken out and made again. With
+        # thousands of decided pieces every click remade thousands of labels.
+        old = self._label_pool if getattr(self, "_pool_list", None) is self.labels else {}
+        kept = {id(x) for x in old.values()}
         for lab in self.labels:
-            sc.removeItem(lab)
-        self.labels = []
+            if id(lab) not in kept:
+                sc.removeItem(lab)
+        self.labels, pool = [], {}
+
+        def put(key, make):
+            lab = old.pop(key, None)
+            if lab is None:
+                lab = make()
+                sc.addItem(lab)
+            pool[key] = lab
+            self.labels.append(lab)
+            return lab
         import topics as TP                                          # 3.28.0: topics on the right, Show one topic
         trec = self._trec() if hasattr(self, "topic_show") else None
         tlist = TP.topics(trec) if trec is not None else []
@@ -1384,14 +1409,19 @@ class AssignPage(QWidget):
             box.setOpacity(1.0 if (not want or (want == "-" and not ids) or (want not in ("", "-") and want in ids)) else 0.18)
             if ids and tlist:
                 r = box.boundingRect()
-                lab = QGraphicsSimpleTextItem(" ".join(f"{tnum[x] + 1}" if tnum.get(x, 99) < 9 else "+" for x in ids if x in tnum))
-                lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
                 first = next((t for t in tlist if t["id"] in ids), None)
-                lab.setBrush(QColor(first["color"] if first else "#4338CA"))
-                lab.setPos(r.right() + 4, r.top())
-                lab.setToolTip(", ".join(t["name"] for t in tlist if t["id"] in ids))
-                sc.addItem(lab)
-                self.labels.append(lab)
+                ttxt = " ".join(f"{tnum[x] + 1}" if tnum.get(x, 99) < 9 else "+" for x in ids if x in tnum)
+                tcol = first["color"] if first else "#4338CA"
+                ttip = ", ".join(t["name"] for t in tlist if t["id"] in ids)
+
+                def mk(ttxt=ttxt, tcol=tcol, ttip=ttip, r=r):
+                    lab = QGraphicsSimpleTextItem(ttxt)
+                    lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
+                    lab.setBrush(QColor(tcol))
+                    lab.setPos(r.right() + 4, r.top())
+                    lab.setToolTip(ttip)
+                    return lab
+                put(("topic", iid, ttxt, tcol, ttip, r.right(), r.top()), mk)
         last_y = -100.0
         for iid, box in sorted(self.view.boxes.items(), key=lambda kv: kv[1].boundingRect().top()):
             it = self.R.item(iid)
@@ -1410,21 +1440,27 @@ class AssignPage(QWidget):
             if kinds:                                               # 3.18.1: what was captured from it, in the margin
                 y = max(box.boundingRect().top(), last_y + 11)
                 last_y = y
-                lab = QGraphicsSimpleTextItem(PM.text(kinds, getattr(self, "bin_names", {})))
-                lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
-                lab.setBrush(QColor(D.CAPTURE_COLOR))
-                lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
-                sc.addItem(lab)
-                self.labels.append(lab)
+                ctxt = PM.text(kinds, getattr(self, "bin_names", {}))
+
+                def mk(ctxt=ctxt, y=y):
+                    lab = QGraphicsSimpleTextItem(ctxt)
+                    lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
+                    lab.setBrush(QColor(D.CAPTURE_COLOR))
+                    lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
+                    return lab
+                put(("capture", iid, ctxt, D.CAPTURE_COLOR, y), mk)
             if not tag and box.sg:
                 y = max(box.boundingRect().top(), last_y + 11)
                 last_y = y
-                lab = QGraphicsSimpleTextItem(f"{box.sg}?")
-                f = QFont("Segoe UI", 7); f.setItalic(True); lab.setFont(f)
-                lab.setBrush(QColor(D.page_color(SG_DEC.get(box.sg, ""), SG_LM.get(box.sg, ""))))
-                lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
-                sc.addItem(lab)
-                self.labels.append(lab)
+                scol = D.page_color(SG_DEC.get(box.sg, ""), SG_LM.get(box.sg, ""))
+
+                def mk(stxt=f"{box.sg}?", scol=scol, y=y):
+                    lab = QGraphicsSimpleTextItem(stxt)
+                    f = QFont("Segoe UI", 7); f.setItalic(True); lab.setFont(f)
+                    lab.setBrush(QColor(scol))
+                    lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
+                    return lab
+                put(("suggestion", iid, box.sg, scol, y), mk)
                 continue
             if not tag:
                 continue
@@ -1436,12 +1472,18 @@ class AssignPage(QWidget):
                 lmv = it.get("lm") or ""
                 vols = [v.split(" ")[1] if v.lower().startswith("volume ") and len(v.split(" ")) > 1 else v[:6] for v in O.volumes_of_item(self.M, it)]
                 txt = " ".join(x for x in (tag, lmv, iid, ("V " + "+".join(vols)) if vols else "") if x)
-            lab = QGraphicsSimpleTextItem(txt)
-            lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
-            lab.setBrush(QColor(D.page_color(dec, box.lm or it.get("lm") or "")))
-            lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
-            sc.addItem(lab)
-            self.labels.append(lab)
+            gcol = D.page_color(dec, box.lm or it.get("lm") or "")
+
+            def mk(txt=txt, gcol=gcol, y=y):
+                lab = QGraphicsSimpleTextItem(txt)
+                lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
+                lab.setBrush(QColor(gcol))
+                lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
+                return lab
+            put(("tag", iid, txt, gcol, y), mk)
+        for lab in old.values():                                   # what no longer reads the same, or is gone
+            sc.removeItem(lab)
+        self._label_pool, self._pool_list = pool, self.labels
         from . import amendflags as AF                             # 3.89.0 decision 6: changed by an amendment
         AF.mark_page(self)
 

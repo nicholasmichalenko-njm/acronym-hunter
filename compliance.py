@@ -705,6 +705,9 @@ CONTEXT_REACH = 12          # how many sentences before or after to look for the
 UNDECIDED = "Undecided"     # a draft that takes a decision back
 
 
+_LOG_AT = [None, ""]          # the second and its text, for Matrix.log
+
+
 def cf_ids(value):
     """'L.4-01; L.5-02' -> ['L.4-01', 'L.5-02']."""
     return [x.strip() for x in re.split(r"[;,]", value or "") if x.strip()]
@@ -821,10 +824,19 @@ def link_contexts(items):
 def assign_requirement(items, rows, label):
     """Rows become compliance requirements in the outline section label. Context that goes with them (first link)
     follows them to the new section."""
+    # 4.30.4: the Context that follows each row is found once. Reading every sentence for every row took 45 seconds for
+    # 3,500 rows of a 4,200-sentence file. Each one is still checked as it stands when its row's turn comes, so the
+    # result is the same (a row turned into a requirement earlier in the loop is no longer Context).
+    follows = {}
+    for x in items:
+        if x.get("decision") == "Context":
+            links = cf_ids(x.get("context_for", ""))
+            if links:
+                follows.setdefault(links[0], []).append(x)
     for it in rows:
         old = it.get("map", "")
         it.update(decision="Keep", map=label, context_for="", draft="", draft_cf="")
-        for x in items:
+        for x in follows.get(it["id"], ()):
             links = cf_ids(x.get("context_for", ""))
             if x.get("decision") == "Context" and links and links[0] == it["id"] and x.get("map", "") in ("", old):
                 x["map"] = label
@@ -1332,7 +1344,11 @@ class Matrix:
 
     def log(self, what, change):
         user = os.environ.get("USERNAME") or os.environ.get("USER") or "unknown"
-        self.history.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), user, what, change])
+        import time as _time
+        sec = int(_time.time())                                 # 4.30.4: the time is worked out once a second, not for each of
+        if _LOG_AT[0] != sec:                                   # thousands of pieces changed in one action
+            _LOG_AT[:] = [sec, datetime.datetime.now().strftime("%Y-%m-%d %H:%M")]
+        self.history.append([_LOG_AT[1], user, what, change])
         self.pending = True
 
     def path_of(self, file_name):
@@ -1394,19 +1410,28 @@ class Matrix:
         if self.setup:                              # 2.38.0: the Owner column shows the section's lead when none is set
             import setupdoc
             owner = lambda it: setupdoc.owner_of(self, it)
+        row_fill = []                               # 4.30.4: each row's number and fill are kept as it is written
         for it in self.items:
             ws.append([clean_chars(("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
                        "|".join(it.get("base") or []) if c == "Heading under" else (f"H{it['hlevel']}" if it.get("hlevel") else "") if c == "Heading level" else
                        (json.dumps(it["cl"], ensure_ascii=False) if it.get("cl") else "") if c == "Compliance language" else
                        (owner(it) if owner and c == "Owner" else it.get(FIELD[c], ""))) for c in COLUMNS])
-            ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw, it=it)
-            f = fills.get(it["decision"])
-            if f:
-                for c in ws[ws.max_row]:
-                    c.fill = PatternFill("solid", fgColor=f)
-        for row in ws.iter_rows(min_row=2):
+            row_fill.append(fills.get(it["decision"]))
+            ws.cell(row=len(row_fill) + 1, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw, it=it)
+        # The same cells as before (wrapped, top; a row in its decision's color), set once per look and copied. Asking
+        # the sheet for its last row and setting each cell's look on its own made saving 4,200 pieces take 12 seconds.
+        import copy as _copy
+        looks = {}
+        for row in (ws.iter_rows(min_row=2, max_row=len(row_fill) + 1) if row_fill else ()):
+            f = row_fill[row[0].row - 2]
+            if f not in looks:
+                c0 = row[0]
+                if f:
+                    c0.fill = PatternFill("solid", fgColor=f)
+                c0.alignment = Alignment(wrap_text=True, vertical="top")
+                looks[f] = c0._style
             for c in row:
-                c.alignment = Alignment(wrap_text=True, vertical="top")
+                c._style = _copy.copy(looks[f])
         ws.freeze_panes = "C2"
         last = ws.cell(row=1, column=len(COLUMNS)).column_letter
         ws.auto_filter.ref = f"A1:{last}{max(2, ws.max_row)}"
