@@ -244,7 +244,17 @@ def take(config_dir, folder, n=None, when=None):
             except OSError:
                 pass
     GS.take(config_dir, n, GS.LINKED, by=man.get("by", ""), note=man.get("note", ""), when=when)
+    _book_follows(config_dir)
     return {"version": n, "replaced": replaced, "backup": backup}
+
+
+def _book_follows(config_dir):
+    """The workbook in the team library is written again from the values now on this PC (on the next tick)."""
+    try:
+        import teamlib
+        teamlib.mark_dirty(config_dir)
+    except Exception:                                             # noqa: BLE001  the workbook is a copy; the values are in
+        pass
 
 
 def put_back(config_dir, folder, files):
@@ -268,6 +278,8 @@ def put_back(config_dir, folder, files):
             n += 1
         elif m in mine:
             os.remove(mine[m][1]); n += 1
+    if n:
+        _book_follows(config_dir)
     return n
 
 
