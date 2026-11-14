@@ -39,8 +39,9 @@ class EffortFormatPage(QWidget):
         outer.addWidget(self.empty)
         self.body = QWidget(); outer.addWidget(self.body, 1)
         bv = QVBoxLayout(self.body); bv.setContentsMargins(0, 0, 0, 0); bv.setSpacing(D.SPACE["m"])
-        top = D.Card("Effort Formatting", "This effort's formatting. It starts from the Global Standards (Production "
-                     "Standards) and keeps its own changes here; the Global Standards and the template library stay as they are.",
+        __import__("skqt.effortsetview", fromlist=["x"]).add_card(self, bv)   # 4.32.0: the effort's own set
+        top = D.Card("Effort Formatting", "This effort's formatting. It starts from this effort's standards (Production "
+                     "Standards) and keeps its own changes here, for every volume or for one.",
                      actions=[D.button("Every setting...", "primary", lambda: self.every_setting(),
                                        "The full Production Standards editor on this effort's formatting: every value, table and part")])
         self.band = QLabel(""); self.band.setTextFormat(Qt.RichText); self.band.setWordWrap(True); top.add(self.band)
@@ -384,7 +385,7 @@ class EffortFormatPage(QWidget):
         except Exception:  # noqa: BLE001
             diag.swallowed()
             self.rfp_map = {}
-        self.fill()
+        self.fill(); __import__("skqt.effortsetview", fromlist=["x"]).show(self)
 
     def fill(self):
         if self.host.ws is None:

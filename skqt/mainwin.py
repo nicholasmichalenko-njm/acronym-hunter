@@ -1130,7 +1130,7 @@ class MainWindow(QMainWindow):
         self.page_crumb.setText(GROUP_OF.get(step, ""))
         self.page_title.setText(t)
         self.beta_pill.setVisible(step in BETA)
-        self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
+        self.page_sub.setText(__import__("skqt.effortsetview", fromlist=["x"]).sub(self, step, sub))   # 4.32.0: which set a change goes to
         try:
             self.refresh_access()                  # 3.13.0: a stage moved or a role changed shows in the menu
         except Exception:

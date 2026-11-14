@@ -2,6 +2,14 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.32.0": ["An effort's standards are its own set. The first time an effort opens it is given the Global Standards as "
+               "they are on this PC; from then on a change on a standards page while the effort is open changes that "
+               "effort only. The line under the page's title says which set a change goes to.",
+               "Effort Formatting has an Effort Standards card: where the set came from, what the effort changed, and "
+               "when the Global Standards have changed since. Review... lists each value; Take for this effort takes "
+               "them, and nothing is taken until you say so.",
+               "A change made in an effort reaches the Global Standards only by name: Review... > Send to the Global "
+               "Standards. With no effort open, the standards pages change the Global Standards as before."],
     "4.31.0": ["Global Standards, step 2: Settings > Global Standards has Link a folder... (a SharePoint library synced to this PC, "
                "or any folder). A PC takes a newer version when the app opens, or at once with Use it now. What the PC itself "
                "had changed is kept in a dated backup and named once.",
