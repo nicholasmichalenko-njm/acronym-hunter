@@ -2,6 +2,12 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.33.0": ["Global Standards: Install a file... on Settings > Global Standards takes a version on a PC with no linked "
+               "folder. Each update writes the version's file (Global Standards version N.skgs) beside its folder. The "
+               "file is checked whole before anything on the PC changes.",
+               "After a version is taken, the card says what it changed on this PC. What changed... lists each change "
+               "with who updated and when; Mark as seen closes it.",
+               "A PC with no linked folder and no version says it runs on the built-in starter, with the two ways in."],
     "4.32.0": ["An effort's standards are its own set. The first time an effort opens it is given the Global Standards as "
                "they are on this PC; from then on a change on a standards page while the effort is open changes that "
                "effort only. The line under the page's title says which set a change goes to.",

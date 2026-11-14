@@ -41,6 +41,7 @@ FORMATS = {
     "global standards": ("globalstd.take -> global_standards.json in the config folder", "format", 1),   # 4.30.0: the version this PC is on
     "global standards version": ("globalfolder.update -> vNNNN\\manifest.json and current.json in the Global Standards folder", "format", 1),   # 4.31.0
     "effort standards": ("effortset.start -> effort_standards\\set.json in the effort's working folder", "format", 1),   # 4.32.0: the effort's own set
+    "global standards notice": ("globalfile.take -> global_notice.json in the config folder", "format", 1),   # 4.33.0: what a version changed on this PC
     "re-shred queue": ("reshred.Queue.save -> changes/reshred.json in the effort's working folder", "format", 1),   # 4.1.0
 }
 

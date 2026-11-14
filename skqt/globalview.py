@@ -9,6 +9,7 @@ moved by itself: it is told, and Use it now says what it replaces. Rules only (N
 import os
 
 import diag
+import globalfile as GX
 import globalfolder as GF
 import globalstd as GS
 from . import design as D
@@ -22,6 +23,7 @@ def add_card(page, v):
     page.gs_parts = page.gs_card.add(D.label("", "muted")); page.gs_parts.setWordWrap(True)
     page.gs_folder = page.gs_card.add(D.label("", "muted")); page.gs_folder.setWordWrap(True)
     page.gs_ready = page.gs_card.add(D.label("", None)); page.gs_ready.setWordWrap(True)
+    page.gs_notice = page.gs_card.add(D.label("", None)); page.gs_notice.setWordWrap(True)      # 4.33.0: what the last version changed here
     from PySide6.QtWidgets import QHBoxLayout, QWidget
     row = QWidget(); h = QHBoxLayout(row); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["s"])
     page.gs_use = D.button("Use it now", "primary", lambda: use_now(page))
@@ -29,7 +31,11 @@ def add_card(page, v):
                             "The folder this PC reads Global Standards versions from: a SharePoint library synced to this PC, or any folder.")
     page.gs_update = D.button("Update Global Standards...", None, lambda: update_dialog(page),
                               "For someone who can write to the linked folder: the changes waiting on this PC become the next version.")
-    for b in (page.gs_use, page.gs_link, page.gs_update):
+    page.gs_install = D.button("Install a file...", None, lambda: install(page),
+                               "For a PC with no linked folder: take a version from its file (Global Standards version N.skgs).")
+    page.gs_changed = D.button("What changed...", None, lambda: changed_dialog(page),
+                               "Each change the last version made on this PC, who updated and when. Mark as seen closes it.")
+    for b in (page.gs_use, page.gs_link, page.gs_install, page.gs_update, page.gs_changed):
         h.addWidget(b)
     h.addStretch(1)
     page.gs_card.add(row)
@@ -66,7 +72,8 @@ def show(page):
         names = sorted(n for n, _m in GS.parts(cfg).values())
         page.gs_parts.setText(("Its parts on this PC: " + ", ".join(names) + ".") if names else "")
         if not folder:
-            page.gs_folder.setText("Not linked to a folder. Link a folder... to read the versions your team keeps.")
+            page.gs_folder.setText(STARTER if not GS.state(cfg)["version"] else
+                                   "Not linked to a folder. Link a folder... to read the versions your team keeps, or Install a file... to take one.")
         elif not os.path.isdir(folder):
             page.gs_folder.setText(f"Linked to {folder}. The folder cannot be reached now; this PC stays on the version it has.")
         else:
@@ -76,9 +83,66 @@ def show(page):
         said = ready_words(cfg, folder)
         page.gs_ready.setText(said); page.gs_ready.setVisible(bool(said)); page.gs_use.setVisible(bool(said))
         page.gs_update.setVisible(bool(folder) and os.path.isdir(folder) and GF.can_update(folder))
+        nt = GX.notice(cfg)
+        page.gs_notice.setText(GX.notice_words(nt) if nt else ""); page.gs_notice.setVisible(bool(nt)); page.gs_changed.setVisible(bool(nt))
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return page.gs_text.text()
+
+
+STARTER = ("This PC runs on the built-in starter: no folder is linked and no version is installed. Link a folder... to read "
+           "the versions your team keeps, or Install a file... to take one.")
+
+
+def install(page, path=None):
+    """Take a version from its file. Returns what was said ("" when nothing was chosen or the file was refused)."""
+    if path is None:
+        from PySide6.QtWidgets import QFileDialog
+        path, _f = QFileDialog.getOpenFileName(page, "A Global Standards file", "", f"Global Standards (*{GX.EXT})")
+        if not path:
+            return ""
+    try:
+        got = GX.install(page.host.config_dir, path)
+    except (OSError, ValueError) as e:
+        page.host.status(f"The file was not installed: {e}")
+        return ""
+    diag.activity("global_standards_installed")
+    said = _tell(page.host, got)
+    _reload(page.host)
+    show(page)
+    return said
+
+
+def changed_dialog(page, run=True):
+    """What the last version changed on this PC: each change, who updated and when, the note. Mark as seen."""
+    from PySide6.QtWidgets import QAbstractItemView, QDialog, QHBoxLayout, QTableWidget, QTableWidgetItem, QVBoxLayout
+    cfg = page.host.config_dir
+    nt = GX.notice(cfg)
+    if not nt:
+        return None
+    dlg = QDialog(page); dlg.setWindowTitle(f"Global Standards version {nt['version']}"); dlg.resize(820, 520)
+    v = QVBoxLayout(dlg)
+    head = D.label(GX.notice_words(nt) + (f' Note: "{nt["note"]}"' if nt.get("note") else "")
+                   + (" It replaced this PC's own changes in: " + ", ".join(nt["replaced"]) + f". They are kept in {nt['backup']}."
+                      if nt.get("replaced") else ""), None)
+    head.setWordWrap(True); v.addWidget(head)
+    t = QTableWidget(len(nt["rows"]), 4); t.setHorizontalHeaderLabels(["Part", "What", "It was", "It is now"])
+    t.setEditTriggers(QAbstractItemView.NoEditTriggers); t.horizontalHeader().setStretchLastSection(True)
+    for i, r in enumerate(nt["rows"]):
+        for j, k in enumerate(("part", "what", "was", "now")):
+            t.setItem(i, j, QTableWidgetItem(str(r.get(k, ""))))
+    t.resizeColumnsToContents(); v.addWidget(t, 1)
+    row = QHBoxLayout(); row.addStretch(1); row.addWidget(D.button("Close", None, dlg.reject))
+
+    def seen():
+        GX.mark_seen(cfg); show(page); dlg.accept()
+
+    b = D.button("Mark as seen", "primary", seen); row.addWidget(b); v.addLayout(row)
+    dlg.table, dlg.head, dlg.b_seen = t, head, b
+    page.gs_changed_dialog = dlg
+    if run:
+        dlg.exec()
+    return dlg
 
 
 def link(page, path=None):
@@ -122,7 +186,7 @@ def use_now(page):
     if not GF.ready(cfg, folder):
         return ""
     try:
-        got = GF.take(cfg, folder)
+        got = GX.take(cfg, folder)
     except (OSError, ValueError) as e:
         page.host.status(f"The version could not be taken: {e}")
         return ""
@@ -144,7 +208,7 @@ def at_open(w):
             said = ready_words(cfg, folder) + " Settings > Global Standards > Use it now."
             w.status(said)
             return said
-        return _tell(w, GF.take(cfg, folder))
+        return _tell(w, GX.take(cfg, folder))
     except Exception:  # noqa: BLE001
         diag.swallowed()
         return ""

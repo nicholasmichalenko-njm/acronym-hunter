@@ -196,6 +196,10 @@ def update(config_dir, folder, by="", note="", when=None):
         json.dump({"format": FORMAT, "version": n, "by": man["by"], "when": stamp, "note": man["note"]}, f, indent=1, ensure_ascii=False)
     os.replace(ctmp, os.path.join(folder, CURRENT))
     GS.take(config_dir, n, GS.PUBLISHED, by=by, note=note, when=when)
+    try:                                                          # 4.33.0: the version as one file, for a PC with no link
+        __import__("globalfile").write(folder, n)
+    except (OSError, ValueError):                                 # the folder holds the version; the file is a convenience
+        pass
     return man
 
 

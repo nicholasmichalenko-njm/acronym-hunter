@@ -116,7 +116,10 @@ check("global standards version", man["format"] == json.load(open(os.path.join(g
       == json.load(open(os.path.join(gsf, "v0001", "manifest.json")))["format"] == F.number("global standards version") == GF.FORMAT)
 import effortset as _ES                                                     # 4.32.0: the effort's own set
 check("effort standards", _ES.start(cfg_es := os.path.join(tmp, "es_cfg"), os.path.join(tmp, "es_work"))["format"] == F.number("effort standards") == _ES.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 29, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
+import globalfile as _GX                                                    # 4.33.0: what a version changed on this PC
+_gx = os.path.join(tmp, "gx_cfg"); os.makedirs(_gx, exist_ok=True); _GX._keep(_gx, {"version": 1}, [], {})
+check("global standards notice", json.load(open(os.path.join(_gx, _GX.NOTICE)))["format"] == F.number("global standards notice") == _GX.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 30, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

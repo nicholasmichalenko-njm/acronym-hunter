@@ -36,7 +36,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.proc
 w.go("settings"); app.processEvents()
 sp = w.settings_page
 vis = lambda b: not b.isHidden()
-check("not linked: the card says so and offers Link a folder...; nothing to use, no update", "Not linked to a folder" in sp.gs_folder.text()
+check("not linked: the card says so and offers Link a folder...; nothing to use, no update", "no folder is linked" in sp.gs_folder.text()
       and vis(sp.gs_link) and not vis(sp.gs_use) and not vis(sp.gs_update), sp.gs_folder.text())
 check("the card's words: no publish, no draft", not any(x in (sp.gs_text.text() + sp.gs_folder.text() + sp.gs_card.title.text() + sp.gs_update.text()).lower()
                                                       for x in ("publish", "draft")))
