@@ -51,7 +51,7 @@ class StyleEdit(QDialog):
         for k, t in (("bold", "Bold"), ("italic", "Italic"), ("underline", "Underline"), ("caps", "All caps"), ("hidden", "Hidden")):
             cb = QCheckBox(t); cb.setChecked(bool(v.get(k))); row.addWidget(cb); self.marks[k] = cb
         row.addStretch(1); f.addRow("Characters", row)
-        self.jc = self.before = self.after = self.keep = None
+        self.jc = self.before = self.after = self.keep = self.more = None
         if self.kind == "paragraph":
             self.jc = QComboBox()
             for k, t in SL.JC:
@@ -65,11 +65,13 @@ class StyleEdit(QDialog):
                 sp.addWidget(D.label(t, "muted", wrap=False)); sp.addWidget(box)
             sp.addStretch(1); f.addRow("Space", sp)
             self.keep = QCheckBox("Keep with the next paragraph"); self.keep.setChecked(bool(v.get("keep_next"))); f.addRow("", self.keep)
+            from . import stylemore as SM                     # 4.30.6: line spacing, indents, tabs, and what list it is in
+            self.more = SM.add_rows(self, f, v)
         d = SL.describe(v)
         more = " · ".join(x for x in (d.get("other") or "",) if x)
-        self.more = D.label(("Also carries: " + more + ". " if more else "") + ("Everything else Word wrote for it (numbering, tabs, borders) is kept."
+        self.note = D.label(("Also carries: " + more + ". " if more else "") + ("Everything else Word wrote for it (numbering, borders) is kept."
                             if v.get("_xml") and v.get("_made") != "app" else ""), "muted")
-        self.more.setVisible(bool(self.more.text().strip())); f.addRow(self.more)
+        self.note.setVisible(bool(self.note.text().strip())); f.addRow(self.note)
         self.sample_box = QVBoxLayout(); f.addRow("How it looks", self.sample_box)
         self.sample = None
         for w in [self.font, self.size, self.color, self.font_own] + list(self.marks.values()):
@@ -110,13 +112,14 @@ class StyleEdit(QDialog):
         if self.kind == "paragraph":
             out.update({"jc": self.jc.currentData() or "", "before": self.before.value(), "after": self.after.value(),
                         "keep_next": self.keep.isChecked()})
+            out.update(self.more.values())                    # only what was changed on the form
         return out
 
     def redraw(self):
         self.font.setEnabled(self.font_own.isChecked())
         if self.sample is not None:
             self.sample.hide(); self.sample.setParent(None)
-        v = dict(self.v); v.update({k: x for k, x in self.values().items() if x not in ("", None)})
+        v = SL._edited(self.v, self.values())                 # as it will be saved (4.30.6: the indents and line spacing too)
         self.sample = self._preview(v, name=self.name.text())
         self.sample_box.addWidget(self.sample)
 

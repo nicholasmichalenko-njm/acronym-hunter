@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.30.6": ["Styles: a paragraph style's own form (double-click it) now sets line spacing, indents and tabs.",
+               "Only what you change is saved; what a style takes from the style it is based on stays taken from it.",
+               "A style that is part of a list says which level it is. Its numbers and bullets are kept as Word wrote them."],
     "4.30.5": ["Bringing styles into a set: where the set already has a style of that name with other values, the row says "
                "Duplicate style with different values detected, with Keep both, Replace and Skip.",
                "Keep both brings the file's style in under a numbered name (Body Text 2). A set never holds two styles of the same name.",

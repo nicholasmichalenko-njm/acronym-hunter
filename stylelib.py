@@ -302,7 +302,13 @@ def describe(v):
         if v.get("before") is not None or v.get("after") is not None:
             bits.append(f"{_n(v.get('before') or 0)} pt before, {_n(v.get('after') or 0)} after")
         if v.get("line"):
-            bits.append(f"line {_n(v['line'])}")
+            bits.append(f"line {_n(v['line'])}" + (" pt" + (" exactly" if v.get("line_rule") == "exact" else " at least")
+                                                   if v.get("line_rule") in ("exact", "atLeast") else ""))
+        ind = [f"{w} {float(v[k]) / 72:g} in" for k, w in (("left", "left"), ("right", "right"), ("first", "first line"), ("hanging", "hanging")) if v.get(k)]
+        if ind:
+            bits.append("indent " + ", ".join(ind))
+        if v.get("tabs"):
+            bits.append(f"{len(v['tabs'])} tab(s)")
         if v.get("keep_next"):
             bits.append("keep with next")
         if v.get("jc") and v["jc"] not in ("left", "start", "both"):
@@ -362,6 +368,59 @@ def rows(lib, sid=None, words="", shown=None):
 
 # ------------------------------------------------------------------ 4.30.1: review, change and duplicate a style on Styles
 EDIT = LOOK + ("caps", "before", "after", "jc", "keep_next")      # what the style's own form on Styles sets
+# 4.30.6 (Nicholas 2026-11-13 18:52): line spacing, indents and tabs, for every paragraph style. In points, as Word keeps
+# them; line is a multiple (1.15) unless line_rule is exact or atLeast, then points. tabs: [[position, kind, leader]].
+MORE = ("line", "line_rule", "left", "right", "first", "hanging", "tabs")
+LINE_RULES = (("auto", "Multiple of a line"), ("exact", "Exactly"), ("atLeast", "At least"))
+TAB_KINDS = ("left", "center", "right", "decimal")
+TAB_LEADERS = {"dots": "dot", "dashes": "hyphen", "line": "underscore"}
+
+
+def tabs_text(tabs):
+    """[[468, 'right', 'dot']] -> '6.5 right dots' (inches), tabs separated by '; '."""
+    back = {v: k for k, v in TAB_LEADERS.items()}
+    out = []
+    for pos, kind, leader in sorted(tabs or [], key=lambda t: float(t[0])):
+        out.append(" ".join(x for x in (f"{float(pos) / 72:g}", kind or "left", back.get(leader, "")) if x))
+    return "; ".join(out)
+
+
+def parse_tabs(text):
+    """'6.5 right dots; 0.5' -> [[36.0, 'left', 'none'], [468.0, 'right', 'dot']]. Returns (tabs, the parts not understood)."""
+    tabs, bad = [], []
+    for part in str(text or "").replace(",", ";").split(";"):
+        words = part.replace("in.", "").replace('"', "").split()
+        words = [w for w in words if w.lower() not in ("in", "inch", "inches")]
+        if not words:
+            continue
+        try:
+            pos = float(words[0])
+        except ValueError:
+            bad.append(part.strip()); continue
+        kind, leader, ok = "left", "none", 0 < pos <= 22
+        for w in words[1:]:
+            w = w.lower()
+            if w in TAB_KINDS:
+                kind = w
+            elif w in TAB_LEADERS:
+                leader = TAB_LEADERS[w]
+            else:
+                ok = False
+        if ok:
+            tabs.append([round(pos * 72, 2), kind, leader])
+        else:
+            bad.append(part.strip())
+    return sorted(tabs, key=lambda t: t[0]), bad
+
+
+def numbering_of(v):
+    """(numbered, level 1 to 9) for a style whose Word definition ties it to a list; (False, 0) otherwise."""
+    xml = (v or {}).get("_xml") or ""
+    m = re.search(r"<w:numPr\b.*?</w:numPr>", xml, re.S)
+    if not m or re.search(r'<w:numId\s+w:val="0"', m.group(0)):
+        return False, 0
+    lv = re.search(r'<w:ilvl\s+w:val="(\d+)"', m.group(0))
+    return True, (int(lv.group(1)) + 1 if lv else 1)
 JC = (("", "As its base"), ("left", "Left"), ("center", "Centered"), ("right", "Right"), ("both", "Justified"))
 
 
@@ -378,9 +437,11 @@ def _set_flag(parent, tag, on, val=None):
             e.set(_w("val"), val)
 
 
-def patch_xml(xml, name, v):
+def patch_xml(xml, name, v, more=()):
     """Word's own definition of a style with only the values the form sets written into it; everything else it carries
-    (numbering, tabs, borders, its base) stays as Word wrote it. name renames it (a duplicate). Returns the xml."""
+    (numbering, borders, its base) stays as Word wrote it. name renames it (a duplicate). more: which of MORE (line
+    spacing, indents, tabs) were changed on the form; only those are written, so a value the style takes from its base
+    stays taken from its base. Returns the xml."""
     try:
         s = etree.fromstring(xml.encode("utf-8") if isinstance(xml, str) else xml)
     except (etree.XMLSyntaxError, AttributeError, ValueError):
@@ -420,7 +481,32 @@ def patch_xml(xml, name, v):
                 if v.get(k) is not None:
                     sp.set(_w(k), str(int(round(float(v[k]) * 20))))
         _set_flag(ppr, "jc", bool(v.get("jc")), v.get("jc") or None)
+        if more:
+            _write_more(s, v, set(more))
     return etree.tostring(s, encoding="unicode")
+
+
+def _write_more(s, v, more):
+    """Line spacing, indents and tabs into the style's paragraph settings, in Word's own order of elements."""
+    from prodengine.engine.ops import word_ops as WO
+    from prodengine.engine.ordered import ensure
+    ppr = ensure(s, "pPr")
+    if more & {"line", "line_rule"}:
+        rule = v.get("line_rule") or "auto"
+        if rule == "auto":
+            WO.set_para_props(ppr, line=float(v.get("line") or 1.0))
+        else:
+            WO.set_more_props(None, s, {"line_rule": rule, "line": float(v.get("line") or 12.0)})
+    ind = {k: float(v.get(k) or 0) for k in ("left", "right") if k in more}
+    if more & {"first", "hanging"}:
+        if v.get("hanging"):
+            ind["hanging"] = float(v["hanging"])
+        else:
+            ind["first"] = float(v.get("first") or 0)
+    if ind:
+        WO.set_more_props(None, s, ind)
+    if "tabs" in more:
+        WO.set_more_props(None, s, {"tabs": [list(t) for t in (v.get("tabs") or [])]})
 
 
 def _edited(old, values):
@@ -437,14 +523,42 @@ def _edited(old, values):
             v[k] = float(x)
         else:
             v[k] = str(x).lstrip("#").upper() if k == "color" else str(x)
+    for k in MORE:
+        if k not in values:
+            continue
+        x = values[k]
+        if k == "tabs":
+            v[k] = [[round(float(a), 2), str(b or "left"), str(c or "none")] for a, b, c in (x or [])]
+            if not v[k]:
+                v.pop(k)
+        elif k == "line_rule":
+            if x in ("exact", "atLeast"):
+                v[k] = x
+            else:
+                v.pop(k, None)                          # a multiple of a line is the style's plain state
+        elif x in (None, ""):
+            v.pop(k, None)
+        else:
+            v[k] = round(float(x), 2)
+    if v.get("hanging") and "hanging" in values:
+        v.pop("first", None)                            # a paragraph hangs or its first line is indented, never both
+    elif v.get("first") and "first" in values:
+        v.pop("hanging", None)
     if kind_of(v) == "character":
-        for k in ("before", "after", "jc", "keep_next"):
+        for k in ("before", "after", "jc", "keep_next") + MORE:
             v.pop(k, None)
     return v
 
 
+def changed_more(old, v):
+    """Which of MORE differ between two sets of values."""
+    return tuple(k for k in MORE if (old or {}).get(k) != (v or {}).get(k))
+
+
 def _xml_for(name, old, v):
-    return patch_xml(old["_xml"], name, v) if old.get("_xml") and old.get("_made") != "app" else style_xml(name, v)
+    if old.get("_xml") and old.get("_made") != "app":
+        return patch_xml(old["_xml"], name, v, changed_more(old, v))
+    return patch_xml(style_xml(name, v), name, v, tuple(k for k in MORE if v.get(k) not in (None, "", [])))
 
 
 def save_edit(lib, iid, values, who=None):
