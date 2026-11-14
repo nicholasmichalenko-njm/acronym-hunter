@@ -12,6 +12,7 @@ the scan's readings of each picture are kept with the effort (picreadings), so t
 again, after a restart too, and the next term's first picture is drawn in the background (prefetch).
 Files are only read. Rules and the trained readers only (No AI); nothing leaves the PC."""
 import html
+import threading
 import os
 import re
 
@@ -304,6 +305,22 @@ def read_place(path, label, loader, loc, term):
     return _qimage(img), lines, hits, note
 
 
+# 4.30.5: one picture is read at a time. Each card and each page starts its own background read; with decisions coming
+# quickly several ran at once, each drawing a PDF page and running the picture reader. They now take turns.
+READ_LOCK = threading.Lock()
+
+
+def one_at_a_time(fn):
+    def run(*a, **k):
+        with READ_LOCK:
+            return fn(*a, **k)
+    run.__name__, run.__doc__ = fn.__name__, fn.__doc__
+    return run
+
+
+read_place = one_at_a_time(read_place)
+
+
 def sources(path):
     if path not in _SOURCES:
         import pictures as PIC
@@ -335,9 +352,20 @@ def typed_html(path, loc, term, para=None):
     return None
 
 
+# 4.30.5: off. Drawing the next term's picture ahead ran on another thread while the window drew the current one. Both
+# use the same PDF reader, which must not be used from two threads at once, and the program ended with an access
+# violation when decisions came quickly (Nicholas 2026-11-13 20:05 and 20:41: the crash records name this function and
+# the worker it starts). Each card now draws its own picture when it shows. Turn it on again only with one lock around
+# every use of the PDF reader and the picture reader.
+PREFETCH = False
+
+
 def prefetch(term, locs, path_of):
     """3.80.0: read the first picture place of a term in the background, so its preview opens at once. Returns the
-    worker, or None when there is nothing to read (typed text, already kept, or a file not on this PC)."""
+    worker, or None when there is nothing to read (typed text, already kept, or a file not on this PC), or when drawing
+    ahead is off (PREFETCH)."""
+    if not PREFETCH:
+        return None
     for loc in list(locs)[:3]:
         try:
             name, _page, _para = parse_loc(loc)

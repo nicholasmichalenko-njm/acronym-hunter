@@ -2,10 +2,16 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
-    "4.30.6": ["Styles: a paragraph style's own form (double-click it) now sets line spacing, indents and tabs.",
-               "Only what you change is saved; what a style takes from the style it is based on stays taken from it.",
-               "A style that is part of a list says which level it is. Its numbers and bullets are kept as Word wrote them."],
-    "4.30.5": ["Bringing styles into a set: where the set already has a style of that name with other values, the row says "
+    "4.30.7": ["Acronyms, The list: the card no longer piles up as you decide (buttons and boxes from earlier cards stayed behind).",
+               "The card's two lines are Candidate and Definition. Words selected on the page show on the card, with As the candidate "
+               "and As the definition; the second text box under the page is gone.",
+               "A term clicked on the page is selected in the list too. Each suggested definition is listed once. Sources and "
+               "timeline is under More.",
+               "Styles: a paragraph style's own form (double-click it) sets line spacing, indents and tabs, and says which list "
+               "level a numbered style is."],
+    "4.30.5": ["Fixed: the program could end by itself while you decided acronyms quickly. The next term's picture is no longer "
+               "drawn ahead on a second thread.",
+               "Bringing styles into a set: where the set already has a style of that name with other values, the row says "
                "Duplicate style with different values detected, with Keep both, Replace and Skip.",
                "Keep both brings the file's style in under a numbered name (Body Text 2). A set never holds two styles of the same name.",
                "Bring in waits until each flagged row is answered."],
