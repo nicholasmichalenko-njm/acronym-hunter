@@ -194,6 +194,9 @@ class StylesPage(QWidget):
         self.bar.more("Rename this set...", lambda: self.rename_set())
         self.bar.more("What this set is used for...", lambda: self.used_for(), "The kind of effort it is for: RFP, RFI, program documents")
         self.bar.more("Take this set away", lambda: self.remove_set())
+        self.bar.more("Restore every style as of...", lambda: __import__("skqt.styleversions", fromlist=["x"]).restore_all(self),
+                      "Every style back to how it was at a time you pick, each as a new latest version. It can be undone.")   # 4.35.0
+        self.bar.more("Undo the restore", lambda: __import__("skqt.styleversions", fromlist=["x"]).undo_restore(self))
         self.bar.more_sep()                                   # 4.7.0: the values as a workbook, edited in Excel or here
         self.bar.more("Open the Global Standards workbook", lambda: __import__("skqt.teamlibview", fromlist=["x"])._open(
             __import__("teamlib").book_path(self.host.config_dir)), "Global Standards.xlsx in the team library, in Excel")
@@ -333,10 +336,9 @@ class StylesPage(QWidget):
             self.notice.hide()
             return None
         a, b = nv[0]
-        self.notice_lab.setText(f"{self.lib.base_of(b)} was changed outside this set ({SO.source_words(self.lib, b) or 'a newer one'}) "
-                                "and no set uses the change yet. This set keeps its own unless you move it."
+        self.notice_lab.setText(f"{self.lib.base_of(b)}: this set uses version {a.get('version', 1)}; the latest is version {b.get('version', 1)}."
                                 + (f" ({len(nv) - 1} more)" if len(nv) > 1 else ""))
-        self.b_move.setText("Move this set to the changed one"); self.b_keep.setText("Keep this set's")
+        self.b_move.setText("Use the latest"); self.b_keep.setText("Not now")
         self.notice.show()
         return nv
 
@@ -373,13 +375,7 @@ class StylesPage(QWidget):
         if len(ids) == 1:
             m.addAction("See or change...").triggered.connect(lambda: self.review(ids[0]))        # 4.30.1; a double-click too
             m.addAction("Duplicate...").triggered.connect(lambda: self.duplicate(ids[0]))
-            m.addAction("Name this version...").triggered.connect(lambda: self.label_version(ids[0]))
-            old = getattr(self, "earlier", {}).get(ids[0]) or []
-            if old:                                           # 4.30.2: versions no set uses, off the rows
-                em = m.addMenu("Earlier versions")
-                for x in reversed(old):
-                    em.addAction(SO.source_words(self.lib, x, version=True)).triggered.connect(
-                        lambda _c=False, f=x.get("family"), i=x["id"]: self.show_version(f, i))
+            m.addAction("Versions...").triggered.connect(lambda: self.versions(ids[0]))            # 4.35.0: its history, Restore
             m.addAction("Every value...").triggered.connect(lambda: self.every_value(ids[0]))      # 3.98.0
         m.addSeparator()
         m.addAction("Remove from the library").triggered.connect(lambda: self.remove(ids))
@@ -466,7 +462,7 @@ class StylesPage(QWidget):
             return False
         a, b = self.newer_now
         ok = SL.move(self.lib, self.sid, a["id"], b["id"])
-        self.host.toast(f"This set now uses the changed {self.lib.base_of(b)}.")
+        self.host.toast(f"This set now uses the latest {self.lib.base_of(b)}.")
         self.fill_sets(); self.fill_rows()
         return ok
 
@@ -525,6 +521,11 @@ class StylesPage(QWidget):
         """4.30.1: a new style under its own name with this one's values."""
         from . import styleedit as SE
         return SE.duplicate(self, iid, name, values)
+
+    def versions(self, iid, run=True):
+        """4.35.0: the style's versions, Latest first, with Restore this version."""
+        from . import styleversions as SV
+        return SV.versions(self, iid, run)
 
     def label_version(self, iid, label=None):
         if label is None:

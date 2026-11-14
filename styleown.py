@@ -160,30 +160,15 @@ def source_words(lib, it, v=None, version=False):
 
 
 def newer(lib, sid):
-    """stylelib.newer, less the ones that are another set's own style: a set is told about a newer version only when
-    no set holds it (a change saved from Every style, or brought in with no set)."""
-    live = owned(lib)
-    return [(a, b) for a, b in SL.newer(lib, sid) if b["id"] not in live]
+    """4.35.0: a set still on an earlier version of a style (kept from before one style had one history)."""
+    return SL.newer(lib, sid)
 
 
-def save(lib, iid, values, sid=None, every=False, who=None):
-    """The style's form saved. From inside a set (sid) the change is that set's alone: the set moves to the changed
-    style and every other set keeps the one it has. every=True: every set that used it moves. With no set, it is kept
-    as the style's newest and no set moves. Returns (item, state, [names of the sets that moved])."""
-    new, st = SL.save_edit(lib, iid, values, who=who)
-    if new is None or new["id"] == iid:
-        return new, st, []
-    moved = []
-    for k in SL.sets(lib):
-        if iid in k["items"] and (every or k["id"] == sid):
-            if new["id"] in k["items"]:
-                k["items"].remove(iid)
-            else:
-                k["items"][k["items"].index(iid)] = new["id"]
-            moved.append(k["name"])
-    if moved:
-        lib.save()
-    return new, st, moved
+def save(lib, iid, values, sid=None, every=True, who=None):
+    """The style's form saved. 4.35.0 (ST24): one style, one history; the change is a new Latest and every set that
+    uses the style gets it (sid and every are kept for callers and no longer narrow it). A set that needs a different
+    look uses a copy under its own name. Returns (item, state, [names of the sets that now use it])."""
+    return __import__("stylehistory").save(lib, iid, values, who=who)
 
 
 def set_used_for(lib, sid, word):

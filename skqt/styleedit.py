@@ -77,27 +77,12 @@ class StyleEdit(QDialog):
         for w in [self.font, self.size, self.color, self.font_own] + list(self.marks.values()):
             sig = getattr(w, "currentIndexChanged", None) or getattr(w, "valueChanged", None) or getattr(w, "toggled", None)
             sig.connect(lambda *_a: self.redraw())
-        self.scope = None                                     # 4.30.2: whose style the change is
+        self.scope = None                                     # 4.35.0 (ST24): one style, one history; no choice of sets
+        tail = ""
         if not name_edit:
-            sets_ = SL.sets_of(page.lib, it["id"])
-            here = SL.get_set(page.lib, page.sid) if getattr(page, "sid", None) else None
-            others = [k["name"] for k in sets_ if not here or k["id"] != here["id"]]
-            if here is not None and any(k["id"] == here["id"] for k in sets_) and others:
-                self.scope = QComboBox()
-                self.scope.addItem(f"{here['name']} only", False)
-                self.scope.addItem(f"Every set that uses it ({here['name']}, {', '.join(others)})", True)
-                f.addRow("Change it for", self.scope)
-                tail = f"{', '.join(others)} keep{'s' if len(others) == 1 else ''} the style as it is unless you pick every set."
-            elif here is not None and any(k["id"] == here["id"] for k in sets_):
-                tail = f"The change is {here['name']}'s; no other set uses this style."
-            elif sets_:
-                self.scope = QComboBox()
-                self.scope.addItem("No set yet: each set is asked when it is shown", False)
-                self.scope.addItem(f"Every set that uses it ({', '.join(k['name'] for k in sets_)})", True)
-                f.addRow("Change it for", self.scope)
-                tail = "The style as it was stays for any set that keeps it."
-            else:
-                tail = "No set uses this style yet."
+            names = [k["name"] for k in SL.sets_of(page.lib, it["id"])]
+            tail = ("Saved as the style's latest version" + (f"; {', '.join(names)} get{'s' if len(names) == 1 else ''} the change. " if names else ". ")
+                    + "Earlier versions are kept: Versions... on the style's row. For a different look in one set, use Duplicate...")
         f.addRow(D.label("Saved as a new style." if name_edit else tail, "muted"))
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Make the copy" if name_edit else "Save the changes")
