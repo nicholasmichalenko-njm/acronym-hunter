@@ -42,8 +42,8 @@ check("with no version yet, everything this PC holds is waiting as added", rows 
 man = GF.update(A, F, by="Avery", note="First version")
 check("the first update writes version 1 and names it the one in use", man["version"] == 1 and GF.versions(F) == [1]
       and GF.current(F)["version"] == 1 and json.load(open(os.path.join(F, "current.json")))["by"] == "Avery")
-check("the version holds every file under its member name, with a manifest", os.path.isfile(os.path.join(F, "v0001", "config", "production_standards.json"))
-      and os.path.isfile(os.path.join(F, "v0001", "config", "production_parts", "cover.docx")) and "config/banned_words.csv" in man["files"])
+check("the version holds every file under its member name, with a manifest", os.path.isfile(GF._member_path(F, 1, "config/production_standards.json"))
+      and os.path.isfile(GF._member_path(F, 1, "config/production_parts/cover.docx")) and "config/banned_words.csv" in man["files"])
 check("the PC that updated is on that version, with nothing waiting", GS.state(A)["version"] == 1 and GS.state(A)["source"] == GS.PUBLISHED
       and GF.waiting(A, F) == [] and "updated from this PC" in GS.line(A), GS.line(A))
 check("no writing folder is left behind", not [n for n in os.listdir(F) if n.endswith(".writing")], os.listdir(F))
@@ -81,14 +81,14 @@ check("the other PC has nothing waiting: the changes are on the PC that made the
 check("the status line names the parts with changes waiting", "Changes waiting on this PC" in GS.line(A), GS.line(A))
 man2 = GF.update(A, F, by="Avery", note="Body 12 pt")
 check("the next update is version 2; version 1 stays beside it, untouched", man2["version"] == 2 and GF.versions(F) == [1, 2]
-      and GF.read(F, 1) is not None and json.load(open(os.path.join(F, "v0001", "config", "production_standards.json")))["fonts"]["body"]["size"] == 11)
+      and GF.read(F, 1) is not None and json.load(open(GF._member_path(F, 1, "config/production_standards.json")))["fonts"]["body"]["size"] == 11)
 check("the other PC is told version 2 is ready, with its note and who", (GF.ready(B, F) or {}).get("note") == "Body 12 pt" and GF.ready(B, F)["by"] == "Avery")
 
 # a half-synced version is never read
 v3 = os.path.join(F, "v0003"); shutil.copytree(os.path.join(F, "v0002"), v3)
 m3 = json.load(open(os.path.join(v3, "manifest.json"))); m3["version"] = 3
+m3["files"]["config/banned_words.csv"] = "0" * 64                 # 4.34.0: a file the folder does not hold yet
 json.dump(m3, open(os.path.join(v3, "manifest.json"), "w"))
-os.remove(os.path.join(v3, "config", "banned_words.csv"))
 json.dump({"format": 1, "version": 3}, open(os.path.join(F, "current.json"), "w"))
 check("a version with a file missing is not sound", GF.read(F, 3) is None and GF.versions(F) == [1, 2, 3])
 check("the folder's version in use falls back to the newest sound one", GF.current(F)["version"] == 2 and GF.ready(B, F)["version"] == 2)
@@ -98,7 +98,7 @@ except ValueError:
     refused = True
 check("taking the unsound version is refused and the PC stays as it is", refused and GS.state(B)["version"] == 1
       and json.loads(get(B, "production_standards.json"))["fonts"]["body"]["size"] == 11)
-with open(os.path.join(v3, "config", "banned_words.csv"), "w") as f:
+with open(os.path.join(F, GF.STORE, "0" * 64), "w") as f:      # the file arrives, but it is not what the version says
     f.write("tampered")
 check("a version with a file that does not match its checksum is not sound", GF.read(F, 3) is None)
 got = GF.take(B, F)

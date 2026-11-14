@@ -31,6 +31,7 @@ GF.update(other, F, by="Ada", note="The first set")
 with open(os.path.join(other, "rules.json"), "w") as f:
     json.dump({"rules": {"RU1": {"on": False}}}, f)
 GF.update(other, F, by="Ada", note="Rule 1 off")
+GX.write(F, 1); GX.write(F, 2)                                   # 4.34.0: a file is written when asked for
 
 cfg = os.path.join(tmp, "cfg"); os.makedirs(cfg)
 app = QApplication([]); D.apply(app)

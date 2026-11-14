@@ -34,8 +34,8 @@ for cfg in (A, B, C):
 put(A, "rules.json", json.dumps({"rules": {"RU1": {"on": True}}}))
 put(A, "doc_types.json", json.dumps({"types": [{"name": "RFP", "initial": "RFP"}]}))
 GF.update(A, FOLDER, by="Ada", note="The first set")
-f1 = os.path.join(FOLDER, GX.file_name(1))
-check("an update writes the version's file beside its folder", os.path.isfile(f1) and os.path.basename(f1) == "Global Standards version 1.skgs")
+f1 = GX.write(FOLDER, 1)                                        # 4.34.0: written when asked for (Save a file to share...)
+check("the version's file is written beside its folder", os.path.isfile(f1) and os.path.basename(f1) == "Global Standards version 1.skgs")
 with zipfile.ZipFile(f1) as z:
     check("the file holds the manifest and every file of the version", {"manifest.json", "config/rules.json", "config/doc_types.json"} <= set(z.namelist())
           and set(z.namelist()) - {"manifest.json"} == set(json.loads(z.read("manifest.json"))["files"]), z.namelist())
@@ -53,7 +53,7 @@ check("Mark as seen: the notice is gone", GX.notice(B) is None)
 
 put(A, "rules.json", json.dumps({"rules": {"RU1": {"on": False}}}))
 GF.update(A, FOLDER, by="Ada", note="Rule 1 off")
-f2 = os.path.join(FOLDER, GX.file_name(2))
+f2 = GX.write(FOLDER, 2)
 try:
     GX.install(B, f1); said = ""
 except ValueError as e:

@@ -31,7 +31,7 @@ import datetime, hashlib, json, os, re, shutil
 import globalstd as GS
 import teamdata as TD
 
-FORMAT = 1
+FORMAT = 2
 CURRENT, MANIFEST = "current.json", "manifest.json"
 SETTING = "global_standards_folder"
 BACKUPS = "Global Standards backups"
@@ -73,17 +73,28 @@ def _json(p):
         return None
 
 
+STORE = "files"                                  # 4.34.0 (format 2): each file once, under its fingerprint; a version is a list
+
+
 def _member_path(folder, n, member):
-    return os.path.join(folder, vname(n), member.replace("/", os.sep))
+    """Where a version's file is: in the version's own folder (format 1), or in the store under its fingerprint."""
+    p = os.path.join(folder, vname(n), member.replace("/", os.sep))
+    if os.path.isfile(p):
+        return p
+    sha = ((_json(os.path.join(folder, vname(n), MANIFEST)) or {}).get("files") or {}).get(member)
+    return os.path.join(folder, STORE, str(sha)) if isinstance(sha, str) and sha.isalnum() else p
 
 
 def read(folder, n):
     """The manifest of version n when every file it names is there and matches; None otherwise."""
     man = _json(os.path.join(folder, vname(n), MANIFEST))
-    if not man or man.get("format") != FORMAT or man.get("version") != n or not isinstance(man.get("files"), dict):
+    if not man or man.get("format") not in (1, FORMAT) or man.get("version") != n or not isinstance(man.get("files"), dict):
         return None
     for member, sha in man["files"].items():
-        if not TD._safe_member(member) or GS._sha_file(_member_path(folder, n, member)) != sha:
+        if not TD._safe_member(member) or not (isinstance(sha, str) and sha.isalnum()):
+            return None
+        own = os.path.join(folder, vname(n), member.replace("/", os.sep))
+        if GS._sha_file(own if os.path.isfile(own) else os.path.join(folder, STORE, sha)) != sha:
             return None
     return man
 
@@ -178,11 +189,16 @@ def update(config_dir, folder, by="", note="", when=None):
     shutil.rmtree(tmp, ignore_errors=True)
     files, parts = {}, {}
     names = GS.names()
+    os.makedirs(os.path.join(folder, STORE), exist_ok=True)
+    os.makedirs(tmp, exist_ok=True)
     for m, (k, p) in sorted(mine.items()):
-        dst = os.path.join(tmp, m.replace("/", os.sep))
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copyfile(p, dst)
-        files[m] = GS._sha_file(dst)
+        sha = GS._sha_file(p)
+        dst = os.path.join(folder, STORE, sha)
+        if GS._sha_file(dst) != sha:                              # each file once: a version that changes one style adds one file
+            shutil.copyfile(p, dst + f".{os.getpid()}.tmp")
+            os.replace(dst + f".{os.getpid()}.tmp", dst)
+            sha = GS._sha_file(dst)
+        files[m] = sha
         parts.setdefault(k, {"name": names.get(k, k), "files": []})["files"].append(m)
     man = {"format": FORMAT, "version": n, "by": str(by or "")[:120], "when": stamp, "note": str(note or "")[:600],
            "files": files, "parts": parts}
@@ -196,11 +212,86 @@ def update(config_dir, folder, by="", note="", when=None):
         json.dump({"format": FORMAT, "version": n, "by": man["by"], "when": stamp, "note": man["note"]}, f, indent=1, ensure_ascii=False)
     os.replace(ctmp, os.path.join(folder, CURRENT))
     GS.take(config_dir, n, GS.PUBLISHED, by=by, note=note, when=when)
-    try:                                                          # 4.33.0: the version as one file, for a PC with no link
-        __import__("globalfile").write(folder, n)
-    except (OSError, ValueError):                                 # the folder holds the version; the file is a convenience
-        pass
     return man
+
+
+def share(config_dir, folder, by="", when=None):
+    """4.34.0 (ST18): a save on the Global Standards page reaches everyone at once. When this PC can write to the
+    folder, is on the folder's version and holds a change, the change becomes the next version. Returns its manifest;
+    None when there is nothing to share, the folder cannot be written, or the folder holds a newer version (ST13: this
+    PC is told and chooses)."""
+    if not can_update(folder) or ready(config_dir, folder):
+        return None
+    if versions(folder) and not waiting(config_dir, folder):
+        return None
+    try:
+        return update(config_dir, folder, by=by, when=when)
+    except (OSError, ValueError):
+        return None
+
+
+RECEIPTS = "Receipts"
+
+
+def _receipt_name(name, pc):
+    keep = lambda t: "".join(c for c in str(t) if c.isalnum() or c in " -_.").strip()[:60]
+    return f"{keep(name) or 'Someone'} ({keep(pc) or 'PC'}).json"
+
+
+def receipt(config_dir, folder, name="", pc="", when=None):
+    """ST19: this PC's own receipt in the shared folder: who, which PC, the version it is on, when. One file per person
+    per PC, written by that PC only, rewritten whenever it is missing or out of date. Returns its path, "" when the
+    folder cannot be written."""
+    import getpass, platform
+    try:
+        name = name or getpass.getuser()
+    except Exception:  # noqa: BLE001  no sign-in name on this system
+        name = name or "Someone"
+    pc = pc or platform.node() or "PC"
+    d = {"format": 1, "name": name, "pc": pc, "version": GS.state(config_dir)["version"],
+         "when": (when or datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")}
+    p = os.path.join(folder, RECEIPTS, _receipt_name(name, pc))
+    was = _json(p) or {}
+    if (was.get("version"), was.get("name"), was.get("pc")) == (d["version"], name, pc) and str(was.get("when", ""))[:10] == d["when"][:10]:
+        return p
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(d, f, indent=1, ensure_ascii=False)
+        os.replace(p + ".tmp", p)
+        return p
+    except OSError:
+        return ""
+
+
+def receipts(folder, people=()):
+    """Who is on which version: [{"name", "pc", "version", "when", "file"}], newest version first; a person in
+    `people` with no receipt is listed with version None ("not seen yet")."""
+    out = []
+    try:
+        names = sorted(os.listdir(os.path.join(folder, RECEIPTS)))
+    except OSError:
+        names = []
+    for n in names:
+        d = _json(os.path.join(folder, RECEIPTS, n)) if n.endswith(".json") else None
+        if d and isinstance(d.get("version"), int):
+            out.append({"name": str(d.get("name", "")), "pc": str(d.get("pc", "")), "version": d["version"],
+                        "when": str(d.get("when", "")), "file": n})
+    seen = {r["name"].strip().lower() for r in out}
+    out.sort(key=lambda r: (-r["version"], r["name"].lower()))
+    return out + [{"name": p, "pc": "", "version": None, "when": "", "file": ""} for p in people
+                  if str(p).strip() and str(p).strip().lower() not in seen]
+
+
+def forget_receipt(folder, file):
+    """Remove one person's line (it comes back if that PC opens the app with the folder linked)."""
+    if file and os.path.basename(file) == file and file.endswith(".json"):
+        try:
+            os.remove(os.path.join(folder, RECEIPTS, file))
+            return True
+        except OSError:
+            pass
+    return False
 
 
 def ready(config_dir, folder):
