@@ -56,7 +56,24 @@ check("a paragraph style's form has Line spacing, Indents, Tabs and Numbering", 
       and m.num.text() == "Not part of a list.")
 check("opened and left alone, the form changes none of them", m.values() == {} and not any(k in dlg.values() for k in SL.MORE))
 dlg = SE.StyleEdit(page, head, lib.values(head))
-check("a numbered heading says which level of its list it is", dlg.more.num.text().startswith("Part of a list, level 2."), dlg.more.num.text())
+check("a numbered style in a list the standards do not name says so and points to Lists (4.33.1)",
+      dlg.more.num.text().startswith("Part of a list, level 2, that the standards do not name.") and dlg.more.num_section == "lists"
+      and not dlg.more.num_change.isHidden() and dlg.more.num_change.text() == "Change the numbering...", dlg.more.num.text())
+from skqt import stylemore as SM
+std = __import__("prodrules").load(d)["company"]
+said, sec = SM.numbering_words(std, "Heading 2", {})
+check("a heading level's style names its scheme and level", said.startswith("Heading numbering, level 2: 1, 2, 3, shown as \"%1.%2\"") and sec == "headnum", said)
+check("... says the scheme is shared and whether fixing sets it", "Every heading level shares this scheme." in said and "Heading numbering is off" in said, said)
+check("a list level's style names its list", SM.numbering_words(std, "List Number", {})[0].startswith("The list \"Numbers\", level 1: 1, 2, 3, shown as \"%1.\"")
+      and SM.numbering_words(std, "List Bullet 2", {})[1] == "lists", SM.numbering_words(std, "List Number", {}))
+check("a style in no list has no link", SM.numbering_words(std, "Body Text", {}) == ("Not part of a list.", "")
+      and SE.StyleEdit(page, body, lib.values(body)).more.num_change.isHidden())
+went = []
+host.go = lambda step: went.append(step)
+host.prodstd_page = type("P", (), {"show_section": lambda self, i: went.append(i)})()
+from skqt.prodstdpage import SECTIONS
+check("Change the numbering... opens that scheme's section in the standards",
+      SM.change_numbering(dlg, "headnum") == "headnum" and went == ["prodstd", [k for k, _t in SECTIONS].index("headnum")], went)
 dlg = SE.StyleEdit(page, toc, lib.values(toc))
 check("a table of contents style shows its tab in words", dlg.more.tabs.text() == "6.49 right dots" or dlg.more.tabs.text().startswith("6.4"), dlg.more.tabs.text())
 check("a character style's form has none of these", SE.StyleEdit(page, mark, lib.values(mark)).more is None)

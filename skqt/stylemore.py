@@ -53,11 +53,14 @@ class More:
         self.tabs.setToolTip(TAB_HINT)
         form.addRow("Tabs", self.tabs)
         self.tabs_say = D.label(TAB_HINT, "faint"); form.addRow("", self.tabs_say)
-        numbered, level = SL.numbering_of(v)
-        self.num = D.label(f"Part of a list, level {level}. Its numbers or bullets are set with the list, which every level shares; "
-                           "they are kept as Word wrote them." if numbered else "Not part of a list.", "muted")
+        said, self.num_section = numbering_words(_std(dlg), dlg.name.text().strip(), v)   # 4.33.1 (ST5): the scheme in use, by name
+        self.num = D.label(said, "muted")
         self.num.setObjectName("styleNumbering")
         form.addRow("Numbering", self.num)
+        self.num_change = D.button("Change the numbering...", None, lambda: change_numbering(dlg, self.num_section),
+                                   "Opens the scheme in the standards, where every level of it is set. This form closes without saving.")
+        self.num_change.setVisible(bool(self.num_section))
+        form.addRow("", self.num_change)
         for w in (self.sp, self.special):
             w.currentIndexChanged.connect(lambda _i: self.sync())
         for w in [self.sp_by, self.by] + list(self.ind.values()):
@@ -96,6 +99,56 @@ class More:
             if any(now[k] != self.first[k] for k in g):
                 out.update({k: now[k] for k in g})
         return out
+
+
+FMT_WORDS = {"decimal": "1, 2, 3", "upperLetter": "A, B, C", "lowerLetter": "a, b, c", "upperRoman": "I, II, III",
+             "lowerRoman": "i, ii, iii", "bullet": "a bullet", "none": "no number"}
+
+
+def _std(dlg):
+    """The standards in use (the open effort's set, or the Global Standards), {} when they cannot be read."""
+    try:
+        import prodrules as PRL
+        return PRL.load(dlg.parent().host.config_dir).get("company") or {}
+    except Exception:  # noqa: BLE001  the form opens without the line
+        return {}
+
+
+def numbering_words(std, name, v):
+    """(what the Numbering row says, the standards section that sets it or ""). The scheme is named from the standards:
+    Heading numbering for a heading level's style, the list by its name for a list level's style."""
+    hn = std.get("heading_numbering") or {}
+    for i, lev in enumerate(hn.get("levels") or []):
+        if name and lev.get("style") == name:
+            shows = str(lev.get("text") or "").replace("%", "level ")
+            off = "" if hn.get("on") else " Heading numbering is off: fixing a document leaves its heading numbers as they are."
+            return (f"Heading numbering, level {i + 1}: {FMT_WORDS.get(lev.get('fmt'), lev.get('fmt') or 'a number')}, shown as "
+                    f"\"{lev.get('text', '')}\" ({shows}). Every heading level shares this scheme.{off}", "headnum")
+    ln = std.get("list_numbering") or {}
+    for lst in ln.get("lists") or []:
+        for i, lev in enumerate(lst.get("levels") or []):
+            if name and lev.get("style") == name:
+                off = "" if ln.get("on") else " List numbering is off: fixing a document leaves its lists as they are."
+                return (f"The list \"{lst.get('name', '')}\", level {i + 1}: {FMT_WORDS.get(lev.get('fmt'), lev.get('fmt') or 'a number')}, "
+                        f"shown as \"{lev.get('text', '')}\". Every level of the list shares this scheme.{off}", "lists")
+    numbered, level = SL.numbering_of(v)
+    if numbered:
+        return (f"Part of a list, level {level}, that the standards do not name. Its numbers or bullets are kept as Word wrote "
+                "them. To set them here, add this style to a list in the standards.", "lists")
+    return "Not part of a list.", ""
+
+
+def change_numbering(dlg, section):
+    """Close the form and open the scheme's section in the standards (one home for numbering)."""
+    host = dlg.parent().host
+    dlg.reject()
+    try:
+        from .prodstdpage import SECTIONS
+        host.go("prodstd")
+        host.prodstd_page.show_section([k for k, _t in SECTIONS].index(section))
+    except Exception:  # noqa: BLE001
+        __import__("diag").swallowed()
+    return section
 
 
 def add_rows(dlg, form, v):

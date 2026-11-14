@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.33.1": ["A style's form names its numbering: a heading level's style says Heading numbering and its level, a list "
+               "level's style says which list. Change the numbering... opens that scheme in the standards, where every "
+               "level of it is set; your saved schemes stay in the library."],
     "4.33.0": ["Global Standards: Install a file... on Settings > Global Standards takes a version on a PC with no linked "
                "folder. Each update writes the version's file (Global Standards version N.skgs) beside its folder. The "
                "file is checked whole before anything on the PC changes.",
