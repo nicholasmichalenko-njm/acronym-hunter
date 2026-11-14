@@ -76,7 +76,10 @@ check("each piece in the effort's list: the pieces", "QRXT/ZVBN" not in r and "Q
 r = scan(["The QRXT-ZVBN unit ships.", "The QRXT team met. The ZVBN team met."], hyphen=True)
 check("the effort's hyphen rule still makes a hyphen-joined term whole", "QRXT-ZVBN" in r and r["QRXT"]["count"] == 1, sorted(r))
 r = scan(["The QRXT-ZVBN-12 unit ships.", "The QRXT team met. The ZVBN team met."])
-check("a number among the pieces: a designator, kept whole", "QRXT-ZVBN-12" in r and r["QRXT"]["count"] == 1, sorted(r))
+check("a number among the pieces: a designator, read as it always was (the whole, and its letters too)",
+      "QRXT-ZVBN-12" in r and r["QRXT"]["count"] == 2 and not r["QRXT-ZVBN-12"].get("joined"), sorted(r))
+r = scan(["MLI blankets per QRXT-STD-7000 here."])
+check("the letters in front of a numbered standard are still found (the accuracy floor)", "QRXT" in r and "QRXT-STD-7000" in r, sorted(r))
 r = scan(["The QRX-12 unit and the F-35 one."])
 check("letters and a number joined are read as before", "QRX-12" in r and "QRX" in r, sorted(r))
 r = scan(["Send it by AND/OR gate, a QRX-based design, the I/O and R&D lines."])

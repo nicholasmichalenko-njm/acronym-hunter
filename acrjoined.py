@@ -10,6 +10,10 @@ term and its pieces, each a decision, one of them never wanted. Now it offers on
      these files) and the joined term is not known: the pieces;
   4. otherwise: the joined term, whole. Its pieces are not offered at that place.
 
+The rule answers only for runs whose every piece has two capitals or more. A run with a number or a single letter
+among its pieces (GSFC-STD-7000, PCU-28, TT&C) is a designator and is read as it always was: the whole, and the
+letters in front too. The accuracy floor holds that (the PC build of 2026-11-14 00:13 stopped when it was lost).
+
 The answer in 2 is given once, on the card's More menu: "These are separate terms" on a joined term, "This is one
 term" on a piece. It is kept with the effort (rules_extra["joined"]) and holds on every later scan.
 
@@ -64,8 +68,8 @@ def runs(text, common=()):
         if len(term) > MOST:
             continue
         ps = pieces_of(term)
-        if sum(1 for p in ps if lettered(p)) < 2 or any(p.lower() in common for p in ps if len(p) > 1):
-            continue
+        if not all(lettered(p) for p in ps) or any(p.lower() in common for p in ps):
+            continue                 # a number or a single letter among the pieces: a designator, read as it always was
         out.append((m.start(1), m.end(2), term, ps))
     return out
 
