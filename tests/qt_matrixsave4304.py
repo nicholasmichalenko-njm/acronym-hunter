@@ -56,6 +56,7 @@ pg.select(ids[1]); app.processEvents(); pg.type_chips["requirement"].click(); ap
 check("the write finishes", wait(lambda: not th.isRunning(), 30)); app.processEvents()
 on_disk = {it["id"]: it["decision"] for it in C.Matrix(OUT).load().items}
 check("the first decision is on disk", os.path.getmtime(OUT) > m0 and on_disk[ids[0]] == "Keep")
+check("what follows the write runs on the window's thread, never the writing one", MS.DONE_ON is app.thread(), MS.DONE_ON)
 check("the change made meanwhile keeps the matrix not saved, and the timer runs again", M.pending and w.save_timer.isActive())
 rp = os.path.join(w.ws.root, "recovery")
 has_copy = lambda: (w.safety.settle(), os.path.isdir(rp) and any(f.startswith("matrix_") for f in os.listdir(rp)))[1]    # noqa: E731

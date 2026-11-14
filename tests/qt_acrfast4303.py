@@ -123,6 +123,31 @@ app.processEvents()
 check("a moment later both are written with no step to take, and the page says so", os.path.getmtime(L.path) > lm0 and not s.list_unsaved and not L.pending
       and pg.progress.text().startswith("Decisions saved"), pg.progress.text())
 check("... it said Saving your decisions while it wrote, on another thread (no write on the window's)", seen_saving and list_writes == [])
+check("4.30.4: what follows the write runs on the window's thread, never the writing one (the 4.30.3 crash)", AF.DONE_ON is app.thread(), AF.DONE_ON)
+# typing in the search box: one fill after the last key; rows go without a card drawn for each
+fills, cards = [], []
+real_fill, real_card = pg.fill, pg.show_detail
+pg.fill = lambda: (fills.append(1), real_fill())[1]
+pg.show_detail = lambda *a: (cards.append(1), real_card(*a))[1]
+try:
+    pg.table.itemSelectionChanged.disconnect()
+except (RuntimeError, TypeError):
+    pass
+pg.table.itemSelectionChanged.connect(pg.show_detail)
+for ch_ in "ZQXW":
+    pg.f_search.setText(pg.f_search.text() + ch_); app.processEvents()
+check("four keys typed: nothing is filled yet", fills == [])
+t0 = time.time()
+while not fills and time.time() - t0 < 5:
+    app.processEvents(); time.sleep(0.02)
+app.processEvents()
+check("a moment after the last key the list is filled once", fills == [1] and pg.table.rowCount() == len(pg.terms), fills)
+check("... and the term's card was drawn at most twice, not once per row that left", len(cards) <= 2, len(cards))
+pg.f_search.setText(""); t0 = time.time()
+while len(fills) < 2 and time.time() - t0 < 5:
+    app.processEvents(); time.sleep(0.02)
+check("clearing the search brings every row back", pg.table.rowCount() == len(pg.terms) and len(pg.terms) > 50)
+pg.fill, pg.show_detail = real_fill, real_card
 import effort as E2
 back = E2.EffortList(L.path, "Osprey"); back.load()
 check("the workbook on disk holds every one of them", all(t in back.rows for t in todo) and back.rows[todo[0]].get("Definition") == "A made-up definition", len(back.rows))

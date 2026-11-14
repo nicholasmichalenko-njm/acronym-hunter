@@ -117,7 +117,7 @@ class AcronymPage(QWidget):
                                 "list; tick this to see them (greyed, with what they belong to). A search finds them too.")
         for w in (self.f_type, self.f_status, self.f_found):
             w.currentIndexChanged.connect(lambda _i: self.fill())
-        self.f_search.textChanged.connect(lambda _t: self.fill())
+        self.f_search.textChanged.connect(lambda _t: __import__("skqt.acrfast", fromlist=["x"]).typed(self))   # 4.30.4: after a pause
         self.f_excl.toggled.connect(lambda _on: self.fill())
         self.f_forms.toggled.connect(lambda _on: self.fill())
         for w in (self.f_type, self.f_status, self.f_found):

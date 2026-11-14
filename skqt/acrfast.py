@@ -11,10 +11,13 @@ write the whole session file, build every row of the list again, and work out wh
 - where a term was found is worked out once and kept until its places change.
 
 Nothing about what is decided, kept or shown changes. Rules only (No AI); nothing leaves the PC."""
-from PySide6.QtCore import QEvent, QObject, QThread, QTimer
+from PySide6.QtCore import QEvent, QObject, Qt, QThread, QTimer, Slot
 from PySide6.QtWidgets import QApplication
 
 SAVE_AFTER = 1500        # milliseconds after the last decision
+TYPE_AFTER = 250         # milliseconds after the last key in the search box before the list is filled (0: at once)
+FEW = 25                 # rows taken out one by one; more than this and the list is built afresh
+DONE_ON = None
 AT_ONCE = False          # tests that read the files straight after a decision turn this on: every save writes there and then
 
 
@@ -57,10 +60,18 @@ def watch(page):
 
 
 class _Saver(QThread):
-    """Writes one snapshot of what was waiting."""
+    """Writes one snapshot of what was waiting. 4.30.4: what follows the write (the line beside the tabs, the marks) runs
+    on the window's thread. In 4.30.3 it was connected as a bare function, which Qt runs on the thread that finished:
+    the writing thread then touched the window's widgets, and the program could end with an access violation a moment
+    after a decision (Nicholas 2026-11-13 20:05)."""
     def __init__(self, page, session, snap):
         super().__init__(page)
-        self.session, self.snap, self.result, self.error = session, snap, (False, None), False
+        self.page, self.session, self.snap, self.result, self.error = page, session, snap, (False, None), False
+        self.finished.connect(self.after, Qt.QueuedConnection)      # this object lives on the window's thread: it runs there
+
+    @Slot()
+    def after(self):
+        _done(self.page, self.session, self.snap, self.result, self.error)
 
     def run(self):
         try:
@@ -94,12 +105,13 @@ def _write(page):
         return res
     say(page, "Saving your decisions...")
     t = page._saver = _Saver(page, s, snap)
-    t.finished.connect(lambda: _done(page, s, snap, t.result, t.error))
     t.start()
     return t
 
 
 def _done(page, s, snap, result, error):
+    global DONE_ON
+    DONE_ON = QThread.currentThread()                       # tests: this is the window's thread, never the writing one
     did_s, did_l = result
     if error or (snap["session"] is not None and not did_s):
         s.unsaved = True                                    # not written: it waits for the next save
@@ -150,6 +162,17 @@ def light(page):
     return True
 
 
+def typed(page):
+    """The search box changed: the list is filled once, a moment after the last key, not once per key (with thousands
+    of terms each fill is a visible wait)."""
+    if TYPE_AFTER <= 0:
+        return page.fill()
+    t = getattr(page, "_type_timer", None)
+    if t is None:
+        t = page._type_timer = QTimer(page); t.setSingleShot(True); t.timeout.connect(page.fill)
+    t.start(TYPE_AFTER)
+
+
 def sync_rows(page):
     """The table's rows for page.terms. When the terms are the ones shown before, less some, those rows are taken out
     and the rest keep what is drawn; otherwise every row is drawn again."""
@@ -158,13 +181,21 @@ def sync_rows(page):
     old, new = getattr(page, "_row_terms", None), list(page.terms)
     sigs = getattr(page, "_row_sigs", None)
     keep = set(new)
-    if old is not None and sigs is not None and page.table.rowCount() == len(old) and [t for t in old if t in keep] == new:
-        for i in range(len(old) - 1, -1, -1):
-            if old[i] not in keep:
-                page.table.removeRow(i); del sigs[i]
-    else:
-        page.table.setRowCount(len(new))
-        page._row_sigs = [None] * len(new)
+    few = old is not None and len(old) - len(new) <= FEW
+    # 4.30.4 (Nicholas 2026-11-13 20:05: typing in the search froze the window, then small windows flashed): each row
+    # taken out moved the selection, and each move drew the term's card again. No signal is sent while rows change, and
+    # when many go (a search, a filter) the list is built afresh, which is faster than taking them out one by one.
+    was = page.table.blockSignals(True)
+    try:
+        if few and sigs is not None and page.table.rowCount() == len(old) and [t for t in old if t in keep] == new:
+            for i in range(len(old) - 1, -1, -1):
+                if old[i] not in keep:
+                    page.table.removeRow(i); del sigs[i]
+        else:
+            page.table.setRowCount(len(new))
+            page._row_sigs = [None] * len(new)
+    finally:
+        page.table.blockSignals(was)
     page._row_terms = new
     return len(new)
 
