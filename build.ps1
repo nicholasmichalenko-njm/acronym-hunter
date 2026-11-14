@@ -48,7 +48,7 @@ function Test-PublicPackage([string]$dir) {
     $allowed = @("$exeName.exe", 'About Stationkeeper\README.txt', 'About Stationkeeper\OVERVIEW.md', 'About Stationkeeper\SECURITY.md',
                  'About Stationkeeper\CHECKSUM.txt')
     $root = (Resolve-Path $dir).Path
-    $files = Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
+    $files = Get-ChildItem $root -Recurse -File -Force | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
     $outside = $files | Where-Object { $_ -notlike '_internal\*' }
     $extra = $outside | Where-Object { $allowed -notcontains $_ }
     if ($extra) { throw "LEAK CHECK FAILED: unexpected file(s) in public package: $($extra -join ', ')" }

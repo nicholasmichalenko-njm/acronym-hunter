@@ -22,9 +22,9 @@ for d in (os.path.join(base, "_internal"), os.path.join(base, "_local_sandbox"),
 marked = []
 setter = lambda p, a: (marked.append((os.path.relpath(p, tmp).replace(os.sep, "/"), a)) or True)   # noqa: E731
 got = HF.program(base, setter)
-check("the program's own working folders are hidden: _internal and _local_sandbox", [os.path.basename(p) for p in got] == ["_internal", "_local_sandbox"]
+check("the program's own working folder is hidden: _local_sandbox", [os.path.basename(p) for p in got] == ["_local_sandbox"]
       and all(a == HF.HIDDEN for _p, a in marked), marked)
-check("... and nothing else of the program: not its folder, not what else is in it", {p for p, _a in marked} == {"Stationkeeper/_internal", "Stationkeeper/_local_sandbox"})
+check("... and nothing else of the program: not its folder, not _internal (the build and a zip must see it)", {p for p, _a in marked} == {"Stationkeeper/_local_sandbox"})
 marked.clear()
 check("an effort's app data folder is hidden", HF.effort(data, setter) and marked == [("Efforts/Osprey/Osprey_Effort_List - app data", HF.HIDDEN)], marked)
 check("... the folders people work in and Stationkeeper Data are never passed to it", not any("01_proposal" in p or p == "Stationkeeper Data" for p, _a in marked))
@@ -36,7 +36,7 @@ src = open(os.path.join(os.path.dirname(HERE), "skqt_main.py"), encoding="utf-8"
 saf = open(os.path.join(os.path.dirname(HERE), "skqt", "safety.py"), encoding="utf-8").read()
 rec = open(os.path.join(os.path.dirname(HERE), "skqt", "recordpage.py"), encoding="utf-8").read()
 check("the program hides its folders at start, an effort's when it opens, and Effort Record has Open the backups folder",
-      "_HF.program(A.BASE_DIR)" in src and "HF.effort(h.ws.root)" in saf and '"Open the backups folder"' in rec)
+      "_HF.program(A.BASE_DIR)" in src and '"--selftest" not in args and getattr(sys, "frozen", False)' in src and "HF.effort(h.ws.root)" in saf and '"Open the backups folder"' in rec)
 n = sum(checks)
 print(f"HIDE FOLDERS 4301 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

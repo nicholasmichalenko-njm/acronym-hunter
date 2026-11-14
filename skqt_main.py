@@ -87,9 +87,10 @@ def main(argv=None):
         design.apply(app)
     import diag
     diag.activity("qt_started")
-    try:                                             # 4.30.1: the program's own working folders are out of sight
-        import hidefolders as _HF
-        _HF.program(A.BASE_DIR)
+    try:                                             # 4.30.1: the program's own working folder is out of sight. Only
+        if "--selftest" not in args and getattr(sys, "frozen", False):     # in the installed program, never while it is
+            import hidefolders as _HF                # built or tested: the build lists the program's files, and a hidden
+            _HF.program(A.BASE_DIR)                  # folder is left out of a plain listing (4.30.3)
     except Exception:                                # noqa: BLE001
         pass
     import supportfile as SF                         # 2.81.0: two starts in a row that never finished: a safe start
