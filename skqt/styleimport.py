@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QFileDialog, QHBoxLayout, QHe
                                QTableWidgetItem, QVBoxLayout)
 
 import diag
+import stylehistory as SH
 import stylelib as SL
 import styleown as SO
 from . import design as D
@@ -50,6 +51,15 @@ class StyleImport(QDialog):
         self.b_all = D.button("Untick all shown", "ghost", lambda: self.tick_all())
         fr.addWidget(self.b_all)
         v.addLayout(fr)
+        mr = QHBoxLayout(); mr.setSpacing(D.SPACE["s"])                 # 4.35.1 (ST17, ST25): the two choices, before anything changes
+        mr.addWidget(D.label("For a style you already have, take", None, wrap=False))
+        self.mode = QComboBox()
+        for k, word in SH.MODES:
+            self.mode.addItem(word, k)
+        self.mode_say = D.label(SH.MODE_SAYS[SH.MERGE], "muted")
+        self.mode.currentIndexChanged.connect(lambda _i: (self.mode_say.setText(SH.MODE_SAYS[self.mode.currentData()]), self.fill()))
+        mr.addWidget(self.mode); mr.addWidget(self.mode_say, 1)
+        v.addLayout(mr)
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels(["Style", "What happens", "Yours", "In this file", "Into the set"])
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -58,10 +68,10 @@ class StyleImport(QDialog):
         self.table.setColumnWidth(0, 220); self.table.setColumnWidth(1, 230); self.table.setColumnWidth(4, 200)
         self.table.itemChanged.connect(lambda it: self.ticked(it))
         v.addWidget(self.table, 1)
-        v.addWidget(D.label("Every style of the file is listed and ticked. A set owns its styles: one with a name another set uses, "
-                            "with other values, becomes this set's own and theirs stay. One identical to a style you have is one style, "
-                            "used in this set too. Where this set already has the name with other values the row is flagged: Keep both "
-                            "(under a numbered name), Replace or Skip. Each keeps Word's own definition as it is in the file.", "muted"))
+        v.addWidget(D.label("Every style of the file is listed and ticked, and nothing changes until Bring in. A style you already have "
+                            "with other values shows each value that would change; it becomes that style's new latest version, for every "
+                            "set that uses it, and the earlier versions are kept (Versions... on its row). A style in the set shown can "
+                            "also be kept beside yours under a numbered name, or skipped. A new style comes in as it is in the file.", "muted"))
         foot = QHBoxLayout()
         self.n_lab = D.label("", "muted", wrap=False); foot.addWidget(self.n_lab, 1)
         foot.addWidget(D.button("Cancel", None, self.reject))
@@ -82,17 +92,20 @@ class StyleImport(QDialog):
             it.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
             it.setCheckState(Qt.Checked if r["keep"] else Qt.Unchecked)
             self.table.setItem(i, 0, it)
-            self.table.setItem(i, 1, QTableWidgetItem(r["words"]))
+            ch_ = SH.plan(self.page.lib, r, self.mode.currentData())
+            said = "; ".join(f"{w}: {a} to {b}" for w, a, b in ch_)
+            r["plan"] = said
+            self.table.setItem(i, 1, QTableWidgetItem((r["words"] + (". " + said if said else ". Nothing differs this way: no change")) if r["state"] == "variant" else r["words"]))
             if r.get("clash"):                                # 4.30.5: the flag and its three answers, on the row
                 from PySide6.QtWidgets import QWidget
                 cw = QWidget(); cl = QVBoxLayout(cw); cl.setContentsMargins(4, 2, 4, 2); cl.setSpacing(2)
-                fl = D.label(SO.FLAG, "warn"); fl.setObjectName("clashFlag"); cl.addWidget(fl)
+                fl = D.label(said or "Nothing differs this way: no change", "warn"); fl.setObjectName("clashFlag"); fl.setWordWrap(True); cl.addWidget(fl)
                 ch = QComboBox(); ch.setObjectName("clashChoice")
                 for key, word in SO.CHOICES:
                     ch.addItem(word, key)
                 ch.setCurrentIndex(max(0, ch.findData(r.get("choice") or "")))
-                ch.setToolTip("Keep both: the file's style comes in under a numbered name (" + SO.free_name(self.page.lib, r.get("set"), r["name"])
-                              + "). Replace: the set takes the file's. Skip: this one is left out.")
+                ch.setToolTip("Update the style: your style takes these values, as its new latest version. Keep both: the file's style comes in under "
+                              "a numbered name (" + SO.free_name(self.page.lib, r.get("set"), r["name"]) + "). Skip: this one is left out.")
                 ch.currentIndexChanged.connect(lambda _i, r=r, ch=ch: (r.__setitem__("choice", ch.currentData()), self.count()))
                 cl.addWidget(ch)
                 self.table.setCellWidget(i, 1, cw)
@@ -112,7 +125,7 @@ class StyleImport(QDialog):
                 cb.setCurrentIndex(max(0, cb.findData(r["set"])))
             cb.currentIndexChanged.connect(lambda _i, r=r, cb=cb: self.row_set(r, cb.currentData()))
             self.table.setCellWidget(i, 4, cb)
-            self.table.setRowHeight(i, 64 if r.get("clash") else 58)
+            self.table.setRowHeight(i, 78 if r.get("clash") else 58)
         self.table.blockSignals(False)
         self.count()
 
@@ -177,10 +190,11 @@ class StyleImport(QDialog):
         lib = self.page.lib
         if SO.unanswered(self.rows):
             return None
-        c = SL.bring_in(lib, self.rows, self.path, set_of={r["name"]: r.get("set") for r in self.rows if r.get("set")})
+        c = SL.bring_in(lib, self.rows, self.path, set_of={r["name"]: r.get("set") for r in self.rows if r.get("set")},
+                        mode=self.mode.currentData())
         diag.activity("styles_brought_in", added=c["new"], items=c["variant"])
         n_set = sum(1 for r in self.rows if r["keep"] and r.get("set"))
-        self.page.host.toast(f"{c['new']} new style(s), {c['variant']} with a name you had and other values"
+        self.page.host.toast(f"{c['new']} new style(s), {c['variant']} of yours updated ({dict(SH.MODES)[self.mode.currentData()].lower()})"
                              + (f", {c['both']} kept beside the set's under a numbered name" if c.get("both") else "")
                              + (f", {c['skipped']} skipped" if c.get("skipped") else "")
                              + (f", {c['same']} you had already" if c["same"] else "") + (f"; {n_set} in their set" if n_set else ""))

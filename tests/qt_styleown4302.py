@@ -1,4 +1,5 @@
-"""4.30.2 (Nicholas 2026-11-13 14:34, 14:43): a set owns its styles. The same name with other values in two sets is two
+"""4.30.2 (Nicholas 2026-11-13 14:34, 14:43), as 4.35.0 and 4.35.1 changed it (ST24, ST25: one style, one history; a
+change and a style brought in reach every set that uses the style). Was: a set owns its styles. The same name with other values in two sets is two
 styles; an identical style in several sets is one; a choice is asked only where the set has the name with other values;
 a v switch shows only where a set keeps both; a change made inside a set is that set's alone. Fictional styles."""
 import os, sys, tempfile
@@ -46,67 +47,88 @@ r = SO.against(lib, [st("Body", 11), st("Caption", 9)], rfp["id"])
 check("into an empty set nothing is asked; each row says it comes in, in that set", all(not x["clash"] and x["keep"] for x in r) and "in RFP" in r[0]["words"], r[0]["words"])
 SL.bring_in(lib, r, path, set_of={x["name"]: rfp["id"] for x in r})
 
-# the RFI set takes Body 10 (other values) and the identical Caption 9
+# 4.35.1 (ST24, ST25): one style, one history. The RFI set brings in Body 10 (other values) and the identical Caption 9
 r = SO.against(lib, [st("Body", 10), st("Caption", 9)], rfi["id"])
 body, cap = r
-check("the same name with other values in another set is not asked about: the set gets its own, theirs stays",
-      body["state"] == "variant" and not body["clash"] and "RFI gets its own" in body["words"] and "RFP" in body["words"], body["words"])
+check("the same name with other values: the row says your style is updated, for the set that uses it",
+      body["state"] == "variant" and not body["clash"] and "your style is updated, as its new latest version" in body["words"] and "RFP" in body["words"], body["words"])
 check("an identical style is one style, and the row names the set that uses it already", cap["state"] == "same" and not cap["clash"] and "RFP" in cap["words"], cap["words"])
+import stylehistory as SH
+check("before anything changes, the row's plan says each value that would change", SH.plan(lib, body, SH.MERGE) == [("Size", "11 pt", "10 pt")], SH.plan(lib, body, SH.MERGE))
 c = SL.bring_in(lib, r, path, set_of={x["name"]: rfi["id"] for x in r})
 b_rfp = SO.held(lib, rfp["id"], SO.fam(body["mine"]))[0]; b_rfi = SO.held(lib, rfi["id"], SO.fam(body["mine"]))[0]
-check("each set holds its own Body; the RFP set's is untouched", b_rfp["id"] != b_rfi["id"] and lib.values(b_rfp)["size"] == 11 and lib.values(b_rfi)["size"] == 10)
+check("Body is one style: both sets hold its new latest version, and the earlier one is kept", b_rfp["id"] == b_rfi["id"] and lib.values(b_rfp)["size"] == 10
+      and b_rfp["version"] == 2 and [lib.values(x)["size"] for x in lib.family(b_rfp["id"])] == [10, 11] and c["variant"] == 1, c)
+check("its history says where the change came from", SH.history(lib, b_rfp["id"])[0]["note"] == "Brought in from Osprey.docx: only what differs")
 caps = [i for i in lib.items if i["kind"] == "style" and lib.base_of(i) == "Caption"]
 check("the identical Caption is kept once and both sets use it", len(caps) == 1 and SO.used_in(lib, caps[0]["id"]) == ["RFP", "RFI"], SO.used_in(lib, caps[0]["id"]))
-check("no set is told another set's style is a newer version of its own", SO.newer(lib, rfp["id"]) == [] and SO.newer(lib, rfi["id"]) == [])
+check("no set is behind", SO.newer(lib, rfp["id"]) == [] and SO.newer(lib, rfi["id"]) == [] and SH.behind(lib) == [])
 
 # the rows
 allr = SO.rows(lib)
-names = [(lib.base_of(lib.get(x["shown"])), len(x["versions"])) for x in allr]
-check("Every style: two Body rows, one Caption row, and no version switch on any", names == [("Body", 0), ("Body", 0), ("Caption", 0)], names)
+names = [lib.base_of(lib.get(x["shown"])) for x in allr]
+check("Every style: one Body row and one Caption row", names == ["Body", "Caption"], names)
 inr = SO.rows(lib, rfi["id"])
-check("in a set: one row per style it holds, its own Body, no switch", [x["shown"] for x in inr if lib.base_of(lib.get(x["shown"])) == "Body"] == [b_rfi["id"]] and all(not x["versions"] for x in inr))
+check("in a set: one row per style it holds", [x["shown"] for x in inr if lib.base_of(lib.get(x["shown"])) == "Body"] == [b_rfi["id"]])
 page.fill_sets(); page.pick_set(None)
-check("the list shows three rows and no v tabs", page.rows.count() == 3 and not tabs(page))
+check("the list shows two rows and no v tabs", page.rows.count() == 2 and not tabs(page), page.rows.count())
 
-# the set already has the name with other values: the flag (4.30.5, Nicholas 18:54)
+# the set shown already uses the style: Update the style is the start, Keep both and Skip are there (4.30.5, as 4.35.1 has it)
 r = SO.against(lib, [st("Body", 12), st("Caption", 9), st("Quote", 10)], rfp["id"])
 body, cap, quo = r
-check("the set has Body with other values: that row is flagged and starts unanswered", body["clash"] and body["clash"]["id"] == b_rfp["id"] and body["choice"] == ""
-      and body["words"] == "Duplicate style with different values detected", body["words"])
-check("... the identical Caption and the new Quote are not flagged", not cap["clash"] and not quo["clash"])
+check("the set has Body with other values: that row carries the choice and starts on Update the style", body["clash"] and body["clash"]["id"] == b_rfp["id"] and body["choice"] == "replace", body["choice"])
+check("... the identical Caption and the new Quote carry none", not cap["clash"] and not quo["clash"])
 page.pick_set(rfp["id"])
 dlg = SI.StyleImport(page, path, r)
+from PySide6.QtWidgets import QLabel
 ch = [w for w in dlg.table.findChildren(QComboBox, "clashChoice")]
-check("the dialog shows the flag once, with Keep both, Replace and Skip", len(ch) == 1 and [ch[0].itemText(i) for i in range(4)] == ["Choose...", "Keep both", "Replace", "Skip"]
-      and any(x.text() == SO.FLAG for x in dlg.table.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QLabel, "clashFlag")))
-check("Bring in waits: it is off and the foot says one still needs an answer", not dlg.b_go.isEnabled() and "1 duplicate(s) with different values still need an answer" in dlg.n_lab.text()
-      and dlg.go() is None, dlg.n_lab.text())
+flags = [x.text() for x in dlg.table.findChildren(QLabel, "clashFlag")]
+check("the dialog shows the choice once: Update the style, Keep both, Skip, with what would change", len(ch) == 1
+      and [ch[0].itemText(i) for i in range(3)] == ["Update the style", "Keep both", "Skip"] and flags == ["Size: 10 pt to 12 pt"], flags)
+check("the two ways are offered before anything changes, starting on Only what differs", [dlg.mode.itemText(i) for i in range(2)] == ["Only what differs", "Everything the document has"]
+      and dlg.mode.currentData() == SH.MERGE and "keeps everything else" in dlg.mode_say.text())
+check("Bring in does not wait", dlg.b_go.isEnabled() and "still need" not in dlg.n_lab.text(), dlg.n_lab.text())
 ch[0].setCurrentIndex(ch[0].findData("skip")); app.processEvents()
-check("answered, Bring in is on", dlg.b_go.isEnabled() and "still need" not in dlg.n_lab.text() and "1 skipped" in dlg.n_lab.text(), dlg.n_lab.text())
+check("Skip is counted at the foot", dlg.b_go.isEnabled() and "1 skipped" in dlg.n_lab.text(), dlg.n_lab.text())
 c = dlg.go()
-check("Skip: the file's Body is left out; the set's stays", c.get("skipped") == 1 and [x["id"] for x in SO.held(lib, rfp["id"], SO.fam(b_rfp))] == [b_rfp["id"]]
+check("Skip: the file's Body is left out; the style stays", c.get("skipped") == 1 and [x["id"] for x in SO.held(lib, rfp["id"], SO.fam(b_rfp))] == [b_rfp["id"]]
       and not any(lib.values(i).get("size") == 12 for i in lib.items if i["kind"] == "style"))
 r = SO.against(lib, [st("Body", 12)], rfp["id"]); r[0]["choice"] = "both"
 c = SL.bring_in(lib, r, path, set_of={"Body": rfp["id"]})
 names = sorted(lib.base_of(lib.get(i)) for i in lib.kit(rfp["id"])["items"])
 b2 = next(i for i in lib.items if i["kind"] == "style" and lib.base_of(i) == "Body 2")
 check("Keep both: the file's comes in beside the set's under a numbered name", c.get("both") == 1 and names.count("Body") == 1 and "Body 2" in names
-      and lib.values(b2)["size"] == 12 and lib.values(SO.held(lib, rfp["id"], SO.fam(b_rfp))[0])["size"] == 11, names)
+      and lib.values(b2)["size"] == 12 and lib.values(SO.held(lib, rfp["id"], SO.fam(b_rfp))[0])["size"] == 10, names)
 check("... no set holds two styles of the same name", all(len(set(n)) == len(n) for n in ([lib.base_of(lib.get(i)) for i in k["items"]] for k in SL.sets(lib))))
 page.pick_set(rfp["id"])
 check("... and no row carries a v switch", not tabs(page))
 r = SO.against(lib, [st("Body", 13)], rfp["id"]); r[0]["choice"] = "both"
 SL.bring_in(lib, r, path, set_of={"Body": rfp["id"]})
 check("a second one kept beside takes the next number", "Body 3" in [lib.base_of(lib.get(i)) for i in lib.kit(rfp["id"])["items"]])
-r = SO.against(lib, [st("Body", 14)], rfi["id"]); r[0]["choice"] = "replace"
+r = SO.against(lib, [st("Body", 14)], rfi["id"])
 SL.bring_in(lib, r, path, set_of={"Body": rfi["id"]})
 now = SO.held(lib, rfi["id"], SO.fam(b_rfp))
-check("Replace: the set takes the file's Body; the other set keeps its own", len(now) == 1 and lib.values(now[0])["size"] == 14 and lib.values(SO.held(lib, rfp["id"], SO.fam(b_rfp))[0])["size"] == 11)
-r = SO.against(lib, [st("Body", 15)], rfi["id"])
-check("a flagged row with no answer is never brought in, even past the dialog", SL.bring_in(lib, r, path, set_of={"Body": rfi["id"]}).get("skipped") == 1
+check("Update the style: Body's latest is the file's, for both sets", len(now) == 1 and lib.values(now[0])["size"] == 14 and lib.values(SO.held(lib, rfp["id"], SO.fam(b_rfp))[0])["size"] == 14)
+r = SO.against(lib, [st("Body", 15)], rfi["id"]); r[0]["choice"] = "skip"
+check("a skipped row is never brought in", SL.bring_in(lib, r, path, set_of={"Body": rfi["id"]}).get("skipped") == 1
       and lib.values(SO.held(lib, rfi["id"], SO.fam(b_rfp))[0])["size"] == 14)
 SO.retarget(lib, r2 := SO.against(lib, [st("Body", 9.5)], None), rfi["id"])
-check("picking the set in the dialog judges the rows against it", r2[0]["clash"] is not None and r2[0]["choice"] == "")
+check("picking the set in the dialog judges the rows against it", r2[0]["clash"] is not None and r2[0]["choice"] == "replace")
+# everything the document has, against only what differs (ST25)
+tabbed = lib.latest(now[0]["id"]); tv = dict(lib.values(tabbed), tabs=[[36.0, "left", "none"]])
+tb = SH._on_top(lib, tabbed, tv, note="a tab of its own"); SH._move(lib, tabbed["family"], tb["id"])
+doc = SO.against(lib, [st("Body", 16)], rfi["id"])[0]
+check("Only what differs plans the size alone; Everything the document has also says the tab goes",
+      SH.plan(lib, doc, SH.MERGE) == [("Size", "14 pt", "16 pt")] and ("Tabs", "0.5 left", "none") in SH.plan(lib, doc, SH.REPLACE), SH.plan(lib, doc, SH.REPLACE))
+SL.bring_in(lib, [doc], path, set_of={"Body": rfi["id"]}, mode=SH.MERGE)
+top = lib.latest(tb["id"])
+check("Only what differs: the size is the document's and the tab stays", lib.values(top)["size"] == 16 and lib.values(top).get("tabs") == [[36.0, "left", "none"]])
+doc = SO.against(lib, [st("Body", 17)], rfi["id"])[0]
+SL.bring_in(lib, [doc], path, set_of={"Body": rfi["id"]}, mode=SH.REPLACE)
+top = lib.latest(tb["id"])
+check("Everything the document has: the style is the document's, and the tab is gone", lib.values(top)["size"] == 17 and not lib.values(top).get("tabs")
+      and SH.history(lib, top["id"])[0]["note"] == "Brought in from Osprey.docx: everything the document has")
+now = SO.held(lib, rfi["id"], SO.fam(b_rfp))
 from skqt import styleedit as SE2
 check("a copy cannot take a name the library has", SE2.duplicate(page, b_rfp["id"], "Body 2") is None)
 

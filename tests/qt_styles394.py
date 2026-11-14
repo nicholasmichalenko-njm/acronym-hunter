@@ -63,11 +63,9 @@ check("... shown when asked, with yours beside the file's", len(dlg2.shown) == l
 dlg2.reject()
 # a new version of Heading 1
 h1 = next(i for i in sp.lib.items if i["name"] == "Heading 1")
-rows = SL.against(sp.lib, [s for s in SL.read_styles(DOC) if s["name"] == "Heading 1"])
-rows[0]["values"] = dict(rows[0]["values"], size=18.0); rows = SL.against(sp.lib, rows)
-SL.bring_in(sp.lib, rows, DOC)
+sp.lib.save_version(h1["id"], dict(sp.lib.values(h1), size=18.0))      # as a library from before 4.35.0 holds one: a version no set took
 sp.refresh(); app.processEvents()
-check("4.30.2: the set's Heading 1 and the changed one no set uses are two rows", len(sp.row_ids) == 4 and h1["id"] in sp.row_ids)
+check("a set left on an earlier version (from before 4.35.0): its Heading 1 and the later one are two rows", len(sp.row_ids) == 4 and h1["id"] in sp.row_ids)
 check("... and no row carries a version switch", not any(sp.rows.itemWidget(sp.rows.item(i)).findChildren(QPushButton, "verTab") for i in range(sp.rows.count())))
 # a set's view: the version it uses, and the newer one
 sp.sets.setCurrentRow(1); app.processEvents()

@@ -15,7 +15,7 @@ library opens as before. A set may carry what it is used for ("used_for": a kind
 Standard library only. Rules only (No AI); nothing leaves the PC."""
 import stylelib as SL
 
-CHOICES = (("", "Choose..."), ("both", "Keep both"), ("replace", "Replace"), ("skip", "Skip"))
+CHOICES = (("replace", "Update the style"), ("both", "Keep both"), ("skip", "Skip"))   # 4.35.1: Update is the start; nothing waits
 FLAG = "Duplicate style with different values detected"
 USED_FOR = ("RFP", "RFI", "Program documents", "White paper", "Other")
 
@@ -53,7 +53,7 @@ def against(lib, styles, sid=None):
         clash = None
         if own and not (r["state"] == "same" and any(o["id"] == mine["id"] for o in own)):
             clash = own[-1]
-        r["clash"], r["choice"] = clash, ""
+        r["clash"], r["choice"] = clash, ("replace" if clash else "")
         r["words"] = words(lib, r, sid)
     return out
 
@@ -70,8 +70,8 @@ def words(lib, r, sid=None):
         others = [n for n in used_in(lib, r["mine"]["id"]) if not k or n != k["name"]]
         return "Identical to one you have: one style" + (f", used in {', '.join(others)} too" if others else "") + ("" if k else "; it joins the set you pick")
     others = sorted({n for x in lib.items if x["kind"] == "style" and fam(x) == fam(r["mine"]) for n in used_in(lib, x["id"])})
-    return ("Same name, other values" + (f" than {', '.join(others)}'s" if others else " than the one you have")
-            + f": {here} gets its own; " + ("theirs stay" if others else "yours stays"))
+    return ("Same name, other values: your style is updated, as its new latest version"
+            + (f", for {', '.join(others)}" if others else ""))
 
 
 def unanswered(rows):
@@ -100,7 +100,7 @@ def retarget(lib, rows, sid):
         if own and not (r["state"] == "same" and any(o["id"] == mine["id"] for o in own)):
             clash = own[-1]
         r["clash"] = clash
-        r["choice"] = before[1] if clash and before[0] == clash["id"] and before[1] else ""
+        r["choice"] = (before[1] if before[0] == clash["id"] and before[1] else "replace") if clash else ""
         r["words"] = words(lib, r, sid)
     return rows
 

@@ -19,7 +19,7 @@ NS = {"w": W}
 SET_COLORS = ("#3B82F6", "#F59E0B", "#14B8A6", "#EC4899", "#8B5CF6", "#22C55E", "#EF4444", "#64748B")
 STATES = {"new": "New", "same": "Already have it", "variant": "Different from yours"}
 # 4.30.1 (Nicholas 2026-11-13 14:30): what bringing each one in does, said on its row
-DOES = {"new": "New: added to your library", "variant": "Same name, other values: added as a new version beside yours",
+DOES = {"new": "New: added to your library", "variant": "Same name, other values: your style is updated, as its new latest version",
         "same": "Identical to yours: not added twice; it joins the set"}
 LOOK = ("font", "size", "color", "bold", "italic", "underline", "hidden")
 
@@ -57,9 +57,10 @@ def against(lib, styles):
     return out
 
 
-def bring_in(lib, picks, path, set_of=None, tags=None, who=None):
-    """Keeps the ticked styles: a new style, or a new version of one with other values; each into its set (set_of:
-    {name: set id}). All or nothing. Returns {"new", "same", "variant"}."""
+def bring_in(lib, picks, path, set_of=None, tags=None, who=None, mode="merge"):
+    """Keeps the ticked styles: a new style comes in; one you have with other values becomes that style's new Latest
+    (4.35.1, ST17 and ST25: mode "merge" takes only what differs, "replace" everything the document has), for every
+    set that uses it; each into its set (set_of: {name: set id}). All or nothing. Returns {"new", "same", "variant"}."""
     counts = {"new": 0, "same": 0, "variant": 0}
     with lib.transaction():
         for p in picks:
@@ -71,6 +72,14 @@ def bring_in(lib, picks, path, set_of=None, tags=None, who=None):
                 counts["skipped"] = counts.get("skipped", 0) + 1
                 continue
             name = p["name"]
+            if p.get("state") == "variant" and p.get("mine") and choice != "both":   # one style, one history
+                import stylehistory as SH
+                new = SH.bring(lib, p, mode, path, who)
+                item = new or lib.latest(p["mine"]["id"])
+                counts["variant" if new else "same"] += 1
+                if sid and item["id"] not in (lib.kit(sid) or {}).get("items", []):
+                    add_to_set(lib, sid, [item["id"]])
+                continue
             if choice == "both":                                              # beside the set's own, under a numbered name
                 import styleown as SO
                 name = SO.free_name(lib, sid, p["name"])

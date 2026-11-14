@@ -176,3 +176,46 @@ def use_latest(lib, sid=None):
     for k, a, b in behind(lib, sid):
         n += bool(_move(lib, a["family"], b["id"]))
     return n
+
+
+# ---------------------------------------------------------------- a document's style over one you have (4.35.1, ST17, ST25)
+MERGE, REPLACE = "merge", "replace"
+MODES = ((MERGE, "Only what differs"), (REPLACE, "Everything the document has"))
+MODE_SAYS = {MERGE: "Your style takes the values that differ and keeps everything else it has.",
+             REPLACE: "Your style becomes exactly the document's; what the document's does not have is removed."}
+
+
+def _target(lib, row, mode):
+    """(the Latest of the style, the values it would have)."""
+    top = lib.latest(row["mine"]["id"])
+    old = lib.values(top) or {}
+    doc = row["values"]
+    if mode == REPLACE:
+        return top, dict(doc, _xml=row.get("xml", ""))
+    diff = {k: doc.get(k, "") for k, _t in SHOW if k in doc and _say(k, doc.get(k)) != _say(k, old.get(k))}
+    v = SL._edited(old, diff)
+    if diff:
+        v["_xml"] = SL._xml_for(lib.base_of(top), old, v)
+    return top, v
+
+
+def plan(lib, row, mode):
+    """What bringing this style in would change in the one you have, in words: [(what, was, now)]. Empty when the
+    style is new, identical, or the mode changes nothing."""
+    if row.get("state") != "variant" or not row.get("mine"):
+        return []
+    top, v = _target(lib, row, mode)
+    return changes(lib.values(top) or {}, v)
+
+
+def bring(lib, row, mode, path="", who=None):
+    """The document's style over the one you have, as its new Latest for every set that uses it. Returns the new
+    version, or None when the mode changes nothing."""
+    import os
+    top, v = _target(lib, row, mode)
+    if not changes(lib.values(top) or {}, v):
+        return None
+    v["_from"] = os.path.basename(path or "")
+    new = _on_top(lib, top, v, who, note=f"Brought in from {os.path.basename(path or 'a document')}: {dict(MODES)[mode].lower()}")
+    _move(lib, top["family"], new["id"])
+    return new
