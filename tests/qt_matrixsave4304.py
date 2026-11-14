@@ -49,6 +49,12 @@ ids = [it["id"] for it in M.items if it["text"].startswith("The Offeror")]
 pg.select(ids[0]); app.processEvents(); pg.type_chips["requirement"].click(); app.processEvents()
 check("a decision leaves the matrix not saved yet, and the timer running", M.pending and w.save_timer.isActive())
 m0 = os.path.getmtime(OUT)
+check("4.30.4: by default the timer's save writes on the window's thread and says so", MS.THREADED is False and MS.soon(w) is None and not M.pending
+      and os.path.getmtime(OUT) > m0 and {it["id"]: it["decision"] for it in C.Matrix(OUT).load().items}[ids[0]] == "Keep")
+MS.THREADED = True                                       # the other-thread path stays tested for when it is turned back on
+pg.select(ids[5]); app.processEvents(); pg.type_chips["requirement"].click(); app.processEvents()
+ids[0] = ids[5]
+m0 = os.path.getmtime(OUT)
 th = MS.soon(w)
 check("the timer's save starts a write on another thread and says so", th is not None and w.statusBar().currentMessage() == MS.SAVING)
 check("... the matrix is still not saved yet while it is written", M.pending)
@@ -56,7 +62,7 @@ pg.select(ids[1]); app.processEvents(); pg.type_chips["requirement"].click(); ap
 check("the write finishes", wait(lambda: not th.isRunning(), 30)); app.processEvents()
 on_disk = {it["id"]: it["decision"] for it in C.Matrix(OUT).load().items}
 check("the first decision is on disk", os.path.getmtime(OUT) > m0 and on_disk[ids[0]] == "Keep")
-check("what follows the write runs on the window's thread, never the writing one", MS.DONE_ON is app.thread(), MS.DONE_ON)
+check("what follows the write runs on the window's thread, never the writing one", MS.DONE_ON is True, MS.DONE_ON)
 check("the change made meanwhile keeps the matrix not saved, and the timer runs again", M.pending and w.save_timer.isActive())
 rp = os.path.join(w.ws.root, "recovery")
 has_copy = lambda: (w.safety.settle(), os.path.isdir(rp) and any(f.startswith("matrix_") for f in os.listdir(rp)))[1]    # noqa: E731

@@ -3,9 +3,10 @@ Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Te
 
 WHATS_NEW = {
     "4.30.4": ["Large documents, Shred: selecting a piece, putting a type on it, typing thousands at once and Undo no longer wait "
-               "on the size of the document.",
-               "The matrix saves itself in the background two seconds after a change. The window keeps answering while it is written.",
-               "Saving a large matrix is several times faster."],
+               "on the size of the document. Saving a large matrix is several times faster.",
+               "Acronyms, The list: click a boxed reading on the page to decide the term in it; click a row of the list to go back.",
+               "Acronyms: a search fills the list once, a moment after your last key, and no small windows flash.",
+               "If the program ever ends by itself, the record kept for support now names the part that failed."],
     "4.30.3": ["Large documents: a decision on Acronyms no longer freezes the window, with thousands of finds. Decide one or many, "
                "add one or many to the effort list, or switch between Undecided, Added and Ignored.",
                "Your decisions are saved by themselves a moment after the last one: Saving your decisions, then Decisions saved, "

@@ -2,8 +2,8 @@
 "not a term" froze the window). Each decision used to do three whole-effort jobs before the window answered: read and
 write the whole session file, build every row of the list again, and work out where each term was found again. Now:
 
-- the session file and the effort list workbook are written a moment after the last decision (SAVE_AFTER), once, on
-  another thread, so the window answers while they are written; "Saving your decisions" then "Decisions saved" shows
+- the session file and the effort list workbook are written a moment after the last decision (SAVE_AFTER), once (on
+  another thread when THREADED; from 4.30.4 on the window's own, see THREADED); "Saving your decisions" then "Decisions saved" shows
   beside the tabs. Leaving the page, switching tabs and closing write at once and wait for it. There is no step to
   take. What a crash can lose is the last second and a half of decisions;
 - while On the page is showing, the list behind it is not built; it is built when The list is opened;
@@ -11,12 +11,16 @@ write the whole session file, build every row of the list again, and work out wh
 - where a term was found is worked out once and kept until its places change.
 
 Nothing about what is decided, kept or shown changes. Rules only (No AI); nothing leaves the PC."""
-from PySide6.QtCore import QEvent, QObject, Qt, QThread, QTimer, Slot
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, Qt, QThread, QTimer, Slot
 from PySide6.QtWidgets import QApplication
 
 SAVE_AFTER = 1500        # milliseconds after the last decision
 TYPE_AFTER = 250         # milliseconds after the last key in the search box before the list is filled (0: at once)
 FEW = 25                 # rows taken out one by one; more than this and the list is built afresh
+# 4.30.4: False until the access violation of 2026-11-13 is understood. The program ended a moment after quick decisions on
+# 4.30.3, the first release that wrote on another thread, and the crash record had lost the thread that crashed. Written
+# on the window's own thread, the write is a short pause a moment after the last decision, never during one.
+THREADED = False
 DONE_ON = None
 AT_ONCE = False          # tests that read the files straight after a decision turn this on: every save writes there and then
 
@@ -99,9 +103,16 @@ def _write(page):
     snap = s.snapshot() if s is not None else None
     if snap is None:
         return None
-    if getattr(page, "save_inline", False):                  # tests of what is written: on this thread
-        res = type(s).write_snapshot(snap)
-        _done(page, s, snap, res, False)
+    if not THREADED or getattr(page, "save_inline", False):  # on the window's thread: a short pause, said beside the tabs
+        say(page, "Saving your decisions...")
+        QCoreApplication.processEvents()                     # the line shows before the pause
+        try:
+            res, err = type(s).write_snapshot(snap), False
+        except Exception:  # noqa: BLE001  kept in memory; written at the next save
+            import diag
+            diag.swallowed()
+            res, err = (False, None), True
+        _done(page, s, snap, res, err)
         return res
     say(page, "Saving your decisions...")
     t = page._saver = _Saver(page, s, snap)
@@ -111,7 +122,7 @@ def _write(page):
 
 def _done(page, s, snap, result, error):
     global DONE_ON
-    DONE_ON = QThread.currentThread()                       # tests: this is the window's thread, never the writing one
+    DONE_ON = QThread.currentThread() is QCoreApplication.instance().thread()                       # tests: True on the window's thread, never the writing one
     did_s, did_l = result
     if error or (snap["session"] is not None and not did_s):
         s.unsaved = True                                    # not written: it waits for the next save
