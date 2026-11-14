@@ -28,10 +28,10 @@ templates, and checks. One person builds it, with Claude. Keep this file under t
 
 ## Words we use
 - **Global Standards**: the foundation every effort starts from, one set with a version number (never "Company
-  Standards", "team standard" or "publish"): a few people **update** it (Update Global Standards) from the **changes
-  waiting** on their PC (never "draft": a draft is a proposal draft); every PC takes versions from the linked folder
-  (`globalfolder.py`). **Effort Standards**: an effort's own set
-  (`effortset.py`), in use while the effort is open. **Effort Formatting**: one effort's formatting on top of its set.
+  Standards", "team standard", "publish" or "draft"). Changed on its own page (`skqt/globalpage.py`); a save is
+  **shared at once** with every PC that reads the linked folder (`globalfolder.share`); no Update step, no Put back.
+  **Effort Standards**: an effort's own set (`effortset.py`), in use while the effort is open. **Effort Formatting**:
+  one effort's formatting on top of its set.
 - **Rule N**: the production rules (Rules page, `rulebook.py`; check codes RU1 to RU8). **house rules**: this file's list.
 - **effort**, **volume**, **section**, **response structure**, **Used on** (a style's family, set by the user, never
   guessed from its name).

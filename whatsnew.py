@@ -2,6 +2,12 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.34.0": ["Global Standards has its own page, in the menu beside Settings. It opens whether or not an effort is open "
+               "and always changes the Global Standards; an open effort keeps its own standards.",
+               "A change saved there reaches everyone at once: no Update button. Other PCs get it the next time they "
+               "open Stationkeeper. The number is in the window's title on every PC.",
+               "Who has it: each PC that reads the linked folder leaves its own line, with the version it is on.",
+               "Save a file to share... writes the Global Standards in one file for a PC with no shared folder."],
     "4.33.1": ["A style's form names its numbering: a heading level's style says Heading numbering and its level, a list "
                "level's style says which list. Change the numbering... opens that scheme in the standards, where every "
                "level of it is set; your saved schemes stay in the library."],

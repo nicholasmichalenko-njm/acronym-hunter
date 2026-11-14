@@ -48,7 +48,7 @@ RAIL = [("Effort", [("home", "Overview"), ("calendar", "Calendar"), ("tasks", "T
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Templates", [("styles", "Styles"), ("designs", "Quick Parts"), ("formatstd", "Page Layout"), ("templates", "Template")]),   # 4.28.0
         ("Team", [("tools", "Quick tools"), ("team", "Team")]),      # 4.27.2: Quick tools at the bottom of the menu
-        ("Settings", [("settings", "Settings")])]
+        ("Settings", [("globalstd", "Global Standards"), ("settings", "Settings")])]   # 4.34.0: its own page
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Quick tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
@@ -290,7 +290,7 @@ class MainWindow(QMainWindow):
         self.audit_page = AuditPage(self)              # 3.17.0
         self.prodstd_page = StandardsPage(self)        # 3.6.0: every rule, three layers
         from .effortformatpage import EffortFormatPage
-        self.effortfmt_page = EffortFormatPage(self)   # 3.36.0: one effort's formatting, apart from the team's
+        self.effortfmt_page = EffortFormatPage(self); self.globalstd_page = __import__("skqt.globalpage", fromlist=["x"]).GlobalPage(self)   # 3.36.0; 4.34.0
         from .datacallspage import DataCallsPage
         self.datacalls_page = DataCallsPage(self)      # 3.39.0: internal data calls
         from .redlinepage import CheckPage, ExceptionsPage, PreparePage      # 4.8.0: Redline
@@ -335,7 +335,7 @@ class MainWindow(QMainWindow):
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.assign_page, "verify": self.verify_page,
                       "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
-                      "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page, "redline": self.redline_page, "rcheck": self.rcheck_page,
+                      "effortfmt": self.effortfmt_page, "globalstd": self.globalstd_page, "rules": self.rules_page, "datacalls": self.datacalls_page, "redline": self.redline_page, "rcheck": self.rcheck_page,
                       "exceptions": self.exceptions_page, "markups": self.markups_page, "graphics": self.graphics_page, "overview": self.overview_page,
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "designs": self.designs_page,
@@ -426,7 +426,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
 
-    NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles",
+    NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "globalstd", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles",
                  "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}
 
     def rail_go(self, key):
@@ -1229,7 +1229,7 @@ class MainWindow(QMainWindow):
     def title(self):
         dirty = self.review is not None and self.review.M.pending
         self.setWindowTitle(("* " if dirty else "") + (f"{self.effort_name}: " if self.effort_name else "")
-                            + f"Stationkeeper {self.version}".strip() + self._mode_badge())
+                            + f"Stationkeeper {self.version}".strip() + self._mode_badge() + __import__("skqt.globalview", fromlist=["x"]).badge(self))
         if hasattr(self, "mode_chip"):
             try:
                 self.show_mode_chip()

@@ -12,13 +12,20 @@ STANDARDS = {"prodstd", "styles", "qpstd", "designs", "layoutstd", "formatstd", 
 
 
 def sub(host, step, line):
-    """The line under the page title: on a standards page, which set a change goes to."""
+    """The line under the page title: on a standards page, which set a change goes to. 4.34.0: the Global Standards
+    page puts the Global Standards in view; they stay in view on the standards' editors it opens and leave view on any
+    other page, when what was saved is shared."""
     name = getattr(host, "effort_name", "")
+    if step == "globalstd":
+        ES.view_global(True)
+        return line
     if step in STANDARDS:
-        if name and ES.active():
-            return f"Effort Standards: {name}. A change here is this effort's own.  ·  {line}"
-        return f"Global Standards. A change here waits on this PC until Update Global Standards.  ·  {line}"
-    return line + (f"  ·  {name}" if name else "")
+        if ES.viewing_global() or not (name and ES.active()):
+            return f"Global Standards. A change here is saved for everyone.  \u00b7  {line}"
+        return f"Effort Standards: {name}. A change here is this effort's own.  \u00b7  {line}"
+    if ES.view_global(False):
+        __import__("skqt.globalview", fromlist=["x"]).share_now(host)
+    return line + (f"  \u00b7  {name}" if name else "")
 
 
 def add_card(page, v):

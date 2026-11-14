@@ -37,9 +37,23 @@ def set_dir(root):
     return os.path.join(root, FOLDER)
 
 
+_VIEW = {"glob": False}                         # 4.34.0 (ST9): the Global Standards page and the editors it opens
+
+
+def view_global(on):
+    """The window is (or is no longer) in the Global Standards: every thread reads the config folder while it is."""
+    was = _VIEW["glob"]
+    _VIEW["glob"] = bool(on)
+    return was
+
+
+def viewing_global():
+    return _VIEW["glob"]
+
+
 def base(config_dir):
     """Where the OWN files are now."""
-    if _ACTIVE and not getattr(_local, "glob", 0) and os.path.abspath(config_dir) == _ACTIVE["config"]:
+    if _ACTIVE and not _VIEW["glob"] and not getattr(_local, "glob", 0) and os.path.abspath(config_dir) == _ACTIVE["config"]:
         return _ACTIVE["dir"]
     return config_dir
 

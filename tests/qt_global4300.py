@@ -26,8 +26,8 @@ def check(name, ok, info=""):
 cfg = os.path.join(tmp, "cfg"); os.makedirs(cfg)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
-w.go("settings"); app.processEvents()
-sp = w.settings_page
+w.go("globalstd"); app.processEvents()
+sp = w.globalstd_page
 check("Settings > Team data has a Global Standards card, first in its section", sp.gs_card.title.text() == "Global Standards"
       and dict(sp.SECTIONS)["Team data and training"][0] == "gs_card")
 check("a PC that has taken no version: not a version yet", sp.gs_text.text().startswith("Global Standards: not a version yet."), sp.gs_text.text())

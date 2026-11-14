@@ -175,7 +175,7 @@ def waiting(config_dir, folder):
     return rows
 
 
-def update(config_dir, folder, by="", note="", when=None):
+def update(config_dir, folder, by="", note="", when=None, after=0):
     """Write the next version from what this PC holds and name it the one in use. Returns its manifest. Raises OSError
     when the folder cannot be written, ValueError when there is nothing to put in a version."""
     mine = _members(config_dir)
@@ -183,7 +183,7 @@ def update(config_dir, folder, by="", note="", when=None):
         raise ValueError("This PC holds nothing of the Global Standards yet.")
     os.makedirs(folder, exist_ok=True)
     cur = _json(os.path.join(folder, CURRENT)) or {}
-    n = max(versions(folder) + [cur.get("version") if isinstance(cur.get("version"), int) else 0]) + 1
+    n = max(versions(folder) + [cur.get("version") if isinstance(cur.get("version"), int) else 0, int(after or 0)]) + 1
     stamp = (when or datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")
     tmp = os.path.join(folder, f"{vname(n)}.writing")
     shutil.rmtree(tmp, ignore_errors=True)

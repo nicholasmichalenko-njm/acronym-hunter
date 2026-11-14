@@ -36,8 +36,8 @@ GX.write(F, 1); GX.write(F, 2)                                   # 4.34.0: a fil
 cfg = os.path.join(tmp, "cfg"); os.makedirs(cfg)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
-w.go("settings"); app.processEvents()
-sp = w.settings_page
+w.go("globalstd"); app.processEvents()
+sp = w.globalstd_page
 vis = lambda b: not b.isHidden()
 check("no link, no version: the card says the built-in starter and names the two ways in", "built-in starter" in sp.gs_folder.text()
       and "Link a folder..." in sp.gs_folder.text() and "Install a file..." in sp.gs_folder.text() and vis(sp.gs_link) and vis(sp.gs_install), sp.gs_folder.text())
