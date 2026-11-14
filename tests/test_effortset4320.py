@@ -84,6 +84,14 @@ with open(os.path.join(cfg, "outline_layouts.json"), "w") as f:
 rows = ES.offer(cfg, A)["rows"]
 check("a file the Global Standards gained later is offered as added",
       any(r["file"] == "outline_layouts.json" and r["new"] == "added" for r in rows), rows)
+ES.enter(cfg, A)
+check("the effort's change is given to the Global Standards only when asked", ES.give(cfg, A, files=["production_standards.json"]) == 1)
+with ES.as_global():
+    check("it is in the config folder, as a change waiting", font() == "Effort A Font")
+check("the effort is then as the Global Standards: nothing changed, nothing offered for that file",
+      "production_standards.json" not in ES.changed(cfg, A) and "production_standards.json" not in ES.offer(cfg, A)["files"])
+ES.leave()
+check("and the other effort is offered it", any(r["new"] == "Effort A Font" for r in ES.offer(cfg, B)["rows"]), ES.offer(cfg, B)["rows"])
 check("a set folder that cannot be made leaves the config folder in use",
       ES.enter(cfg, os.path.join(cfg, "production_standards.json", "x")) == {} and ES.base(cfg) == cfg)
 check("the PC's other files never enter a set", not os.path.exists(os.path.join(ES.set_dir(A), "acronym_note.txt")))

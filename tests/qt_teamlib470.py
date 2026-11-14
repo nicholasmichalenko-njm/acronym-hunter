@@ -48,9 +48,14 @@ check("Settings > The team shows the Team library card with where it is", sp.tl_
       sp.tl_where.text())
 wb = openpyxl.load_workbook(book); ws = wb["Styles"]; hdr = [c.value for c in ws[1]]
 ws.cell(2, hdr.index("Size (pt)") + 1).value = 12; wb.save(book); time.sleep(0.02)
+def _glob(fn):                                                  # 4.32.0: the workbook holds the Global Standards, effort open or not
+    with __import__("effortset").as_global():
+        return fn()
+
+
 said = TV.read_now(sp)                                          # 4.10.0: Read it now does the two-minute check at once
 check("a value changed in Excel reaches the standard with Read it now, and the status says so",
-      PRL.load(cfg)["company"]["style_defs"]["Body Text"]["size"] == 12 and any("Read from the Global Standards workbook" in s for s in said), said)
+      _glob(lambda: PRL.load(cfg))["company"]["style_defs"]["Body Text"]["size"] == 12 and any("Read from the Global Standards workbook" in s for s in said), said)
 check("Settings > Team library has Read it now", any(b.text() == "Read it now" for b in sp.tl_card.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QPushButton)))
 seen = []; real_status = w.status; w.status = lambda t: (seen.append(t), real_status(t))
 check("... with nothing new it says so", TV.read_now(sp) == [] and any("no changes" in t for t in seen), seen)

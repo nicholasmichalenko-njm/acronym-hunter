@@ -64,16 +64,24 @@ def _stamp(p):
 class Library:
     def __init__(self, config_dir):
         self.config_dir = config_dir
-        self.root = folder(config_dir)
+        self._at = folder(config_dir)
         self.items = []
         self.kits = []
         self._tx = None                                 # 3.49.0: a transaction in progress (see transaction())
         self._mtime = None
         self.load()
 
+    @property
+    def root(self):
+        """4.32.0: the library of the set in use (an effort's own while it is open); read again when that changes."""
+        now = folder(self.config_dir)
+        if now != self._at and self._tx is None:
+            self._at = now; self.load()
+        return self._at
+
     def load(self):
         try:
-            p = os.path.join(self.root, "index.json")
+            p = os.path.join(self._at, "index.json")
             self._mtime = _stamp(p)
             with open(p, encoding="utf-8") as f:
                 d = json.load(f) or {}

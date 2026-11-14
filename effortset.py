@@ -17,6 +17,7 @@ workbook, Update Global Standards) reads inside `with as_global():`.
     changed(config_dir, root)   the effort's own changes since then, one row a change
     offer(config_dir, root)     what the Global Standards on this PC would change in the set, one row a change
     take(config_dir, root, files=None)   take those changes (every one when None) into the effort's set
+    give(config_dir, root, files=None)   the effort's own changes become changes waiting in the Global Standards
 
 Standard library only. Rules only (No AI); nothing leaves the PC."""
 import contextlib, datetime, json, os, shutil, threading
@@ -200,6 +201,35 @@ def take(config_dir, root, files=None, when=None):
             d["from_version"] = of["version"]
         d["taken"] = (when or datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")
         _save_info(root, d)
+    return n
+
+
+def give(config_dir, root, files=None):
+    """The effort's own changes (every one, or the files named) become changes waiting in the Global Standards on this
+    PC: the one way a change made in an effort reaches the others, and it is asked for by name. Returns how many."""
+    d = info(root)
+    mine = _members(set_dir(root))
+    n = 0
+    for m in changed(config_dir, root):
+        if files is not None and m not in files:
+            continue
+        dst = os.path.join(config_dir, m.replace("/", os.sep))
+        if m in mine:
+            _copy(mine[m], dst)
+            d["files"][m] = GS._sha_file(dst)
+        else:
+            try:
+                os.remove(dst)
+            except OSError:
+                pass
+            d["files"].pop(m, None)
+        n += 1
+    if n:
+        _save_info(root, d)
+        try:
+            __import__("teamlib").mark_dirty(config_dir)          # the workbook follows
+        except Exception:                                         # noqa: BLE001  the workbook is a copy
+            pass
     return n
 
 

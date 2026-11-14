@@ -243,6 +243,7 @@ made = sp.make_templates_all()
 check("3.8: Make templates for every profile in an effort type, each passing its own check",
       len(made) == len(PRL.effort_type_of(PRL.load(cfg), "rfp_limited")["profiles"]) and all(j.check.count() == 0 for j in made)
       and all(os.path.dirname(j.copy).endswith("Page-limited RFP response") for j in made), [(j.copy, j.check.count()) for j in made])
+__import__("effortset").give(cfg, w.ws.root)             # 4.32.0: the profiles made in the first effort become Global, so the next effort starts with them
 w.go("home"); app.processEvents()
 f = w.home_page.start
 f.name.setText("Falcon"); f.etype.setCurrentIndex(f.etype.findData("white_paper")); f.create(); app.processEvents()
