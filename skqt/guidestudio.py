@@ -223,3 +223,19 @@ TASKS = ("tasks", "The effort", "Tasks",
    "Mine, across efforts: pick a name; double-click a row to open its effort."],
   ["Tasks are kept in the effort record. A late task also counts on the Overview."])
 
+GLOBALSTD = \
+("globalstd", "Settings", "Global Standards",
+  "The foundation every effort starts from: formatting, styles, Quick Parts, page layout, templates and rules. One set, "
+  "with a version number that shows in the window's title.",
+  "When the team's standards change. Not for one effort's formatting: an open effort has its own standards.",
+  ["The page opens whether or not an effort is open and always changes the Global Standards. The effort stays open and "
+   "keeps its own standards.",
+   "The buttons under Change the Global Standards open each part as it is. A change is saved as you make it.",
+   "On a PC that can write to the team's shared folder, a save reaches everyone the next time they open Stationkeeper. "
+   "There is no button to press.",
+   "The count (8 of 9 people are on version 15) opens the list of who is on which version, people behind first. Each PC "
+   "leaves its own line when it opens Stationkeeper.",
+   "When someone else has changed the standards while this PC holds a change of its own, the page says a newer version "
+   "is ready and what Use it now would replace. Nothing moves until you press it."],
+  ["Setting this PC up is in Settings > Where the Global Standards come from: the shared folder, or a file someone sent.",
+   "An effort takes a value from the Global Standards only when someone on the effort chooses it."])
