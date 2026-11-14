@@ -160,8 +160,11 @@ def source_words(lib, it, v=None, version=False):
 
 
 def newer(lib, sid):
-    """4.35.0: a set still on an earlier version of a style (kept from before one style had one history)."""
-    return SL.newer(lib, sid)
+    """stylelib.newer, less the ones that are another set's own style: a set is told about a newer version only when
+    no set holds it. 4.35.0: a change now moves every set, so this shows only for a set left behind before then, or a
+    style brought in from a file for one set."""
+    live = owned(lib)
+    return [(a, b) for a, b in SL.newer(lib, sid) if b["id"] not in live]
 
 
 def save(lib, iid, values, sid=None, every=True, who=None):

@@ -72,7 +72,7 @@ check("... and no row carries a version switch", not any(sp.rows.itemWidget(sp.r
 # a set's view: the version it uses, and the newer one
 sp.sets.setCurrentRow(1); app.processEvents()
 check("a set's rows show the version it uses", sp.sid == rfp["id"] and h1["id"] in sp.row_ids and len(sp.row_ids) == 2)
-check("... and say a newer version came in", sp.notice.isVisible() and "Heading 1 was changed outside this set" in sp.notice_lab.text() and sp.b_move.text() == "Move this set to the changed one")
+check("... and say a newer version came in", sp.notice.isVisible() and "Heading 1: this set uses version 1; the latest is version 2." in sp.notice_lab.text() and sp.b_move.text() == "Use the latest", sp.notice_lab.text())
 sp.move_newer(); app.processEvents()
 h1v2 = sp.lib.latest(h1["id"])
 check("Move this set to v2", h1v2["id"] in SL.get_set(sp.lib, rfp["id"])["items"] and not sp.notice.isVisible())

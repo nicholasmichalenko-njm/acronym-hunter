@@ -376,6 +376,7 @@ class StylesPage(QWidget):
             m.addAction("See or change...").triggered.connect(lambda: self.review(ids[0]))        # 4.30.1; a double-click too
             m.addAction("Duplicate...").triggered.connect(lambda: self.duplicate(ids[0]))
             m.addAction("Versions...").triggered.connect(lambda: self.versions(ids[0]))            # 4.35.0: its history, Restore
+            m.addAction("Name this version...").triggered.connect(lambda: self.label_version(ids[0]))
             m.addAction("Every value...").triggered.connect(lambda: self.every_value(ids[0]))      # 3.98.0
         m.addSeparator()
         m.addAction("Remove from the library").triggered.connect(lambda: self.remove(ids))

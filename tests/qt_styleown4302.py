@@ -110,28 +110,31 @@ check("picking the set in the dialog judges the rows against it", r2[0]["clash"]
 from skqt import styleedit as SE2
 check("a copy cannot take a name the library has", SE2.duplicate(page, b_rfp["id"], "Body 2") is None)
 
-# a change made inside a set is that set's alone
+# 4.35.0 (ST24): one style, one history. A change made inside a set is the style's new Latest for every set that uses it
 cap_id = caps[0]["id"]
 page.pick_set(rfi["id"])
 from skqt import styleedit as SE
 new = SE.review(page, cap_id, {"size": 8})
-check("changing a shared style inside a set changes it for that set only", new is not None and SO.used_in(lib, new["id"]) == ["RFI"] and SO.used_in(lib, cap_id) == ["RFP"], host.said[-1])
-check("... the toast names the set", "changed for RFI" in host.said[-1], host.said[-1])
-check("... and the other set is not nagged about it", SO.newer(lib, rfp["id"]) == [])
+check("changing a shared style inside a set changes it for every set that uses it", new is not None and SO.used_in(lib, new["id"]) == ["RFP", "RFI"] and SO.used_in(lib, cap_id) == [], host.said[-1])
+check("... the toast names the sets", "changed for RFP, RFI" in host.said[-1], host.said[-1])
+check("... and no set is left on the earlier one", SO.newer(lib, rfp["id"]) == [] and SO.newer(lib, rfi["id"]) == [])
 dlg = SE.StyleEdit(page, lib.get(now[0]["id"]), lib.values(now[0]))
 check("a style only this set uses offers no choice of sets", dlg.scope is None)
 page.pick_set(rfp["id"])
 quote = next(i for i in lib.items if i["kind"] == "style" and lib.base_of(i) == "Quote")
 SL.add_to_set(lib, rfi["id"], [quote["id"]])
 dlg = SE.StyleEdit(page, quote, lib.values(quote))
-check("a style two sets use: the form asks, and starts on this set only", dlg.scope is not None and dlg.scope.currentData() is False and dlg.scope.itemText(0) == "RFP only")
+from PySide6.QtWidgets import QLabel
+said = " ".join(x.text() for x in dlg.findChildren(QLabel))
+check("a style two sets use: the form offers no choice and names the sets that get the change (4.35.0)", dlg.scope is None and "RFP, RFI get the change" in said
+      and "Duplicate..." in said, said)
 new = SE.review(page, quote["id"], {"size": 13}, every=True)
 check("Every set that uses it: both move", SO.used_in(lib, new["id"]) == ["RFP", "RFI"] and SO.used_in(lib, quote["id"]) == [])
 page.pick_set(None)
 ids = [page.rows.item(i).data(0x0100) for i in range(page.rows.count())]
 check("a version no set uses is off the rows, and reached from the row's Earlier versions", quote["id"] not in ids and any(x["id"] == quote["id"] for x in page.earlier.get(new["id"], [])))
 n3 = SE.review(page, new["id"], {"size": 15})
-check("a change saved from Every style moves no set; each set that uses the style is told once", SO.used_in(lib, n3["id"]) == [] and len(SO.newer(lib, rfp["id"])) == 1)
+check("a change saved from Every style is the Latest for every set that uses the style (4.35.0)", SO.used_in(lib, n3["id"]) == ["RFP", "RFI"] and SO.newer(lib, rfp["id"]) == [])
 
 # what the set is used for
 page.pick_set(rfp["id"]); page.used_for("RFP")

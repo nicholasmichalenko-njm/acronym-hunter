@@ -73,7 +73,7 @@ def versions(page, iid, run=True):
                 fill(new["id"])
 
     t.itemSelectionChanged.connect(sync); b.clicked.connect(go)
-    dlg.table, dlg.b_restore, dlg.fill = t, b, fill
+    dlg.table, dlg.b_restore, dlg.fill, dlg.head = t, b, fill, head
     fill(iid)
     page.versions_dialog = dlg
     if run:
