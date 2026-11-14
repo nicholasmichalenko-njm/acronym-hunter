@@ -1,8 +1,8 @@
 """Bring in styles from a document (3.94.0; canvas "Libraries and Sets" board 2): only the styles of a Word file or
 template (it is only read). 4.30.2: a set owns its styles. Each style of the file says what happens to it: New; Same
-name, other values (the set gets its own, the others' stay); Identical to one you have (one style, used here too). A
-choice is asked only where the set picked already has the name with other values: keep the set's, take the file's, or
-keep both. Quick Parts, page setups and the rest come in on their own pages. Rules only (No AI)."""
+name, other values (the set gets its own, the others' stay); Identical to one you have (one style, used here too). Where
+the set picked already has the name with other values the row says Duplicate style with different values detected:
+Keep both (under a numbered name), Replace or Skip; Bring in waits until each is answered (4.30.5). Quick Parts, page setups and the rest come in on their own pages. Rules only (No AI)."""
 import os
 
 from PySide6.QtCore import Qt
@@ -60,8 +60,8 @@ class StyleImport(QDialog):
         v.addWidget(self.table, 1)
         v.addWidget(D.label("Every style of the file is listed and ticked. A set owns its styles: one with a name another set uses, "
                             "with other values, becomes this set's own and theirs stay. One identical to a style you have is one style, "
-                            "used in this set too. You are asked only where this set already has the name with other values. Each keeps "
-                            "Word's own definition as it is in the file.", "muted"))
+                            "used in this set too. Where this set already has the name with other values the row is flagged: Keep both "
+                            "(under a numbered name), Replace or Skip. Each keeps Word's own definition as it is in the file.", "muted"))
         foot = QHBoxLayout()
         self.n_lab = D.label("", "muted", wrap=False); foot.addWidget(self.n_lab, 1)
         foot.addWidget(D.button("Cancel", None, self.reject))
@@ -83,14 +83,19 @@ class StyleImport(QDialog):
             it.setCheckState(Qt.Checked if r["keep"] else Qt.Unchecked)
             self.table.setItem(i, 0, it)
             self.table.setItem(i, 1, QTableWidgetItem(r["words"]))
-            if r.get("clash"):                                # 4.30.2: the one question, on the row it is about
+            if r.get("clash"):                                # 4.30.5: the flag and its three answers, on the row
+                from PySide6.QtWidgets import QWidget
+                cw = QWidget(); cl = QVBoxLayout(cw); cl.setContentsMargins(4, 2, 4, 2); cl.setSpacing(2)
+                fl = D.label(SO.FLAG, "warn"); fl.setObjectName("clashFlag"); cl.addWidget(fl)
                 ch = QComboBox(); ch.setObjectName("clashChoice")
                 for key, word in SO.CHOICES:
                     ch.addItem(word, key)
-                ch.setCurrentIndex(max(0, ch.findData(r.get("choice") or "mine")))
-                ch.setToolTip("This set has a style of this name with other values. Keep both: the set holds the two, with a v switch on its row.")
+                ch.setCurrentIndex(max(0, ch.findData(r.get("choice") or "")))
+                ch.setToolTip("Keep both: the file's style comes in under a numbered name (" + SO.free_name(self.page.lib, r.get("set"), r["name"])
+                              + "). Replace: the set takes the file's. Skip: this one is left out.")
                 ch.currentIndexChanged.connect(lambda _i, r=r, ch=ch: (r.__setitem__("choice", ch.currentData()), self.count()))
-                self.table.setCellWidget(i, 1, ch)
+                cl.addWidget(ch)
+                self.table.setCellWidget(i, 1, cw)
             else:
                 self.table.removeCellWidget(i, 1)
             shown_mine = r.get("clash") or r.get("mine")
@@ -107,7 +112,7 @@ class StyleImport(QDialog):
                 cb.setCurrentIndex(max(0, cb.findData(r["set"])))
             cb.currentIndexChanged.connect(lambda _i, r=r, cb=cb: self.row_set(r, cb.currentData()))
             self.table.setCellWidget(i, 4, cb)
-            self.table.setRowHeight(i, 58)
+            self.table.setRowHeight(i, 64 if r.get("clash") else 58)
         self.table.blockSignals(False)
         self.count()
 
@@ -156,23 +161,28 @@ class StyleImport(QDialog):
         in_set = sum(1 for r in self.rows if r["keep"] and r.get("set"))
         lost = sum(1 for r in self.rows if r["keep"] and r["state"] == "same" and not r.get("set"))
         ask = [r for r in self.rows if r["keep"] and r.get("clash")]
-        kept = sum(1 for r in ask if (r.get("choice") or "mine") == "mine")
-        self.n_lab.setText(f"{n} ticked: {sum(1 for r in self.rows if r['keep'] and r['state'] != 'same' and not (r.get('clash') and (r.get('choice') or 'mine') == 'mine'))} come in" + (f", {same} you already have" if same else "")
-                           + (f", {len(ask)} to choose ({kept} keep the set's)" if ask else "")
+        open_ = SO.unanswered(self.rows)
+        skipped = sum(1 for r in ask if r.get("choice") == "skip")
+        self.n_lab.setText(f"{n} ticked: {sum(1 for r in self.rows if r['keep'] and r['state'] != 'same' and not (r.get('clash') and r.get('choice') != 'both' and r.get('choice') != 'replace'))} come in"
+                           + (f", {same} you already have" if same else "") + (f", {skipped} skipped" if skipped else "")
+                           + (f". {len(open_)} duplicate(s) with different values still need an answer" if open_ else "")
                            + (f". {in_set} go into a set" if in_set else ". No set picked")
                            + (f". {lost} you already have and no set is picked for: nothing changes for those" if lost else "") + ".")
         self.b_go.setText(f"Bring in {n} style(s)")
-        self.b_go.setEnabled(n > 0)
+        self.b_go.setEnabled(n > 0 and not open_)              # 4.30.5: it waits until each flagged row is answered
         self.b_all.setText("Untick all shown" if self.shown and all(r["keep"] for r in self.shown) else "Tick all shown")
         return n
 
     def go(self):
         lib = self.page.lib
+        if SO.unanswered(self.rows):
+            return None
         c = SL.bring_in(lib, self.rows, self.path, set_of={r["name"]: r.get("set") for r in self.rows if r.get("set")})
         diag.activity("styles_brought_in", added=c["new"], items=c["variant"])
         n_set = sum(1 for r in self.rows if r["keep"] and r.get("set"))
         self.page.host.toast(f"{c['new']} new style(s), {c['variant']} with a name you had and other values"
-                             + (f", {c['kept']} left as the set had them" if c.get("kept") else "")
+                             + (f", {c['both']} kept beside the set's under a numbered name" if c.get("both") else "")
+                             + (f", {c['skipped']} skipped" if c.get("skipped") else "")
                              + (f", {c['same']} you had already" if c["same"] else "") + (f"; {n_set} in their set" if n_set else ""))
         self.result_counts = c
         self.page.fill_sets(); self.page.fill_rows()

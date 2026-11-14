@@ -68,33 +68,47 @@ check("in a set: one row per style it holds, its own Body, no switch", [x["shown
 page.fill_sets(); page.pick_set(None)
 check("the list shows three rows and no v tabs", page.rows.count() == 3 and not tabs(page))
 
-# the set already has the name with other values: the one question
+# the set already has the name with other values: the flag (4.30.5, Nicholas 18:54)
 r = SO.against(lib, [st("Body", 12), st("Caption", 9), st("Quote", 10)], rfp["id"])
 body, cap, quo = r
-check("the set has Body with other values: that row asks, and starts on Keep the set's", body["clash"] and body["clash"]["id"] == b_rfp["id"] and body["choice"] == "mine" and "choose" in body["words"])
-check("... the identical Caption and the new Quote ask nothing", not cap["clash"] and not quo["clash"])
+check("the set has Body with other values: that row is flagged and starts unanswered", body["clash"] and body["clash"]["id"] == b_rfp["id"] and body["choice"] == ""
+      and body["words"] == "Duplicate style with different values detected", body["words"])
+check("... the identical Caption and the new Quote are not flagged", not cap["clash"] and not quo["clash"])
 page.pick_set(rfp["id"])
 dlg = SI.StyleImport(page, path, r)
 ch = [w for w in dlg.table.findChildren(QComboBox, "clashChoice")]
-check("the dialog shows one choice, with the three answers", len(ch) == 1 and [ch[0].itemText(i) for i in range(3)] == ["Keep the set's", "Take the file's", "Keep both"])
-check("the foot says one is to choose and it keeps the set's", "1 to choose (1 keep the set's)" in dlg.n_lab.text(), dlg.n_lab.text())
+check("the dialog shows the flag once, with Keep both, Replace and Skip", len(ch) == 1 and [ch[0].itemText(i) for i in range(4)] == ["Choose...", "Keep both", "Replace", "Skip"]
+      and any(x.text() == SO.FLAG for x in dlg.table.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QLabel, "clashFlag")))
+check("Bring in waits: it is off and the foot says one still needs an answer", not dlg.b_go.isEnabled() and "1 duplicate(s) with different values still need an answer" in dlg.n_lab.text()
+      and dlg.go() is None, dlg.n_lab.text())
+ch[0].setCurrentIndex(ch[0].findData("skip")); app.processEvents()
+check("answered, Bring in is on", dlg.b_go.isEnabled() and "still need" not in dlg.n_lab.text() and "1 skipped" in dlg.n_lab.text(), dlg.n_lab.text())
 c = dlg.go()
-check("Keep the set's: the file's Body is not brought in; the set's stays", c.get("kept") == 1 and [x["id"] for x in SO.held(lib, rfp["id"], SO.fam(b_rfp))] == [b_rfp["id"]]
-      and not any(lib.values(i).get("size") == 12 for i in lib.items if i["kind"] == "style" and lib.base_of(i) == "Body"))
+check("Skip: the file's Body is left out; the set's stays", c.get("skipped") == 1 and [x["id"] for x in SO.held(lib, rfp["id"], SO.fam(b_rfp))] == [b_rfp["id"]]
+      and not any(lib.values(i).get("size") == 12 for i in lib.items if i["kind"] == "style"))
 r = SO.against(lib, [st("Body", 12)], rfp["id"]); r[0]["choice"] = "both"
-SL.bring_in(lib, r, path, set_of={"Body": rfp["id"]})
-both = SO.held(lib, rfp["id"], SO.fam(b_rfp))
-check("Keep both: the set holds the two", len(both) == 2 and {lib.values(x)["size"] for x in both} == {11, 12})
+c = SL.bring_in(lib, r, path, set_of={"Body": rfp["id"]})
+names = sorted(lib.base_of(lib.get(i)) for i in lib.kit(rfp["id"])["items"])
+b2 = next(i for i in lib.items if i["kind"] == "style" and lib.base_of(i) == "Body 2")
+check("Keep both: the file's comes in beside the set's under a numbered name", c.get("both") == 1 and names.count("Body") == 1 and "Body 2" in names
+      and lib.values(b2)["size"] == 12 and lib.values(SO.held(lib, rfp["id"], SO.fam(b_rfp))[0])["size"] == 11, names)
+check("... no set holds two styles of the same name", all(len(set(n)) == len(n) for n in ([lib.base_of(lib.get(i)) for i in k["items"]] for k in SL.sets(lib))))
 page.pick_set(rfp["id"])
-check("... and only then does the row carry a v switch", len(tabs(page)) == 2)
-page.pick_set(rfi["id"])
-check("... the other set's rows carry none", not tabs(page))
-r = SO.against(lib, [st("Body", 14)], rfi["id"]); r[0]["choice"] = "file"
+check("... and no row carries a v switch", not tabs(page))
+r = SO.against(lib, [st("Body", 13)], rfp["id"]); r[0]["choice"] = "both"
+SL.bring_in(lib, r, path, set_of={"Body": rfp["id"]})
+check("a second one kept beside takes the next number", "Body 3" in [lib.base_of(lib.get(i)) for i in lib.kit(rfp["id"])["items"]])
+r = SO.against(lib, [st("Body", 14)], rfi["id"]); r[0]["choice"] = "replace"
 SL.bring_in(lib, r, path, set_of={"Body": rfi["id"]})
 now = SO.held(lib, rfi["id"], SO.fam(b_rfp))
-check("Take the file's: the set moves to the file's Body; the RFP set keeps both of its own", len(now) == 1 and lib.values(now[0])["size"] == 14 and len(SO.held(lib, rfp["id"], SO.fam(b_rfp))) == 2)
+check("Replace: the set takes the file's Body; the other set keeps its own", len(now) == 1 and lib.values(now[0])["size"] == 14 and lib.values(SO.held(lib, rfp["id"], SO.fam(b_rfp))[0])["size"] == 11)
+r = SO.against(lib, [st("Body", 15)], rfi["id"])
+check("a flagged row with no answer is never brought in, even past the dialog", SL.bring_in(lib, r, path, set_of={"Body": rfi["id"]}).get("skipped") == 1
+      and lib.values(SO.held(lib, rfi["id"], SO.fam(b_rfp))[0])["size"] == 14)
 SO.retarget(lib, r2 := SO.against(lib, [st("Body", 9.5)], None), rfi["id"])
-check("picking the set in the dialog judges the rows against it", r2[0]["clash"] is not None and r2[0]["choice"] == "mine")
+check("picking the set in the dialog judges the rows against it", r2[0]["clash"] is not None and r2[0]["choice"] == "")
+from skqt import styleedit as SE2
+check("a copy cannot take a name the library has", SE2.duplicate(page, b_rfp["id"], "Body 2") is None)
 
 # a change made inside a set is that set's alone
 cap_id = caps[0]["id"]

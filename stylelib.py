@@ -67,14 +67,22 @@ def bring_in(lib, picks, path, set_of=None, tags=None, who=None):
                 continue
             sid = (set_of or {}).get(p["name"])
             choice = p.get("choice") if (sid and p.get("clash")) else ""      # 4.30.2: asked only where the set has the name
-            if choice == "mine":
-                counts["kept"] = counts.get("kept", 0) + 1                    # the set's own stays; the file's is not brought in
+            if sid and p.get("clash") and choice not in ("both", "replace"):   # 4.30.5: Skip, or not answered: left out
+                counts["skipped"] = counts.get("skipped", 0) + 1
                 continue
+            name = p["name"]
+            if choice == "both":                                              # beside the set's own, under a numbered name
+                import styleown as SO
+                name = SO.free_name(lib, sid, p["name"])
+                counts["both"] = counts.get("both", 0) + 1
             values = dict(p["values"], _xml=p.get("xml", ""), _from=os.path.basename(path))
-            item, st = lib.add("style", p["name"], values, tags=tags, source=path, summary=TL._summary_style(p["values"]), who=who)
+            if name != p["name"]:
+                values["_xml"] = patch_xml(values["_xml"], name, values) if values["_xml"] else style_xml(name, values)
+                values["_copy_of"] = p["name"]
+            item, st = lib.add("style", name, values, tags=tags, source=path, summary=TL._summary_style(p["values"]), who=who)
             counts[st] += 1
             if sid:
-                add_to_set(lib, sid, [item["id"]], both=(choice == "both"))
+                add_to_set(lib, sid, [item["id"]])                            # a set holds one style of a name
     return counts
 
 

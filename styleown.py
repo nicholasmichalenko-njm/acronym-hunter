@@ -3,9 +3,11 @@ program documents), and each may hold a style of the same name with its own valu
 
 - the same name with other values in two sets is two styles, one for each set; neither is "the newer version";
 - an identical style used by several sets is one style, shown once with the sets that use it;
-- two of the same name sit in one set only when a person chose Keep both: the one place a v1 / v2 switch shows;
-- bringing styles into a set asks only when that set already has the name with other values: keep the set's, take the
-  file's, or keep both;
+- no set holds two styles of the same name (Word does not accept that; Nicholas 18:54);
+- bringing styles into a set asks only when that set already has the name with other values. The row says "Duplicate
+  style with different values detected": Keep both (the file's comes in under a numbered name, Body Text 2), Replace
+  (the set takes the file's) or Skip (that one is left out). Nothing is answered for the person: Bring in waits until
+  each such row is answered (4.30.5; 4.30.3 offered Keep the set's / Take the file's / Keep both and a v1 / v2 switch);
 - changing a style from inside a set changes it for that set only, unless the person says every set that uses it.
 
 How it is kept does not change (templatelib's families and versions; a set lists the versions it holds), so every saved
@@ -13,7 +15,8 @@ library opens as before. A set may carry what it is used for ("used_for": a kind
 Standard library only. Rules only (No AI); nothing leaves the PC."""
 import stylelib as SL
 
-CHOICES = (("mine", "Keep the set's"), ("file", "Take the file's"), ("both", "Keep both"))
+CHOICES = (("", "Choose..."), ("both", "Keep both"), ("replace", "Replace"), ("skip", "Skip"))
+FLAG = "Duplicate style with different values detected"
 USED_FOR = ("RFP", "RFI", "Program documents", "White paper", "Other")
 
 
@@ -40,8 +43,8 @@ def owned(lib):
 
 def against(lib, styles, sid=None):
     """Each style read from a file against the set it is going into (sid) and the library. Adds to stylelib.against:
-    "clash" (the set's own style of that name, when it has other values), "choice" (mine / file / both; asked only on a
-    clash, and it starts on the set's so nothing in a set is replaced unasked) and the words for its row."""
+    "clash" (the set's own style of that name, when it has other values), "choice" (both / replace / skip; asked only
+    on a clash, and it starts unanswered) and the words for its row."""
     out = SL.against(lib, styles)
     for r in out:
         mine = r.get("mine")
@@ -50,7 +53,7 @@ def against(lib, styles, sid=None):
         clash = None
         if own and not (r["state"] == "same" and any(o["id"] == mine["id"] for o in own)):
             clash = own[-1]
-        r["clash"], r["choice"] = clash, ("mine" if clash else "")
+        r["clash"], r["choice"] = clash, ""
         r["words"] = words(lib, r, sid)
     return out
 
@@ -60,7 +63,7 @@ def words(lib, r, sid=None):
     k = lib.kit(sid) if sid else None
     here = f"{k['name']}" if k else "the set you pick"
     if r.get("clash"):
-        return f"{here} has this name with other values: choose"
+        return FLAG
     if r["state"] == "new":
         return "New: comes in" + (f", in {here}" if k else "")
     if r["state"] == "same":
@@ -69,6 +72,21 @@ def words(lib, r, sid=None):
     others = sorted({n for x in lib.items if x["kind"] == "style" and fam(x) == fam(r["mine"]) for n in used_in(lib, x["id"])})
     return ("Same name, other values" + (f" than {', '.join(others)}'s" if others else " than the one you have")
             + f": {here} gets its own; " + ("theirs stay" if others else "yours stays"))
+
+
+def unanswered(rows):
+    """The ticked rows that carry the flag and have no answer yet."""
+    return [r for r in rows if r.get("keep") and r.get("clash") and r.get("choice") not in ("both", "replace", "skip")]
+
+
+def free_name(lib, sid, name):
+    """The name a style kept beside the set's own comes in under: Body Text 2, or the next number no style of the set
+    and no style of the library uses."""
+    taken = {lib.base_of(i).casefold() for i in lib.items if i["kind"] == "style"}
+    n = 2
+    while f"{name} {n}".casefold() in taken:
+        n += 1
+    return f"{name} {n}"
 
 
 def retarget(lib, rows, sid):
@@ -82,7 +100,7 @@ def retarget(lib, rows, sid):
         if own and not (r["state"] == "same" and any(o["id"] == mine["id"] for o in own)):
             clash = own[-1]
         r["clash"] = clash
-        r["choice"] = (before[1] if clash and before[0] == clash["id"] and before[1] else ("mine" if clash else ""))
+        r["choice"] = before[1] if clash and before[0] == clash["id"] and before[1] else ""
         r["words"] = words(lib, r, sid)
     return rows
 
