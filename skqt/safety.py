@@ -277,6 +277,9 @@ class Safety:
         h = self.host
         if h.ws is None or h.review is None or not h.review.M.pending:
             return False
+        from . import matrixsave as MS
+        if not MS.THREADED:                           # 4.30.4: on the window's thread until the access violation is understood
+            return self.snapshot()
         t = getattr(self, "_snap_thread", None)
         if t is not None and t.is_alive():
             self.snap_timer.start()

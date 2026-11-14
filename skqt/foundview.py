@@ -468,6 +468,9 @@ class FoundView(QWidget):
             line = next((t for bb, t, _c in self.lines if bb[0] <= b[0] + 1 and bb[2] >= b[2] - 1 and bb[1] <= b[1] + 1 and bb[3] >= b[3] - 1), "")
         self.set_reading(line)
         self.view.mark(b)
+        if getattr(self, "on_pick", None) and self.page_k is None and 0 <= self.k < len(self.locs):
+            lb = next((bb for bb, t, _c in self.lines if t == line), b)      # 4.30.4: another of the scan's terms clicked:
+            self.on_pick(line, self.locs[self.k], (pt.x() - lb[0]) / max(1.0, lb[2] - lb[0]))     # the card goes to it
         return line
 
     # ---- 3.80.0: a box drawn on the picture

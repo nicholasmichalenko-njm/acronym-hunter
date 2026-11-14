@@ -19,6 +19,7 @@ from PySide6.QtGui import QWheelEvent
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as theme
+import skqt.acrfast as _AF; _AF.TYPE_AFTER = 0     # 4.30.4: these checks read the list straight after typing in the search box
 
 checks = []
 

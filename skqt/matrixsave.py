@@ -8,7 +8,10 @@ for a write under way (settle), so the newest is always the last on disk. Rules 
 import copy
 import pickle
 
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QCoreApplication, Qt, QThread, Slot
+
+THREADED = False         # 4.30.4: as skqt.acrfast.THREADED: on the window's thread until the 2026-11-13 access violation is understood
+DONE_ON = None
 
 import diag
 
@@ -17,9 +20,16 @@ SAVING = "Saving the matrix..."
 
 
 class _Saver(QThread):
+    """Writes the copy. What follows runs on the window's thread: the connection is to this object, which lives there
+    (a bare function would run on the writing thread and touch the window from it)."""
     def __init__(self, win, clone):
         super().__init__(win)
-        self.clone, self.result = clone, "error"
+        self.win, self.clone, self.result = win, clone, "error"
+        self.finished.connect(self.after, Qt.QueuedConnection)
+
+    @Slot()
+    def after(self):
+        _done(self.win, self)
 
     def run(self):
         try:
@@ -58,6 +68,13 @@ def soon(win):
         win.save_timer.start()                           # one write at a time: this change waits for the next
         return None
     M = r.M
+    if not THREADED:                                     # on the window's thread: the status line says so, then it writes
+        win.status(SAVING)
+        QCoreApplication.processEvents()
+        win.save_now()
+        if win.statusBar().currentMessage() == SAVING:
+            win.statusBar().clearMessage()
+        return None
     if not win.safety.before_save(M):
         win.title()
         return None
@@ -70,13 +87,14 @@ def soon(win):
         return win.save_now()
     t = win._matrix_saver = _Saver(win, clone)
     t.handled, t.M, t.blob = False, M, blob              # the matrix stays "not saved yet" until this is on disk
-    t.finished.connect(lambda: _done(win, t))
     win.status(SAVING)
     t.start()
     return t
 
 
 def _done(win, t):
+    global DONE_ON
+    DONE_ON = QThread.currentThread() is QCoreApplication.instance().thread()                    # tests: True on the window's thread
     if getattr(t, "handled", True):
         return
     t.handled = True
