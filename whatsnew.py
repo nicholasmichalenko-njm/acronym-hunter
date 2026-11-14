@@ -2,6 +2,8 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.30.8": ["Acronyms: a term joined by a slash or an ampersand is found whole. The reader no longer offers its front piece, "
+               "ending in the slash, as a find of its own, or the pieces inside it."],
     "4.30.7": ["Acronyms, The list: the card no longer piles up as you decide (buttons and boxes from earlier cards stayed behind).",
                "The card's two lines are Candidate and Definition. Words selected on the page show on the card, with As the candidate "
                "and As the definition; the second text box under the page is gone.",

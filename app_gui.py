@@ -1947,7 +1947,7 @@ def build_matcher():
         "unit_re": re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc\u03a9\u00c5]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)(?!\w)'),
         "common_words": common_words(),
         "symbol_defs": {},
-        "abbrev_re": re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)'),
+        "abbrev_re": re.compile(r'(?<![\w/&])([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?![\w/&])'),   # 4.30.8: not a piece of a longer joined term
         # 4.23.3: three shapes the scan passed over (the probe in tests/test_acrshapes4233.py)
         "paren_short_re": re.compile(r'\(([A-Z][0-9]{1,2}|[0-9][A-Z])\)'),          # (C2), (J6), (5G): one letter and digits, given in brackets
         "dotted_re": re.compile(r'(?<![\w.])((?:[A-Z]\.){2,5})(?![\w])'),            # U.S., U.K., D.C.
@@ -2245,8 +2245,13 @@ def match_chunks(findings, chunks, m):
             record_candidate(findings, tok, "Acronym (Candidate)", loc_label)
 
         # Gate 3: Heuristic Candidate Discovery (Items not in DB)
+        joined_to = 0
         for match in m['acronym_re'].finditer(text):
-            raw = match.group(1)
+            if match.start(1) < joined_to:
+                continue                                    # 4.30.8: inside a joined term already taken whole
+            raw, joined_to = __import__("acrjoined").whole(text, match.start(1), match.group(1))
+            if not raw:
+                continue
             cand = raw[:-1] if raw.endswith('s') and len(raw) > 2 else raw
             if raw in m['ocr_fixes'] or cand in m['ocr_fixes']:
                 wrong = raw if raw in m['ocr_fixes'] else cand
@@ -2520,7 +2525,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "4.30.7"            # keep in step with version_info.txt
+APP_VERSION = "4.30.8"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
