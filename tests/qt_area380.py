@@ -133,6 +133,7 @@ while ap.worker is not None and time.time() - t0 < 240:
 s = ap.session
 check("the effort's scan keeps the pictures' readings in its working folder", PR._state["folder"] == s.ws.root)
 from skqt import acrpart as APT
+import skqt.acrfast as _AF; _AF.AT_ONCE = True     # 4.30.3: this check reads the workbook straight after a decision
 said = APT.missed(ap, "KZQT", LOC, "KZ0T", crop)
 check("a missed term joins the scan's terms and the effort's list, with its place", "KZQT" in s.results
       and s.results["KZQT"]["locations"] == [LOC] and E.EffortList(LIST).load().rows.get("KZQT", {}).get("Status") == "In the list", said)
