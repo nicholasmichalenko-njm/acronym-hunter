@@ -20,7 +20,21 @@ class Review:
 
     # ------------------------------------------------------------ looking
     def item(self, iid):
-        return next((it for it in self.M.items if it.get("id") == iid), None)
+        """The piece with this id. 4.30.4: found through an index, not by reading down the whole list. Shred asks for a
+        piece once per box on every redraw, so with 4,000 pieces each click read the list 4,000 times. The index is
+        checked on every use (the place it names must still hold that id), so a list that changed is never read wrong."""
+        items = self.M.items
+        idx = getattr(self, "_idx", None)
+        if idx is not None and self._idx_of is items:
+            k = idx.get(iid)
+            if k is not None and k < len(items) and items[k].get("id") == iid:
+                return items[k]
+        self._idx = idx = {}
+        for k, it in enumerate(items):
+            idx.setdefault(it.get("id"), k)                 # the first with an id, as before
+        self._idx_of = items
+        k = idx.get(iid)
+        return items[k] if k is not None else None
 
     def files(self):
         out = []
