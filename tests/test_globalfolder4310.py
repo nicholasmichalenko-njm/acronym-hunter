@@ -78,7 +78,7 @@ check("a changed value is one row: what, the version's value, this PC's value", 
 check("a file that is not values is one row: changed, added or removed", by["banned_words.csv"]["new"] == "changed"
       and by["production_parts/title.docx"]["new"] == "added" and by["production_parts/cover.docx"]["new"] == "removed", rows)
 check("the other PC has nothing waiting: the changes are on the PC that made them", GF.waiting(B, F) == [])
-check("the status line names the parts with changes waiting", "Changes waiting on this PC" in GS.line(A), GS.line(A))
+check("the status line names the parts changed on this PC since", "Changed on this PC since" in GS.line(A), GS.line(A))
 man2 = GF.update(A, F, by="Avery", note="Body 12 pt")
 check("the next update is version 2; version 1 stays beside it, untouched", man2["version"] == 2 and GF.versions(F) == [1, 2]
       and GF.read(F, 1) is not None and json.load(open(GF._member_path(F, 1, "config/production_standards.json")))["fonts"]["body"]["size"] == 11)
