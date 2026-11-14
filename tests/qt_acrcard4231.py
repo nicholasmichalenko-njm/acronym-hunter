@@ -144,7 +144,7 @@ sug_t = next((t for t in tp.terms if __import__("acrsuggest").suggestions(tp.ses
 if sug_t:
     tp.select(sug_t); settle()
     first = tp.suggest_rows[0]["definition"]
-    labs = [x.text() for x in on_card(QLabel)]
+    labs = [x.text() for x in on_card(QLabel) if not x.text().startswith("Definition:")]   # the card's own line may name the chosen one
     check("each suggested definition is listed once, with Use this beside it", sum(1 for x in labs if f"<b>{first}</b>" in x) == 1
           and sum(1 for b in on_card(QPushButton) if b.text() == "Use this") == len(tp.suggest_rows[:4]), [x for x in labs if first in x])
 labs = [x.text() for x in on_card(QLabel)]
