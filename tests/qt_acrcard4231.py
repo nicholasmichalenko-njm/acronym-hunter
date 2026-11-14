@@ -140,12 +140,18 @@ check("... one Add to effort list, one More: nothing drawn over from an earlier 
       [b.text() for b in on_card(QPushButton)])
 check("no piece of an earlier card is left as a window of its own", not [x for x in app.topLevelWidgets() if x.isVisible() and x is not tp.window() and x is not w
                                                                         and x.metaObject().className() in ("QLineEdit", "QPushButton", "QLabel", "QFrame")])
-sug_t = next((t for t in tp.terms if __import__("acrsuggest").suggestions(tp.session.results[t])), None)
+for t_ in tp.terms:                                # a term whose definition comes from this PC's database: it showed twice on the PC
+    d_ = tp.session.results[t_]
+    if not d_.get("definitions") and not d_.get("excluded"):
+        d_["definitions"] = ["Kestrel Primary Term"]; d_["in_db"] = True
+        break
+sug_t = next((t for t in tp.terms if tp.session.results[t].get("in_db") and __import__("acrsuggest").suggestions(tp.session.results[t])), None) \
+    or next((t for t in tp.terms if __import__("acrsuggest").suggestions(tp.session.results[t])), None)
 if sug_t:
     tp.select(sug_t); settle()
     first = tp.suggest_rows[0]["definition"]
-    labs = [x.text() for x in on_card(QLabel)]
-    check("each suggested definition is listed once, with Use this beside it", sum(1 for x in labs if f"<b>{first}</b>" in x) == 1
+    labs = [x.text() for x in on_card(QLabel) if not x.text().startswith("Definition:")]   # the card's own line may name the chosen one
+    check("each suggested definition is listed once, with Use this beside it", sum(1 for x in labs if x.startswith(f"<b>{first}</b><br>")) == 1 and first not in labs
           and sum(1 for b in on_card(QPushButton) if b.text() == "Use this") == len(tp.suggest_rows[:4]), [x for x in labs if first in x])
 labs = [x.text() for x in on_card(QLabel)]
 btns2 = [b.text() for b in on_card(QPushButton)]
