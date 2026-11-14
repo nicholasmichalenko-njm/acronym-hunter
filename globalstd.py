@@ -143,4 +143,4 @@ def line(config_dir):
     if not s["changed"]:
         return f"{head} {n}, all as that version has them."
     few = ", ".join(s["changed"][:6]) + (f" and {len(s['changed']) - 6} more" if len(s["changed"]) > 6 else "")
-    return f"{head} Changes waiting on this PC: {few}."
+    return f"{head} Changed on this PC since: {few}."

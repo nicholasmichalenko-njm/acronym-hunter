@@ -29,15 +29,16 @@ class GlobalPage(QWidget):
         for step, text in EDITORS:
             b = D.button(text, None, lambda _c=False, s=step: self.open(s)); h.addWidget(b); self.edit_buttons[step] = b
         h.addStretch(1); self.edit_card.add(row); v.addWidget(self.edit_card)
-        self.who_card = D.Card("Who has it", "Each PC that reads the linked folder leaves its own line here when it opens: the "
-                               "person, the PC, the version it is on. People with no line have not opened Stationkeeper with the folder linked.",
+        self.who_count = D.button("", None, self.toggle_who, "Who is on which version. Each PC leaves its own line when it opens Stationkeeper.")
+        self.gs_card.add(self.who_count)
+        self.who_card = D.Card("Who has it", "People behind the latest come first. Someone with no line has not opened Stationkeeper "
+                               "with the shared folder chosen.",
                                actions=[D.button("Remove the line", None, self.forget,
-                                                 "For someone who has left. The line comes back if that PC opens Stationkeeper with the folder linked.")])
-        self.who_say = self.who_card.add(D.label("", "muted")); self.who_say.setWordWrap(True)
+                                                 "For someone who has left. The line comes back if that PC opens Stationkeeper with the folder chosen.")])
         self.who = QTableWidget(0, 4); self.who.setHorizontalHeaderLabels(["Person", "PC", "Version", "When"])
         self.who.setEditTriggers(QAbstractItemView.NoEditTriggers); self.who.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.who.horizontalHeader().setStretchLastSection(True); self.who.setMinimumHeight(160)
-        self.who_card.add(self.who); v.addWidget(self.who_card)
+        self.who_card.add(self.who); self.who_card.setVisible(False); v.addWidget(self.who_card)
         v.addStretch(1)
         self.rows = []
 
@@ -53,20 +54,27 @@ class GlobalPage(QWidget):
         except Exception:  # noqa: BLE001  the list is a courtesy
             return []
 
+    def toggle_who(self):
+        """ST23: the count opens the list, and closes it."""
+        self.who_card.setVisible(self.who_card.isHidden())
+
     def refresh(self):
+        import os
         GV.share_now(self.host)                                    # coming back from an editor: what was saved is shared
         GV.show(self)
         folder = GF.folder()
-        import os
         linked = bool(folder) and os.path.isdir(folder)
-        self.who_card.setVisible(linked)
+        self.who_count.setVisible(linked)
         if not linked:
+            self.who_card.setVisible(False)
             return
         try:
-            self.rows = GF.receipts(folder, self.people())
+            rows = GF.receipts(folder, self.people())
         except Exception:  # noqa: BLE001
-            diag.swallowed(); self.rows = []
+            diag.swallowed(); rows = []
         cur = (GF.current(folder) or {}).get("version", 0)
+        behind = lambda r: 0 if r["version"] is None else (1 if r["version"] < cur else 2)
+        self.rows = sorted(rows, key=lambda r: (behind(r), r["name"].lower()))       # who needs a nudge comes first
         self.who.setRowCount(len(self.rows))
         for i, r in enumerate(self.rows):
             ver = "not seen yet" if r["version"] is None else (f"{r['version']}" + ("" if r["version"] >= cur else f" (latest is {cur})"))
@@ -74,7 +82,9 @@ class GlobalPage(QWidget):
                 self.who.setItem(i, j, QTableWidgetItem(str(t)))
         self.who.resizeColumnsToContents()
         on = sum(1 for r in self.rows if r["version"] == cur)
-        self.who_say.setText(f"{on} of {len(self.rows)} on the latest, version {cur}." if self.rows and cur else "No one has opened Stationkeeper with this folder linked yet.")
+        n = len(self.rows)
+        self.who_count.setText(f"{on} of {n} {'person is' if n == 1 else 'people are'} on version {cur}" if n and cur
+                               else "No one has opened Stationkeeper with this folder yet")
 
     def forget(self):
         rows = sorted({i.row() for i in self.who.selectionModel().selectedRows()})

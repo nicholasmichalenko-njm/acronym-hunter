@@ -36,7 +36,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
 set_font("Global One")
 w.go("prodstd"); app.processEvents()
-check("no effort open: a standards page says a change is a Global change", w.page_sub.text().startswith("Global Standards. A change here waits"), w.page_sub.text())
+check("no effort open: a standards page says a change is a Global change", w.page_sub.text().startswith("Global Standards. A change here is saved for everyone."), w.page_sub.text())
 lib_page = TL.Library(cfg)                                      # a library held from before the effort opened, as the pages hold one
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.create(); app.processEvents()

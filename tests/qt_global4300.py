@@ -28,10 +28,9 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
 w.go("globalstd"); app.processEvents()
 sp = w.globalstd_page
-check("Settings > Team data has a Global Standards card, first in its section", sp.gs_card.title.text() == "Global Standards"
-      and dict(sp.SECTIONS)["Team data and training"][0] == "gs_card")
+check("the Global Standards page has its card (4.34.0: its own page; Settings keeps the setup)", sp.gs_card.title.text() == "Global Standards"
+      and "gsl_card" in dict(w.settings_page.SECTIONS)["Team data and training"])
 check("a PC that has taken no version: not a version yet", sp.gs_text.text().startswith("Global Standards: not a version yet."), sp.gs_text.text())
-check("... and it names the parts this PC holds", sp.gs_parts.text().startswith("Its parts on this PC: ") or not GS.parts(cfg), sp.gs_parts.text())
 GS.take(cfg, 3, GS.LINKED, by="A. Publisher", when=datetime.datetime(2026, 11, 13, 9, 0))
 sp.refresh(); app.processEvents()
 check("a version taken from the linked folder: its number, where it came from and when", sp.gs_text.text().startswith(
@@ -39,7 +38,7 @@ check("a version taken from the linked folder: its number, where it came from an
 with open(os.path.join(cfg, "rules.json"), "w", encoding="utf-8") as f:
     f.write('{"format": 1, "rules": [{"id": "x"}]}')
 sp.refresh(); app.processEvents()
-check("a part changed on this PC since: the line names it and the draft number", "Changes waiting on this PC: " in sp.gs_text.text()
+check("a part changed on this PC since: the line names it", "Changed on this PC since: " in sp.gs_text.text()
       and "Rules" in sp.gs_text.text(), sp.gs_text.text())
 w.close()
 n = sum(checks)

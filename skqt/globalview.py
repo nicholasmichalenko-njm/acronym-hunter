@@ -1,10 +1,11 @@
-"""The Global Standards page's card (4.34.0, ST14 to ST19 of 2026-11-14; before that Settings > Global Standards, 4.30.0
-to 4.33.1): the version this PC is on, the folder it reads versions from (Link a folder...), a newer version that is
-ready (Use it now), Install a file..., Save a file to share..., and What changed...
+"""Global Standards on screen (4.34.0, ST14 to ST23 of 2026-11-14; before that a card in Settings, 4.30.0 to 4.33.1).
+add_card is the Global Standards page's own card: what this PC is on, how a change travels, a newer version to choose
+(Use it now). add_link is Settings > Where the Global Standards come from: the shared folder, or a file taken and a
+file to send; setup of the PC, done once.
 
-A save in the Global Standards on a PC that can write to the linked folder is shared at once (share_now): no Update
-button, no Put back. A PC with its own change while the folder holds a newer version is told and chooses (ST13). The
-number is in the window's title (badge). Rules only (No AI); nothing leaves the PC."""
+A save in the Global Standards on a PC that can write to the shared folder is shared at once (share_now): no Update
+button, no Put back, no list of what changed. A PC with its own change while the folder holds a newer version is told
+and chooses (ST13). The number is in the window's title (badge). Rules only (No AI); nothing leaves the PC."""
 import os
 
 import diag
@@ -15,45 +16,63 @@ from . import design as D
 
 
 def add_card(page, v):
-    page.gs_card = D.Card("Global Standards", "The foundation every effort starts from: formatting, rules, lists, styles, Quick "
-                          "Parts, page layout, templates, acronyms, dictionaries, stages, roles, markings, document types "
-                          "and the folder plan. One set, with a version number.")
+    """The Global Standards page's own card (4.34.0, ST20 to ST23): what this PC is on, how a change travels, a newer
+    version to choose, and the count of who has it. No setup here: that is Settings."""
+    page.gs_card = D.Card("Global Standards", "The foundation every effort starts from: formatting, styles, Quick Parts, page "
+                          "layout, templates and rules, with the lists every effort shares. One set, with a version number.")
     page.gs_text = page.gs_card.add(D.label("", None)); page.gs_text.setWordWrap(True)
-    page.gs_parts = page.gs_card.add(D.label("", "muted")); page.gs_parts.setWordWrap(True)
     page.gs_folder = page.gs_card.add(D.label("", "muted")); page.gs_folder.setWordWrap(True)
+    page.gs_setup = page.gs_card.add(D.button("Connect this PC in Settings", None, lambda: page.host.go("settings"),
+                                              "Settings > Where the Global Standards come from: your team's shared folder, or a file someone sent."))
     page.gs_ready = page.gs_card.add(D.label("", None)); page.gs_ready.setWordWrap(True)
-    page.gs_notice = page.gs_card.add(D.label("", None)); page.gs_notice.setWordWrap(True)      # 4.33.0: what the last version changed here
-    from PySide6.QtWidgets import QHBoxLayout, QWidget
-    row = QWidget(); h = QHBoxLayout(row); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["s"])
-    page.gs_use = D.button("Use it now", "primary", lambda: use_now(page))
-    page.gs_link = D.button("Link a folder...", None, lambda: link(page),
-                            "The folder this PC reads Global Standards versions from: a SharePoint library synced to this PC, or any folder.")
-    page.gs_save = D.button("Save a file to share...", None, lambda: save_file(page),
-                            "One file holding the Global Standards as they are now, for a PC with no shared folder: send it, and it is dropped on that PC's window.")
-    page.gs_install = D.button("Install a file...", None, lambda: install(page),
-                               "For a PC with no linked folder: take a version from its file (Global Standards version N.skgs).")
-    page.gs_changed = D.button("What changed...", None, lambda: changed_dialog(page),
-                               "Each change the last version made on this PC, who updated and when. Mark as seen closes it.")
-    for b in (page.gs_use, page.gs_link, page.gs_install, page.gs_save, page.gs_changed):
-        h.addWidget(b)
-    h.addStretch(1)
-    page.gs_card.add(row)
+    page.gs_use = page.gs_card.add(D.button("Use it now", "primary", lambda: use_now(page)))
     v.addWidget(page.gs_card)
     return page.gs_card
 
 
 def add_link(page, v):
-    """Settings: one line and the way to the page."""
-    page.gsl_card = D.Card("Global Standards", "The foundation every effort starts from has its own page.",
+    """Settings > Where the Global Standards come from (ST21): the shared folder, or a file taken and a file to send.
+    Setup of this PC, done once; changing the standards is the Global Standards page."""
+    from PySide6.QtWidgets import QHBoxLayout, QWidget
+    page.gsl_card = D.Card("Where the Global Standards come from", "Your team keeps one copy of the Global Standards in a shared "
+                           "folder (OneDrive, SharePoint or a network drive). Choose it once and this PC stays current by itself. "
+                           "With no shared folder, the standards travel as a file.",
                            actions=[D.button("Open Global Standards", None, lambda: page.host.go("globalstd"))])
     page.gsl_text = page.gsl_card.add(D.label("", None)); page.gsl_text.setWordWrap(True)
+    page.gsl_folder = page.gsl_card.add(D.label("", "muted")); page.gsl_folder.setWordWrap(True)
+    row = QWidget(); h = QHBoxLayout(row); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["s"])
+    page.gs_link = D.button("Choose the shared folder...", None, lambda: link(page),
+                            "The folder your team keeps the Global Standards in. This PC reads them from it each time Stationkeeper opens.")
+    page.gs_install = D.button("Take a file someone sent...", None, lambda: install(page),
+                               "For a PC with no shared folder: the Global Standards from a file (Global Standards version N.skgs). It is checked whole first.")
+    page.gs_save = D.button("Save a file to send...", None, lambda: save_file(page),
+                            "For a team with no shared folder: the Global Standards as this PC has them, in one file to send.")
+    for b in (page.gs_link, page.gs_install, page.gs_save):
+        h.addWidget(b)
+    h.addStretch(1)
+    page.gsl_card.add(row)
     v.addWidget(page.gsl_card)
     return page.gsl_card
 
 
+def folder_words(cfg, folder):
+    """How this PC is connected, in one sentence."""
+    if not folder:
+        return NOT_CONNECTED if not GS.state(cfg)["version"] else "This PC has no shared folder. It keeps the Global Standards it was given as a file."
+    if not os.path.isdir(folder):
+        return f"The shared folder {folder} cannot be reached now. This PC stays on the version it has."
+    return f"Shared folder: {folder}. " + ("A change you save in the Global Standards reaches everyone the next time they open Stationkeeper."
+                                           if GF.can_update(folder) else "This PC reads the Global Standards from it.")
+
+
 def show_link(page):
+    """Settings: the line, the connection, and which of the file buttons apply."""
     try:
-        page.gsl_text.setText(GS.line(page.host.config_dir))
+        cfg, folder = page.host.config_dir, GF.folder()
+        page.gsl_text.setText(GS.line(cfg))
+        page.gsl_folder.setText(folder_words(cfg, folder))
+        linked = bool(folder) and os.path.isdir(folder)
+        page.gs_install.setVisible(not linked); page.gs_save.setVisible(not linked)
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return page.gsl_text.text()
@@ -80,34 +99,23 @@ def ready_words(cfg, folder):
 
 
 def show(page):
-    """The line, the parts, the folder and what is ready, read again. Returns the line."""
+    """Whichever of the two this is (the Global Standards page or Settings), read again. Returns the line."""
+    if not hasattr(page, "gs_card"):
+        return show_link(page)
     try:
-        cfg = page.host.config_dir
-        folder = GF.folder()
+        cfg, folder = page.host.config_dir, GF.folder()
         page.gs_text.setText(GS.line(cfg))
-        names = sorted(n for n, _m in GS.parts(cfg).values())
-        page.gs_parts.setText(("Its parts on this PC: " + ", ".join(names) + ".") if names else "")
-        if not folder:
-            page.gs_folder.setText(STARTER if not GS.state(cfg)["version"] else
-                                   "Not linked to a folder. Link a folder... to read the versions your team keeps, or Install a file... to take one.")
-        elif not os.path.isdir(folder):
-            page.gs_folder.setText(f"Linked to {folder}. The folder cannot be reached now; this PC stays on the version it has.")
-        else:
-            can = GF.can_update(folder)
-            page.gs_folder.setText(f"Linked to {folder}. " + ("A change you save here reaches everyone the next time they open Stationkeeper."
-                                                              if can else "This PC reads versions from it."))
+        page.gs_folder.setText(folder_words(cfg, folder))
+        page.gs_setup.setVisible(not folder or not os.path.isdir(folder))
         said = ready_words(cfg, folder)
         page.gs_ready.setText(said); page.gs_ready.setVisible(bool(said)); page.gs_use.setVisible(bool(said))
-        page.gs_save.setVisible(bool(GS.state(cfg)["version"]) or bool(folder))
-        nt = GX.notice(cfg)
-        page.gs_notice.setText(GX.notice_words(nt) if nt else ""); page.gs_notice.setVisible(bool(nt)); page.gs_changed.setVisible(bool(nt))
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return page.gs_text.text()
 
 
-STARTER = ("This PC runs on the built-in starter: no folder is linked and no version is installed. Link a folder... to read "
-           "the versions your team keeps, or Install a file... to take one.")
+NOT_CONNECTED = ("This PC is not connected to your team's Global Standards. It runs on the starter set that comes with Stationkeeper.")
+STARTER = NOT_CONNECTED
 
 
 def install(page, path=None):
@@ -129,43 +137,11 @@ def install(page, path=None):
     return said
 
 
-def changed_dialog(page, run=True):
-    """What the last version changed on this PC: each change, who updated and when, the note. Mark as seen."""
-    from PySide6.QtWidgets import QAbstractItemView, QDialog, QHBoxLayout, QTableWidget, QTableWidgetItem, QVBoxLayout
-    cfg = page.host.config_dir
-    nt = GX.notice(cfg)
-    if not nt:
-        return None
-    dlg = QDialog(page); dlg.setWindowTitle(f"Global Standards version {nt['version']}"); dlg.resize(820, 520)
-    v = QVBoxLayout(dlg)
-    head = D.label(GX.notice_words(nt) + (f' Note: "{nt["note"]}"' if nt.get("note") else "")
-                   + (" It replaced this PC's own changes in: " + ", ".join(nt["replaced"]) + f". They are kept in {nt['backup']}."
-                      if nt.get("replaced") else ""), None)
-    head.setWordWrap(True); v.addWidget(head)
-    t = QTableWidget(len(nt["rows"]), 4); t.setHorizontalHeaderLabels(["Part", "What", "It was", "It is now"])
-    t.setEditTriggers(QAbstractItemView.NoEditTriggers); t.horizontalHeader().setStretchLastSection(True)
-    for i, r in enumerate(nt["rows"]):
-        for j, k in enumerate(("part", "what", "was", "now")):
-            t.setItem(i, j, QTableWidgetItem(str(r.get(k, ""))))
-    t.resizeColumnsToContents(); v.addWidget(t, 1)
-    row = QHBoxLayout(); row.addStretch(1); row.addWidget(D.button("Close", None, dlg.reject))
-
-    def seen():
-        GX.mark_seen(cfg); show(page); dlg.accept()
-
-    b = D.button("Mark as seen", "primary", seen); row.addWidget(b); v.addLayout(row)
-    dlg.table, dlg.head, dlg.b_seen = t, head, b
-    page.gs_changed_dialog = dlg
-    if run:
-        dlg.exec()
-    return dlg
-
-
 def link(page, path=None):
     """Point this PC at the Global Standards folder. Returns the folder, or None when nothing was chosen."""
     if path is None:
         from PySide6.QtWidgets import QFileDialog
-        path = QFileDialog.getExistingDirectory(page, "The Global Standards folder", GF.folder())
+        path = QFileDialog.getExistingDirectory(page, "Your team's shared folder for the Global Standards", GF.folder())
         if not path:
             return None
     GF.set_folder(path)
@@ -176,7 +152,12 @@ def link(page, path=None):
 
 def _tell(host, got):
     """After a version is taken: its number, and once, what it replaced and where the backup is."""
-    said = f"This PC is on Global Standards version {got['version']}."
+    by = ""
+    try:
+        by = GS.state(host.config_dir).get("by") or ""
+    except Exception:  # noqa: BLE001
+        pass
+    said = f"This PC is on Global Standards version {got['version']}" + (f", changed by {by}." if by else ".")
     if got.get("replaced"):
         said += " It replaced this PC's own changes in: " + ", ".join(got["replaced"]) + f". They are kept in {got['backup']}."
     try:
@@ -330,6 +311,6 @@ def save_file(page, path=None):
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)
     diag.activity("global_standards_file_saved")
-    page.host.status(f"Saved {os.path.basename(path)}. On the other PC: drop it on the Stationkeeper window, or Global Standards > Install a file...")
+    page.host.status(f"Saved {os.path.basename(path)}. On the other PC: Settings > Where the Global Standards come from > Take a file someone sent...")
     show(page)
     return path

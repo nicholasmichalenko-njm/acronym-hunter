@@ -1,6 +1,6 @@
-"""4.33.0, step 2b, offscreen: Settings > Global Standards. A PC with no link and no version says it runs on the
-built-in starter and offers Link a folder... and Install a file...; Install a file... takes a version; the card then
-says what the version changed, What changed... lists it, Mark as seen closes it. Fictional values."""
+"""4.33.0 step 2b, as 4.34.0 reshaped it (ST21, ST22), offscreen: setting a PC up is Settings > Where the Global
+Standards come from. A PC that is not connected says so in one sentence; Take a file someone sent... takes a version;
+with the shared folder chosen the file buttons leave. No What changed... Fictional values."""
 import json, os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -36,29 +36,33 @@ GX.write(F, 1); GX.write(F, 2)                                   # 4.34.0: a fil
 cfg = os.path.join(tmp, "cfg"); os.makedirs(cfg)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
-w.go("globalstd"); app.processEvents()
-sp = w.globalstd_page
+w.go("settings"); app.processEvents()
+sp = w.settings_page                                             # 4.34.0 (ST21): setting a PC up is Settings; the Global Standards page has no setup
 vis = lambda b: not b.isHidden()
-check("no link, no version: the card says the built-in starter and names the two ways in", "built-in starter" in sp.gs_folder.text()
-      and "Link a folder..." in sp.gs_folder.text() and "Install a file..." in sp.gs_folder.text() and vis(sp.gs_link) and vis(sp.gs_install), sp.gs_folder.text())
-check("nothing to see yet: no notice, no What changed...", not vis(sp.gs_notice) and not vis(sp.gs_changed))
+check("Settings has the heading Where the Global Standards come from, with the three ways named plainly",
+      sp.gsl_card.title.text() == "Where the Global Standards come from" and sp.gs_link.text() == "Choose the shared folder..."
+      and sp.gs_install.text() == "Take a file someone sent..." and sp.gs_save.text() == "Save a file to send...")
+check("not connected: it says so in one sentence", "not connected to your team's Global Standards" in sp.gsl_folder.text() and vis(sp.gs_install), sp.gsl_folder.text())
+w.go("globalstd"); app.processEvents()
+gp = w.globalstd_page
+check("the Global Standards page says the same sentence with one way to Settings, and nothing else to set up",
+      "not connected" in gp.gs_folder.text() and vis(gp.gs_setup) and not hasattr(gp, "gs_link") and not hasattr(gp, "gs_install"), gp.gs_folder.text())
+gp.gs_setup.click(); app.processEvents()
+check("... and that button opens Settings", w.stack.currentWidget() is sp)
 seen = []; real = w.status; w.status = lambda t: (seen.append(t), real(t))
 bad = os.path.join(tmp, "notes.skgs"); open(bad, "w").write("hello")
 check("a file of another kind is refused in words", GV.install(sp, bad) == "" and any("was not installed" in t and "not a Global Standards file" in t for t in seen), seen)
 said = GV.install(sp, os.path.join(F, GX.file_name(1))); app.processEvents()
-check("Install a file... takes the version", "version 1" in said and GS.state(cfg)["version"] == 1 and "installed from a file" in sp.gs_text.text(), (said, sp.gs_text.text()))
-check("the card is no longer on the starter", "built-in starter" not in sp.gs_folder.text() and "Not linked to a folder" in sp.gs_folder.text(), sp.gs_folder.text())
-check("the card says the version was taken, with who and when", vis(sp.gs_notice) and "took version 1, updated by Ada" in sp.gs_notice.text() and vis(sp.gs_changed), sp.gs_notice.text())
+check("Take a file someone sent... takes the version, and says who changed it", "version 1, changed by Ada" in said and GS.state(cfg)["version"] == 1
+      and "installed from a file" in sp.gsl_text.text(), (said, sp.gsl_text.text()))
+check("the PC is then on what it was given, with no shared folder", "no shared folder" in sp.gsl_folder.text() and "not connected" not in sp.gsl_folder.text(), sp.gsl_folder.text())
 GV.install(sp, os.path.join(F, GX.file_name(2))); app.processEvents()
-check("a later version: the card counts what it changed here", "Version 2, updated by Ada" in sp.gs_notice.text() and "changed 1 thing" in sp.gs_notice.text(), sp.gs_notice.text())
-dlg = GV.changed_dialog(sp, run=False)
-row = [dlg.table.item(0, c).text() for c in range(4)]
-check("What changed... lists the change: part, what, it was, it is now", dlg.table.rowCount() == 1 and row == ["Rules", "rules.RU1.on", "True", "False"], row)
-check("... with the note", 'Note: "Rule 1 off"' in dlg.head.text(), dlg.head.text())
-dlg.b_seen.click(); app.processEvents()
-check("Mark as seen: the notice leaves the card", not vis(sp.gs_notice) and not vis(sp.gs_changed) and GX.notice(cfg) is None)
-check("with nothing to show, What changed... opens nothing", GV.changed_dialog(sp, run=False) is None)
-check("the card's words: no publish, no draft", not any(x in (sp.gs_folder.text() + sp.gs_install.text() + sp.gs_changed.text() + GV.STARTER).lower() for x in ("publish", "draft")))
+check("a later file is taken the same way; the number is in the title", GS.state(cfg)["version"] == 2 and "Global Standards 2" in (w.title(), w.windowTitle())[1], w.windowTitle())
+check("there is no What changed... and no notice on screen (ST22)", not hasattr(GV, "changed_dialog") and not hasattr(sp, "gs_changed") and not hasattr(gp, "gs_notice"))
+GV.link(sp, F); app.processEvents()
+check("with the shared folder chosen, the file buttons leave: the folder carries it", not vis(sp.gs_install) and not vis(sp.gs_save) and "Shared folder: " in sp.gsl_folder.text(), sp.gsl_folder.text())
+words = (sp.gsl_folder.text() + sp.gsl_card.title.text() + sp.gs_link.text() + sp.gs_install.text() + sp.gs_save.text() + GV.NOT_CONNECTED).lower()
+check("the words: no publish, no draft, no link a folder, no install", not any(x in words for x in ("publish", "draft", "link a folder", "install a file")), words)
 w.close()
 n = sum(checks)
 print(f"QT GLOBALFILE 4330 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

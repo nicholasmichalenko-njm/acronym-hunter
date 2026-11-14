@@ -58,7 +58,7 @@ s = GS.status(cfg)
 check("a part changed, one added, one gone: each is named, and the draft is the next number", s["draft"] == 2
       and s["changed"] == ["Banned and avoided phrases", "Named templates", "Piece types"], s)
 check("... the line says so", GS.line(cfg) == "Global Standards version 1, updated from this PC, taken 2026-11-13 09:00. "
-      "Changes waiting on this PC: Banned and avoided phrases, Named templates, Piece types.", GS.line(cfg))
+      "Changed on this PC since: Banned and avoided phrases, Named templates, Piece types.", GS.line(cfg))
 put("rules.json", '{"format": 1, "rules": []}')
 check("a file saved again with the same contents is not a change", "Rules" not in GS.status(cfg)["changed"])
 with open(os.path.join(cfg, GS.FILE), "w", encoding="utf-8") as f:
