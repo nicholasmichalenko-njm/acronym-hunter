@@ -61,7 +61,8 @@ def build(page, t, kind_tone):
             body.addLayout(w_)
         else:
             details_extra.append(w_)
-    defs = [x for x in d.get("definitions", []) if x]
+    shown = {x["definition"] for x in page.suggest_rows}       # 4.30.7: a definition already in a suggestion row is not listed again
+    defs = [x for x in d.get("definitions", []) if x and x not in shown]
     page.other_btn = None
     if defs:
         inner = QVBoxLayout(); inner.setContentsMargins(0, 0, 0, 0); inner.setSpacing(D.SPACE["xs"])
