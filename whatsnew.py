@@ -2,6 +2,11 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.35.1": ["Bring in from a file on Styles shows each value a document would change in a style you have, before "
+               "anything changes. Two ways: Only what differs (your style keeps everything else) or Everything the "
+               "document has (your style becomes the document's).",
+               "A style brought in over one you have is that style's new latest version, for every set that uses it. "
+               "Keep both and Skip stay on the row; Bring in no longer waits for an answer on each."],
     "4.35.0": ["A style has one history. Each saved change is a new version, and the latest is the one in use in every "
                "set that uses the style. For a different look in one set, use Duplicate...",
                "Versions... on a style's row lists every version, latest first, with when, who and what changed. "
