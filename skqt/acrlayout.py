@@ -91,7 +91,7 @@ def install(page):
     # three panes: the terms, the page, the card
     split = page.card_area.parentWidget()
     if isinstance(split, QSplitter):
-        page.mid = QWidget(); page.mid_box = QVBoxLayout(page.mid); page.mid_box.setContentsMargins(0, 0, 0, 0)
+        page.mid = QWidget(); page.mid_box = QVBoxLayout(page.mid); page.mid_box.setContentsMargins(D.SPACE["m"], 0, 0, 0)   # 4.30.7: room beside the list
         page.mid_hint = D.label("Select a term: the customer's page where it was found shows here.", "muted")
         page.mid_box.addWidget(page.mid_hint)
         page.decide = SplitView(page.mid, page.card_area, links=lambda: links(page))
@@ -279,6 +279,7 @@ def card_more(page, t):
             h = QHBoxLayout(f); h.setContentsMargins(8, 4, 8, 4)
             h.addWidget(D.label(f"<b>{k}</b>", None, wrap=False))
             h.addWidget(D.label(f"<b>{x['definition']}</b><br><span style='color:gray'>{x['source']}: {x['why']}</span>"), 1)
+            h.addWidget(D.button("Use this", "ghost", lambda _=False, x=x: page.choose(t, x["definition"])))    # 4.30.7: listed once
             box.addWidget(f)
             page.suggest_widgets.append(f)
         body.insertLayout(1, box)
@@ -301,9 +302,7 @@ def card_more(page, t):
         page.b_onpage = D.button("Show on the page", None, lambda: page.show_on_page(t),
                                  "The first page the term is on, with its finds selected")
         sr.addWidget(page.b_onpage)
-    sr.addWidget(D.button("Sources", "ghost", lambda: sources_window(page, t), "Where each meaning comes from, and the "
-                          "effort's timeline"))
-    sr.addStretch(1)
+    sr.addStretch(1)                                          # 4.30.7: Sources and timeline... is under More
     body.insertLayout(body.count() - 1, sr)
     if page.where_view is not None and getattr(page, "mid_box", None) is not None:
         page.where_view.text.verticalScrollBar().valueChanged.connect(lambda _v: refresh_line(page))
@@ -340,7 +339,6 @@ def where_it_goes(page, t):
     card = QFrame(); card.setObjectName("whereGoes")
     v = QVBoxLayout(card); v.setContentsMargins(0, 6, 0, 0); v.setSpacing(4)
     v.addWidget(D.SectionTitle("Where it goes"))
-    v.addWidget(D.label("Each volume's Acronyms table, A to Z. The row this term adds is marked.", "muted"))
     tab = QTableWidget(0, 2); tab.setHorizontalHeaderLabels(["Acronym", "Definition"]); tab.verticalHeader().setVisible(False)
     tab.setEditTriggers(QTableWidget.NoEditTriggers); tab.horizontalHeader().setStretchLastSection(True)
     tab.setStyleSheet("QTableWidget{background:#FFFFFF;color:#111111} QHeaderView::section{background:#1F3864;color:#FFFFFF}")
@@ -358,7 +356,8 @@ def where_it_goes(page, t):
     v.addWidget(tab)
     page.where_rows = rows
     vols = _volumes(page, t)
-    v.addWidget(D.label(vols, "muted"))
+    if vols:                                                  # 4.30.7: said only when the drafts have been checked
+        v.addWidget(D.label(vols, "muted"))
     return card
 
 
@@ -366,7 +365,7 @@ def _volumes(page, t):
     """Which volumes use the term (from the last drafts check), as a line."""
     used = (page.session.ws.get("acronym_volume_use", {}) if page.session and page.session.ws is not None else {}) or {}
     rows = [f"{v}: {n} use(s)" for v, n in sorted((used.get(t) or {}).items())]
-    return ("Used in our volumes: " + "; ".join(rows)) if rows else "Not checked in our drafts yet (In our drafts)."
+    return ("Used in our volumes: " + "; ".join(rows)) if rows else ""
 
 
 # ------------------------------------------------------------------ sources and the timeline

@@ -182,19 +182,24 @@ check("a reading that holds another of the scan's terms at this place names it; 
 c_t = here_terms[2]
 line2 = f"{b_t} sits at the start and at the far end sits {c_t}"
 check("a reading with two terms gives the one nearest the click", PK.term_in(s, line2, loc0, but=a_t, at=0.02) == b_t and PK.term_in(s, line2, loc0, but=a_t, at=0.98) == c_t)
-rows_before, row_before = list(pg.terms), pg.table.currentRow()
+rows_before = list(pg.terms)
 pg.where_view.on_pick(f"Here is the {b_t} and more", loc0); app.processEvents()
-check("a click on that reading puts the clicked term on the card; the list is left as it is, with nothing selected",
-      pg.card.title.text() == b_t and pg.pinned == b_t and pg.terms == rows_before and pg.selected_terms() == [] and pg.table.currentRow() == row_before)
+check("a click on that reading puts the clicked term on the card and selects it in the list (4.30.7: one focus)",
+      pg.card.title.text() == b_t and pg.selected_terms() == [b_t] and pg.terms == rows_before and getattr(pg, "pinned", None) is None)
 check("... the page stays on the place it was clicked at", pg.where_view is not None and pg.where_view.locs[pg.where_view.k] == loc0)
-check("... and the keys act on it, not on the list's row", pg.current() == b_t)
-AL2.not_term_current(pg); app.processEvents()
-st_b = s.results[b_t]
-check("Not a term from the keys decides the clicked term; the list's own term is untouched",
-      (st_b.get("excluded") or "Not a term" in str(st_b.get("status")) or st_b.get("effort") == "Not a term")
-      and not (s.results[a_t].get("excluded") or s.results[a_t].get("effort") == "Not a term"), st_b.get("status"))
+check("... and the keys act on it", pg.current() == b_t)
+in_t = a_t
+out_t = next(t for t in here_terms if t != in_t and in_t not in t)
+AF.TYPE_AFTER = 0
+pg.f_search.setText(in_t); app.processEvents()             # the list as filtered leaves out_t out
+pg.select(in_t); app.processEvents()
+pg.where_view.on_pick(f"and here {out_t} sits", loc0); app.processEvents()
+check("a clicked term the filter leaves out goes on the card alone; the list keeps its rows, with none selected",
+      pg.card.title.text() == out_t and pg.pinned == out_t and pg.selected_terms() == [] and out_t not in pg.terms and pg.current() == out_t)
+pg.select(in_t); app.processEvents()
+check("a click on a row of the list goes back to the list's term", pg.card.title.text() == in_t and pg.pinned is None and pg.current() == in_t)
+pg.f_search.setText(""); app.processEvents(); AF.TYPE_AFTER = 250
 pg.select(a_t); app.processEvents()
-check("a click on a row of the list goes back to the list's term", pg.card.title.text() == a_t and pg.pinned is None and pg.current() == a_t)
 pg.where_view.on_pick("no term in these words", loc0); app.processEvents()
 check("a click on a reading with no term in it changes nothing", pg.card.title.text() == a_t and pg.pinned is None)
 

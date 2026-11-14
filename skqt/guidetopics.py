@@ -401,10 +401,10 @@ TOPICS = [
    "from the list. The Exclusion List (never in any effort on this PC) is in Team References.",
    "Add to the database keeps the term and its meaning in this PC's acronym database, apart from the effort's list "
    "(usually after submission). Add a term... adds one by hand: to this scan, the effort list, the database, or all three.",
-   "The card: the meaning, then two lines. Reads as is the term: fix it there if it was read wrong, and the list gets what you type. Means is the definition: pick one, type one, or leave it empty. "
+   "The card: the definition, then two lines. Candidate is the term: fix it there if it was read wrong, and the list gets what you type. Definition: pick one, type one, or leave it empty. "
    "Add to effort list and Ignore each move to the next term to decide. More has Part of a longer term, Plural of, A form of, Another way of writing and Add to the Wall of Truth.",
    "The preview boxes what the scan read. Page < and > go through every page or picture of the file. Click a box to see "
-   "what it read, or select words in a passage: Put in Reads as and Put in Means carry them to the card's two lines. A "
+   "what it read, or select words in a passage: the card shows them with As the candidate and As the definition. A click on a box that holds another term puts that term on the card. A "
    "reading fixed on a picture is kept for every later scan on this PC. Find < and > step through the finds and come back to the place. Drag to draw a box: Read this area again, Add as a term...; right-drag or Space to move.",
    "Why is a term missing? Type a term you expected: the Exclusion List, Ignored, a plural or form you set, the filters, or "
    "what the last scan read (with near misses in pictures). Save as the answer key... makes your decided scan the key of "

@@ -334,17 +334,7 @@ class AcronymPage(QWidget):
                 if w is not None and w is not self.mid_hint:
                     mb.takeAt(i); w.setParent(None); w.deleteLater()
             self.mid_hint.setVisible(True)
-        while self.body.count():
-            it = self.body.takeAt(0)
-            w = it.widget()
-            if w is not None:
-                w.setParent(None); w.deleteLater()
-            elif it.layout() is not None:
-                lay = it.layout()
-                while lay.count():
-                    x = lay.takeAt(0).widget()
-                    if x is not None:
-                        x.setParent(None); x.deleteLater()
+        __import__("skqt.acrpick", fromlist=["x"]).clear_layout(self.body)     # 4.30.7: every level of it (a box inside a row stayed behind)
 
     def show_detail(self):
         self._clear()

@@ -12,6 +12,20 @@ import re
 import diag
 
 
+def clear_layout(lay):
+    """Take everything out of a layout, at every depth. 4.30.7 (Nicholas 2026-11-13 20:30: "the buttons move up over top
+    of each other as I'm making decisions"): the card was cleared one level down only, so a row inside a row (the
+    Definition box with its symbols button) stayed on the card with no place of its own, and each new card drew over it."""
+    while lay.count():
+        it = lay.takeAt(0)
+        w = it.widget()
+        if w is not None:
+            w.hide(); w.setParent(None); w.deleteLater()
+        elif it.layout() is not None:
+            clear_layout(it.layout())
+            it.layout().deleteLater()
+
+
 def term_in(session, reading, loc, but="", at=None):
     """The scan's term a clicked reading holds: one found at this place, written in the reading as a whole word. When
     the reading holds several, the one nearest the click (at: how far along the reading the click was, 0 to 1), or the
@@ -38,15 +52,18 @@ def picked(page, current, reading, loc, at=None):
     t = term_in(page.session, reading, loc, but=current, at=at)
     if t is None:
         return None
-    page.pinned, page.open_at = t, (t, loc)
+    page.open_at = (t, loc)
+    diag.activity("acronym_picked_on_page")
+    if page.select(t):                                    # 4.30.7: it is in the list as filtered: the list focuses it too,
+        return t                                          # so the page and the list always show the same term
+    page.pinned = t
     was = page.table.blockSignals(True)
     try:
-        page.table.clearSelection()                       # the list keeps its place; nothing in it is the card's term now
+        page.table.clearSelection()                       # not in the list as filtered: the card alone shows it
     finally:
         page.table.blockSignals(was)
-    diag.activity("acronym_picked_on_page")
     page.show_detail()
-    page.host.status(f"{t}: picked on the page. Click a row of the list to go back to the list.")
+    page.host.status(f"{t} is not in the list as it is filtered. It is on the card; click a row of the list to go back.")
     return t
 
 

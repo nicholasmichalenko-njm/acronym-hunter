@@ -37,7 +37,7 @@ def build(page, t, kind_tone):
 
     # ---- the meaning
     chosen = d.get("selected_definition", "")
-    body.addWidget(D.label(f"Meaning: <b>{chosen}</b>" if chosen else "Meaning: none chosen yet"))
+    body.addWidget(D.label(f"Definition: <b>{chosen}</b>" if chosen else "Definition: none chosen yet"))
     # 3.88.0: what it could mean, in the stated order, each with its source and why; two customer meanings need a choice
     import acrsuggest as AS
     hint = AS.not_a_term_hint(t)
@@ -52,12 +52,7 @@ def build(page, t, kind_tone):
                                "the other stays in Other definitions.", "muted"))
     sug = AS.suggestions(d)
     page.suggest_rows = []
-    for k, x in enumerate(sug[:4], 1):
-        r = QHBoxLayout(); r.setSpacing(D.SPACE["s"])
-        r.addWidget(D.Pill(x["source"], {"List": "ok", "Customer": "cust", "Client list": "accent", "This PC": "head"}[x["source"]]))
-        r.addWidget(D.label(f"<b>{x['definition']}</b>  <span style='color:gray'>{x['why']}</span>"), 1)
-        r.addWidget(D.button(f"Use this  {k}" if k <= 2 else "Use this", "ghost", lambda _=False, x=x: page.choose(t, x["definition"])))
-        body.addLayout(r)
+    for x in sug[:4]:                                    # 4.30.7: listed once, by acrlayout.card_more (they showed twice)
         page.suggest_rows.append(x)
     extras = AX.card_extras(page, t)
     details_extra = []
@@ -89,14 +84,23 @@ def build(page, t, kind_tone):
     from . import symbols as SYM
     form = QFormLayout(); form.setHorizontalSpacing(D.SPACE["s"]); form.setVerticalSpacing(D.SPACE["s"])
     page.reads = QLineEdit(t)
-    page.reads.setToolTip("How the term is written. Fix it here if it was read wrong: what you type goes in the list")
-    form.addRow(D.label("Reads as", "muted", wrap=False), page.reads)
-    page.typed = QLineEdit(); page.typed.setPlaceholderText("Pick a meaning above or type one; it may stay empty")
+    page.reads.setToolTip("The term as it will go in the list. Fix it here if it was read wrong")
+    form.addRow(D.label("Candidate", "muted", wrap=False), page.reads)      # 4.30.7 (Nicholas 20:30): Candidate and Definition
+    page.typed = QLineEdit(); page.typed.setPlaceholderText("Pick one above or type one; it may stay empty")
     page.typed.setToolTip("Right-click for subscript, superscript and symbols")
     tr = QHBoxLayout(); tr.setSpacing(D.SPACE["s"])
     tr.addWidget(page.typed, 1); tr.addWidget(SYM.button(page.typed))
-    form.addRow(D.label("Means", "muted", wrap=False), tr)
+    form.addRow(D.label("Definition", "muted", wrap=False), tr)
     body.addLayout(form)
+    # 4.30.7: what is selected on the page shows here, on the card, with where it can go. It was a second text box under
+    # the page with Put in Reads as and Put in Means: the same two boxes reached a second way.
+    page.sel_row = QWidget(); sr_ = QHBoxLayout(page.sel_row); sr_.setContentsMargins(0, 0, 0, 0); sr_.setSpacing(D.SPACE["s"])
+    page.sel_lab = D.label("", "muted"); sr_.addWidget(page.sel_lab, 1)
+    page.b_sel_cand = D.button("As the candidate", "ghost", lambda: _use_selected(page, page.reads), "The words selected on the page are how the term is written")
+    page.b_sel_def = D.button("As the definition", "ghost", lambda: _use_selected(page, page.typed), "The words selected on the page are what the term means")
+    sr_.addWidget(page.b_sel_cand); sr_.addWidget(page.b_sel_def)
+    page.sel_row.setVisible(False); page.sel_text = ""
+    body.addWidget(page.sel_row)
     page.find_text = QLineEdit(); page.find_text.setReadOnly(True); page.find_text.setVisible(False)   # kept for the preview
     page.use_sel = D.button("Use as the definition", "ghost", lambda: page.use_selected()); page.use_sel.setVisible(False)
     page._actions([t])
@@ -116,14 +120,9 @@ def build(page, t, kind_tone):
                                     on_add_term=lambda text, loc, read, crop: APT.missed(page, text, loc, read, crop))
         wv = __import__("skqt.acrpick", fromlist=["x"]).hook(page, page.where_view, t)       # 4.30.4: a term clicked on the page
         # 4.23.1: what is selected on the page goes to a line
-        wv.read_lab.setText("Selected on the page")
-        wv.reading.setPlaceholderText("Click a box in the picture, or select words in the passage")
-        for b, text, tip, to in ((wv.b_fixread, "Put in Reads as", "These words are how the term is written", page.reads),
-                                 (wv.b_usemean, "Put in Means", "These words are what the term means", page.typed)):
-            b.setText(text); b.setToolTip(tip)
-            b.clicked.disconnect()
-            b.clicked.connect(lambda _c=False, to=to: (to.setText(" ".join(wv.reading.text().split())), to.setFocus())
-                              if wv.reading.text().strip() else page.host.status("Select words on the page first."))
+        for w_ in (wv.read_lab, wv.reading, wv.b_fixread, wv.b_usemean):      # 4.30.7: the card shows what is selected
+            w_.setVisible(False)
+        wv.reading.textChanged.connect(lambda text: _selected(page, text))
         if getattr(page, "mid_box", None) is not None:                  # 3.92.0: the customer's page, in the middle
             page.mid_hint.setVisible(False)
             page.mid_box.addWidget(page.where_view, 1)
@@ -165,6 +164,24 @@ def build(page, t, kind_tone):
     page.details_btn, block = _fold(page, "details", inner)
     body.addWidget(page.details_btn, 0, Qt.AlignLeft); body.addWidget(block)
     body.addStretch(1)
+
+
+def _selected(page, text):
+    """Words selected (or a box clicked) on the page: shown on the card with where they can go."""
+    text = " ".join(str(text or "").split())
+    page.sel_text = text
+    try:
+        page.sel_lab.setText(f"Selected on the page: {text[:90]}{'...' if len(text) > 90 else ''}. Use it")
+        page.sel_row.setVisible(bool(text))
+    except RuntimeError:                                 # the card was rebuilt since
+        pass
+    return text
+
+
+def _use_selected(page, box):
+    if getattr(page, "sel_text", ""):
+        box.setText(page.sel_text); box.setFocus()
+    return box.text()
 
 
 def _meaning(page, text):

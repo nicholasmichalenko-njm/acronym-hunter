@@ -19,7 +19,7 @@ from PySide6.QtWidgets import QHBoxLayout, QWidget
 
 from . import design as D
 
-GUTTER = 48
+GUTTER = 24            # 4.30.7: half as wide (the gap between the page and the card read as empty space)
 GAP = 6
 
 

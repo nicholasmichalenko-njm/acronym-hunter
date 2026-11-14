@@ -170,6 +170,9 @@ def more_menu(page, terms, run=True):
         if s.effort is not None and getattr(page.host, "truth_page", None) is not None:
             m.addAction("Add to the Wall of Truth...").triggered.connect(lambda: to_wall(page, t))
         m.addSeparator()
+    if len(terms) == 1:                                    # 4.30.7: from the card's Sources button
+        from . import acrlayout as AL
+        m.addAction("Sources and timeline...").triggered.connect(lambda: AL.sources_window(page, terms[0]))
     m.addAction("Add to this PC's database").triggered.connect(lambda: AX.add_to_db(page, terms))
     if s.effort is not None and any(t in s.effort.rows for t in terms):
         m.addAction("Remove from the list").triggered.connect(lambda: AX.remove_from_list(page, terms))

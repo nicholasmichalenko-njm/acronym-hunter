@@ -51,7 +51,8 @@ todo = [t for t in ap.terms if P.passes(s.results[t], "To decide", AL.kind_of(s.
 ap.select(todo[0]); app.processEvents()
 texts = [x.text() for x in ap.card_area.findChildren(QLabel)]
 btns = [b.text() for b in ap.card_area.findChildren(QPushButton) if not b.isHidden()]
-check("the card has two lines: Reads as (the term) and Means", "Reads as" in texts and "Means" in texts and ap.reads.text() == todo[0]
+check("the card has two lines: Candidate (the term) and Definition (4.30.7; they were Reads as and Means)", "Candidate" in texts and "Definition" in texts
+      and "Reads as" not in texts and "Means" not in texts and ap.reads.text() == todo[0]
       and not ap.reads.isReadOnly() and ap.typed.text() == "")
 check("Read here and Use as the definition are gone from the card", "Read here" not in texts and "Use as the definition" not in btns
       and "Copy" not in btns, btns)
@@ -102,13 +103,64 @@ tp = tw.page
 tt = [t for t in tp.terms if tp.session.results[t].get("locations")][0]
 tp.select(tt); app.processEvents()
 wv = tp.where_view
-check("beside the page: Selected on the page, Put in Reads as, Put in Means", wv is not None and wv.read_lab.text() == "Selected on the page"
-      and wv.b_fixread.text() == "Put in Reads as" and wv.b_usemean.text() == "Put in Means")
-wv.reading.setText("  Kestrel   Ground Station ")
-wv.b_usemean.click(); app.processEvents()
-check("Put in Means fills Means", tp.typed.text() == "Kestrel Ground Station", tp.typed.text())
-wv.reading.setText("KGS-2"); wv.b_fixread.click(); app.processEvents()
-check("Put in Reads as fills Reads as", tp.reads.text() == "KGS-2", tp.reads.text())
+check("4.30.7: under the page there is no second text box and no Put in buttons", wv is not None
+      and all(x.isHidden() for x in (wv.read_lab, wv.reading, wv.b_fixread, wv.b_usemean)))
+check("... and with nothing selected the card offers nothing to use", tp.sel_row.isHidden())
+wv.set_reading("  Kestrel   Ground Station "); app.processEvents()
+check("words selected on the page show on the card, with where they can go", not tp.sel_row.isHidden()
+      and tp.sel_lab.text().startswith("Selected on the page: Kestrel Ground Station") and tp.b_sel_cand.text() == "As the candidate"
+      and tp.b_sel_def.text() == "As the definition", tp.sel_lab.text())
+tp.b_sel_def.click(); app.processEvents()
+check("As the definition fills Definition", tp.typed.text() == "Kestrel Ground Station", tp.typed.text())
+wv.set_reading("KGS-2"); tp.b_sel_cand.click(); app.processEvents()
+check("As the candidate fills Candidate", tp.reads.text() == "KGS-2", tp.reads.text())
+# ---- 4.30.7 (Nicholas 2026-11-13 20:30): the card, the page and the list
+from PySide6.QtWidgets import QLineEdit
+from PySide6.QtCore import QCoreApplication, QEvent
+from skqt import acrpick as PK
+
+
+def settle():
+    app.processEvents(); QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete); app.processEvents()
+
+
+def on_card(kind):
+    return [x for x in tp.card.findChildren(kind) if not x.isHidden() and x.window() is tp.window()]
+
+
+many = [t for t in tp.terms if tp.session.results[t].get("locations")][:6]
+for t_ in many + many[:3]:
+    tp.select(t_); settle()
+syms = [b for b in on_card(QPushButton) if "ymbol" in (b.text() + b.toolTip()) or b.text() in ("x\u00b2", "Symbols")]
+edits = on_card(QLineEdit)
+check("after nine cards in a row the card holds one Candidate box and one Definition box, none left from earlier cards",
+      sum(1 for e in edits if e is tp.reads) == 1 and sum(1 for e in edits if e is tp.typed) == 1 and len(edits) <= 3, len(edits))
+check("... one Add to effort list, one More: nothing drawn over from an earlier card",
+      sum(1 for b in on_card(QPushButton) if b.text() == "Add to effort list") == 1 and sum(1 for b in on_card(QPushButton) if b.text() == "More") == 1,
+      [b.text() for b in on_card(QPushButton)])
+check("no piece of an earlier card is left as a window of its own", not [x for x in app.topLevelWidgets() if x.isVisible() and x is not tp.window() and x is not w
+                                                                        and x.metaObject().className() in ("QLineEdit", "QPushButton", "QLabel", "QFrame")])
+sug_t = next((t for t in tp.terms if __import__("acrsuggest").suggestions(tp.session.results[t])), None)
+if sug_t:
+    tp.select(sug_t); settle()
+    first = tp.suggest_rows[0]["definition"]
+    labs = [x.text() for x in on_card(QLabel)]
+    check("each suggested definition is listed once, with Use this beside it", sum(1 for x in labs if f"<b>{first}</b>" in x) == 1
+          and sum(1 for b in on_card(QPushButton) if b.text() == "Use this") == len(tp.suggest_rows[:4]), [x for x in labs if first in x])
+labs = [x.text() for x in on_card(QLabel)]
+btns2 = [b.text() for b in on_card(QPushButton)]
+check("Where it goes has no sentence under its title, and nothing about drafts that were not checked",
+      not any("Each volume's Acronyms table" in x or "Not checked in our drafts" in x for x in labs) and hasattr(tp, "where_rows"))
+check("Sources is not a button on the card; it is under More", "Sources" not in btns2
+      and "Sources and timeline..." in [a.text() for a in APT.more_menu(tp, [tp.current()], run=False).actions()])
+# a term clicked on the page is the list's term too
+loc1 = next(l for t in tp.terms for l in (tp.session.results[t].get("locations") or []) if sum(1 for u in tp.terms if l in (tp.session.results[u].get("locations") or [])) >= 2)
+pair = [t for t in tp.terms if loc1 in (tp.session.results[t].get("locations") or [])][:2]
+tp.select(pair[0]); settle()
+tp.where_view.on_pick(f"here is {pair[1]} in a line", loc1); settle()
+check("a term clicked on the page is selected in the list too: the page, the list and the card show the same term",
+      tp.selected_terms() == [pair[1]] and tp.card.title.text() == pair[1] and getattr(tp, "pinned", None) is None
+      and tp.where_view.locs[tp.where_view.k] == loc1, (tp.selected_terms(), tp.card.title.text()))
 # the line between the page and the card: a paint after the card's parts are gone draws no line and raises nothing
 import shiboken6
 gone = tp.where_view                                   # what a late paint still holds: a view Qt has deleted
