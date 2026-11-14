@@ -2,7 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
-    "4.30.5": ["Bringing styles into a set: where the set already has a style of that name with other values, the row says "
+    "4.30.5": ["Fixed: the program could end by itself while you decided acronyms quickly. The next term's picture is no longer "
+               "drawn ahead on a second thread.",
+               "Bringing styles into a set: where the set already has a style of that name with other values, the row says "
                "Duplicate style with different values detected, with Keep both, Replace and Skip.",
                "Keep both brings the file's style in under a numbered name (Body Text 2). A set never holds two styles of the same name.",
                "Bring in waits until each flagged row is answered."],

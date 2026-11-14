@@ -650,3 +650,6 @@ def read_page(path, loader, key, terms):
             diag.swallowed()
             note = f"The reader could not run here ({type(e).__name__}), so nothing is boxed."
     return FV._qimage(img), lines, typed, note
+
+
+read_page = FV.one_at_a_time(read_page)       # 4.30.5: one picture is read at a time (foundview.READ_LOCK)

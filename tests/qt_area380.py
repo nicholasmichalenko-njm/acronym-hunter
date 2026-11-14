@@ -70,6 +70,9 @@ PR.use(None); PR.use(keep); FV._CACHE.clear()                    # a restart: th
 fv3 = view()
 check("... after a restart too", calls[0] == 1 and len(fv3.lines) == 3, calls)
 FV._CACHE.clear()
+check("4.30.5: drawing the next picture ahead is off (it ran the PDF reader on a second thread and ended the program)",
+      FV.PREFETCH is False and FV.prefetch("EPS", [LOC], lambda n: paths.get(n)) is None and not FV._ALIVE)
+FV.PREFETCH = True                                       # the path stays tested for when it is made safe
 w = FV.prefetch("EPS", [LOC], lambda n: paths.get(n))
 t0 = time.time()
 while w is not None and w.isRunning() and time.time() - t0 < 30:
