@@ -2,6 +2,12 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.35.0": ["A style has one history. Each saved change is a new version, and the latest is the one in use in every "
+               "set that uses the style. For a different look in one set, use Duplicate...",
+               "Versions... on a style's row lists every version, latest first, with when, who and what changed. "
+               "Restore this version puts an earlier one on top as a new version; nothing is removed.",
+               "More > Restore every style as of... takes every style back to a time you pick, after showing which "
+               "would change. More > Undo the restore puts back what was latest."],
     "4.34.0": ["Global Standards has its own page, in the menu beside Settings. It opens whether or not an effort is open "
                "and always changes the Global Standards; an open effort keeps its own standards.",
                "A change saved there reaches everyone at once: no Update button. Other PCs get it the next time they "
