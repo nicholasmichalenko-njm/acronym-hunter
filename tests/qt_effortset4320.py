@@ -1,6 +1,6 @@
 """4.32.0, Standards step 3, offscreen: an effort's own set of standards on screen. A standards page says which set a
 change goes to; a change with the effort open stays in the effort; Effort Formatting carries the Effort Standards card;
-Review... shows what the Global Standards would change and what the effort changed, each acted on by name. Fictional."""
+See the changes... shows what the Global Standards would change and what the effort changed, each acted on by name. Fictional."""
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -64,7 +64,7 @@ check("a Global change is offered on the card, and nothing is taken", not ep.es_
       and PRL.load(cfg)["company"]["variables"]["table_font"] != "Global Table", ep.es_offer.text())
 dlg = EV.review(ep, run=False)
 rows = [(dlg.t_offer.item(r, 1).text(), dlg.t_offer.item(r, 3).text()) for r in range(dlg.t_offer.rowCount())]
-check("Review... lists each value the Global Standards would change", ("company.variables.table_font", "Global Table") in rows
+check("See the changes... lists each value the Global Standards would change", ("company.variables.table_font", "Global Table") in rows
       and ("company.variables.body_font", "Global One") in rows, rows)
 check("... and what this effort changed", dlg.t_mine.rowCount() == 1 and dlg.t_mine.item(0, 1).text() == "production_standards.json")
 check("the two actions are named for what they do", dlg.b_take.text() == "Take for this effort" and dlg.b_give.text() == "Send to the Global Standards")

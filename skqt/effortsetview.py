@@ -1,6 +1,6 @@
 """Effort Standards on screen (4.32.0, Standards step 3; decisions ST3 and ST4 of 2026-11-14): the card on Effort
 Formatting that says where the effort's own set came from, what the Global Standards would change in it and what the
-effort changed itself, with one Review... dialog for both; and the line under a standards page's title that says which
+effort changed itself, with one See the changes... dialog for both; and the line under a standards page's title that says which
 set a change there goes to. Rules only (No AI); nothing leaves the PC."""
 import diag
 import effortset as ES
@@ -26,7 +26,7 @@ def add_card(page, v):
                           "Quick Parts, the template library, rules, templates, section designs, outline layouts and field "
                           "recipes. Taken from the Global Standards once; a change on a standards page while this effort is "
                           "open changes this set only.",
-                          actions=[D.button("Review...", None, lambda: review(page),
+                          actions=[D.button("See the changes...", None, lambda: review(page),
                                             "What the Global Standards would change in this effort's set, and what this effort changed itself")])
     page.es_line = page.es_card.add(D.label("", None)); page.es_line.setWordWrap(True)
     page.es_offer = page.es_card.add(D.label("", None)); page.es_offer.setWordWrap(True)
@@ -42,7 +42,7 @@ def offer_words(cfg, root):
     was = ES.info(root).get("from_version") or 0
     head = (f"Global Standards version {of['version']} is ready for this effort" if of["version"] and of["version"] != was
             else "The Global Standards on this PC have changed since this effort took its set")
-    return f"{head}: {n} change{'s' if n != 1 else ''}. Review... shows each one; nothing is taken until you say so."
+    return f"{head}: {n} change{'s' if n != 1 else ''}. See the changes... shows each one; nothing is taken until you say so."
 
 
 def show(page):
@@ -126,7 +126,7 @@ def review(page, run=True):
                 t1.setItem(i, j, QTableWidgetItem(str(r[k])))
         t1.resizeColumnsToContents()
         also = of["also_here"]
-        h1.setText((offer_words(cfg, root).split(". Review")[0] + "." if dlg.rows else "The Global Standards would change nothing in this effort's set.")
+        h1.setText((offer_words(cfg, root).split(". See the changes")[0] + "." if dlg.rows else "The Global Standards would change nothing in this effort's set.")
                    + (f" This effort changed {len(also)} of these files itself; taking one replaces the effort's change." if also else ""))
         b_take.setEnabled(bool(dlg.rows))
         dlg.mine = ES.changed(cfg, root)
