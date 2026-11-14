@@ -64,6 +64,12 @@ for src, k in ((src1, rfp), (src2, compact), (src3, setup)):
     rows = SL.against(lib, SL.read_styles(src))
     for r in rows:
         r["keep"] = r["name"].startswith(("Kestrel", "SK"))
+    if k is compact:                                             # 4.35.1: a set with its own version of a name, as a library from before
+        for r in rows:                                           # one style had one history holds it (a change now reaches every set)
+            if r["keep"]:
+                v2, _st = lib.save_version(r["mine"]["id"], dict(r["values"], _xml=r.get("xml", ""), _from=os.path.basename(src)))
+                SL.add_to_set(lib, k["id"], [v2["id"]])
+        continue
     SL.bring_in(lib, rows, src, set_of={r["name"]: k["id"] for r in rows})
 lib = TL.Library(cfg)
 front = make(os.path.join(tmp, "Kestrel Front.docx"), p("Kestrel Ground Segment", "KCover") + '<w:p><w:pPr><w:sectPr/></w:pPr></w:p>'

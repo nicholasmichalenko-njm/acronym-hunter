@@ -46,6 +46,8 @@ ag3 = SL.against(lib, other)
 check("other values under the same name: Different from yours", ag3[0]["state"] == "variant" and ag3[0]["mine"]["id"] == h1v1["id"])
 SL.bring_in(lib, ag3, DOC)
 h1v2 = lib.latest(h1v1["id"])
+check("4.35.1: the style brought in is the style's latest for the set that uses it", rfp["items"] == [h1v2["id"]] and not SL.newer(lib, rfp["id"]))
+SL.add_to_set(lib, rfp["id"], [h1v1["id"]])                     # a set left on the earlier version, as before 4.35.0
 check("... it comes in as version 2; version 1 stays", h1v2["version"] == 2 and lib.get(h1v1["id"]) is not None
       and lib.values(h1v2)["size"] == 16.0)
 nv = SL.newer(lib, rfp["id"])
