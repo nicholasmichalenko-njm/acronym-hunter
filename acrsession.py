@@ -294,6 +294,7 @@ class AcronymSession(AcronymRules):
         capture = {}
         self.last_scan = {"paths": list(paths), "folder": folder, "cache": capture}
         A.CANCEL.clear()
+        __import__("acrjoined").prime(self)                     # 4.30.8: this effort's answers for joined terms
         results = A.analyze_batch(list(paths), cb, capture=capture)
         self.keep_pictures(capture)
         return self.after_scan(results)

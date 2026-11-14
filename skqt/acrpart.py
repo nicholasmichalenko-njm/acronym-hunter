@@ -127,6 +127,26 @@ def to_wall(page, term, answer=None):
     return out
 
 
+def joined(page, term, how, whole=None):
+    """The card's answer for a joined term: its pieces are separate terms, or the pieces are one term. Remembered."""
+    import acrjoined as J
+    import app_gui as A
+    s = page.session
+    if how == J.PIECES:
+        got = J.separate(s, term, A)
+        said = f"{term} is now {', '.join(got)}. Remembered for this effort." if got else ""
+    else:
+        got = J.one_term(s, term, A, whole)
+        said = f"{got} is one term. Remembered for this effort." if got else ""
+    page.fill()
+    if said and getattr(page, "host", None) is not None:
+        try:
+            page.host.toast(said)
+        except Exception:                                         # noqa: BLE001  a host with no toast (tests)
+            pass
+    return got
+
+
 def picture_menu(page, term, run=True):
     m = QMenu(page)
     m.addAction("Part of a longer term...").triggered.connect(lambda: part_of(page, term))
@@ -164,6 +184,13 @@ def more_menu(page, terms, run=True):
             m.addAction(f"Not part of {s.parts[t]['whole']}").triggered.connect(lambda: (AP.clear_part(s, t), page.fill()))
         else:
             m.addAction("Part of a longer term...").triggered.connect(lambda: part_of(page, t))
+        import acrjoined as _J                             # 4.30.8: one answer for a joined term, kept with the effort
+        flip = _J.can_flip(s, t)
+        if flip == _J.PIECES:
+            m.addAction("These are separate terms").triggered.connect(lambda: joined(page, t, _J.PIECES))
+        elif flip == _J.WHOLE:
+            for w in list(d.get("in_joined") or {})[:4]:
+                m.addAction(f"This is one term: {w}").triggered.connect(lambda _c=False, w=w: joined(page, t, _J.WHOLE, w))
         m.addSeparator()
         if AX.in_pictures(d):                              # 4.23.1: from The picture says something else...
             m.addAction("Not text (a picture, not letters)").triggered.connect(lambda: not_text(page, t))

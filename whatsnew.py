@@ -2,8 +2,12 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
-    "4.30.8": ["Acronyms: a term joined by a slash or an ampersand is found whole. The reader no longer offers its front piece, "
-               "ending in the slash, as a find of its own, or the pieces inside it."],
+    "4.30.8": ["Acronyms: capital-letter terms written together with a slash, an ampersand, a hyphen, a period or an underscore "
+               "are offered once: the joined term, or its pieces when each piece is a term of its own. Never both.",
+               "More on the card: These are separate terms (on a joined term) and This is one term (on a piece). The answer is "
+               "kept with the effort and holds on every later scan.",
+               "A term of nine capitals or more is found. A Roman numeral (Volume III) is not offered. A term that starts with a "
+               "digit is one term, not a unit."],
     "4.30.7": ["Acronyms, The list: the card no longer piles up as you decide (buttons and boxes from earlier cards stayed behind).",
                "The card's two lines are Candidate and Definition. Words selected on the page show on the card, with As the candidate "
                "and As the definition; the second text box under the page is gone.",

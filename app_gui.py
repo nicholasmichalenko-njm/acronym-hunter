@@ -1940,6 +1940,7 @@ def build_matcher():
         "ocr_fixes": load_ocr_fixes(), "direct_pattern": direct_pattern,
         "fuzzy_targets": {t: t for t in include_db.keys() if len(t) >= 3 and t.isupper()},
         "acronym_re": re.compile(r'\b([A-Z][A-Z0-9/&]{1,7}s?)\b'),
+        "long_re": re.compile(r'(?<![\w/&.-])([A-Z][A-Z0-9]{8,14}s?)(?![\w/&-])'),     # 4.30.8
         # Codes and designators kept whole: PCU-28V, MIL-STD-1553B, RS-422, PN 4521-003A, ST-200X, J1-P3, SN77X2
         "designator_re": re.compile(r'(?<![\w/-])((?:[A-Z0-9]+-)+[A-Z0-9]+|[A-Z]{1,4}[0-9][A-Z0-9]{2,8})(?![\w/-])'),
         # Mixed-case acronyms: DoD, DoE, IoT, MoU, PhD, DoDAF
@@ -2156,6 +2157,7 @@ def record_equation(findings, loc, text, m):
 def finalize_symbols(findings, m):
     """Give each symbol the meaning stated in the documents (where ṁ is ..., nomenclature lists and tables).
     Also sets aside capital-letter heading words (mark_heading_words, 2.20.0)."""
+    __import__("acrjoined").settle(findings, m, sys.modules[__name__])   # 4.30.8: joined runs, whole or in pieces
     mark_heading_words(findings, m)
     stated = {}
     for _file, defs in m['symbol_defs'].items():
@@ -2209,11 +2211,16 @@ def match_chunks(findings, chunks, m):
                 findings[key]["locations"].append(loc)
             continue
         _HITS = hits = []
+        J = __import__("acrjoined")
+        held = J.hold(text, loc_label, m, in_caps_run)      # 4.30.8: joined runs, settled when every file is matched
+        in_held = lambda span: any(a < span[1] and span[0] < b for a, b in held)
 
         # Gate 1 & 2: Unified Database (Exclusions & Inclusions)
         if m['direct_pattern']:
             for match in m['direct_pattern'].finditer(text):
                 term = match.group(1)
+                if held and in_held(match.span(1)):
+                    continue
                 if term in m['exclude_db'] and term not in m['include_db']:
                     record_excluded(findings, term, loc_label, m['exclude_db'])
                 elif term in m['include_db']:
@@ -2223,6 +2230,8 @@ def match_chunks(findings, chunks, m):
         code_spans = []
         for match in m['designator_re'].finditer(text):
             tok = match.group(1)
+            if held and in_held(match.span(1)):
+                continue
             letters = sum(c.isalpha() for c in tok)
             if len(tok) < 4 or letters == 0 or (not any(c.isdigit() for c in tok) and "-" not in tok):
                 continue
@@ -2236,6 +2245,7 @@ def match_chunks(findings, chunks, m):
                     record_excluded(findings, tok, loc_label, m['exclude_db'])
             else:
                 record_candidate(findings, tok, "Designator (Candidate)", loc_label)
+        code_spans += held
         in_code = lambda span: any(a <= span[0] and span[1] <= b for a, b in code_spans)
 
         for match in m['mixed_re'].finditer(text):
@@ -2247,11 +2257,11 @@ def match_chunks(findings, chunks, m):
         # Gate 3: Heuristic Candidate Discovery (Items not in DB)
         joined_to = 0
         for match in m['acronym_re'].finditer(text):
-            if match.start(1) < joined_to:
+            if match.start(1) < joined_to or (held and in_held(match.span(1))):
                 continue                                    # 4.30.8: inside a joined term already taken whole
-            raw, joined_to = __import__("acrjoined").whole(text, match.start(1), match.group(1))
-            if not raw:
-                continue
+            raw, joined_to = J.whole(text, match.start(1), match.group(1))
+            if not raw or J.roman(text, match.start(1), raw):
+                continue                                    # 4.30.8: Volume III, Phase II: a numeral, not a term
             cand = raw[:-1] if raw.endswith('s') and len(raw) > 2 else raw
             if raw in m['ocr_fixes'] or cand in m['ocr_fixes']:
                 wrong = raw if raw in m['ocr_fixes'] else cand
@@ -2273,6 +2283,8 @@ def match_chunks(findings, chunks, m):
                     continue
             record_candidate(findings, cand, "Acronym (Candidate)", loc_label,
                              caps_run=cand.isalpha() and in_caps_run(text, match.start(1), match.end(1)))
+
+        J.hold_long(text, loc_label, m, lambda sp: in_held(sp) or in_code(sp) or in_caps_run(text, sp[0], sp[1]))   # 4.30.8
 
         # 4.23.3: one letter and digits given in brackets after the words; initials with periods; a small letter before capitals
         for key, kind in (("paren_short_re", "Acronym (Candidate)"), ("dotted_re", "Abbreviation (Candidate)"),
@@ -2326,6 +2338,8 @@ def match_chunks(findings, chunks, m):
             if ucand in m['ocr_fixes']:
                 apply_ocr_fix(findings, ucand, m['ocr_fixes'][ucand], "Unit (Candidate)", loc_label, m['include_db'], m['exclude_db'])
                 continue
+            if not in_held(match.span()) and J.digit_led(findings, m, text, match, loc_label, sys.modules[__name__]):
+                continue                                    # 4.30.8: 3QRX is a term that starts with a digit, not 3 of a unit
             if (ucand in m['include_db'] or ucand in m['exclude_db'] or
                     ucand.upper() in m['exclude_upper'] or ucand.lower() in NON_UNIT_WORDS or ucand.isdigit()):
                 continue
