@@ -2,7 +2,10 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
-    "4.35.1": ["Bring in from a file on Styles shows each value a document would change in a style you have, before "
+    "4.35.1": ["Create another version... on a style's row makes another style of the same name for the sets you tick, "
+               "such as a tighter Body for Page-limited RFP. A set holds one style of a name, and the two are told apart "
+               "by their sets. Each has its own history; a change reaches the sets on that version and only those.",
+               "Bring in from a file on Styles shows each value a document would change in a style you have, before "
                "anything changes. Two ways: Only what differs (your style keeps everything else) or Everything the "
                "document has (your style becomes the document's).",
                "A style brought in over one you have is that style's new latest version, for every set that uses it. "

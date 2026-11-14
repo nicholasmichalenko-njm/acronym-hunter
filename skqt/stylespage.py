@@ -336,7 +336,8 @@ class StylesPage(QWidget):
             self.notice.hide()
             return None
         a, b = nv[0]
-        self.notice_lab.setText(f"{self.lib.base_of(b)}: this set uses version {a.get('version', 1)}; the latest is version {b.get('version', 1)}."
+        _SH = __import__("stylehistory")
+        self.notice_lab.setText(f"{self.lib.base_of(b)}: this set uses version {_SH.number(self.lib, a)}; the latest is version {_SH.number(self.lib, b)}."
                                 + (f" ({len(nv) - 1} more)" if len(nv) > 1 else ""))
         self.b_move.setText("Use the latest"); self.b_keep.setText("Not now")
         self.notice.show()
@@ -376,6 +377,8 @@ class StylesPage(QWidget):
             m.addAction("See or change...").triggered.connect(lambda: self.review(ids[0]))        # 4.30.1; a double-click too
             m.addAction("Duplicate...").triggered.connect(lambda: self.duplicate(ids[0]))
             m.addAction("Versions...").triggered.connect(lambda: self.versions(ids[0]))            # 4.35.0: its history, Restore
+            m.addAction("Create another version...").triggered.connect(                            # 4.35.1 (ST26): one name, told apart by its sets
+                lambda: __import__("skqt.styleversions", fromlist=["x"]).another(self, ids[0]))
             m.addAction("Name this version...").triggered.connect(lambda: self.label_version(ids[0]))
             m.addAction("Every value...").triggered.connect(lambda: self.every_value(ids[0]))      # 3.98.0
         m.addSeparator()
