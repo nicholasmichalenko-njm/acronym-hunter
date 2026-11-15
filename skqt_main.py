@@ -86,6 +86,8 @@ def main(argv=None):
     except Exception:                                # noqa: BLE001  settings unreadable: Windows decides
         design.apply(app)
     import diag
+    import diagwatch                                  # 4.43.1 (ST53): Qt's own messages, a window that stops answering,
+    diagwatch.install(app)                            # and errors while Python cleans up
     diag.activity("qt_started")
     try:                                             # 4.30.1: the program's own working folder is out of sight. Only
         if "--selftest" not in args and getattr(sys, "frozen", False):     # in the installed program, never while it is

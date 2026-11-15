@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.43.1": ["Proposal managers and production leads build, change and archive templates; everyone else looks inside one and exports it.",
+               "Saving acronym and matrix decisions runs in the background again.",
+               "The program's record of problems now notes Qt's warnings, a window that stops answering, and cleanup errors: fixed words only."],
     "4.43.0": ["Templates opens a gallery: one card for each template, with what it is made of. A card has Export and "
                "Duplicate; its right-click has Archive, and the Archived view brings a template back.",
                "New template... opens the builder with nothing picked. A double-click on a card opens the same builder on "

@@ -94,6 +94,10 @@ class BuilderDialog(QDialog):
         self.b_export = D.button("Export", None, lambda: self.export(), "Save, write the .dotx and check it against the picks"); b.addWidget(self.b_export)
         self.b_save = D.button("Save", "primary", lambda: self.save(), "Keep the name and the picks"); b.addWidget(self.b_save)
         v.addLayout(b)
+        self.can = page.can_change() if hasattr(page, "can_change") else True     # 4.43.1 (ST48): look inside, never change
+        if not self.can:
+            self.name.setReadOnly(True); self.b_save.setVisible(False)
+            self.said.setText("Proposal managers and production leads build and change templates. You can look inside this one and export it.")
         self.fill()
 
     # ------------------------------------------------------------ what is shown
@@ -156,6 +160,8 @@ class BuilderDialog(QDialog):
 
     # ------------------------------------------------------------ picking
     def set_pick(self, key, value):
+        if not self.can:
+            return self.rec[key]
         self.rec[key] = value
         self.rec = TS.recipe({TS.KEY: self.rec})
         self.said.setText("")
@@ -185,6 +191,9 @@ class BuilderDialog(QDialog):
     def tile_menu(self, key):
         m = QMenu(self)
         r = self.rec
+        if not self.can:
+            m.addAction("Proposal managers and production leads change what goes in").setEnabled(False)
+            return m
 
         def one(text, value, cur):
             a = m.addAction(text); a.setCheckable(True); a.setChecked(value == cur)
@@ -235,6 +244,8 @@ class BuilderDialog(QDialog):
     # ------------------------------------------------------------ keeping it
     def save(self, close=True):
         """Keeps the name and the picks. A new template is made on the first save. Returns its id, or None."""
+        if not self.can:
+            return None
         name = self.name.text().strip()
         if self.tid is None:
             t = NT.new(self.cfg, name)
@@ -256,7 +267,7 @@ class BuilderDialog(QDialog):
 
     def export(self):
         """Saves, writes the .dotx and checks it against the picks. Returns the job, or None."""
-        if self.save(close=False) is None:
+        if self.can and self.save(close=False) is None:
             return None
         job = self.page.make(self.tid)
         if job is None:

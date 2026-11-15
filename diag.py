@@ -104,6 +104,24 @@ def warning(area, msg, exc=None, **counts):
     _record("warning", area, msg, exc, counts)
 
 
+def event(area, msg, **fields):
+    """4.43.1: a record that is neither an error nor a click (a Qt message, a window that stopped answering). Fixed words
+    only: fields are short lower-case names, whole numbers, or a list of file:line:function places."""
+    if OFF or not LOG_DIR:
+        return
+    entry = {"time": _now(), "version": VERSION, "level": "event", "area": _clean_area(area), "msg": msg}
+    for k, v in fields.items():
+        if isinstance(v, bool) or not _AREA.match(k):
+            continue
+        if isinstance(v, int):
+            entry[k] = v
+        elif isinstance(v, str) and re.match(r"^[a-z][a-z0-9_ ]{0,40}$", v):
+            entry[k] = v
+        elif isinstance(v, list) and all(isinstance(x, str) and re.match(r"^[A-Za-z0-9_ .:'<>-]{1,120}$", x) for x in v):
+            entry[k] = v[:80]
+    _write("events.jsonl", entry)
+
+
 def swallowed(area=None):
     """Call inside an `except` block that recovers on purpose. Logs the error type and where, once per place."""
     t, e, tb = sys.exc_info()

@@ -99,6 +99,15 @@ class NamedTemplatesPage(QWidget):
                                   "New template...", lambda: self.new())
         v.addWidget(self.empty)
 
+    def can_change(self):
+        """4.43.1 (ST47, ST48): proposal managers and production leads build, change and archive; everyone looks and exports."""
+        import roleaccess as RA
+        return RA.builds_templates(self.host.profile()[0])
+
+    def _refuse(self):
+        self.host.status("Proposal managers and production leads build and change templates. You can look inside one and export it.")
+        return None
+
     def folder(self):
         import app_gui
         import prodcopy as PCY
@@ -132,10 +141,16 @@ class NamedTemplatesPage(QWidget):
             self.grid.addWidget(c, i // self.COLUMNS, i % self.COLUMNS); self.cards[t["id"]] = c
         self.area.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows and not self.archived)
         self.b_arch.setText(f"Archived ({n_arch})"); self.b_arch.setChecked(self.archived); self.b_arch.setVisible(n_arch > 0)
+        can = self.can_change()
+        self.b_new.setVisible(can)
+        for c in self.cards.values():
+            c.b_dup.setVisible(can)
         self.sum.setText(("The archived templates. Right-click one to restore it." if self.archived else
                           f"{len(self.rows)} template(s): {n[NT.READY]} ready, {n[NT.REVIEW]} need review, {n[NT.NEW]} not made yet. "
                           "Double-click one to see or change what goes in. An effort picks one for each volume in Setup > More > "
                           "Templates for the volumes...") if self.rows else "")
+        if self.rows and not can:
+            self.sum.setText(self.sum.text() + " Proposal managers and production leads build and change templates; you can look inside one and export it.")
         self._cur = keep if keep in self.cards else (self.rows[0]["id"] if self.rows else None)
         self.sync()
 
@@ -162,6 +177,8 @@ class NamedTemplatesPage(QWidget):
     # ------------------------------------------------------------ what you do
     def new(self, modal=True):
         """New template...: the builder, with nothing picked yet. The template exists once it is saved there."""
+        if not self.can_change():
+            return self._refuse()
         from .tplbuilder import builder
         return builder(self, None, modal)
 
@@ -173,7 +190,7 @@ class NamedTemplatesPage(QWidget):
         return builder(self, tid, modal)
 
     def duplicate(self, tid=None):
-        t = NT.duplicate(self.host.config_dir, tid or self.current() or "")
+        t = NT.duplicate(self.host.config_dir, tid or self.current() or "") if self.can_change() else self._refuse()
         if t is None:
             return None
         diag.activity("named_template_duplicated")
@@ -184,8 +201,8 @@ class NamedTemplatesPage(QWidget):
     def archive(self, tid=None, on=True, ask=True):
         tid = tid or self.current()
         t = NT.get(self.host.config_dir, tid) if tid else None
-        if t is None:
-            return False
+        if t is None or not self.can_change():
+            return bool(t is not None and self._refuse())
         if on and ask and QMessageBox.question(self, "Archive the template", f"Archive {t['name']}? It leaves the gallery and the "
                                                "lists that offer templates. Nothing is removed, an effort that picked it keeps its "
                                                "copy, and the Archived view brings it back.") != QMessageBox.Yes:
@@ -225,8 +242,8 @@ class NamedTemplatesPage(QWidget):
     def rename(self, tid=None, name=None):
         tid = tid or self.current()
         t = NT.get(self.host.config_dir, tid) if tid else None
-        if t is None:
-            return False
+        if t is None or not self.can_change():
+            return bool(t is not None and self._refuse())
         if name is None:
             name, ok = QInputDialog.getText(self, "Rename the template", "New name:", text=t["name"])
             if not ok:
@@ -240,8 +257,8 @@ class NamedTemplatesPage(QWidget):
     def remove(self, tid=None, ask=True):
         tid = tid or self.current()
         t = NT.get(self.host.config_dir, tid) if tid else None
-        if t is None:
-            return False
+        if t is None or not self.can_change():
+            return bool(t is not None and self._refuse())
         if ask and QMessageBox.question(self, "Remove the template", f"Take {t['name']} off the list? A file already made stays in "
                                         "its folder, and an effort that picked it keeps its copy.") != QMessageBox.Yes:
             return False
@@ -274,14 +291,20 @@ class NamedTemplatesPage(QWidget):
             return None
         t = NT.get(self.host.config_dir, tid)
         m = QMenu(self)
+        can = self.can_change()
         if t.get("archived"):
-            m.addAction("Restore", lambda: self.archive(tid, on=False))
-            m.addSeparator()
-            m.addAction("Remove", lambda: self.remove(tid))
+            if can:
+                m.addAction("Restore", lambda: self.archive(tid, on=False))
+                m.addSeparator()
+                m.addAction("Remove", lambda: self.remove(tid))
+            else:
+                m.addAction("Proposal managers and production leads restore a template").setEnabled(False)
             return m
-        m.addAction("Open in the builder", lambda: self.open_builder(tid))
+        m.addAction("Open in the builder" if can else "Look inside", lambda: self.open_builder(tid))
         m.addAction("Export", lambda: self.make(tid))
         a = m.addAction("Open in Word", lambda: self.open(tid)); a.setEnabled(os.path.isfile(((t or {}).get("made") or {}).get("path") or ""))
+        if not can:
+            return m
         m.addSeparator()
         m.addAction("Duplicate", lambda: self.duplicate(tid))
         m.addAction("Rename...", lambda: self.rename(tid))

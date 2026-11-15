@@ -33,6 +33,16 @@ for _r, _ks in TOOLS.items():                       # 4.3.0: Matrix & Outline's 
         _ks.add("place")
     if _ks & {"setups", "structure"}:
         _ks.add("outline")
+for _r in ("Author", "Reviewer", "Capture"):           # 4.43.1 (ST48): everyone opens the gallery to look inside a template
+    TOOLS[_r].add("templates")                          # and export it; building and changing is for BUILDERS
+BUILDERS = (PM, "Production")                           # 4.43.1 (ST47, ST48): who builds, changes and archives templates
+
+
+def builds_templates(profile):
+    """Whether this profile builds, changes and archives templates and their page layouts and numbering."""
+    return profile in BUILDERS
+
+
 # a role written in People and roles (the team's own words) -> the profile it means; first match wins
 WORDS = (("proposal manager", PM), ("capture manager", "Capture"), ("production", "Production"), ("desktop", "Production"),
          ("publish", "Production"), ("editor", "Production"), ("graphic", "Production"), ("review", "Reviewer"),

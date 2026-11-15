@@ -89,12 +89,17 @@ class LayoutsDialog(QDialog):
         it = self.lists[kind].currentItem()
         return it.data(Qt.UserRole) if it is not None else None
 
+    def can_change(self):
+        return self.page.can_change() if hasattr(self.page, "can_change") else True     # 4.43.1 (ST48)
+
     def sync(self):
+        can = self.can_change()
         for kind, _one, _many in PGL.KINDS:
             on = self.current(kind) is not None
             for k, b in self.btns[kind].items():
-                if k != "new":
-                    b.setEnabled(on)
+                b.setEnabled(can and (on or k == "new"))
+        if not can and not self.said.text():
+            self.said.setText("Proposal managers and production leads change page layouts and numbering.")
 
     def _done(self, text, select=None):
         self.said.setText(text)
@@ -104,6 +109,8 @@ class LayoutsDialog(QDialog):
 
     def new(self, kind, name=None, source=None):
         """A new one, taken from a source (a label of pagelayouts.sources). Returns it, or None."""
+        if not self.can_change():
+            return None
         cfg = self.host.config_dir
         srcs = PGL.sources(cfg)
         one = dict((k, o) for k, o, _m in PGL.KINDS)[kind].lower()
@@ -127,6 +134,8 @@ class LayoutsDialog(QDialog):
         return it
 
     def change_page(self, paper=None, margins=None):
+        if not self.can_change():
+            return None
         iid = self.current("layout")
         it = PGL.get(self.host.config_dir, "layout", iid)
         if it is None:
@@ -146,6 +155,8 @@ class LayoutsDialog(QDialog):
         return got
 
     def rename(self, kind, name=None):
+        if not self.can_change():
+            return None
         iid = self.current(kind)
         it = PGL.get(self.host.config_dir, kind, iid)
         if it is None:
@@ -161,6 +172,8 @@ class LayoutsDialog(QDialog):
         return True
 
     def remove(self, kind):
+        if not self.can_change():
+            return None
         iid = self.current(kind)
         it = PGL.get(self.host.config_dir, kind, iid)
         if it is None:

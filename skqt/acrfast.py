@@ -20,7 +20,7 @@ FEW = 25                 # rows taken out one by one; more than this and the lis
 # 4.30.4: False until the access violation of 2026-11-13 is understood. The program ended a moment after quick decisions on
 # 4.30.3, the first release that wrote on another thread, and the crash record had lost the thread that crashed. Written
 # on the window's own thread, the write is a short pause a moment after the last decision, never during one.
-THREADED = False
+THREADED = True          # 4.43.1 (ST52): on again; no crash since 4.30.5, and pdflock covers PDFium closes made by cleanup
 DONE_ON = None
 AT_ONCE = False          # tests that read the files straight after a decision turn this on: every save writes there and then
 

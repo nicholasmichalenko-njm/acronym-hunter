@@ -10,7 +10,7 @@ import pickle
 
 from PySide6.QtCore import QCoreApplication, Qt, QThread, Slot
 
-THREADED = False         # 4.30.4: as skqt.acrfast.THREADED: on the window's thread until the 2026-11-13 access violation is understood
+THREADED = True          # 4.43.1 (ST52): on again, as skqt.acrfast.THREADED. Was off from         # 4.30.4: as skqt.acrfast.THREADED: on the window's thread until the 2026-11-13 access violation is understood
 DONE_ON = None
 
 import diag
