@@ -2,6 +2,11 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.41.0": ["An effort type names its templates. In Effort types..., Templates... sets the template each of its profiles "
+               "starts with: style sets, Quick Part set and starting pages come together.",
+               "Start an effort says what the chosen effort type starts with, before you create it.",
+               "Setup > Templates for the volumes offers the effort type's templates for the volumes with none picked; "
+               "one button picks them, and a volume can still pick another."],
     "4.40.0": ["Quick Parts keep versions the way styles do. Change a Quick Part and every set that uses it gets the change; "
                "until now each set kept the version it had.",
                "Versions... on a Quick Part's row lists every version with its date and the sets that use it. Restore this "

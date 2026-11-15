@@ -30,6 +30,7 @@ class EffortTypesDialog(QDialog):
                                    ("rename", "Rename...", lambda: self.rename(), "A new name; efforts using it keep it"),
                                    ("up", "Move up", lambda: self.move(-1), "Earlier in the lists"),
                                    ("down", "Move down", lambda: self.move(1), "Later in the lists"),
+                                   ("templates", "Templates...", lambda: self.templates(), "The templates an effort of this type starts with (4.41.0)"),
                                    ("remove", "Take out", lambda: self.remove(), "Efforts that used it keep their own values")):
             b = D.button(text, "danger" if key == "remove" else None, fn, tip)
             self.btns[key] = b; col.addWidget(b)
@@ -49,6 +50,10 @@ class EffortTypesDialog(QDialog):
                 self.list.setCurrentItem(it)
         if self.list.currentRow() < 0 and self.list.count():
             self.list.setCurrentRow(0)
+
+    def templates(self, run=True):
+        from .efforttplview import templates
+        return templates(self, self.cfg, self.current(), run)
 
     def current(self):
         it = self.list.currentItem() if hasattr(self, "list") else None

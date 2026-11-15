@@ -97,6 +97,38 @@ d2 = volume_templates(sp)
 check("made again since: the dialog says a newer version waits", "newer version (2)" in d2.note.text(), d2.note.text())
 d2.pick(vols[0], "")
 check("back to the effort's own formatting", TS.for_volume(sp._M(), vols[0], w.effort_path or "") is None and NT.picks(w.ws) == {})
+# 4.41.0: the effort type names its templates
+import efforttemplates as ET, prodrules as PRL
+from skqt import efforttplview as ETV
+d3 = volume_templates(sp)
+check("4.41.0: an effort with no effort type is offered nothing", not d3.b_type.isVisibleTo(d3) and d3.b_type.isHidden())
+pid = PRL.effort_type_of(PRL.load(cfg), "rfp_limited")["profiles"][0]
+td = ETV.templates(w, cfg, "rfp_limited", run=False)
+check("Effort types... > Templates...: a row for each profile, on no template", td.t.rowCount() == 1 and td.boxes[pid].currentText() == ETV.NONE
+      and td.windowTitle() == "Templates for Page-limited RFP response", td.windowTitle())
+check("... picking one names it for the effort type", td.pick(pid, t["id"]) and ET.of(PRL.load(cfg), "rfp_limited") == {pid: t["id"]}
+      and td.boxes[pid].currentData() == t["id"])
+w.ws.set("prod_std", {"effort_type": "rfp_limited", "type": pid})
+d4 = volume_templates(sp)
+check("the volumes with no template are offered the effort type's", not d4.b_type.isHidden() and "The effort type names a template for" in d4.note.text()
+      and "Page-limited RFP Volume" in d4.note.text(), d4.note.text())
+done = ETV.use_type(d4)
+check("Use the effort type's templates picks it for each of them", len(done) == 2 and all(NT.picks(w.ws)[v]["id"] == t["id"] for v in vols)
+      and d4.b_type.isHidden() and all(b.currentData() == t["id"] for b in d4.boxes.values()), done)
+d4.pick(vols[1], "")
+check("one volume can still go its own way", vols[1] not in NT.picks(w.ws) and NT.picks(w.ws)[vols[0]]["id"] == t["id"])
+w.go("home"); app.processEvents()
+f = w.home_page.start
+f.etype.setCurrentIndex(f.etype.findData("rfp_limited")); app.processEvents()
+check("the start form says what the effort type starts with", f.brings.text().startswith("It starts with: ") and "Page-limited RFP Volume" in f.brings.text()
+      and not f.brings.isHidden(), f.brings.text())
+f.etype.setCurrentIndex(f.etype.findData("rfp")); app.processEvents()
+check("... and how to set it for a type that names none", f.brings.text().startswith("This effort type names no templates yet."), f.brings.text())
+f.etype.setCurrentIndex(0); app.processEvents()
+check("... and nothing with no effort type", f.brings.isHidden())
+from skqt.efforttypes import manage
+md = manage(f, cfg, run=False)
+check("Effort types... has Templates...", "templates" in md.btns and md.btns["templates"].text() == "Templates..." and md.templates(run=False) is not None)
 
 # ---- Team defaults moved
 w.go("team"); app.processEvents()

@@ -130,6 +130,10 @@ class StartEffort(QFrame):
                                   "Add, rename, order or take out effort types, and choose the default")
         th.addWidget(self.types_btn)
         form.addRow("Effort type", trow)
+        self.brings = D.label("", "muted"); self.brings.setObjectName("typeBrings")      # 4.41.0: what the effort type starts with
+        form.addRow("", self.brings)
+        self.etype.currentIndexChanged.connect(lambda _i: self.show_brings())
+        self.show_brings()
         # More options
         self.more_btn = D.button("More options", "ghost", self.toggle_more)
         outer.addWidget(self.more_btn, 0, Qt.AlignLeft)
@@ -189,12 +193,19 @@ class StartEffort(QFrame):
         except Exception:
             diag.swallowed()
 
+    def show_brings(self):
+        from .efforttplview import start_words
+        said = start_words(self.host.config_dir, self.etype.currentData() or "")
+        self.brings.setText(said); self.brings.setVisible(bool(said))
+        return said
+
     def manage_types(self, run=True):
         from .efforttypes import manage
         keep = self.etype.currentData()
         d = manage(self, self.host.config_dir, run=run)
         if run:
             self.fill_types(keep)
+            self.show_brings()
         return d
 
     def toggle_more(self):

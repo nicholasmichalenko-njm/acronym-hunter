@@ -247,6 +247,9 @@ class VolumeTemplatesDialog(QDialog):
         self.t.setColumnWidth(0, 260); self.t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.t.verticalHeader().setDefaultSectionSize(34); self.t.setProperty("sk_rows_fixed", True)
         v.addWidget(self.t, 1)
+        from . import efforttplview as ETV                       # 4.41.0: the effort type's templates, offered
+        self.b_type = D.button("Use the effort type's templates", None, lambda: ETV.use_type(self), "Picks the effort type's template for each volume that has none")
+        v.addWidget(self.b_type)
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.accept); bb.accepted.connect(self.accept); v.addWidget(bb)
         self.boxes = {}
         self._combo = QComboBox
@@ -278,6 +281,10 @@ class VolumeTemplatesDialog(QDialog):
                            "No template is made yet: name one and make it in Templates > Template." if not made else
                            "Pick a template for a volume. The setup is then written on it.")
                           + ("".join(f" {vol}: {nm} has a newer version ({b}); pick it again to take it." for vol, nm, _a, b in newer)))
+        from . import efforttplview as ETV
+        said, n = ETV.offer_words(self.host, vols)
+        self.note.setText(self.note.text() + said)
+        self.b_type.setVisible(n > 0)
 
     def pick(self, volume, tid):
         M = self.page._M()
