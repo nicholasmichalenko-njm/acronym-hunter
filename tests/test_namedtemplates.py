@@ -46,7 +46,7 @@ check("... Ready", NT.state(cfg, t)[0] == NT.READY, NT.state(cfg, t))
 import zipfile
 with zipfile.ZipFile(job.copy) as z:
     sx = z.read("word/styles.xml").decode("utf-8", "replace")
-check("the picked set's styles are in the file", "Body Text" in sx and "Heading 1" in sx)
+check("the picked set's styles are in the file, named as Word names its own (4.43.0: heading 1)", "Body Text" in sx and "heading 1" in sx.lower())
 it3, _st = SL.new_style(TL.Library(cfg), "Caption", "paragraph", {"font": "Arial", "size": 9})
 lib = TL.Library(cfg); SL.add_to_set(lib, k["id"], [it3["id"]])
 check("a style added to a picked set: Needs review", NT.state(cfg, NT.get(cfg, a["id"]))[0] == NT.REVIEW, NT.state(cfg, NT.get(cfg, a["id"])))
