@@ -2,6 +2,13 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.38.0": ["Parts: a Quick Part set goes with a style set (More > This set goes with a style set...). With the set "
+               "picked, each Quick Part's styles show green when the style set has them and red when it does not, and a "
+               "line above the rows says how the set fits.",
+               "One button adds the styles you already have to that style set.",
+               "Bring in from a document offers the styles the Quick Parts use that you do not have, so parts and styles "
+               "arrive together, into the style set the part set goes with.",
+               "Make templates warns when a template uses a Quick Part set without the style set it goes with."],
     "4.37.0": ["Parts: each Quick Part's row names the styles it uses. A style that is not among your styles shows in "
                "red, and the selected part says what a template would do about it.",
                "Make templates checks the Quick Parts against the style sets: it names each style a Quick Part uses that "

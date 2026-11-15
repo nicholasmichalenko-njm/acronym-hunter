@@ -53,6 +53,7 @@ class PartsPage(QWidget):
                          "Parts gallery; tick the ones you keep (the file is only read)")
         self.bar.more("New part set...", lambda: self.new_set())
         self.bar.more("Rename this set...", lambda: self.rename_set())
+        self.bar.more("This set goes with a style set...", lambda: partuses.tie(self), "The style set its Quick Parts are written in")
         self.bar.more("Take this set away", lambda: self.remove_set())
         top.addWidget(self.bar)
         v.addLayout(top)
@@ -70,6 +71,7 @@ class PartsPage(QWidget):
         left.addWidget(D.label("Drag parts onto a set to add them. Make templates picks a set for its gallery and its pages.", "muted"))
         body.addLayout(left)
         mid = QVBoxLayout(); mid.setSpacing(D.SPACE["s"])
+        partuses.add_fit(self, mid)                       # 4.38.0: how the picked set fits the style set it goes with
         self.rows = Rows(self)
         self.rows.currentItemChanged.connect(lambda cur, _p: self.show_part(cur.data(Qt.UserRole) if cur is not None else None))
         self.rows.itemDoubleClicked.connect(lambda _it: self.open_word(self.cur))
@@ -128,7 +130,8 @@ class PartsPage(QWidget):
         it = QListWidgetItem(f"Every part    {n_all}"); it.setData(Qt.UserRole, None)
         self.sets.addItem(it)
         for k in SL.sets(self.lib, "part"):
-            x = QListWidgetItem(dot(k.get("color") or "#64748B"), f"{k['name']}    {len(k['items'])}")
+            g = partuses.PS.goes_with(self.lib, k["id"])
+            x = QListWidgetItem(dot(k.get("color") or "#64748B"), f"{k['name']}    {len(k['items'])}" + (f"\nwith {g['name']}" if g else ""))
             x.setData(Qt.UserRole, k["id"])
             self.sets.addItem(x)
         self.sets.setCurrentRow(next((i for i in range(self.sets.count()) if self.sets.item(i).data(Qt.UserRole) == keep), 0))
@@ -167,6 +170,7 @@ class PartsPage(QWidget):
             self.rows.addItem(li); self.rows.setItemWidget(li, w)
             self.row_ids.append(r["shown"])
         self.rows.blockSignals(False)
+        partuses.refresh_fit(self)
         has = any(PT.count(self.cfg(), k, self.lib) for k, _t, _s in PT.KINDS)
         self.rows.setVisible(has); self.empty.setVisible(not has); self.side.setVisible(has)
         k = SL.get_set(self.lib, self.sid) if self.sid else None
@@ -220,7 +224,7 @@ class PartsPage(QWidget):
             + (f" · {inf['at']}" if inf["at"] else "")
         cv.addWidget(D.label(words, "muted"))
         if r["shown"].startswith("q:") and inf.get("it"):   # 4.37.0: the styles it uses; one this PC's styles lack, in red
-            cv.addWidget(partuses.line(self.lib, inf["it"]))
+            cv.addWidget(partuses.line(self.lib, inf["it"], self.sid))
         chips = QWidget(); cf = FlowLayout(chips, 4)
         for k in PT.sets_of(self.lib, r["shown"]):
             ch = QLabel(k["name"]); ch.setObjectName("setChip")

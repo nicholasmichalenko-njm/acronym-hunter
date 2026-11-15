@@ -113,13 +113,15 @@ check("a Quick Part's row: Change it, Open in Word, Bring back, Details (3.98.0)
 check("the right side shows no fill-ins for a Quick Part", not pp.fills.isVisibleTo(w))
 from PySide6.QtWidgets import QLabel as _QL
 uses = [pp.rows.itemWidget(pp.rows.item(i)).findChild(_QL, "partUses") for i in range(pp.rows.count())]
-check("4.37.0: each Quick Part's row names the styles it uses; one this PC's styles lack is marked", uses[0].text() == "Uses no style of its own"
-      and uses[1].text().startswith("Uses: <span") and "Heading 1" in uses[1].text() and uses[1].property("lacking") == ["Heading 1"],
-      [u.text() for u in uses])
-pp.rows.setCurrentRow(1); app.processEvents()
-check("... and the selected part says what a template would do about it", pp.problems.isVisibleTo(w)
-      and "This style is not among your styles: Heading 1." in pp.problems.text() and "from the Quick Part's own file" in pp.problems.text(), pp.problems.text())
+check("4.37.0: each Quick Part's row names the styles it uses (4.38.0: Heading 1 came in with the parts)", uses[0].text() == "Uses no style of its own"
+      and uses[1].text() == "Uses: Heading 1" and uses[1].property("lacking") == [], [u.text() for u in uses])
+pp.tabs.setCurrentIndex(6); app.processEvents()
+u = pp.rows.itemWidget(pp.rows.item(0)).findChild(_QL, "partUses")
+check("... a style this PC's styles lack is marked", u.text().startswith("Uses: <span") and u.property("lacking") == ["QP Callout"], u.text())
 pp.rows.setCurrentRow(0); app.processEvents()
+check("... and the selected part says what a template would do about it", pp.problems.isVisibleTo(w)
+      and "This style is not among your styles: QP Callout." in pp.problems.text() and "from the Quick Part's own file" in pp.problems.text(), pp.problems.text())
+pp.tabs.setCurrentIndex(8); app.processEvents(); pp.rows.setCurrentRow(0); app.processEvents()
 check("... a part whose styles are all here says nothing", not pp.problems.isVisibleTo(w))
 again = pp.bring_in(gl, run=False)
 check("met again: Already have it, unticked", all(e["state"] == "same" and not e["keep"] for e in again.plan["gallery"]))

@@ -320,6 +320,10 @@ def checks(std, lib=None, config_dir=None, fonts=None):
                     f"{_n(n_lost, 'style')} the Quick Parts use {'is' if n_lost == 1 else 'are'} not in the style sets",
                     (PS.words(lost) + ". The template would take them from the Quick Parts' own file") if lost
                     else "Paragraph, character and table styles"))
+        tied = PS.goes_with(lib, rec["part_set"])
+        if tied is not None and tied["id"] not in rec["style_sets"]:
+            out.append(("warn", "The Quick Part set goes with a style set this template does not use",
+                        f"{(lib.kit(rec['part_set']) or {}).get('name', '')} goes with {tied['name']}"))
     starts = start_files(config_dir, rec)
     if rec["starts"]:
         lost = len(rec["starts"]) - len(starts)

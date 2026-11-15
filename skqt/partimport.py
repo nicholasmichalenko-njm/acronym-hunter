@@ -41,6 +41,9 @@ class PartImport(QDialog):
         if page.sid:
             self.set_box.setCurrentIndex(max(0, self.set_box.findData(page.sid)))
         foot.addWidget(self.set_box)
+        from PySide6.QtWidgets import QCheckBox
+        self.with_styles = QCheckBox(""); self.with_styles.setChecked(True); self.with_styles.setVisible(False)   # 4.38.0
+        v.addWidget(self.with_styles)
         self.n_lab = D.label("", "muted", wrap=False); foot.addWidget(self.n_lab, 1)
         foot.addWidget(D.button("Cancel", None, self.reject))
         self.b_go = D.button("Bring in", "primary", lambda: self.go())
@@ -97,6 +100,12 @@ class PartImport(QDialog):
         self.n_lab.setText(f"{n} ticked")
         self.b_go.setText(f"Bring in {n} part(s)")
         self.b_go.setEnabled(n > 0)
+        import partstyles as PS
+        self.styles = PS.offer(self.page.lib, self.plan["path"], self.plan["gallery"])
+        m = len(self.styles)
+        self.with_styles.setText(f"Also bring in the {m} style{'' if m == 1 else 's'} these Quick Parts use that you do not have: "
+                                 + ", ".join(x["name"] for x in self.styles[:6]) + (" ..." if m > 6 else ""))
+        self.with_styles.setVisible(m > 0)
         return n
 
     def go(self):
@@ -106,9 +115,15 @@ class PartImport(QDialog):
         sid = self.set_box.currentData()
         if sid and ids:
             PT.add_to_set(page.cfg(), page.lib, sid, ids)
+        styles = self.styles if (getattr(self, "styles", None) and self.with_styles.isChecked()) else []   # 4.38.0: the styles they use
+        if styles:
+            import partstyles as PS
+            tied = PS.goes_with(page.lib, sid)
+            SL.bring_in(page.lib, SL.against(page.lib, styles), self.plan["path"], set_of={x["name"]: tied["id"] for x in styles} if tied else None)
         diag.activity("parts_brought_in", pages=len(designs), items=len(items))
         said = [f"{len(designs)} page(s)" if designs else "", f"{len(items)} Quick Part(s)" if items else ""]
-        page.host.toast(" and ".join(x for x in said if x) + " brought in." + (" Set what fills each page on the right." if designs else ""))
+        page.host.toast(" and ".join(x for x in said if x) + " brought in." + (f" {len(styles)} style(s) they use came with them." if styles else "")
+                        + (" Set what fills each page on the right." if designs else ""))
         self.kept = (designs, items)
         if designs:
             k = next((k for k, _t, s in PT.KINDS if designs[-1]["shelf"] in s), page.kind)
