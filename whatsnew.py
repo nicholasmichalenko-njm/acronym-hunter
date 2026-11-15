@@ -2,6 +2,11 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.36.0": ["Effort Formatting shows where the effort's standards differ from the Global Standards: each difference on "
+               "its own row, in color, with this effort's value and the Global value side by side.",
+               "The effort's own value is the one in use. Choose Global on a row to use the Global value there, and "
+               "This effort to go back. Neither value is lost, so each choice is made and unmade in one click.",
+               "See the changes..., Take for this effort and Send to the Global Standards are gone from the effort."],
     "4.35.1": ["Create another version... on a style's row makes another style of the same name for the sets you tick, "
                "such as a tighter Body for Page-limited RFP. A set holds one style of a name, and the two are told apart "
                "by their sets. Each has its own history; a change reaches the sets on that version and only those.",

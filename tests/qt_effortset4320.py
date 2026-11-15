@@ -1,6 +1,6 @@
 """4.32.0, Standards step 3, offscreen: an effort's own set of standards on screen. A standards page says which set a
 change goes to; a change with the effort open stays in the effort; Effort Formatting carries the Effort Standards card;
-See the changes... shows what the Global Standards would change and what the effort changed, each acted on by name. Fictional."""
+4.36.0: the card lists each difference from the Global Standards in color, with This effort or Global chosen on the row. Fictional."""
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -54,31 +54,43 @@ w.go("effortfmt"); app.processEvents()
 ep = w.effortfmt_page
 check("Effort Formatting carries the Effort Standards card with where the set came from and what the effort changed",
       not ep.es_card.isHidden() and "its own set" in ep.es_line.text() and "changed 1 file" in ep.es_line.text(), ep.es_line.text())
-check("nothing offered yet", ep.es_offer.isHidden())
+# 4.36.0 (ST8, ST20): the differences on the card, in color, with the value in use chosen on the row
+from PySide6.QtWidgets import QPushButton
+cell = lambda r, c: ep.es_table.item(r, c).text()
+whats = lambda: [cell(r, 1) for r in range(ep.es_table.rowCount())]
+check("the effort's own change is a row: what, this effort's value, the Global value", "company > variables > body font" in whats()
+      and [cell(whats().index("company > variables > body font"), c) for c in (2, 3, 4)] == ["Differs", "Osprey Font", "Global One"], whats())
+check("the card says how many things differ", "1 thing differs from the Global Standards." in ep.es_count.text(), ep.es_count.text())
+check("there is no See the changes, Take or Send (ST7, ST20)", not hasattr(EV, "review") and not hasattr(EV, "give") and not hasattr(ep, "es_offer")
+      and not [b for b in ep.es_card.findChildren(QPushButton) if b.text() in ("See the changes...", "Use every Global value...")])
 check("the card's words: no publish, no draft, no Company Standards",
-      not any(x in (ep.es_line.text() + ep.es_card.title.text()).lower() for x in ("publish", "draft", "company standards")))
+      not any(x in (ep.es_line.text() + ep.es_card.title.text() + ep.es_count.text()).lower() for x in ("publish", "draft", "company standards")))
 with ES.as_global():
     d = PRL.load(cfg); d["company"]["variables"]["table_font"] = "Global Table"; PRL.save(cfg, d)
 ep.refresh(); app.processEvents()
-check("a Global change is offered on the card, and nothing is taken", not ep.es_offer.isHidden() and "have changed since this effort took its set" in ep.es_offer.text()
-      and PRL.load(cfg)["company"]["variables"]["table_font"] != "Global Table", ep.es_offer.text())
-dlg = EV.review(ep, run=False)
-rows = [(dlg.t_offer.item(r, 1).text(), dlg.t_offer.item(r, 3).text()) for r in range(dlg.t_offer.rowCount())]
-check("See the changes... lists each value the Global Standards would change", ("company.variables.table_font", "Global Table") in rows
-      and ("company.variables.body_font", "Global One") in rows, rows)
-check("... and what this effort changed", dlg.t_mine.rowCount() == 1 and dlg.t_mine.item(0, 1).text() == "production_standards.json")
-check("the two actions are named for what they do", dlg.b_take.text() == "Take for this effort" and dlg.b_give.text() == "Send to the Global Standards")
-dlg.b_give.click(); app.processEvents()
+r_font, r_tab = whats().index("company > variables > body font"), whats().index("company > variables > table font")
+check("a Global change since is a row too, and nothing is taken", cell(r_tab, 4) == "Global Table" and PRL.load(cfg)["company"]["variables"]["table_font"] != "Global Table"
+      and "2 things differ" in ep.es_count.text(), ep.es_count.text())
+sw = lambda r: (ep.es_table.cellWidget(r, 5).findChild(QPushButton, "useMine"), ep.es_table.cellWidget(r, 5).findChild(QPushButton, "useGlobal"))
+mine, glob = sw(r_font)
+check("each row has the two choices, This effort pressed", mine.text() == "This effort" and glob.text() == "Global Standards" and mine.isChecked() and not glob.isChecked())
+check("a row is colored by what it is", ep.es_table.item(r_font, 1).background().color().name().lower() == D.tokens()["warn_soft"].lower())
+glob.click(); app.processEvents()
+r_font = whats().index("company > variables > body font")
+mine, glob = sw(r_font)
+check("Global on the row: the effort uses the Global value, the row stays with Global pressed and its own value still shown", font() == "Global One"
+      and glob.isChecked() and not mine.isChecked() and cell(r_font, 3) == "Osprey Font" and "1 uses the Global Standards' value by your choice" in ep.es_count.text(), ep.es_count.text())
 with ES.as_global():
-    check("Send to the Global Standards: the effort's file waits in the Global Standards on this PC", font() == "Osprey Font")
-check("then the effort has changed nothing and nothing is offered", dlg.t_mine.rowCount() == 0 and dlg.t_offer.rowCount() == 0 and not dlg.b_take.isEnabled()
-      and not dlg.b_give.isEnabled())
+    check("the Global Standards are untouched by the choice", font() == "Global One" and PRL.load(cfg)["company"]["variables"]["table_font"] == "Global Table")
+mine.click(); app.processEvents()
+check("This effort on the row: its own value is back, in one click", font() == "Osprey Font" and sw(whats().index("company > variables > body font"))[0].isChecked())
+r_tab = whats().index("company > variables > table font")
+sw(r_tab)[1].click(); app.processEvents()
+check("a Global value is taken the same way, on its row", PRL.load(cfg)["company"]["variables"]["table_font"] == "Global Table")
 with ES.as_global():
     set_font("Global Two")
-dlg.fill()
-check("a later Global change is offered again", dlg.t_offer.rowCount() == 1 and font() == "Osprey Font")
-dlg.b_take.click(); app.processEvents()
-check("Take for this effort takes it", font() == "Global Two" and dlg.t_offer.rowCount() == 0 and ep.es_offer.isHidden())
+ep.refresh(); app.processEvents()
+sw(whats().index("company > variables > body font"))[1].click(); app.processEvents()
 w.close_effort(); app.processEvents()
 check("closed: the Global Standards are in use again", ES.active() == "" and font() == "Global Two")
 w.go("effortfmt"); app.processEvents()

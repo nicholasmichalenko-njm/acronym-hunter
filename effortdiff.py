@@ -4,12 +4,12 @@ Choosing Global never throws the effort's value away: it is kept beside the choi
 (a style, a Quick Part, any library item), so every choice is made and unmade in one step.
 
     rows(config_dir, root)        every difference, one row each:
-        {"key", "kind" ("value" | "item" | "file"), "part", "what", "mine", "global",
-         "state" ("differs" | "only_here" | "only_global"), "using" ("effort" | "global"), "can"}
-        A row the person switched to Global stays in the list, with "using": "global", so it can be switched back.
+        {"key", "kind" ("value" | "item" | "file"), "part", "what", "mine", "theirs",
+         "state" ("differs" | "only_here" | "only_theirs"), "using" ("effort" | "theirs"), "can"}
+        A row the person switched to Global stays in the list, with "using": "theirs", so it can be switched back.
     use_global(config_dir, root, key)     the effort uses the Global value on that row
     use_mine(config_dir, root, key)       the effort uses its own value again
-    counts(rows)                          {"differs", "only_here", "only_global", "global"}
+    counts(rows)                          {"differs", "only_here", "only_theirs", "theirs"}
 
 Standard library only. Rules only (No AI); nothing leaves the PC."""
 import copy, json, os, shutil
@@ -169,22 +169,22 @@ def _value_rows(config_dir, root, sw):
                     if va == vb:
                         if held is not None and "mine" in held and _unpack(held["mine"]) != vb:
                             rows.append({"key": key, "kind": "value", "part": part, "what": _label(path), "mine": _say(_unpack(held["mine"])),
-                                         "global": _say(vb), "state": "differs", "using": "global", "can": True})
+                                         "theirs": _say(vb), "state": "differs", "using": "theirs", "can": True})
                         continue
-                    state = "only_here" if vb is _MISSING else "only_global" if va is _MISSING else "differs"
-                    rows.append({"key": key, "kind": "value", "part": part, "what": _label(path), "mine": _say(va), "global": _say(vb),
+                    state = "only_here" if vb is _MISSING else "only_theirs" if va is _MISSING else "differs"
+                    rows.append({"key": key, "kind": "value", "part": part, "what": _label(path), "mine": _say(va), "theirs": _say(vb),
                                  "state": state, "using": "effort", "can": _get(a, path[:-1]) is not _MISSING and isinstance(_get(a, path[:-1]) if path[:-1] else a, dict)})
                 continue
         if m in mine and m in glob and GS._sha_file(mine[m]) == GS._sha_file(glob[m]):
             key = "f|" + m
             if key in sw:                                        # switched to Global: the effort's own copy is kept beside it
                 rows.append({"key": key, "kind": "file", "part": part, "what": os.path.basename(m), "mine": "this effort's own file",
-                             "global": "the Global Standards' file", "state": "differs", "using": "global", "can": True})
+                             "theirs": "the Global Standards' file", "state": "differs", "using": "theirs", "can": True})
             continue
-        state = "only_here" if m not in glob else "only_global" if m not in mine else "differs"
+        state = "only_here" if m not in glob else "only_theirs" if m not in mine else "differs"
         rows.append({"key": "f|" + m, "kind": "file", "part": part, "what": os.path.basename(m),
                      "mine": "this effort's own file" if m in mine else "(not in this effort)",
-                     "global": "the Global Standards' file" if m in glob else "(not in the Global Standards)",
+                     "theirs": "the Global Standards' file" if m in glob else "(not in the Global Standards)",
                      "state": state, "using": "effort", "can": True})
     return rows
 
@@ -235,16 +235,16 @@ def _item_rows(config_dir, root, sw):
             if a.get("hash") == gb[0].get("hash"):
                 if held and held.get("mine") and lib.get(held["mine"]) is not None and lib.get(held["mine"]).get("hash") != gb[0].get("hash"):
                     rows.append({"key": key, "kind": "item", "part": shelf, "what": what, "mine": _item_say(lib, lib.get(held["mine"]), gb[1], kind),
-                                 "global": "version " + str(gb[0].get("version", 1)), "state": "differs", "using": "global", "can": True})
+                                 "theirs": "version " + str(gb[0].get("version", 1)), "state": "differs", "using": "theirs", "can": True})
                 continue
             rows.append({"key": key, "kind": "item", "part": shelf, "what": what, "mine": _item_say(lib, a, gb[1], kind),
-                         "global": "as the Global Standards have it", "state": "differs", "using": "effort", "can": True})
+                         "theirs": "as the Global Standards have it", "state": "differs", "using": "effort", "can": True})
         elif a:
-            rows.append({"key": key, "kind": "item", "part": shelf, "what": what, "mine": "made in this effort", "global": "(not in the Global Standards)",
+            rows.append({"key": key, "kind": "item", "part": shelf, "what": what, "mine": "made in this effort", "theirs": "(not in the Global Standards)",
                          "state": "only_here", "using": "effort", "can": False})
         else:
-            rows.append({"key": key, "kind": "item", "part": shelf, "what": what, "mine": "(not in this effort)", "global": "in the Global Standards",
-                         "state": "only_global", "using": "effort", "can": False})
+            rows.append({"key": key, "kind": "item", "part": shelf, "what": what, "mine": "(not in this effort)", "theirs": "in the Global Standards",
+                         "state": "only_theirs", "using": "effort", "can": False})
     return rows
 
 
@@ -254,7 +254,7 @@ def _item_say(lib, it, global_values, kind):
     if kind == "style":
         ch = SH.changes(global_values, lib.values(it) or {})
         if ch:
-            return "; ".join(f"{w}: {b}" + (f" (Global: {a})") for w, a, b in ch[:4]) + (f"; {len(ch) - 4} more" if len(ch) > 4 else "")
+            return "; ".join(f"{w}: {b}" + (f" (Global Standards: {a})") for w, a, b in ch[:4]) + (f"; {len(ch) - 4} more" if len(ch) > 4 else "")
     return "this effort's own values"
 
 
@@ -270,10 +270,10 @@ def rows(config_dir, root):
 
 
 def counts(rws):
-    c = {"differs": 0, "only_here": 0, "only_global": 0, "global": 0}
+    c = {"differs": 0, "only_here": 0, "only_theirs": 0, "theirs": 0}
     for r in rws:
         c[r["state"]] += 1
-        c["global"] += r["using"] == "global"
+        c["theirs"] += r["using"] == "theirs"
     return c
 
 
@@ -285,7 +285,7 @@ def use_global(config_dir, root, key):
     """The effort uses the Global value on this row; its own value is kept so the choice can be unmade. Returns True
     when it was done."""
     r = _row(config_dir, root, key)
-    if r is None or not r["can"] or r["using"] == "global":
+    if r is None or not r["can"] or r["using"] == "theirs":
         return False
     sw = _switches(root)
     mine, glob = _files(config_dir, root)
