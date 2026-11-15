@@ -27,8 +27,8 @@ def check(name, ok, info=""):
 
 
 check("the menu's groups: Effort, Templates, Team, Settings", [g for g, _i in MW.RAIL] == ["Effort", "Templates", "Team", "Settings"])
-check("Templates: Styles, Quick Parts, Page Layout, Template", dict(MW.RAIL)["Templates"] == [("styles", "Styles"), ("designs", "Quick Parts"),
-                                                                                              ("formatstd", "Page Layout"), ("templates", "Template")])
+check("Templates: the gallery, then Page Layout, Styles, Quick Parts (4.43.0)", dict(MW.RAIL)["Templates"] == [("templates", "Templates"), ("formatstd", "Page Layout"),
+                                                                                              ("styles", "Styles"), ("designs", "Quick Parts")])
 check("Template holds Templates, From profiles (4.28.2) and Effort Profiles (4.29.1: Template Studio is Setup's)", [k for k, _t in MW.TABS["templates"]] == ["templates", "tplprofiles", "profiles"])
 check("Team keeps Rules, Check a Draft and Team References", MW.TEAM == ("rules", "audit", "refs") and [k for k, _n, _w in TP.TILES] == ["rules", "audit", "refs"])
 check("each of the pages says it is in Templates", all(MW.GROUP_OF.get(k) == "Templates" for k in ("styles", "designs", "formatstd", "layoutstd", "templates", "profiles", "qpstd")),

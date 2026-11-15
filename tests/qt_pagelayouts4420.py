@@ -60,22 +60,22 @@ check("Rename", d.rename("numbering", "Headings plain, pages by part") and d.lis
 d.close()
 
 # ---------------------------------------------------------------- a template picks them
-t = pg.new("Page-limited RFP, Volume I")
-g = pg.goes_in()
-cb = g.goes_in.kinds["layout"]
-check("What goes in has Page layout and Numbering, on From the standards", set(g.goes_in.kinds) == {"layout", "numbering"} and cb.isEnabled()
-      and cb.currentText() == "From the standards" and cb.count() == 2 and cb.itemText(1).startswith("Letter, 0.75 in  (Letter, 0.75 in margins"), cb.itemText(1))
-cb.setCurrentIndex(1); app.processEvents()
-check("a pick is kept at once", NT.get(cfg, t["id"])["sets"]["layout"] == lay["id"] and NT.get(cfg, t["id"])["sets"]["numbering"] == "")
-g.goes_in.kinds["numbering"].setCurrentIndex(1); app.processEvents()
-check("... both picks", NT.get(cfg, t["id"])["sets"]["numbering"] == num["id"] and NT.get(cfg, t["id"])["sets"]["layout"] == lay["id"])
+g = pg.new(); g.name.setText("Page-limited RFP, Volume I")
+m = g.tile_menu("layout")
+check("the builder has a Page Setup tile and a Numbering tile, on From the Global Standards", {"layout", "numbering"} <= set(g.tiles)
+      and g.tiles["layout"].pick.text() == "From the Global Standards"
+      and [a.text() for a in m.actions() if a.text()][:2] == ["From the Global Standards", "Letter, 0.75 in    Letter, 0.75 in margins"], [a.text() for a in m.actions()])
+g.set_pick("layout", lay["id"]); app.processEvents()
+check("a pick shows on the tile and in the sample pages at once", g.tiles["layout"].pick.text() == "Letter, 0.75 in" and g.strip.pages[0]["m"] == [0.75] * 4)
+g.set_pick("numbering", num["id"]); app.processEvents()
+tid = g.save(); t = NT.get(cfg, tid)
+check("... and both picks are kept on Save", t["sets"]["numbering"] == num["id"] and t["sets"]["layout"] == lay["id"])
 g.close()
 pg.fill(); pg.select(t["id"]); app.processEvents()
-tp = pg.tp_table
-check("the component rows name the picks", tp.item(2, 1).text() == "Page layout: Letter, 0.75 in" and tp.item(2, 2).text().startswith("Letter, 0.75 in margins")
-      and tp.item(3, 1).text() == "Numbering: Headings plain, pages by part" and tp.item(2, 3).text() == "Fits", [tp.item(r, 1).text() for r in range(5)])
-from skqt import tplparts as TPV
-check("double-click Numbering: the window opens on Numbering", TPV.open_part(pg, 3) == "layouts" and pg.layouts_dialog.tabs.currentIndex() == 1)
+card = pg.cards[t["id"]]
+check("the card names the picks", card.parts[2].text() == "Page layout: Letter, 0.75 in" and card.parts[3].text() == "Numbering: Headings plain, pages by part", [p.text() for p in card.parts])
+g = pg.open_builder(t["id"])
+check("Go to its page on the Numbering tile opens the window on Numbering", g.go_to("numbering") == "layouts" and pg.layouts_dialog.tabs.currentIndex() == 1)
 d = pg.layouts_dialog
 d.lists["layout"].setCurrentRow(0)
 check("a picked one says who picks it and is not removed", d.lists["layout"].item(0).text().endswith("Picked by: Page-limited RFP, Volume I")

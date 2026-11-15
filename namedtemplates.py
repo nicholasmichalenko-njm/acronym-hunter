@@ -36,8 +36,44 @@ def save(config_dir, d):
 
 
 def every(config_dir):
-    """[{id, name, sets, made}] by name."""
+    """[{id, name, sets, made}] by name, the archived ones too."""
     return sorted((dict(v, id=k) for k, v in load(config_dir).items()), key=lambda t: t["name"].casefold())
+
+
+def shown(config_dir, archived=False):
+    """The templates in the gallery (4.43.0): the ones in use, or the archived ones."""
+    return [t for t in every(config_dir) if bool(t.get("archived")) == bool(archived)]
+
+
+def archive(config_dir, tid, on=True):
+    """Archived, a template leaves the gallery and the lists that offer templates; nothing is removed. Returns True."""
+    d = load(config_dir)
+    if tid not in d:
+        return False
+    if on:
+        d[tid]["archived"] = True
+    else:
+        d[tid].pop("archived", None)
+    save(config_dir, d)
+    return True
+
+
+def duplicate(config_dir, tid, name=None):
+    """Another template with the same picks, not made yet: "Copy of ..." (then "Copy 2 of ...") unless named. Returns it."""
+    d = load(config_dir)
+    if tid not in d:
+        return None
+    base = d[tid]["name"]
+    if name is None:
+        n, name = 1, f"Copy of {base}"
+        while not _free(d, _name(name)):
+            n += 1
+            name = f"Copy {n} of {base}"
+    t = new(config_dir, name)
+    if t is None:
+        return None
+    set_recipe(config_dir, t["id"], copy.deepcopy(d[tid].get("sets") or {}))
+    return get(config_dir, t["id"])
 
 
 def get(config_dir, tid):

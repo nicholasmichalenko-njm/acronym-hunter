@@ -2,6 +2,15 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.43.0": ["Templates opens a gallery: one card for each template, with what it is made of. A card has Export and "
+               "Duplicate; its right-click has Archive, and the Archived view brings a template back.",
+               "New template... opens the builder with nothing picked. A double-click on a card opens the same builder on "
+               "that template. The builder picks what goes in; it never changes a piece.",
+               "The builder shows sample pages drawn from the picks, so a pick is seen at once. They are the app's own "
+               "drawing, labelled Approximate.",
+               "Every export is checked: the app reads the file back and says whether it holds the page, the page "
+               "numbers, the styles and the Quick Parts that were picked.",
+               "The menu reads Templates, Page Layout, Styles, Quick Parts."],
     "4.42.0": ["Page layouts and numbering are named components a template picks, beside its style sets and Quick Part set. "
                "Template > More > Page layouts and numbering... keeps them.",
                "New... takes a page layout or a numbering from the Global Standards or from a profile, so nothing is typed "

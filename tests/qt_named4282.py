@@ -38,12 +38,12 @@ app = QApplication([]); D.apply(app)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
 check("Template's tabs: Templates, From profiles, Effort Profiles (4.29.1: Template Studio is Setup's)", MW.TABS["templates"] == [("templates", "Templates"), ("tplprofiles", "From profiles"),
                                                                                                            ("profiles", "Effort Profiles")])
-check("the page's title and the role that has it", TITLES["templates"][0] == "Template" and "tplprofiles" in TITLES and RA.allowed("Production", "tplprofiles")
+check("the page's title and the role that has it", TITLES["templates"][0] == "Templates" and "tplprofiles" in TITLES and RA.allowed("Production", "tplprofiles")
       and MW.GROUP_OF.get("tplprofiles") == "Templates" and "tplprofiles" in MW.MainWindow.NO_EFFORT)
 w.rail_go("templates"); app.processEvents()
 pg = w.named_page
 check("the Template entry opens the templates you name, with no effort open", w.stack.currentWidget() is pg and w.ws is None)
-check("empty: one way in", pg.empty.isVisibleTo(w) and not pg.t.isVisibleTo(w) and not pg.b_make.isEnabled())
+check("empty: one way in", pg.empty.isVisibleTo(w) and not pg.area.isVisibleTo(w) and pg.cards == {})
 check("one main button; five commands or fewer", pg.bar.main is pg.b_new and len(pg.bar.commands) <= 5)
 w.go("tplprofiles"); app.processEvents()
 check("From profiles is the list the Effort Profiles make", w.stack.currentWidget() is w.templates_page)
@@ -51,24 +51,36 @@ w.go("templates"); app.processEvents()
 lib = TL.Library(cfg)
 s1, _ = SL.new_style(lib, "Body Text", "paragraph", {"font": "Arial", "size": 11})
 k = SL.new_set(lib, "RFP volume"); SL.add_to_set(lib, k["id"], [s1["id"]])
-t = pg.new("Page-limited RFP, Volume I")
-check("New template... adds a row and selects it", t and pg.t.rowCount() == 1 and pg.current() == t["id"] and pg.t.isVisibleTo(w) and not pg.empty.isVisibleTo(w))
-check("... not made yet, and it says what goes in", pg.t.item(0, 2).text() == NT.NEW and pg.t.item(0, 1).text().startswith("Nothing picked yet"))
-check("the same name is refused", pg.new("page-limited rfp, volume i") is None and pg.t.rowCount() == 1)
-dlg = pg.goes_in()
-check("What goes in... opens the picker on this template", dlg is not None and dlg.goes_in.editable and dlg.windowTitle() == "What goes in: Page-limited RFP, Volume I")
-dlg.goes_in.add_set(k["id"]); app.processEvents()
-check("a style set picked is kept at once and shown on the row", NT.get(cfg, t["id"])["sets"]["style_sets"] == [k["id"]]
-      and pg.t.item(0, 1).text() == "Styles: RFP volume", pg.t.item(0, 1).text())
+bd = pg.new()
+check("New template... opens the builder with nothing picked; no template exists yet", bd is not None and bd.tid is None and bd.windowTitle() == "New template"
+      and NT.every(cfg) == [] and bd.tiles["style_sets"].pick.text().startswith("None"))
+check("... a template needs a name", bd.save() is None and "name" in bd.said.text() and NT.every(cfg) == [])
+bd.name.setText("Page-limited RFP, Volume I")
+bd.toggle_style_set(k["id"]); app.processEvents()
+check("a style set picked shows on its tile, and nothing is kept until Save", bd.tiles["style_sets"].pick.text() == "RFP volume"
+      and bd.tiles["style_sets"].holds.text() == "1 style" and NT.every(cfg) == [])
+tid = bd.save()
+t = NT.get(cfg, tid)
+check("Save makes the template, adds its card and selects it", t and len(pg.cards) == 1 and pg.current() == t["id"] and pg.area.isVisibleTo(w) and not pg.empty.isVisibleTo(w)
+      and t["sets"]["style_sets"] == [k["id"]])
+card = pg.cards[t["id"]]
+check("... not made yet, and the card says what it is made of", card.state.text().startswith(NT.NEW) and card.parts[0].text() == "Styles: RFP volume", card.state.text())
+b2 = pg.new(); b2.name.setText("page-limited rfp, volume i")
+check("the same name is refused", b2.save() is None and len(pg.cards) == 1)
+dlg = pg.open_builder()
+check("a double-click opens the builder on this template", dlg is not None and dlg.tid == t["id"] and dlg.windowTitle() == "Template: Page-limited RFP, Volume I"
+      and dlg.tiles["style_sets"].pick.text() == "RFP volume")
 dlg.close()
 check("4.29.1: making templates is on for everyone, with nothing to turn on", RA.preview_on(cfg, "template"))
 pg._allowed = lambda: True
 job = pg.make()
-check("Make it writes the .dotx and the row says Ready", job is not None and os.path.isfile(job.copy) and pg.t.item(0, 2).text() == NT.READY
-      and "version 1" in pg.t.item(0, 3).text(), pg.t.item(0, 3).text())
+card = pg.cards[t["id"]]
+check("Export writes the .dotx and the card says Ready", job is not None and os.path.isfile(job.copy) and card.state.text().startswith(NT.READY)
+      and "version 1" in card.state.text(), card.state.text())
+check("... and that the file holds what was picked", card.proof.text().startswith("The file holds what was picked") and not card.proof.isHidden(), card.proof.text())
 m = pg.row_menu(run=False)
-check("a right-click holds the rest", [a.text() for a in m.actions() if a.text()] == ["What goes in...", "Make it", "Open in Word", "Rename...", "Remove"])
-check("Rename", pg.rename(name="Page-limited RFP Volume") and pg.t.item(0, 0).text() == "Page-limited RFP Volume")
+check("a right-click holds the rest", [a.text() for a in m.actions() if a.text()] == ["Open in the builder", "Export", "Open in Word", "Duplicate", "Rename...", "Archive...", "Remove"])
+check("Rename", pg.rename(name="Page-limited RFP Volume") and pg.cards[t["id"]].name.text() == "Page-limited RFP Volume")
 
 # ---- an effort picks one for each volume
 w.open_effort("Osprey"); app.processEvents()
@@ -137,22 +149,23 @@ w.go("settings"); app.processEvents()
 st = w.settings_page
 names = [n for n, _c in st.SECTIONS]
 check("... and not in Settings", "team_card" not in [c for _n, cs in st.SECTIONS for c in cs] and not st.team_card.isVisibleTo(w), names)
-# 4.39.0: the selected template, seen whole
+# 4.43.0: the gallery
 w.close_effort() if w.ws is not None else None
 w.go("templates"); app.processEvents(); pg.fill(); pg.select(t["id"]); app.processEvents()
-tp = pg.tp_table
-check("4.39.0: under the list, the selected template's five components", tp.isVisibleTo(w) and tp.rowCount() == 5
-      and [tp.item(r, 0).text() for r in range(5)] == ["Styles", "Quick Parts", "Page layout", "Numbering", "Starting pages"]
-      and pg.tp_title.text() == f"{NT.get(cfg, t['id'])['name']} is made of", [tp.item(r, 0).text() for r in range(tp.rowCount())])
-check("... where each comes from and what it holds", tp.item(0, 1).text() == "Style set: RFP volume" and tp.item(0, 2).text() == "1 style"
-      and tp.item(2, 1).text() == "From the standards, the same for every template" and tp.item(2, 2).text().startswith("Letter, 1 in margins"),
-      [tp.item(r, 1).text() for r in range(5)])
-check("... and one line: ready to make", pg.tp_line.text() == "Ready to make. The five components fit each other.", pg.tp_line.text())
-from skqt import tplparts as TPV
-check("double-click a component: the page that changes it opens", TPV.open_part(pg, 0) == "styles" and w.stack.currentWidget() is w.styles_page)
-w.go("templates"); app.processEvents()
-check("removed: off the list", pg.remove(t["id"], ask=False) and pg.t.rowCount() == 0)
-check("with no template the card is gone", not pg.tp_table.isVisibleTo(w) and not pg.tp_line.isVisibleTo(w))
+card = pg.cards[t["id"]]
+check("4.43.0: the card names the five components", [p.text().split(":")[0] for p in card.parts] == ["Styles", "Quick Parts", "Page layout", "Numbering", "Starting pages"]
+      and card.parts[2].text() == "Page layout: From the standards, the same for every template", [p.text() for p in card.parts])
+d = pg.duplicate(t["id"])
+check("Duplicate: Copy of ..., the same picks, not made, selected", d and d["name"] == "Copy of Page-limited RFP Volume" and d["sets"] == NT.get(cfg, t["id"])["sets"]
+      and not d.get("made") and len(pg.cards) == 2 and pg.current() == d["id"], d)
+check("Archive: off the gallery, and the Archived view appears", pg.archive(d["id"]) and len(pg.cards) == 1 and not pg.b_arch.isHidden() and pg.b_arch.text() == "Archived (1)"
+      and [x["name"] for x in NT.shown(cfg)] == ["Page-limited RFP Volume"])
+pg.show_archived(True)
+check("the Archived view holds it, with Restore", list(pg.cards) == [d["id"]] and [a.text() for a in pg.row_menu(run=False).actions() if a.text()] == ["Restore", "Remove"]
+      and not pg.cards[d["id"]].b_export.isEnabled())
+check("Restore: back in the gallery, and the Archived view goes", pg.archive(d["id"], on=False) and len(pg.cards) == 2 and pg.b_arch.isHidden() and not pg.archived)
+check("removed: off the gallery", pg.remove(d["id"], ask=False) and pg.remove(t["id"], ask=False) and pg.cards == {})
+check("with no template: one way in again", pg.empty.isVisibleTo(w) and not pg.area.isVisibleTo(w))
 w.close()
 n = sum(checks)
 print(f"QT NAMED 4282 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

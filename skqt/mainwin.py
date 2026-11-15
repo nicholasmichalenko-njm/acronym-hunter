@@ -46,7 +46,7 @@ def _WAU():
 RAIL = [("Effort", [("home", "Overview"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
-        ("Templates", [("styles", "Styles"), ("designs", "Quick Parts"), ("formatstd", "Page Layout"), ("templates", "Template")]),   # 4.28.0
+        ("Templates", [("templates", "Templates"), ("formatstd", "Page Layout"), ("styles", "Styles"), ("designs", "Quick Parts")]),   # 4.28.0; 4.43.0: the gallery first, then its components (ST31 to ST40)
         ("Team", [("tools", "Quick tools"), ("team", "Team")]),      # 4.27.2: Quick tools at the bottom of the menu
         ("Settings", [("globalstd", "Global Standards"), ("settings", "Settings")])]   # 4.34.0: its own page
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))

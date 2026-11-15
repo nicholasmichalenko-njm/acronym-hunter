@@ -1,73 +1,101 @@
-"""Templates > Template (4.28.2; answer 23): the templates you name. One row each: its name, what goes in, whether it is
-made. New template... names one; What goes in... picks its style sets, Quick Part set and starting pages (the same
-picker Make templates uses); Make it writes the .dotx. A row's right-click holds Open in Word, Rename and Remove. An
-effort picks one for each volume in Setup. namedtemplates holds the rules; nothing leaves the PC."""
+"""Templates (4.43.0; ST39 to ST44 of 2026-11-15): the gallery of the templates you name. One card each: its name,
+whether it is made, what it is made of, and whether its file holds its picks. New template... opens the builder with
+nothing picked; a double-click opens it on that template (skqt/tplbuilder: it picks and never changes a piece). A card
+has Export (write the .dotx and check it) and Duplicate; its right-click adds Open in Word, Rename, Archive and Remove.
+Archived templates leave the gallery and the lists that offer templates; the Archived view brings one back. An effort
+picks a template for each volume in Setup (VolumeTemplatesDialog, below). namedtemplates holds the rules."""
 import os
 import sys
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QDialog, QDialogButtonBox, QHeaderView, QInputDialog, QMenu, QMessageBox,
+from PySide6.QtWidgets import (QAbstractItemView, QDialog, QDialogButtonBox, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog,
+                               QLabel, QMenu, QMessageBox, QScrollArea,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 import diag
 import namedtemplates as NT
-from . import design as D, tplparts
+import templateproof as TPF
+from . import design as D
 from .commandbar import CommandBar
 
 TONE = {NT.READY: "ok", NT.REVIEW: "warn", NT.NEW: "muted"}
-COLS = ["Template", "What goes in", "State", "Why"]
 
 
-class GoesInDialog(QDialog):
-    """What goes in one template: the picker, saved as you pick."""
+class TemplateCard(QFrame):
+    """One template in the gallery: its name, its state, what it is made of, and whether its file holds its picks."""
 
-    def __init__(self, page, tid):
-        super().__init__(page)
-        self.host, self.page, self.tid = page.host, page, tid
-        t = NT.get(self.host.config_dir, tid)
-        self.setWindowTitle(f"What goes in: {t['name']}")
-        self.resize(760, 640)
-        v = QVBoxLayout(self)
-        from .setspick import WhatGoesIn
-        self.std = NT.std_of(self.host.config_dir, t)
-        self.goes_in = WhatGoesIn(self); v.addWidget(self.goes_in, 1)
-        bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.accept); bb.accepted.connect(self.accept); v.addWidget(bb)
-        self.goes_in.show_std(self.std, True)
+    def __init__(self, page, t, rows, state, why, proof):
+        super().__init__()
+        self.page, self.tid = page, t["id"]
+        self.setObjectName("tcard"); self.setFixedWidth(340); self.setCursor(Qt.PointingHandCursor)
+        v = QVBoxLayout(self); v.setContentsMargins(14, 12, 14, 12); v.setSpacing(4)
+        self.name = QLabel(t["name"]); self.name.setWordWrap(True); self.name.setObjectName("tcardName"); v.addWidget(self.name)
+        self.state = QLabel(f"{state}. {why}"); self.state.setWordWrap(True); self.state.setObjectName("tcardState")
+        self.state.setProperty("tone", TONE[state]); v.addWidget(self.state)
+        self.parts = []
+        for r in rows:
+            lb = D.label(f"{r['name']}: {r['from'].split(': ', 1)[-1] if ': ' in r['from'] else r['from']}", "muted")
+            lb.setWordWrap(True); v.addWidget(lb); self.parts.append(lb)
+        self.proof = D.label(TPF.words(proof), None); self.proof.setWordWrap(True); self.proof.setObjectName("tcardProof")
+        self.proof.setProperty("tone", "warn" if any(x["state"] == TPF.BAD for x in proof) else "ok")
+        self.proof.setVisible(bool(proof)); v.addWidget(self.proof)
+        from PySide6.QtWidgets import QSizePolicy
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Maximum)
+        h = QHBoxLayout(); h.setSpacing(D.SPACE["s"])
+        self.b_export = D.button("Export", None, lambda: page.make(self.tid), "Write this template's .dotx and check it against its picks")
+        self.b_dup = D.button("Duplicate", None, lambda: page.duplicate(self.tid), "Another template with the same picks")
+        h.addWidget(self.b_export); h.addWidget(self.b_dup); h.addStretch(1); v.addLayout(h)
+        if t.get("archived"):
+            self.b_export.setEnabled(False)
+            self.setToolTip("Archived. Right-click to restore it.")
+        else:
+            self.setToolTip("Double-click to open it in the builder")
 
-    def recipe_changed(self):
-        import templatesets as TS
-        NT.set_recipe(self.host.config_dir, self.tid, TS.recipe(self.std))
-        self.page.fill()
+    def paint(self, selected):
+        t = D.tokens()
+        self.setStyleSheet(f"QFrame#tcard{{background:{t['surface']};border:{2 if selected else 1}px solid {t['accent'] if selected else t['border']};"
+                           f"border-radius:{D.RADIUS['card'] + 2}px;}} QFrame#tcard QLabel{{background:transparent;}} "
+                           f"QLabel#tcardName{{font-size:{D.TYPE['body'] + 2}pt;font-weight:700;}} "
+                           f"QLabel#tcardState[tone=\"ok\"],QLabel#tcardProof[tone=\"ok\"]{{color:{t['ok']};}} "
+                           f"QLabel#tcardState[tone=\"warn\"],QLabel#tcardProof[tone=\"warn\"]{{color:{t['warn']};}} "
+                           f"QLabel#tcardState[tone=\"muted\"]{{color:{t['muted']};}}")
+
+    def mousePressEvent(self, e):
+        self.page.select(self.tid)
+        super().mousePressEvent(e)
+
+    def mouseDoubleClickEvent(self, _e):
+        self.page.open_builder(self.tid)
+
+    def contextMenuEvent(self, e):
+        self.page.select(self.tid)
+        self.page.row_menu().exec(e.globalPos())
 
 
 class NamedTemplatesPage(QWidget):
+    """Templates (4.43.0): the gallery. One card for each template; New template... and a double-click open the builder."""
+    COLUMNS = 3
+
     def __init__(self, host):
         super().__init__()
         self.setObjectName("page")
         self.host = host
-        self.rows = []
+        self.rows, self.cards, self.archived, self._cur = [], {}, False, None
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.bar = CommandBar(self)
-        self.b_goes = self.bar.add("What goes in...", lambda: self.goes_in(), "The selected template's style sets, Quick Part set and starting pages")
-        self.b_make = self.bar.add("Make it", lambda: self.make(), "Write the selected template's .dotx")
-        self.b_new = self.bar.primary("New template...", lambda: self.new(), "A template with a name of its own")
+        self.b_arch = self.bar.add("Archived", lambda: self.show_archived(not self.archived), "The archived templates: right-click one to restore it")
+        self.b_arch.setCheckable(True)
+        self.b_new = self.bar.primary("New template...", lambda: self.new(), "Pick what goes into a new template")
         self.bar.more("Page layouts and numbering...", lambda: self.layouts())    # 4.42.0: the named ones a template picks
         self.bar.more("Open the folder", lambda: self.open_folder())
         v.addWidget(self.bar)
         self.sum = D.label("", "muted"); v.addWidget(self.sum)
-        self.t = QTableWidget(0, len(COLS)); self.t.setHorizontalHeaderLabels(COLS)
-        self.t.verticalHeader().setVisible(False); self.t.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.t.setSelectionBehavior(QAbstractItemView.SelectRows); self.t.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.t.setWordWrap(True)
-        self.t.setColumnWidth(0, 260); self.t.setColumnWidth(2, 120); self.t.setColumnWidth(3, 300)
-        self.t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.t.doubleClicked.connect(lambda _i: self.goes_in())
-        self.t.setContextMenuPolicy(Qt.CustomContextMenu); self.t.customContextMenuRequested.connect(self.row_menu)
-        self.t.itemSelectionChanged.connect(self.sync)
-        v.addWidget(self.t, 1)
-        tplparts.add(self, v)                              # 4.39.0: the selected template, seen whole
-        self.empty = D.EmptyState("No templates yet", "A template is a name and a pick: which style sets, which Quick Parts and which "
-                                  "pages a document starts with. Make it once; an effort then picks it for a volume in Setup.",
+        self.area = QScrollArea(); self.area.setWidgetResizable(True); self.area.setFrameShape(QFrame.NoFrame)
+        self.inner = QWidget(); self.grid = QGridLayout(self.inner); self.grid.setSpacing(D.SPACE["m"])
+        self.grid.setAlignment(Qt.AlignTop | Qt.AlignLeft); self.area.setWidget(self.inner)
+        v.addWidget(self.area, 1)
+        self.empty = D.EmptyState("No templates yet", "A template is a name and a pick: a page setup, numbering, style sets, Quick Parts "
+                                  "and the pages a document starts with. Build it once; an effort then picks it for a volume in Setup.",
                                   "New template...", lambda: self.new())
         v.addWidget(self.empty)
 
@@ -81,70 +109,92 @@ class NamedTemplatesPage(QWidget):
         self.fill()
 
     def fill(self):
+        import templatelib as TL
+        import templateparts as TP
         cfg = self.host.config_dir
-        keep = self.current()
-        self.rows = NT.every(cfg)
-        self.t.setRowCount(0)
+        keep = self._cur
+        every = NT.every(cfg)
+        n_arch = sum(1 for t in every if t.get("archived"))
+        if self.archived and not n_arch:
+            self.archived = False
+        self.rows = [t for t in every if bool(t.get("archived")) == self.archived]
+        while self.grid.count():
+            w = self.grid.takeAt(0).widget()
+            if w is not None:
+                w.setParent(None); w.deleteLater()
+        self.cards = {}
+        lib = TL.Library(cfg)
         n = {s: 0 for s in (NT.READY, NT.REVIEW, NT.NEW)}
-        for t in self.rows:
-            st, why = NT.state(cfg, t)
+        for i, t in enumerate(self.rows):
+            st, why = NT.state(cfg, t, lib=lib)
             n[st] += 1
-            r = self.t.rowCount(); self.t.insertRow(r)
-            for c, text in enumerate((t["name"], NT.words(cfg, t), st, why)):
-                it = QTableWidgetItem(text); it.setData(Qt.UserRole, t["id"])
-                if c == 2:
-                    it.setForeground(D.color(TONE[st]))
-                self.t.setItem(r, c, it)
-        self.t.resizeRowsToContents()
-        self.t.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows)
-        self.sum.setText(f"{len(self.rows)} template(s): {n[NT.READY]} ready, {n[NT.REVIEW]} need review, {n[NT.NEW]} not made yet. "
-                         "An effort picks one for each volume in Setup > More > Templates for the volumes..." if self.rows else "")
-        if keep:
-            self.select(keep)
-        elif self.rows:
-            self.t.selectRow(0)
+            c = TemplateCard(self, t, TP.rows(cfg, t, lib), st, why, TPF.check(cfg, t, lib=lib) if st != NT.NEW else [])
+            self.grid.addWidget(c, i // self.COLUMNS, i % self.COLUMNS); self.cards[t["id"]] = c
+        self.area.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows and not self.archived)
+        self.b_arch.setText(f"Archived ({n_arch})"); self.b_arch.setChecked(self.archived); self.b_arch.setVisible(n_arch > 0)
+        self.sum.setText(("The archived templates. Right-click one to restore it." if self.archived else
+                          f"{len(self.rows)} template(s): {n[NT.READY]} ready, {n[NT.REVIEW]} need review, {n[NT.NEW]} not made yet. "
+                          "Double-click one to see or change what goes in. An effort picks one for each volume in Setup > More > "
+                          "Templates for the volumes...") if self.rows else "")
+        self._cur = keep if keep in self.cards else (self.rows[0]["id"] if self.rows else None)
         self.sync()
 
     def sync(self):
-        on = self.current() is not None
-        self.b_goes.setEnabled(on); self.b_make.setEnabled(on)
-        tplparts.refresh(self)
+        for tid, c in self.cards.items():
+            c.paint(tid == self._cur)
 
     def current(self):
-        r = self.t.currentRow()
-        it = self.t.item(r, 0) if r >= 0 else None
-        return it.data(Qt.UserRole) if it is not None else None
+        return self._cur
 
     def select(self, tid):
-        for r in range(self.t.rowCount()):
-            if self.t.item(r, 0).data(Qt.UserRole) == tid:
-                self.t.selectRow(r)
-                return True
-        return False
+        if tid not in self.cards:
+            return False
+        self._cur = tid
+        self.sync()
+        return True
+
+    def show_archived(self, on):
+        self.archived = bool(on)
+        self._cur = None
+        self.fill()
+        return self.archived
 
     # ------------------------------------------------------------ what you do
-    def new(self, name=None):
-        if name is None:
-            name, ok = QInputDialog.getText(self, "New template", "Its name (where or how it is used: Page-limited RFP, Volume I):")
-            if not ok:
-                return None
-        t = NT.new(self.host.config_dir, name)
-        if t is None:
-            self.host.status("A template needs a name that no other template has.")
+    def new(self, modal=True):
+        """New template...: the builder, with nothing picked yet. The template exists once it is saved there."""
+        from .tplbuilder import builder
+        return builder(self, None, modal)
+
+    def open_builder(self, tid=None, modal=True):
+        tid = tid or self.current()
+        if tid is None or NT.get(self.host.config_dir, tid) is None:
             return None
-        diag.activity("named_template_new")
+        from .tplbuilder import builder
+        return builder(self, tid, modal)
+
+    def duplicate(self, tid=None):
+        t = NT.duplicate(self.host.config_dir, tid or self.current() or "")
+        if t is None:
+            return None
+        diag.activity("named_template_duplicated")
+        self.host.status(f"{t['name']} is added with the same picks. Double-click it to change them.")
         self.fill(); self.select(t["id"])
         return t
 
-    def goes_in(self, tid=None, modal=True):
+    def archive(self, tid=None, on=True, ask=True):
         tid = tid or self.current()
-        if tid is None:
-            return None
-        dlg = GoesInDialog(self, tid)
-        self.goes_dialog = dlg
-        if modal and not os.environ.get("AH_TEST"):
-            dlg.exec()
-        return dlg
+        t = NT.get(self.host.config_dir, tid) if tid else None
+        if t is None:
+            return False
+        if on and ask and QMessageBox.question(self, "Archive the template", f"Archive {t['name']}? It leaves the gallery and the "
+                                               "lists that offer templates. Nothing is removed, an effort that picked it keeps its "
+                                               "copy, and the Archived view brings it back.") != QMessageBox.Yes:
+            return False
+        NT.archive(self.host.config_dir, tid, on)
+        diag.activity("named_template_archived")
+        self.host.status(f"{t['name']} is archived." if on else f"{t['name']} is back in the gallery.")
+        self.fill()
+        return True
 
     def _allowed(self):
         import roleaccess as RA
@@ -154,6 +204,7 @@ class NamedTemplatesPage(QWidget):
         return False
 
     def make(self, tid=None, word=None):
+        """Export: writes the template's .dotx and checks the file against the picks. Returns the job, or None."""
         tid = tid or self.current()
         if tid is None or not self._allowed():
             return None
@@ -167,8 +218,8 @@ class NamedTemplatesPage(QWidget):
             self.host.status(f"The template was not made ({type(e).__name__}).")
             return None
         diag.activity("named_template_made")
-        self.host.status(f"Made {os.path.basename(job.copy)}")
         self.fill(); self.select(tid)
+        self.host.status(f"Exported {os.path.basename(job.copy)}. " + TPF.words(TPF.check(self.host.config_dir, NT.get(self.host.config_dir, tid))))
         return job
 
     def rename(self, tid=None, name=None):
@@ -223,14 +274,19 @@ class NamedTemplatesPage(QWidget):
             return None
         t = NT.get(self.host.config_dir, tid)
         m = QMenu(self)
-        m.addAction("What goes in...", lambda: self.goes_in(tid))
-        m.addAction("Make it", lambda: self.make(tid))
+        if t.get("archived"):
+            m.addAction("Restore", lambda: self.archive(tid, on=False))
+            m.addSeparator()
+            m.addAction("Remove", lambda: self.remove(tid))
+            return m
+        m.addAction("Open in the builder", lambda: self.open_builder(tid))
+        m.addAction("Export", lambda: self.make(tid))
         a = m.addAction("Open in Word", lambda: self.open(tid)); a.setEnabled(os.path.isfile(((t or {}).get("made") or {}).get("path") or ""))
         m.addSeparator()
+        m.addAction("Duplicate", lambda: self.duplicate(tid))
         m.addAction("Rename...", lambda: self.rename(tid))
+        m.addAction("Archive...", lambda: self.archive(tid))
         m.addAction("Remove", lambda: self.remove(tid))
-        if run and pos is not None:
-            m.exec(self.t.viewport().mapToGlobal(pos))
         return m
 
 
@@ -265,7 +321,7 @@ class VolumeTemplatesDialog(QDialog):
     def fill(self):
         import templatesetup as TS
         cfg, ws, M = self.host.config_dir, self.host.ws, self.page._M()
-        made = [t for t in NT.every(cfg) if NT.state(cfg, t)[0] != NT.NEW]
+        made = [t for t in NT.every(cfg) if NT.state(cfg, t)[0] != NT.NEW and (not t.get('archived') or t['id'] in {(x or {}).get('id') for x in NT.picks(ws).values()})]
         got = NT.picks(ws)
         vols = self.page.volume_names()
         self.t.setRowCount(0); self.boxes = {}
