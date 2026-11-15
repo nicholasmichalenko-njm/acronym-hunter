@@ -65,5 +65,8 @@ def open_part(page, row):
     if not 0 <= row < len(page.tp_rows):
         return ""
     step = page.tp_rows[row]["step"]
+    if step == "layouts":                                  # 4.42.0: page layouts and numbering have a window, not a page
+        page.layouts(kind=page.tp_rows[row]["key"])
+        return step
     page.host.go(step)
     return step

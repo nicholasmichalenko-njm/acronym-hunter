@@ -2,6 +2,14 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.42.0": ["Page layouts and numbering are named components a template picks, beside its style sets and Quick Part set. "
+               "Template > More > Page layouts and numbering... keeps them.",
+               "New... takes a page layout or a numbering from the Global Standards or from a profile, so nothing is typed "
+               "twice. Change the page... sets a page layout's paper and four margins.",
+               "What goes in has two new picks: Page layout and Numbering. With no pick the template reads the Global "
+               "Standards, as before.",
+               "Setup > Templates for the volumes says when a volume's template and the volume's own standards differ on "
+               "margins, paper or numbering, since the checks read the volume's standards."],
     "4.41.0": ["An effort type names its templates. In Effort types..., Templates... sets the template each of its profiles "
                "starts with: style sets, Quick Part set and starting pages come together.",
                "Start an effort says what the chosen effort type starts with, before you create it.",

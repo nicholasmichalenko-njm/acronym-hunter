@@ -51,6 +51,7 @@ class NamedTemplatesPage(QWidget):
         self.b_goes = self.bar.add("What goes in...", lambda: self.goes_in(), "The selected template's style sets, Quick Part set and starting pages")
         self.b_make = self.bar.add("Make it", lambda: self.make(), "Write the selected template's .dotx")
         self.b_new = self.bar.primary("New template...", lambda: self.new(), "A template with a name of its own")
+        self.bar.more("Page layouts and numbering...", lambda: self.layouts())    # 4.42.0: the named ones a template picks
         self.bar.more("Open the folder", lambda: self.open_folder())
         v.addWidget(self.bar)
         self.sum = D.label("", "muted"); v.addWidget(self.sum)
@@ -212,6 +213,10 @@ class NamedTemplatesPage(QWidget):
             os.startfile(f)                                 # noqa: S606  the output folder
         return f
 
+    def layouts(self, modal=True, kind=None):
+        from . import pagelayoutsview as PLV
+        return PLV.layouts(self, modal, kind)
+
     def row_menu(self, pos=None, run=True):
         tid = self.current()
         if tid is None:
@@ -248,6 +253,8 @@ class VolumeTemplatesDialog(QDialog):
         self.t.verticalHeader().setDefaultSectionSize(34); self.t.setProperty("sk_rows_fixed", True)
         v.addWidget(self.t, 1)
         from . import efforttplview as ETV                       # 4.41.0: the effort type's templates, offered
+        self.warn = D.label("", None); self.warn.setObjectName("layoutWarn"); self.warn.setWordWrap(True)
+        self.warn.setStyleSheet(f"QLabel#layoutWarn{{color:{D.tokens()['warn']}}}"); v.addWidget(self.warn)
         self.b_type = D.button("Use the effort type's templates", None, lambda: ETV.use_type(self), "Picks the effort type's template for each volume that has none")
         v.addWidget(self.b_type)
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.accept); bb.accepted.connect(self.accept); v.addWidget(bb)
@@ -285,6 +292,16 @@ class VolumeTemplatesDialog(QDialog):
         said, n = ETV.offer_words(self.host, vols)
         self.note.setText(self.note.text() + said)
         self.b_type.setVisible(n > 0)
+        import pagelayouts as PGL                                # 4.42.0: one answer per volume
+        self.differs, lines = {}, []
+        for vol in vols:
+            t = NT.get(cfg, (got.get(vol) or {}).get("id") or "")
+            what = PGL.disagree(cfg, ws, vol, t) if t else []
+            if what:
+                self.differs[vol] = what
+                lines.append(PGL.disagree_words(vol, t["name"], what))
+        self.warn.setText("\n".join(lines))
+        self.warn.setVisible(bool(self.differs))
 
     def pick(self, volume, tid):
         M = self.page._M()

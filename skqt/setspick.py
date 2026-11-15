@@ -41,6 +41,12 @@ class WhatGoesIn(QWidget):
         self.setup = QComboBox(); self.setup.currentIndexChanged.connect(lambda _i: self.picked()); g.addWidget(self.setup, 1, 1)
         g.addWidget(D.label("Quick Part set", "label"), 2, 0)
         self.parts = QComboBox(); self.parts.currentIndexChanged.connect(lambda _i: self.picked()); g.addWidget(self.parts, 2, 1)
+        import pagelayouts as PGL                                # 4.42.0: the named page layout and numbering
+        self.kinds = {}
+        for i, (kind, one, _many) in enumerate(PGL.KINDS):
+            g.addWidget(D.label(one, "label"), 3 + i, 0)
+            cb = QComboBox(); cb.currentIndexChanged.connect(lambda _i: self.picked()); g.addWidget(cb, 3 + i, 1)
+            self.kinds[kind] = cb
         v.addWidget(D.label("The document starts with", "title"))
         v.addWidget(D.label("A new document made from this template opens with these pages, in this order, each in its own "
                             "Word section, then the body.", "muted"))
@@ -68,7 +74,7 @@ class WhatGoesIn(QWidget):
                           "change the next time it is made." if editable else
                           "Each profile's own choice, as set in Production Standards. Open the profile there to change it.")
         for w in (self.b_add, self.b_up, self.b_down, self.b_out, self.setup, self.parts, self.b_page, self.b_pup, self.b_pdown,
-                  self.b_pout, self.starts):
+                  self.b_pout, self.starts) + tuple(self.kinds.values()):
             w.setEnabled(editable)
         self.fill()
 
@@ -90,6 +96,12 @@ class WhatGoesIn(QWidget):
             for k in SL.sets(self.lib, kind):
                 cb.addItem(dot(k.get("color") or "#64748B"), f"{k['name']}  ({len(k['items'])})", k["id"])
             cb.setCurrentIndex(max(0, cb.findData(cur)))
+        import pagelayouts as PGL
+        for kind, cb in self.kinds.items():
+            cb.clear(); cb.addItem("From the standards", "")
+            for it in PGL.every(self.cfg, kind):
+                cb.addItem(f"{it['name']}  ({PGL.words(kind, it['values']).split(';')[0]})", it["id"])
+            cb.setCurrentIndex(max(0, cb.findData(r[kind])))
         self.fill_starts(r)
         self._guard = False
         self.fill_checks()
@@ -149,7 +161,8 @@ class WhatGoesIn(QWidget):
     def picked(self):
         if self._guard:
             return
-        self.save(setup_set=self.setup.currentData() or "", part_set=self.parts.currentData() or "")
+        self.save(setup_set=self.setup.currentData() or "", part_set=self.parts.currentData() or "",
+                  **{kind: cb.currentData() or "" for kind, cb in self.kinds.items()})
         self.fill_checks()
 
     def set_ids(self):

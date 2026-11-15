@@ -1,6 +1,7 @@
 """A template as its own named thing (4.28.2; Nicholas 2026-11-12, answer 23). A template has a name you choose and a
 pick of what goes in: style sets in order, the Setup style set, a Quick Part set and the pages a document starts with
-(templatesets holds those rules). The page and the text's layout come from the Global Standards. It belongs
+(templatesets holds those rules). The page layout and the numbering are the named ones it picks (pagelayouts, 4.42.0),
+else the Global Standards'. It belongs
 to no effort type and no profile. Made, it is a .dotx in the output folder's Templates\\Named folder with its name and
 version in it (templatereg). An effort picks one for each volume: the pick is kept as that volume's template file
 (templatesetup), so the setup is written on it exactly as on a template the team brings.
@@ -103,6 +104,8 @@ def std_of(config_dir, t, data=None):
     data = data or PRL.load(config_dir)
     std = copy.deepcopy(data["company"])
     std[TS.KEY] = TS.recipe({TS.KEY: t.get("sets") or {}})
+    import pagelayouts as PGL                                # 4.42.0: the page layout and numbering it picks, over the standards'
+    PGL.apply(std, config_dir, std[TS.KEY])
     std["_parts_dir"] = os.path.join(__import__("effortset").base(config_dir), "production_parts")
     return std
 

@@ -24,8 +24,8 @@ check("five components, in order, each with the page that changes it", [(r["key"
 check("nothing picked: each row says so plainly, and nothing is wrong", rows[0]["from"].startswith("No style set picked") and rows[1]["from"] == "No Quick Part set picked"
       and rows[4]["from"] == "No starting pages picked" and all(r["state"] == "ok" for r in rows), rows)
 check("page layout and numbering come from the standards, the same for every template", rows[2]["from"] == TP.SHARED and rows[3]["from"] == TP.SHARED
-      and rows[2]["holds"].startswith("Letter, 1 in margins") and "page numbers by part: Cover" in rows[2]["holds"]
-      and rows[3]["holds"].startswith("Headings not numbered") and "captions: Table, Figure" in rows[3]["holds"], (rows[2], rows[3]))
+      and rows[2]["holds"].startswith("Letter, 1 in margins") and "page numbers" not in rows[2]["holds"]      # 4.42.0: page numbers are Numbering's
+      and rows[3]["holds"].startswith("Headings not numbered") and "page numbers by part: Front matter" in rows[3]["holds"] and "captions: Table, Figure" in rows[3]["holds"], (rows[2], rows[3]))
 check("ready, with nothing wrong", TP.ready(rows) == (True, "Ready to make. The five components fit each other."))
 gl = os.path.join(tmp, "Master.docx")
 with_glossary(os.path.join(os.path.dirname(HERE), "test_samples", "Kestrel_Technical_Volume.docx"), gl)

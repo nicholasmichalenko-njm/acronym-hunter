@@ -26,7 +26,7 @@ SOURCE_WORDS = {DRAFT: "not a version yet", LINKED: "from the linked folder", IN
 # parts the team data file does not carry: key: (name, [config files], [config folders])
 MORE = {
     "rules": ("Rules", ["rules.json"], []),
-    "named": ("Named templates", ["templates_named.json"], []),
+    "named": ("Named templates", ["templates_named.json", "layouts_named.json"], []),   # 4.42.0: with the page layouts and numbering they pick
     "piecetypes": ("Piece types", ["piece_types.json"], []),
     "sections": ("Section designs", [], ["section_designs"]),
     "outline": ("Outline layouts", ["outline_layouts.json"], []),

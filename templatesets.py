@@ -24,12 +24,13 @@ def recipe(std):
     r = (std or {}).get(KEY) or {}
     return {"style_sets": [x for x in (r.get("style_sets") or []) if x], "setup_set": r.get("setup_set") or "",
             "part_set": r.get("part_set") or "",
+            "layout": r.get("layout") or "", "numbering": r.get("numbering") or "",      # 4.42.0: named page layout and numbering
             "starts": [dict(kind=s.get("kind", ""), part=s.get("part", ""), gallery=bool(s.get("gallery", True)))
                        for s in (r.get("starts") or []) if s.get("part")]}
 
 
 def set_recipe(std, **kw):
-    """Change what goes in: style_sets, setup_set, part_set, starts. Returns the recipe."""
+    """Change what goes in: style_sets, setup_set, part_set, starts, layout, numbering. Returns the recipe."""
     r = recipe(std)
     r.update({k: v for k, v in kw.items() if k in r})
     std[KEY] = r
@@ -38,7 +39,7 @@ def set_recipe(std, **kw):
 
 def used(std):
     r = recipe(std)
-    return bool(r["style_sets"] or r["setup_set"] or r["part_set"] or r["starts"])
+    return bool(r["style_sets"] or r["setup_set"] or r["part_set"] or r["starts"] or r["layout"] or r["numbering"])
 
 
 def _n(n, word):
