@@ -312,6 +312,14 @@ def checks(std, lib=None, config_dir=None, fonts=None):
         gone = [e["name"] for e in qps if not (e["source"] and os.path.isfile(e["source"]))]
         out.append(("warn" if gone else "ok", f"{_n(len(qps), 'Quick Part')} from the part set" + (" open and are whole" if not gone else ""),
                     ("Their kept file is missing: " + ", ".join(gone[:5])) if gone else "Pictures, fields and sections included"))
+        import partstyles as PS
+        have = {n.casefold() for n in list(chosen) + list(setup) + list((std.get("style_defs") or {}).keys())}
+        lost = PS.missing(lib, qps, have)
+        n_lost = len({n for _p, ns in lost for n in ns})
+        out.append(("warn" if lost else "ok", "Every style the Quick Parts use is in the style sets" if not lost else
+                    f"{_n(n_lost, 'style')} the Quick Parts use {'is' if n_lost == 1 else 'are'} not in the style sets",
+                    (PS.words(lost) + ". The template would take them from the Quick Parts' own file") if lost
+                    else "Paragraph, character and table styles"))
     starts = start_files(config_dir, rec)
     if rec["starts"]:
         lost = len(rec["starts"]) - len(starts)

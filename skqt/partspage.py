@@ -16,7 +16,7 @@ import partlib as PT
 import sectiondesigns as SDZ
 import stylelib as SL
 import templatelib as TL
-from . import design as D
+from . import design as D, partuses
 from .adaptive import FlowLayout
 from .commandbar import CommandBar
 from .stylespage import Rows, SetList, dot
@@ -219,6 +219,8 @@ class PartsPage(QWidget):
         words = inf["what"] + (f" · v{inf['version']}" if len(r["versions"]) > 1 else "") + (f" · from {inf['from']}" if inf["from"] else "") \
             + (f" · {inf['at']}" if inf["at"] else "")
         cv.addWidget(D.label(words, "muted"))
+        if r["shown"].startswith("q:") and inf.get("it"):   # 4.37.0: the styles it uses; one this PC's styles lack, in red
+            cv.addWidget(partuses.line(self.lib, inf["it"]))
         chips = QWidget(); cf = FlowLayout(chips, 4)
         for k in PT.sets_of(self.lib, r["shown"]):
             ch = QLabel(k["name"]); ch.setObjectName("setChip")
@@ -287,6 +289,8 @@ class PartsPage(QWidget):
             import prodquickparts as QP
             self.thumb_note.setText(f"In Word's {QP.gallery_name(v.get('gallery') or '')} gallery. Right-click: Change it... (the style "
                                     "first, Make a variant, or in Word); Details for its category and the pages it fills.")
+            said = partuses.said(self.lib, inf["it"])
+            self.problems.setText(said); self.problems.setVisible(bool(said))
             self._guard = False
             return inf
         x = inf["x"]

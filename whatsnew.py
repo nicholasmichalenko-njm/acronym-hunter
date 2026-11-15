@@ -2,6 +2,10 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.37.0": ["Parts: each Quick Part's row names the styles it uses. A style that is not among your styles shows in "
+               "red, and the selected part says what a template would do about it.",
+               "Make templates checks the Quick Parts against the style sets: it names each style a Quick Part uses that "
+               "the template's style sets lack. Until now such a style came in from the Quick Part's own file, unseen."],
     "4.36.0": ["Effort Formatting shows where the effort's standards differ from the Global Standards: each difference on "
                "its own row, in color, with this effort's value and the Global value side by side.",
                "The effort's own value is the one in use. Choose Global on a row to use the Global value there, and "
