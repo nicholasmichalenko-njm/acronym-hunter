@@ -98,8 +98,8 @@ def rows(config_dir, kind, lib=None, shown=None, words=""):
                 fams.setdefault(it.get("family") or it["id"], []).append(it)
         fams = {f: its for f, its in fams.items() if shapes.get(f) == kind}
         for fam, its in sorted(fams.items(), key=lambda kv: lib.base_of(kv[1][0]).casefold()):
-            vs = sorted(its, key=lambda i: int(i.get("version") or 1))
-            ids = ["q:" + i["id"] for i in vs]
+            import parthistory as PH                       # 4.40.0 (ST28): one tab per version line, its Latest
+            ids = ["q:" + i["id"] for i in PH.tops(lib, fam)]
             out.append({"family": "q:" + fam, "versions": ids, "shown": shown.get("q:" + fam) if shown.get("q:" + fam) in ids else ids[-1]})
         return out
     shelves = KIND.get(kind, ("", ()))[1]

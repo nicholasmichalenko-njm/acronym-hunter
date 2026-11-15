@@ -2,6 +2,13 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.40.0": ["Quick Parts keep versions the way styles do. Change a Quick Part and every set that uses it gets the change; "
+               "until now each set kept the version it had.",
+               "Versions... on a Quick Part's row lists every version with its date and the sets that use it. Restore this "
+               "version puts an earlier one on top as a new version; nothing is removed.",
+               "Create another version... makes another Quick Part of the same name for the part sets you tick. The row "
+               "then has one tab for each, named for its sets.",
+               "A set left on an earlier version is named on Parts; More > Use the latest Quick Parts in every set moves it."],
     "4.39.0": ["Template shows the selected template whole: five rows under the list, one for each component (styles, "
                "Quick Parts, page layout, numbering, starting pages), with where it comes from, what it holds and "
                "whether it fits the others, in color.",

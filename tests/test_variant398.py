@@ -62,8 +62,9 @@ check("Make a variant: padding, width, columns and row height", t2["padding"] ==
 check("... a new version with its name; the first as it was", st3 == "version" and var["label"] == "compact"
       and PV.table_of(path, name)["width"] == 6.5 and var["family"] == th["family"])
 rows = PT.rows(cfg, "hf", lib)
-check("Parts lists it under Headers and footers with its versions as tabs (with the CUI header)", len(rows) == 2
-      and [len(r["versions"]) for r in rows if r["family"] == "q:" + th["family"]] == [4], rows)
+check("Parts lists it under Headers and footers, its Latest on the row and its four versions in its history (4.40.0, ST28)", len(rows) == 2
+      and [len(r["versions"]) for r in rows if r["family"] == "q:" + th["family"]] == [1]
+      and len(__import__("parthistory").history(lib, th["id"])) == 4, rows)
 check("Quick Parts no longer lists it", all(r["family"] != "q:" + th["family"] for r in PT.rows(cfg, "quick", lib)))
 sw, _s = PV.make_variant(lib, cap, {"swap": {"heading 1": "QP Callout"}}, label="callout")
 check("a paragraph style swapped for another", ("QP Callout", "paragraph") in PV.styles_used(*PV.source_of(lib, sw))

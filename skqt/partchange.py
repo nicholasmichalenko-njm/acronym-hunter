@@ -130,6 +130,8 @@ class ChangePart(QDialog):
         if sid:
             import partlib as PT
             PT.add_to_set(self.page.cfg(), self.lib, sid, ["q:" + it["id"]])
+        import parthistory as PH                           # 4.40.0 (ST28): every set on that version gets the change
+        self.moved = PH.changed(self.lib, self.item, it, st)
         self.result_item = it
         self.page.after_change(it, st, what)
         diag.activity("part_changed")

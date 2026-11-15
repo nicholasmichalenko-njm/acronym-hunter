@@ -16,7 +16,7 @@ import partlib as PT
 import sectiondesigns as SDZ
 import stylelib as SL
 import templatelib as TL
-from . import design as D, partuses
+from . import design as D, partuses, partversions
 from .adaptive import FlowLayout
 from .commandbar import CommandBar
 from .stylespage import Rows, SetList, dot
@@ -55,6 +55,7 @@ class PartsPage(QWidget):
         self.bar.more("Rename this set...", lambda: self.rename_set())
         self.bar.more("This set goes with a style set...", lambda: partuses.tie(self), "The style set its Quick Parts are written in")
         self.bar.more("Take this set away", lambda: self.remove_set())
+        self.bar.more("Use the latest Quick Parts in every set", lambda: partversions.use_latest(self), "Sets still on an earlier version move to the latest")
         top.addWidget(self.bar)
         v.addLayout(top)
         self.tabs = QTabBar(); self.tabs.setDrawBase(False); self.tabs.setExpanding(False)
@@ -170,7 +171,10 @@ class PartsPage(QWidget):
             self.rows.addItem(li); self.rows.setItemWidget(li, w)
             self.row_ids.append(r["shown"])
         self.rows.blockSignals(False)
-        partuses.refresh_fit(self)
+        said = partuses.refresh_fit(self)
+        late = partversions.notice(self) if not said else ""     # 4.40.0: sets still on an earlier version of a Quick Part
+        if late:
+            self.fit_line.setText(late); self.fit_line.setStyleSheet(""); self.fit_box.setVisible(True)
         has = any(PT.count(self.cfg(), k, self.lib) for k, _t, _s in PT.KINDS)
         self.rows.setVisible(has); self.empty.setVisible(not has); self.side.setVisible(has)
         k = SL.get_set(self.lib, self.sid) if self.sid else None
@@ -212,7 +216,8 @@ class PartsPage(QWidget):
             t = D.tokens()
             for pid in r["versions"]:
                 vi = self.info(pid) or {"version": "?", "label": ""}
-                b = QPushButton(f"v{vi['version']}" + (f" {vi['label']}" if vi.get("label") else "")); b.setCheckable(True)
+                b = QPushButton(partversions.tab_text(self.lib, pid) if pid.startswith("q:") else
+                                f"v{vi['version']}" + (f" {vi['label']}" if vi.get("label") else "")); b.setCheckable(True)
                 b.setChecked(pid == r["shown"]); b.setObjectName("verTab")
                 b.setStyleSheet(f"QPushButton#verTab{{border:1px solid {t['border_strong']};border-radius:4px;padding:0 6px;font-size:11px;"
                                 f"background:{t['surface']};color:{t['text']}}}QPushButton#verTab:checked{{border:2px solid {t['accent']};"
@@ -372,6 +377,8 @@ class PartsPage(QWidget):
             m.addAction("Open in Word").triggered.connect(lambda: self.change(one, run=False).open_word())
             m.addAction("Bring back as a new version...").triggered.connect(lambda: self.change(one, run=False).bring_back())
             m.addAction("Details: category, gallery, pages it fills...").triggered.connect(lambda: self.quick_details(one))
+            m.addAction("Versions...").triggered.connect(lambda: partversions.versions(self, one[2:]))
+            m.addAction("Create another version...").triggered.connect(lambda: partversions.another(self, one[2:]))
         if one:
             m.addAction("Name this version...").triggered.connect(lambda: self.label_version(one))
         add = m.addMenu("Add to set")
@@ -455,7 +462,7 @@ class PartsPage(QWidget):
         self.cur = nid
         self.fill_tabs(); self.fill_sets(); self.fill_rows(); self.select(nid)
         self.host.toast({"same": "The library has this version already: it is shown."}.get(st, f"{self.lib.base_of(it)} v{it.get('version')}: "
-                        "kept beside the others. Sets that use an older one keep it."))
+                        "it is the latest now, and every set that used this Quick Part has it. Versions... holds the earlier ones."))
         return nid
 
     def quick_details(self, pid):
