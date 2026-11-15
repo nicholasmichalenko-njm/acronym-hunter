@@ -187,6 +187,7 @@ def put_exact_styles(path, exact):
     from lxml import etree
     if not exact or not os.path.isfile(path):
         return []
+    from prodengine.engine.ops import word_ops as WO
     W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
     q = lambda t: "{%s}%s" % (W, t)
     with zipfile.ZipFile(path) as z:
@@ -208,6 +209,12 @@ def put_exact_styles(path, exact):
             new = etree.fromstring(xml.encode("utf-8"), parser)
         except etree.XMLSyntaxError:
             continue
+        built = WO.builtin_name(root, name)              # 4.43.0: a style named as one of Word's own is written as Word
+        if built:                                         # writes it. Marked custom, Word keeps its own built-in on the
+            new.attrib.pop(q("customStyle"), None)        # next save and renames ours ("Body Text1"): the exported file
+            nm = new.find(q("name"))                      # then lacks the style that was picked (templateproof found it)
+            if nm is not None:
+                nm.set(q("val"), built)
         old = by_name.get(name.casefold())
         if old is None:
             old = by_name.get(_word_name(name).casefold())

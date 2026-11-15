@@ -72,6 +72,15 @@ check("a pick changed since the export shows as a difference, in words", ticks[0
 s2, _ = SL.new_style(lib, "Callout Text", "paragraph", {"font": "Arial", "size": 10}); SL.add_to_set(lib, k["id"], [s2["id"]])
 ticks = TPF.check(cfg, NT.get(cfg, t["id"]), lib=TL.Library(cfg))
 check("a style added to the set since the export is named", ticks[2]["state"] == TPF.BAD and ticks[2]["says"] == "1 of 2 styles are not in the file: Callout Text", ticks[2])
+import re, zipfile
+st = zipfile.ZipFile(job.copy).read("word/styles.xml").decode("utf-8")
+t3 = NT.new(cfg, "Third"); NT.set_recipe(cfg, t3["id"], {"style_sets": [k["id"]]})
+st = zipfile.ZipFile(NT.make(cfg, os.path.join(tmp, "out"), t3["id"]).copy).read("word/styles.xml").decode("utf-8")
+body = re.search(r'<w:style\b[^>]*>\s*<w:name w:val="Body Text"/>', st)
+call = re.search(r'<w:style\b[^>]*>\s*<w:name w:val="Callout Text"/>', st)
+check("a style named as one of Word's own is not written as a custom style, so Word keeps it on a save (found by the check on the PC: Body Text became Body Text1)",
+      body is not None and "customStyle" not in body.group(0), body.group(0) if body else st[:200])
+check("... a style of our own name stays a custom style", call is not None and 'w:customStyle="1"' in call.group(0), call.group(0) if call else "")
 with open(job.copy, "wb") as f:
     f.write(b"not a zip")
 ticks = TPF.check(cfg, NT.get(cfg, t["id"]))
