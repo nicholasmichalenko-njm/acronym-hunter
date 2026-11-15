@@ -10,6 +10,8 @@ tmp = tempfile.mkdtemp(); os.environ.setdefault("SK_DATA_DIR", os.path.join(tmp,
 import app_gui as A, compliance as C, effort as E, workspace as W, pdfmini
 from PySide6.QtWidgets import QApplication
 from skqt import design as theme, matrixsave as MS
+SHIPPED = MS.THREADED                                    # 4.43.1 (ST52): on again as shipped
+MS.THREADED = False                                      # the window-thread path is tested first, as before
 from skqt.mainwin import MainWindow
 
 checks = []
@@ -49,7 +51,7 @@ ids = [it["id"] for it in M.items if it["text"].startswith("The Offeror")]
 pg.select(ids[0]); app.processEvents(); pg.type_chips["requirement"].click(); app.processEvents()
 check("a decision leaves the matrix not saved yet, and the timer running", M.pending and w.save_timer.isActive())
 m0 = os.path.getmtime(OUT)
-check("4.30.4: by default the timer's save writes on the window's thread and says so", MS.THREADED is False and MS.soon(w) is None and not M.pending
+check("4.43.1: on as shipped; with it off the timer's save writes on the window's thread and says so", SHIPPED is True and MS.THREADED is False and MS.soon(w) is None and not M.pending
       and os.path.getmtime(OUT) > m0 and {it["id"]: it["decision"] for it in C.Matrix(OUT).load().items}[ids[0]] == "Keep")
 MS.THREADED = True                                       # the other-thread path stays tested for when it is turned back on
 pg.select(ids[5]); app.processEvents(); pg.type_chips["requirement"].click(); app.processEvents()

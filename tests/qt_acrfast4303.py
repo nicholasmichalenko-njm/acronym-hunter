@@ -10,6 +10,8 @@ tmp = tempfile.mkdtemp(); os.environ.setdefault("SK_DATA_DIR", os.path.join(tmp,
 import app_gui as A, effort as E
 from PySide6.QtWidgets import QApplication, QTableWidget, QTableWidgetItem
 from skqt import design as D, acrselbar as SB, acrfast as AF, adaptive as AD
+SHIPPED = AF.THREADED                                   # 4.43.1 (ST52): on again as shipped
+AF.THREADED = False                                     # the window-thread path is tested first, as before
 from skqt.mainwin import MainWindow
 
 checks = []
@@ -102,7 +104,7 @@ check("leaving the page writes what was waiting", not s.unsaved)
 s.later = None; s.unsaved = False; s.save()
 check("a session with no page saves at once, as before", not s.unsaved)
 
-check("4.30.4: the write is on the window's thread unless THREADED is turned on", AF.THREADED is False and getattr(pg, "_saver", None) is None)
+check("4.43.1: saving in the background is on as shipped; with it off the write is on the window's thread", SHIPPED is True and AF.THREADED is False and getattr(pg, "_saver", None) is None)
 AF.THREADED = True                                      # the other-thread path stays tested for when it is turned back on
 # ---- adding to the effort list: nothing is written per decision; one write, off the window's thread, a moment later
 w.go("acronyms"); app.processEvents(); pg.tabs.setCurrentIndex(1); app.processEvents()
