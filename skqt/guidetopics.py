@@ -580,11 +580,15 @@ TOPICS = [
    "size the profile gives that text."],
   ["A profile in several effort types keeps its own parts and limits in each.",
    "An effort's own changes stay in Effort Formatting, on top of its profile."]),
- ("templates", "Templates", "Template",
-  "The templates you name (4.28.2): each has a name and a pick of style sets, a Quick Part set and starting pages. New template..., "
-  "What goes in..., Make it. An effort picks one for a volume in Setup > More. From profiles lists the ones the Effort Profiles make.",
+ ("templates", "Templates", "Templates",
+  "The gallery of the templates you name (4.43.0): one card each, with what it is made of. New template... opens the builder, where "
+  "you pick a page setup, numbering, style sets, a Quick Part set and starting pages; a double-click opens it on a template. The "
+  "builder picks; a piece is changed on its own page. Export writes the .dotx and checks it against the picks. An effort picks one "
+  "for a volume in Setup > More. From profiles lists the ones the Effort Profiles make.",
   "After changing a profile or the libraries, and before an effort's volumes are started.",
-  ["On From profiles, Show narrows the list to one effort type.",
+  ["A card's right-click has Duplicate, Rename, Archive and Remove. Archived shows the archived ones; Restore brings one back.",
+   "The builder's sample pages are the app's drawing of the picks, labelled Approximate.",
+   "On From profiles, Show narrows the list to one effort type.",
    "Make .dotx makes one template in the output folder's Templates folder, in a folder named for its effort type. Make all "
    "ready makes every template that nothing stops and that changed or was never made.",
    "Needs review: a newer library version waits on its profile, or the profile changed since the template was made. "
@@ -791,7 +795,7 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
 # 3.75.0, 4.20.1: the Guide reads in the menu's order (the six steps; a tab's page after its menu item)
 _ORDER = ("path home calendar tasks deliverables record meetings exportall library read compare datacalls redline graphics assign verify requirements evalcrit "
           "custqa acronyms acrlist lists structure matrix crosswalk prove impact setups effortfmt storyboards drafts techedit reviews truth "
-          "finalcheck qa checks postsub keywords styles designs qpstd formatstd layoutstd templates profiles studio tools team "
+          "finalcheck qa checks postsub keywords templates profiles formatstd layoutstd styles designs qpstd studio tools team "
           "rules audit applyword fixcopy refs globalstd settings efforts mywork shredreq shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):
