@@ -581,14 +581,10 @@ TOPICS = [
   ["A profile in several effort types keeps its own parts and limits in each.",
    "An effort's own changes stay in Effort Formatting, on top of its profile."]),
  ("templates", "Templates", "Templates",
-  "The gallery of the templates you name (4.43.0): one card each, with what it is made of. New template... opens the builder, where "
-  "you pick a page setup, numbering, style sets, a Quick Part set and starting pages; a double-click opens it on a template. The "
-  "builder picks; a piece is changed on its own page. Export writes the .dotx and checks it against the picks. An effort picks one "
-  "for a volume in Setup > More. From profiles lists the ones the Effort Profiles make.",
+  "The gallery of the templates you name (4.43.0), one card each. New template... opens the builder, which picks what goes in and "
+  "changes no piece; a double-click opens it on a template. Export writes the .dotx and checks it. From profiles lists the Effort Profiles' own.",
   "After changing a profile or the libraries, and before an effort's volumes are started.",
-  ["A card's right-click has Duplicate, Rename, Archive and Remove. Archived shows the archived ones; Restore brings one back.",
-   "The builder's sample pages are the app's drawing of the picks, labelled Approximate.",
-   "On From profiles, Show narrows the list to one effort type.",
+  ["A card's right-click has Duplicate, Rename, Archive and Remove. The builder's sample pages are the app's drawing, labelled Approximate. On From profiles, Show narrows the list to one effort type.",
    "Make .dotx makes one template in the output folder's Templates folder, in a folder named for its effort type. Make all "
    "ready makes every template that nothing stops and that changed or was never made.",
    "Needs review: a newer library version waits on its profile, or the profile changed since the template was made. "
