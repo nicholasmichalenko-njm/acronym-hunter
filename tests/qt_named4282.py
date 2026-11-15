@@ -105,7 +105,22 @@ w.go("settings"); app.processEvents()
 st = w.settings_page
 names = [n for n, _c in st.SECTIONS]
 check("... and not in Settings", "team_card" not in [c for _n, cs in st.SECTIONS for c in cs] and not st.team_card.isVisibleTo(w), names)
+# 4.39.0: the selected template, seen whole
+w.close_effort() if w.ws is not None else None
+w.go("templates"); app.processEvents(); pg.fill(); pg.select(t["id"]); app.processEvents()
+tp = pg.tp_table
+check("4.39.0: under the list, the selected template's five components", tp.isVisibleTo(w) and tp.rowCount() == 5
+      and [tp.item(r, 0).text() for r in range(5)] == ["Styles", "Quick Parts", "Page layout", "Numbering", "Starting pages"]
+      and pg.tp_title.text() == f"{NT.get(cfg, t['id'])['name']} is made of", [tp.item(r, 0).text() for r in range(tp.rowCount())])
+check("... where each comes from and what it holds", tp.item(0, 1).text() == "Style set: RFP volume" and tp.item(0, 2).text() == "1 style"
+      and tp.item(2, 1).text() == "From the standards, the same for every template" and tp.item(2, 2).text().startswith("Letter, 1 in margins"),
+      [tp.item(r, 1).text() for r in range(5)])
+check("... and one line: ready to make", pg.tp_line.text() == "Ready to make. The five components fit each other.", pg.tp_line.text())
+from skqt import tplparts as TPV
+check("double-click a component: the page that changes it opens", TPV.open_part(pg, 0) == "styles" and w.stack.currentWidget() is w.styles_page)
+w.go("templates"); app.processEvents()
 check("removed: off the list", pg.remove(t["id"], ask=False) and pg.t.rowCount() == 0)
+check("with no template the card is gone", not pg.tp_table.isVisibleTo(w) and not pg.tp_line.isVisibleTo(w))
 w.close()
 n = sum(checks)
 print(f"QT NAMED 4282 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

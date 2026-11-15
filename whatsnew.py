@@ -2,6 +2,11 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.39.0": ["Template shows the selected template whole: five rows under the list, one for each component (styles, "
+               "Quick Parts, page layout, numbering, starting pages), with where it comes from, what it holds and "
+               "whether it fits the others, in color.",
+               "One line says the template is ready to make, or names the component to look at first.",
+               "Double-click a component to open the page that changes it."],
     "4.38.0": ["Parts: a Quick Part set goes with a style set (More > This set goes with a style set...). With the set "
                "picked, each Quick Part's styles show green when the style set has them and red when it does not, and a "
                "line above the rows says how the set fits.",

@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QDialog, QDialogButtonBox, QHe
 
 import diag
 import namedtemplates as NT
-from . import design as D
+from . import design as D, tplparts
 from .commandbar import CommandBar
 
 TONE = {NT.READY: "ok", NT.REVIEW: "warn", NT.NEW: "muted"}
@@ -64,6 +64,7 @@ class NamedTemplatesPage(QWidget):
         self.t.setContextMenuPolicy(Qt.CustomContextMenu); self.t.customContextMenuRequested.connect(self.row_menu)
         self.t.itemSelectionChanged.connect(self.sync)
         v.addWidget(self.t, 1)
+        tplparts.add(self, v)                              # 4.39.0: the selected template, seen whole
         self.empty = D.EmptyState("No templates yet", "A template is a name and a pick: which style sets, which Quick Parts and which "
                                   "pages a document starts with. Make it once; an effort then picks it for a volume in Setup.",
                                   "New template...", lambda: self.new())
@@ -106,6 +107,7 @@ class NamedTemplatesPage(QWidget):
     def sync(self):
         on = self.current() is not None
         self.b_goes.setEnabled(on); self.b_make.setEnabled(on)
+        tplparts.refresh(self)
 
     def current(self):
         r = self.t.currentRow()

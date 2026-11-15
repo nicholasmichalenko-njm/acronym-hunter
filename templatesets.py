@@ -289,6 +289,20 @@ def page_body(path):
 # ------------------------------------------------------------------ before it is made
 def checks(std, lib=None, config_dir=None, fonts=None):
     """[(state "ok" or "warn", what, more)] for the chosen sets and starting pages."""
+    return _checks(std, lib, config_dir, fonts)[0]
+
+
+def checks_by_part(std, lib=None, config_dir=None, fonts=None):
+    """The same checks by the component they are about (4.39.0): {"styles": [...], "quick": [...], "starts": [...]}."""
+    out, marks = _checks(std, lib, config_dir, fonts)
+    by, at = {"styles": [], "quick": [], "starts": []}, 0
+    for part, end in marks:
+        by[part] += out[at:end]; at = end
+    return by
+
+
+def _checks(std, lib=None, config_dir=None, fonts=None):
+    marks = []
     config_dir = config_dir or config_of(std)
     import templatelib as TL
     lib = lib or TL.Library(config_dir)
@@ -307,6 +321,7 @@ def checks(std, lib=None, config_dir=None, fonts=None):
                           for b in [(lib.values(it) or {}).get("based_on")] if b and b not in names and b not in ("Normal", "Default Paragraph Font")})
         out.append(("warn" if missing else "ok", "Every style they rest on is there" if not missing else
                     f"{len(missing)} style(s) they rest on are not in these sets", ", ".join(missing[:6]) or "Based on, next and linked styles"))
+    marks.append(("styles", len(out)))
     qps = quick_parts(lib, config_dir, rec)
     if rec["part_set"]:
         gone = [e["name"] for e in qps if not (e["source"] and os.path.isfile(e["source"]))]
@@ -324,6 +339,7 @@ def checks(std, lib=None, config_dir=None, fonts=None):
         if tied is not None and tied["id"] not in rec["style_sets"]:
             out.append(("warn", "The Quick Part set goes with a style set this template does not use",
                         f"{(lib.kit(rec['part_set']) or {}).get('name', '')} goes with {tied['name']}"))
+    marks.append(("quick", len(out)))
     starts = start_files(config_dir, rec)
     if rec["starts"]:
         lost = len(rec["starts"]) - len(starts)
@@ -332,9 +348,11 @@ def checks(std, lib=None, config_dir=None, fonts=None):
         kinds = [k for k, _p, _g, _n in starts]
         if "cui" in kinds:
             out.append(("ok", "A marking page is in the starting pages", "Use CUI headers and footers in Layout for the body"))
+    marks.append(("starts", len(out)))
     if fonts is not None:
         want = sorted({(lib.values(it) or {}).get("font") for it in list(chosen.values()) + list(setup.values())} - {None, ""})
         lacking = [f for f in want if f not in fonts]
         out.append(("warn" if lacking else "ok", "Fonts installed on this PC" if not lacking else "Fonts not on this PC",
                     ", ".join(lacking or want[:6])))
-    return out
+    marks.append(("styles", len(out)))
+    return out, marks
