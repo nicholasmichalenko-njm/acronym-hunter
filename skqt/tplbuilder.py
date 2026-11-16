@@ -17,6 +17,7 @@ import namedtemplates as NT
 import pagelayouts as PGL
 import stylelib as SL
 import templatelib as TL
+import templateexact as TX
 import templateparts as TP
 import templateproof as TPF
 import templatesample as TSM
@@ -29,7 +30,8 @@ TILES = (("layout", "Page Setup", "Page Layout", "layouts"), ("numbering", "Numb
          ("style_sets", "Style sets", "Styles", "styles"), ("setup_set", "Setup styles", "Styles", "styles"),
          ("part_set", "Quick Part set", "Quick Parts", "designs"), ("starts", "Starting pages", "Quick Parts", "designs"))
 LATER = "Headers, footers, lists, captions and the Table of Contents come from the Global Standards until each gets its own pick."
-SKETCH = "Approximate: drawn by Stationkeeper from the picks. Word's own pages come in a later release."
+SKETCH = "Approximate: drawn by Stationkeeper from the picks. Draw with Word shows the exported file's own pages."
+EXACT = "Exact, drawn by Word: the pages of the exported file. They stay until a pick changes."
 
 
 class Tile(QFrame):
@@ -91,6 +93,9 @@ class BuilderDialog(QDialog):
         self.said = D.label("", "muted"); self.said.setWordWrap(True); v.addWidget(self.said)
         b = QHBoxLayout(); b.addStretch(1)
         self.b_close = D.button("Close", None, lambda: self.reject()); b.addWidget(self.b_close)
+        self.b_exact = D.button("Draw with Word", None, lambda: self.draw_exact(),
+                                "Word draws the exported file's pages. It can take a minute or more; the pages are kept once drawn")
+        b.addWidget(self.b_exact)
         self.b_export = D.button("Export", None, lambda: self.export(), "Save, write the .dotx and check it against the picks"); b.addWidget(self.b_export)
         self.b_save = D.button("Save", "primary", lambda: self.save(), "Keep the name and the picks"); b.addWidget(self.b_save)
         v.addLayout(b)
@@ -137,15 +142,25 @@ class BuilderDialog(QDialog):
             tile.show_pick(*self.tile_words(key))
         t = self.working()
         std = NT.std_of(self.cfg, t)
-        self.strip.show_pages(TSM.pages(std, self.cfg, self._starts()))
+        exact = TX.cached(self.cfg, NT.get(self.cfg, self.tid)) if self.saved_picks() else []
+        if exact:                                           # 4.44.0: Word's pages, kept, while the picks are the saved ones
+            self.strip.show_pictures(exact)
+        else:
+            self.strip.show_pages(TSM.pages(std, self.cfg, self._starts()))
+        self.kind.setText(EXACT if exact else (TX.SLOW if getattr(self, "_drawing", False) else SKETCH))
         self.rows = TP.rows(self.cfg, t, self.lib)
         ok, said = TP.ready(self.rows)
         tok = D.tokens()
         self.line.setText(said)
         self.line.setStyleSheet(f"QLabel#tpLine{{color:{tok['ok' if ok else 'warn']};font-weight:600}}")
-        self.kind.setStyleSheet(f"QLabel#sampleKind{{color:{tok['warn']};}}")
+        self.kind.setStyleSheet(f"QLabel#sampleKind{{color:{tok['ok' if exact else 'warn']};}}")
         self.show_ticks()
         return self.rows
+
+    def saved_picks(self):
+        """Whether the picks on screen are the ones the template holds."""
+        t = NT.get(self.cfg, self.tid) if self.tid else None
+        return bool(t) and TS.recipe({TS.KEY: t.get("sets") or {}}) == self.rec
 
     def show_ticks(self):
         """The ticks for the exported file, when the picks are the saved ones; '' otherwise."""
@@ -276,6 +291,65 @@ class BuilderDialog(QDialog):
         self.fill()
         self.said.setText(f"Exported {os.path.basename(job.copy)}. " + TPF.words(self.proof))
         return job
+
+
+def _draw_exact(self, runner=None, wait=False):
+    """Draw with Word: exports when the file is not the picks', then Word draws the file's pages in the background and
+    they are kept. Returns "shown" (already kept), "started", "done" (wait, tests) or None with the reason said."""
+    from . import qpjobs
+    if not self.saved_picks() or not TX.ready(self.cfg, NT.get(self.cfg, self.tid)):
+        if self.export() is None:
+            return None
+    t = NT.get(self.cfg, self.tid)
+    if TX.cached(self.cfg, t):
+        self.fill()
+        return "shown"
+    if qpjobs.busy() or getattr(self, "_drawing", False):
+        self.said.setText("Word is busy with a job already. Wait for it to finish, then try again.")
+        return None
+    import exactpreview as XP
+    if runner is None and not XP.available():
+        self.said.setText("Word on this PC draws the exact pages; these are the app's sample pages.")
+        return None
+
+    def finished(res):
+        self._drawing = False
+        self.b_exact.setEnabled(True)
+        ok = isinstance(res, dict) and res.get("ok")
+        diag.activity("template_pages_drawn", n=len(res.get("pages") or []) if ok else 0)
+        self.fill()
+        self.said.setText(f"Word drew {len(res['pages'])} page(s). They are kept until a pick changes." if ok
+                          else (res.get("why") if isinstance(res, dict) else "") or "Word could not draw the pages.")
+
+    self._drawing = True
+    self.b_exact.setEnabled(False)
+    self.fill()
+    self.said.setText(TX.SLOW)
+    diag.activity("template_pages_started")
+    if wait:
+        finished(TX.draw(self.cfg, t, runner=runner))
+        return "done"
+    from .progress import JobWorker
+    w = JobWorker(lambda _p, _s: TX.draw(self.cfg, t, runner=runner))
+
+    def gone():
+        w.wait(2000)
+        if w in qpjobs.RUNNING:
+            qpjobs.RUNNING.remove(w)
+
+    def safe(res):
+        try:
+            finished(res)
+        except RuntimeError:                                # the builder was closed while Word worked: the pages are kept
+            pass
+    w.done.connect(safe)
+    w.finished.connect(gone)
+    qpjobs.RUNNING.append(w)
+    w.start()
+    return "started"
+
+
+BuilderDialog.draw_exact = _draw_exact
 
 
 def builder(page, tid=None, modal=True):

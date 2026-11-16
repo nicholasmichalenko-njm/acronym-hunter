@@ -16,10 +16,29 @@ class SampleStrip(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.pages = []
+        self.exact = False
         self.setMinimumHeight(int(11 * SCALE) + CAP + 2 * GAP)
 
     def show_pages(self, pages):
         self.pages = list(pages or [])
+        self.exact = False
+        self.setMinimumHeight(int(self._place()[1]))
+        self.updateGeometry(); self.update()
+        return len(self.pages)
+
+    def show_pictures(self, paths):
+        """4.44.0: Word's own pages, as pictures. Each keeps its shape; the short side is a Letter page's width."""
+        from PySide6.QtGui import QPixmap
+        self.pages = []
+        for i, p in enumerate(paths or []):
+            pm = QPixmap(p)
+            if pm.isNull():
+                continue
+            short = float(min(pm.width(), pm.height())) or 1.0
+            self.pages.append({"key": f"page{i + 1}", "label": f"Page {i + 1}", "w": pm.width() / short * 8.5,
+                               "h": pm.height() / short * 8.5, "pix": pm})
+        self.exact = bool(self.pages)
+        self.setMinimumHeight(int(self._place()[1]))
         self.updateGeometry(); self.update()
         return len(self.pages)
 
@@ -63,6 +82,12 @@ class SampleStrip(QWidget):
             w, h = p["w"] * SCALE, p["h"] * SCALE
             qp.setPen(QPen(QColor(t["border"]), 1)); qp.setBrush(QColor("#FFFFFF"))
             qp.drawRect(QRectF(x, y, w, h))
+            if p.get("pix") is not None:                      # Word's page, as it is
+                qp.setRenderHint(QPainter.SmoothPixmapTransform, True)
+                qp.drawPixmap(QRectF(x + 1, y + 1, w - 2, h - 2), p["pix"], QRectF(p["pix"].rect()))
+                qp.setFont(cap); qp.setPen(QColor(t["muted"]))
+                qp.drawText(QRectF(x, y + h + 3, w, CAP - 4), Qt.AlignHCenter | Qt.AlignTop, p["label"])
+                continue
             mt, mb, ml, mr = (v * SCALE for v in p["m"])
             box = QRectF(x + ml, y + mt, w - ml - mr, h - mt - mb)
             qp.setBrush(Qt.NoBrush); qp.setPen(QPen(QColor("#C9D6E2"), 1, Qt.DashLine)); qp.drawRect(box)

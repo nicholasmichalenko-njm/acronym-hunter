@@ -2,6 +2,7 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.44.0": ["Templates: Draw with Word in the builder shows the exported file's own pages, labelled Exact. Word can take a minute or more; the pages are kept until a pick changes."],
     "4.43.1": ["Proposal managers and production leads build, change and archive templates; everyone else looks inside one and exports it.",
                "Saving acronym and matrix decisions runs in the background again.",
                "The program's record of problems now notes Qt's warnings, a window that stops answering, and cleanup errors: fixed words only."],
