@@ -34,7 +34,7 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "fulltext": ("Full Text", "Every word in the files, as text", "window"),
          "acronyms": ("Acronyms", "Scan and the acronym list", "page"), "acrlist": ("Acronym List", "The effort's list", "page"),
          "assign": ("Shred", "Every piece of the customer's documents, on the page", "page"), "matrix": ("Matrix", "The compliance matrix", "page"),
-         "library": ("Documents", "The customer's documents", "page"), "compare": ("Amendments", "Two versions, what changed", "page"),
+         "library": ("Documents", "The customer's documents", "page"), "compare": ("What changed", "Two versions of a document", "page"),
          "structure": ("Setup", "The sections and each author's starting draft", "page"), "storyboards": ("Storyboards", "One sheet per section", "page"),
          "drafts": ("Draft Status", "A draft read back", "page"), "truth": ("Wall of Truth", "One approved way to state each fact", "page"),
          "reviews": ("Color Reviews", "Review packets and comments", "page"), "qa": ("Submission Check", "The volumes you will submit", "page"),

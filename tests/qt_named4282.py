@@ -39,7 +39,7 @@ w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.p
 check("Template's tabs: Templates, From profiles, Effort Profiles (4.29.1: Template Studio is Setup's)", MW.TABS["templates"] == [("templates", "Templates"), ("tplprofiles", "From profiles"),
                                                                                                            ("profiles", "Effort Profiles")])
 check("the page's title and the role that has it", TITLES["templates"][0] == "Templates" and "tplprofiles" in TITLES and RA.allowed("Production", "tplprofiles")
-      and MW.GROUP_OF.get("tplprofiles") == "Templates" and "tplprofiles" in MW.MainWindow.NO_EFFORT)
+      and MW.GROUP_OF.get("tplprofiles") == "Formatting" and "tplprofiles" in MW.MainWindow.NO_EFFORT)
 w.rail_go("templates"); app.processEvents()
 pg = w.named_page
 check("the Template entry opens the templates you name, with no effort open", w.stack.currentWidget() is pg and w.ws is None)

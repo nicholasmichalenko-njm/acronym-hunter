@@ -1138,7 +1138,7 @@ class AssignPage(QWidget):
         self.build_boxes()
         self.note.setText("Click a piece; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         if f in (__import__("setupdoc").setup_of(self.M).get("superseded") or []):    # 4.17.0: say which version this is
-            self.note.setText("An older version: only its pieces that changed are here, waiting in Documents > Amendments. "
+            self.note.setText("An older version: only its pieces that changed are here, waiting in Documents > What changed. "
                               "Shred the latest version, the other file in the list.")
         self.mark_changes()                         # 2.98.0: what this version changed, outlined on the page
         QTimer.singleShot(0, self.view.fit)
@@ -2803,7 +2803,7 @@ class AssignPage(QWidget):
             if ch["kind"] == "changed":
                 br.addWidget(D.button("Show the old page", None, lambda: self.old_page(it["id"]),
                                       f"{m['from'].get('label', '')} at the same spot, the old piece highlighted"))
-            br.addWidget(D.button("Decide in Amendments", "ghost", lambda: self.host.go("compare")))
+            br.addWidget(D.button("Decide in What changed", "ghost", lambda: self.host.go("compare")))
             br.addStretch(1)
             self.change_box = box
             self.add(box)

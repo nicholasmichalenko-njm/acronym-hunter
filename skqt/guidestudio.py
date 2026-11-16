@@ -137,7 +137,7 @@ PATH = ("path", "Getting started", "The effort's path",
   "6 Submit. Each step says what is left on it (done, a count, next, or the due date).",
   "Whenever you are not sure what to do next.",
   ["Documents: the customer's package, complete, current and readable. Click a document to see what has been done to it and "
-   "its next thing; Amendments shows what a new version changed.",
+   "its next thing; What changed shows what a new version changed.",
    "Shred: what every piece of the customer's text is (Requirements, Submission Checklist, Evaluation, Acronyms; adding a document "
    "extracts it). See it as shows Page or List; Fix text checks that every page was read right. The Q&A button opens the Q&A log beside the page.",
    "Matrix & Outline: what we answer and where (Outline, Place, the Matrix, Crosswalk, Coverage). Setup: who writes what, when and how long, and the "

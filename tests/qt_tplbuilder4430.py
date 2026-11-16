@@ -35,7 +35,7 @@ import pagelayouts as PGL, prodrules as PRL
 from skqt import tplbuilder as TB
 app = QApplication([]); D.apply(app)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
-check("the menu reads Templates, Page Layout, Styles, Quick Parts", [t for _k, t in dict(MW.RAIL)["Templates"]] == ["Templates", "Page Layout", "Styles", "Quick Parts"])
+check("the menu reads Templates, Page Layout, Styles, Quick Parts", [t for _k, t in dict(MW.RAIL)["Formatting"]] == ["Templates", "Page Layout", "Styles", "Quick Parts"])
 w.rail_go("templates"); app.processEvents()
 pg = w.named_page
 check("Templates opens the gallery, with New template... as its one main button", w.stack.currentWidget() is pg and pg.bar.main is pg.b_new

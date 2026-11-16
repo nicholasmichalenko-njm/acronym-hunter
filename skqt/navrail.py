@@ -12,6 +12,8 @@ import shredwords as SW
 import navsteps as NS
 from . import design as D
 
+FORMATTING = "Formatting"      # 4.46.0 (decision 71): the menu group that holds Templates, Page Layout, Styles, Quick Parts
+
 # the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
 VIEWS = (("assign", "Page", None), ("shredlist", "List", None))   # 4.19.0: List is the shred by the customer's structure   # 4.3.0: placing, L to M and
 VIEW_OF = {"assign": "assign", "shredlist": "shredlist"}  # Coverage: Matrix & Outline
@@ -115,12 +117,12 @@ def build(w, rv, rail, beta):
     rv.addWidget(head)
     w.group_heads, w.group_items = {}, {}
     for gi, (group, items) in enumerate(rail):
-        if group == "Templates":                                   # 4.28.0: the second path, under the effort's
-            th = QLabel("TEMPLATES"); th.setObjectName("railPathHead"); th.setStyleSheet(head.styleSheet()); rv.addWidget(th)
-        if group == "Team" or (gi == 1 and group != "Templates"):
+        if group == FORMATTING:                                    # 4.28.0: the second path, under the effort's
+            th = QLabel(FORMATTING.upper()); th.setObjectName("railPathHead"); th.setStyleSheet(head.styleSheet()); rv.addWidget(th)
+        if group == "Team" or (gi == 1 and group != FORMATTING):
             rv.addStretch(1)
             rule = QFrame(); rule.setFixedHeight(1); rule.setStyleSheet(f"background:{D.tokens()['rail_rule']};"); rv.addWidget(rule)
-        w.group_heads[group] = head if gi == 0 else th if group == "Templates" else None
+        w.group_heads[group] = head if gi == 0 else th if group == FORMATTING else None
         w.group_items[group] = []
         for key, text in items:
             n = NS_NUM.get(key)
@@ -187,9 +189,9 @@ def refresh_access(w, rail_of, members):
         b.style().unpolish(b); b.style().polish(b)
         b.setToolTip("" if ok else f"For {', '.join(RA.roles_for(key))}. Your role here: {prof}.")
         b.setVisible((ok or not hide) and key not in aside)
-    th = getattr(w, "group_heads", {}).get("Templates")              # 4.28.0: its heading goes when none of its entries show
+    th = getattr(w, "group_heads", {}).get(FORMATTING)               # 4.28.0: its heading goes when none of its entries show
     if th is not None:
-        th.setVisible(any(not b.isHidden() for b in w.group_items["Templates"]))
+        th.setVisible(any(not b.isHidden() for b in w.group_items[FORMATTING]))
     refresh_stage_tools(w, rail_of, prof)
     refresh_steps(w)
     return prof

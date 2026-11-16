@@ -42,8 +42,8 @@ by = {s["key"]: s for s in sts}
 check("Documents: a new version's changes to review keep it open", by["library"]["state"] == "now" and by["library"]["badge"] == "4 changes to review"
       and "9 documents in; 4 changes to review" == by["library"]["summary"], by["library"])
 n = NS.next_step(sts, f)
-check("Your next step: review the changes first, in Documents > Amendments", n["go"] == "compare" and "4 changes" in n["title"]
-      and n["button"] == "Open Amendments")
+check("Your next step: review the changes first, in Documents > What changed", n["go"] == "compare" and "4 changes" in n["title"]
+      and n["button"] == "Open What changed")
 f = dict(f, compare=0)
 sts = NS.steps(f)
 by = {s["key"]: s for s in sts}

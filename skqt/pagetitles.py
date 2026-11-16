@@ -50,7 +50,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
           "requirements": ("Submission Checklist", "Every rule and date the customer sets: found in the documents or said in the shred, with where each came from"),
           "custqa": ("Customer Q&A", "The questions we submit to the customer: their exact wording, our question, status and the answer"),
-          "compare": ("Amendments", "Each change a new version made, as a card with its old and new wording: decide each one there"),
+          "compare": ("What changed", "Each change a new version made, as a card with its old and new wording: decide each one there"),
           "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
           "evalcrit": ("Evaluation Criteria", "How the customer will judge the proposal: the factors, their importance and the deliverables they judge"),

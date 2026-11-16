@@ -12,7 +12,7 @@ import effort as E
 import setupdoc as SD
 import workspace as W
 import assign_ops as AO
-from . import design as D
+from . import design as D; from .navrail import FORMATTING   # 4.46.0: the menu group's name, kept in one place
 from .readpage import ReadPage
 from .assign import AssignPage
 from .builder import BuilderPage          # 3.30.0: the Structure Builder (with the structure text inside)
@@ -46,7 +46,7 @@ def _WAU():
 RAIL = [("Effort", [("home", "Overview"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
                     ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
-        ("Templates", [("templates", "Templates"), ("formatstd", "Page Layout"), ("styles", "Styles"), ("designs", "Quick Parts")]),   # 4.28.0; 4.43.0: the gallery first, then its components (ST31 to ST40)
+        (FORMATTING, [("templates", "Templates"), ("formatstd", "Page Layout"), ("styles", "Styles"), ("designs", "Quick Parts")]),   # 4.28.0; 4.43.0: the gallery first, then its components (ST31 to ST40)
         ("Team", [("tools", "Quick tools"), ("team", "Team")]),      # 4.27.2: Quick tools at the bottom of the menu
         ("Settings", [("globalstd", "Global Standards"), ("settings", "Settings")])]   # 4.34.0: its own page
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))
@@ -54,7 +54,7 @@ SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Quick 
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.27.0, 4.27.1
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
-        "library": [("library", "List"), ("compare", "Amendments"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
+        "library": [("library", "List"), ("compare", "What changed"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
@@ -95,7 +95,7 @@ GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 
 GROUP_OF.update({k: "Deliverables" for k in ("redline", "rcheck", "exceptions")})   # 4.25.3: opened from a deliverable's tile
 GROUP_OF.update({"graphics": "Documents", "calendar": "The effort", "tasks": "The effort"}); RAIL_OF.update({k: k for k in ("graphics", "calendar", "tasks")})   # 4.25.5, 4.27.1
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
-GROUP_OF.update({k: "Templates" for k, e in RAIL_OF.items() if e in TEMPLATES})   # 4.28.0
+GROUP_OF.update({k: FORMATTING for k, e in RAIL_OF.items() if e in TEMPLATES})   # 4.28.0; 4.46.0: the group is Formatting (decision 71)
 GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Quick tools' own
 
 

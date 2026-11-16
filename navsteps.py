@@ -206,7 +206,7 @@ def next_step(sts, f):
     if k == "library":
         if f["compare"]:
             return {"key": k, "go": "compare", "title": f"Review the {_plural(f['compare'], 'change')} a new version made",
-                    "button": "Open Amendments", "then": then,
+                    "button": "Open What changed", "then": then,
                     "why": "Each changed passage: no impact, shred it again, or ask a question."}
         n = f["to_check"]
         t = (f"Decide what the {'new document is' if n == 1 else str(n) + ' new documents are'} used for") if n else "Add the customer's documents"

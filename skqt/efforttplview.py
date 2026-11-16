@@ -48,7 +48,7 @@ class TemplatesOfType(QDialog):
             cb.activated.connect(lambda _i, p=r["pid"], c=cb: self.pick(p, c.currentData()))
             self.t.setCellWidget(i, 2, cb); self.boxes[r["pid"]] = cb
         if not every:
-            self.note.setText("No template is named yet. Name one in Templates > Template, then come back.")
+            self.note.setText("No template is named yet. Name one in Formatting > Templates, then come back.")
 
     def pick(self, pid, tid):
         ok = ET.put(self.cfg, self.eid, pid, tid or "")

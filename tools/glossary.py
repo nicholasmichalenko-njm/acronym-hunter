@@ -44,8 +44,8 @@ RULES = [
      r"Acros (&|&&) Abs|[Aa]cros and abs", r"$^"),
     ("volume-parts", "sections (what a volume is made of); Quick Parts and Standards > Parts keep their names",
      r"[Pp]arts and numbering|usual parts", r"$^"),
-    ("compare-page", "Amendments (the page; 4.29.0)",
-     r"\bCompare\b|\b(in|Open|>) Changes\b", r"Compare (two|the two|with|each|it|them)\b"),
+    ("compare-page", "What changed (the page; 4.46.0, decision 75; was Amendments, 4.29.0); Compare is picking two files by hand",
+     r"\bCompare\b|\b(in|Open|>) (Changes|Amendments)\b|\bAmendments (shows|works)\b", r"Compare (two|the two|with|each|it|them)\b"),
     ("names-4290", "Overview (was Dashboard); Submission Checklist (was Rules & Dates); Crosswalk (was L to M); Themes (was Theme tags)",
      r"\bDashboard\b|Rules (&|&&) Dates|\bL to M\b|Theme tags", r"$^"),
 ]

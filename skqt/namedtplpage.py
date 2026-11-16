@@ -364,7 +364,7 @@ class VolumeTemplatesDialog(QDialog):
             self.t.setCellWidget(r, 1, cb); self.boxes[vol] = cb
         newer = NT.newer(cfg, ws)
         self.note.setText(("No volumes yet: add the volumes in Setup first." if not vols else
-                           "No template is made yet: name one and make it in Templates > Template." if not made else
+                           "No template is made yet: name one and make it in Formatting > Templates." if not made else
                            "Pick a template for a volume. The setup is then written on it.")
                           + ("".join(f" {vol}: {nm} has a newer version ({b}); pick it again to take it." for vol, nm, _a, b in newer)))
         from . import efforttplview as ETV
@@ -392,7 +392,7 @@ class VolumeTemplatesDialog(QDialog):
         else:
             got = NT.pick(M, self.host.ws, self.host.config_dir, volume, tid, self.host.effort_path or "")
             if got is None:
-                self.host.status("Make that template first (Templates > Template).")
+                self.host.status("Make that template first (Formatting > Templates).")
         diag.activity("volume_template_picked", n=int(bool(tid)))
         self.page.changed()
         self.fill()

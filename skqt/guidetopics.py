@@ -306,7 +306,7 @@ TOPICS = [
   ["Read the rows. Gaps show where an instruction has no factor or a factor has no instruction.",
    "Press Export the crosswalk... for a review or the proposal manager."],
   ["The crosswalk fills in from your L, M and SOW decisions in Shred."]),
- ("compare", "Documents", "Amendments",
+ ("compare", "Documents", "What changed",
   "A card per change a new version of a customer document made: the old and new wording, what it touches in our response, "
   "and No impact, Re-shred or Ask a question on the card. Any two files (under More): our drafts or any files, with the "
   "redline in Word.",
@@ -317,7 +317,7 @@ TOPICS = [
    "hides the sentences that stayed the same. Redline (Word)... exports the changes marked; Tracked changes (Word)... "
    "saves a Word file where each change is a tracked change to accept or reject. Two Word files are compared by Word "
    "itself (formatting kept) when Word is on this PC; other files as their text.",
-   "Final Checks' Open in Amendments, and dropping two files on Quick tools, open Any two files with both picked."],
+   "Final Checks' Open in What changed, and dropping two files on Quick tools, open Any two files with both picked."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
  ("structure", "Matrix & Outline", "Outline",
   "Our response structure: volumes and sections at H1 to H9. Start our structure offers two doors to the one outline: "

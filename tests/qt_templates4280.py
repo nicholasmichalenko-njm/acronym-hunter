@@ -26,12 +26,12 @@ def check(name, ok, info=""):
     checks.append(bool(ok)); print("PASS" if ok else "FAIL", name, "" if ok else info)
 
 
-check("the menu's groups: Effort, Templates, Team, Settings", [g for g, _i in MW.RAIL] == ["Effort", "Templates", "Team", "Settings"])
-check("Templates: the gallery, then Page Layout, Styles, Quick Parts (4.43.0)", dict(MW.RAIL)["Templates"] == [("templates", "Templates"), ("formatstd", "Page Layout"),
+check("the menu's groups: Effort, Templates, Team, Settings", [g for g, _i in MW.RAIL] == ["Effort", "Formatting", "Team", "Settings"])
+check("Templates: the gallery, then Page Layout, Styles, Quick Parts (4.43.0)", dict(MW.RAIL)["Formatting"] == [("templates", "Templates"), ("formatstd", "Page Layout"),
                                                                                               ("styles", "Styles"), ("designs", "Quick Parts")])
 check("Template holds Templates, From profiles (4.28.2) and Effort Profiles (4.29.1: Template Studio is Setup's)", [k for k, _t in MW.TABS["templates"]] == ["templates", "tplprofiles", "profiles"])
 check("Team keeps Rules, Check a Draft and Team References", MW.TEAM == ("rules", "audit", "refs") and [k for k, _n, _w in TP.TILES] == ["rules", "audit", "refs"])
-check("each of the pages says it is in Templates", all(MW.GROUP_OF.get(k) == "Templates" for k in ("styles", "designs", "formatstd", "layoutstd", "templates", "profiles", "qpstd")),
+check("each of the pages says it is in Templates", all(MW.GROUP_OF.get(k) == "Formatting" for k in ("styles", "designs", "formatstd", "layoutstd", "templates", "profiles", "qpstd")),
       {k: MW.GROUP_OF.get(k) for k in ("styles", "designs", "formatstd", "layoutstd", "templates", "profiles", "qpstd")})
 check("the titles: Page Layout and Quick Parts", TITLES["formatstd"][0] == "Page Layout" and TITLES["designs"][0] == "Quick Parts")
 check("no page of these needs an effort but Template Studio", {"styles", "designs", "formatstd", "templates", "profiles"} <= MW.MainWindow.NO_EFFORT)
@@ -43,7 +43,7 @@ E.Registry(os.path.join(cfg, "efforts.json")).put("Osprey", path=LIST)
 app = QApplication([]); D.apply(app)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
 check("the four entries are in the menu with no effort open", all(k in w.step_btns and w.step_btns[k].isVisible() for k in ("styles", "designs", "formatstd", "templates")))
-check("... under their own heading", w.group_heads["Templates"] is not None and w.group_heads["Templates"].text() == "TEMPLATES")
+check("... under their own heading", w.group_heads["Formatting"] is not None and w.group_heads["Formatting"].text() == "FORMATTING")
 for k, page in (("styles", "styles_page"), ("designs", "designs_page"), ("formatstd", "formatstd_page"), ("templates", "named_page")):   # 4.28.2: the templates you name
     w.rail_go(k); app.processEvents()
     check(f"{k} opens from the menu with no effort open, and lights its entry", w.stack.currentWidget() is getattr(w, page) and w.step_btns[k].isChecked() and w.ws is None,
