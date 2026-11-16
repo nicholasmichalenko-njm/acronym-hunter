@@ -2,6 +2,7 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.45.0": ["Templates: point at a part of a sample page in the builder to see which pick made it; a click picks another. Once Word's pages are kept, one button goes between them and the sample pages."],
     "4.44.0": ["Templates: Draw with Word in the builder shows the exported file's own pages, labelled Exact. Word can take a minute or more; the pages are kept until a pick changes."],
     "4.43.1": ["Proposal managers and production leads build, change and archive templates; everyone else looks inside one and exports it.",
                "Saving acronym and matrix decisions runs in the background again.",
@@ -782,8 +783,7 @@ WHATS_NEW = {
                "Read shows its progress: the file and page, a running clock, Stop, and a clear message if a file cannot be "
                "read. Read is locked while it runs, so there is never a second read or a second matrix.",
                "Read RFP: tick all, tick selected, or tick one type; select several rows with Shift or Ctrl.",
-               "After an update the new version shows each step while it reopens your work, so a pause never looks "
-               "like lost work.",
+               "After an update the new version shows each step while it reopens your work, so a pause never looks like lost work.",
                "Assign: the decision buttons (Requirement, L, M, Support, Customer's, Not used) sit beside the response "
                "structure, under the section they put sentences into."],
     "2.81.0": ["Help and support in Settings: create a support file (no document content), the keyboard shortcuts, and this card.",

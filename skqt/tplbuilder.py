@@ -23,7 +23,7 @@ import templateproof as TPF
 import templatesample as TSM
 import templatesets as TS
 from . import design as D
-from .tplsample import SampleStrip
+from .tplsample import WHERE, SampleStrip
 
 # key, tile title, group, the page that changes the piece
 TILES = (("layout", "Page Setup", "Page Layout", "layouts"), ("numbering", "Numbering", "Page Layout", "layouts"),
@@ -32,6 +32,8 @@ TILES = (("layout", "Page Setup", "Page Layout", "layouts"), ("numbering", "Numb
 LATER = "Headers, footers, lists, captions and the Table of Contents come from the Global Standards until each gets its own pick."
 SKETCH = "Approximate: drawn by Stationkeeper from the picks. Draw with Word shows the exported file's own pages."
 EXACT = "Exact, drawn by Word: the pages of the exported file. They stay until a pick changes."
+POINT = "Point at a part of a page to see which pick made it."
+WORDS_PAGE = "Word drew this page from the whole template. Show the sample pages to see which pick made each part."
 
 
 class Tile(QFrame):
@@ -44,11 +46,26 @@ class Tile(QFrame):
         self.pick = QLabel(""); self.pick.setWordWrap(True); self.pick.setObjectName("tplpick"); v.addWidget(self.pick)
         self.holds = D.label("", "muted"); self.holds.setWordWrap(True); v.addWidget(self.holds)
         self.setToolTip("Click to pick from what is saved")
+        self.lit, self.last = False, ("", "", False)
+
+    def enterEvent(self, _e):
+        self.dlg.light(self.key, from_tile=True)
+
+    def leaveEvent(self, _e):
+        self.dlg.light("", from_tile=True)
+
+    def light(self, on):
+        """4.45.0: outlined while the pointer is on a part of a page this pick made."""
+        if on != self.lit:
+            self.lit = on
+            self.show_pick(*self.last)
 
     def show_pick(self, name, holds, picked):
         t = D.tokens()
+        self.last = (name, holds, picked)
         self.pick.setText(name); self.holds.setText(holds)
-        self.setStyleSheet(f"QFrame#tpltile{{background:{t['surface']};border:1px {'solid' if picked else 'dashed'} {t['border']};"
+        edge = f"2px solid {t.get('accent') or '#1F5FBF'}" if getattr(self, "lit", False) else f"1px {'solid' if picked else 'dashed'} {t['border']}"
+        self.setStyleSheet(f"QFrame#tpltile{{background:{t['surface']};border:{edge};"
                            f"border-radius:{D.RADIUS['card']}px;}} QFrame#tpltile QLabel{{background:transparent;}} "
                            f"QLabel#tplpick{{font-weight:600;color:{t['text'] if picked else t['muted']};}}")
 
@@ -87,13 +104,16 @@ class BuilderDialog(QDialog):
         right = QVBoxLayout(); body.addLayout(right, 3)
         self.kind = QLabel(SKETCH); self.kind.setObjectName("sampleKind"); self.kind.setWordWrap(True); right.addWidget(self.kind)
         self.strip = SampleStrip()
+        self.strip.pointed.connect(self.pointed); self.strip.picked.connect(self.point_menu)
+        self.where = D.label(POINT, "muted"); self.where.setWordWrap(True); right.addWidget(self.where)
         sc = QScrollArea(); sc.setWidgetResizable(True); sc.setWidget(self.strip); right.addWidget(sc, 1)
         self.line = QLabel(""); self.line.setObjectName("tpLine"); self.line.setWordWrap(True); right.addWidget(self.line)
         self.ticks = QLabel(""); self.ticks.setWordWrap(True); self.ticks.setTextFormat(Qt.RichText); right.addWidget(self.ticks)
         self.said = D.label("", "muted"); self.said.setWordWrap(True); v.addWidget(self.said)
         b = QHBoxLayout(); b.addStretch(1)
         self.b_close = D.button("Close", None, lambda: self.reject()); b.addWidget(self.b_close)
-        self.b_exact = D.button("Draw with Word", None, lambda: self.draw_exact(),
+        self.sketch = False                                   # 4.45.0: the sample pages asked for while Word's are kept
+        self.b_exact = D.button("Draw with Word", None, lambda: self.exact_button(),
                                 "Word draws the exported file's pages. It can take a minute or more; the pages are kept once drawn")
         b.addWidget(self.b_exact)
         self.b_export = D.button("Export", None, lambda: self.export(), "Save, write the .dotx and check it against the picks"); b.addWidget(self.b_export)
@@ -143,6 +163,9 @@ class BuilderDialog(QDialog):
         t = self.working()
         std = NT.std_of(self.cfg, t)
         exact = TX.cached(self.cfg, NT.get(self.cfg, self.tid)) if self.saved_picks() else []
+        self.b_exact.setText(("Show Word's pages" if self.sketch else "Show the sample pages") if exact else "Draw with Word")
+        if exact and self.sketch:
+            exact = []
         if exact:                                           # 4.44.0: Word's pages, kept, while the picks are the saved ones
             self.strip.show_pictures(exact)
         else:
@@ -156,6 +179,51 @@ class BuilderDialog(QDialog):
         self.kind.setStyleSheet(f"QLabel#sampleKind{{color:{tok['ok' if exact else 'warn']};}}")
         self.show_ticks()
         return self.rows
+
+    # ------------------------------------------------------------ 4.45.0: which pick made it (ST45)
+    def where_words(self, pick, part):
+        """What the line under the pages says for a part of a page."""
+        if not part:
+            return POINT
+        if part == "word":
+            return WORDS_PAGE
+        name = WHERE[part][1]
+        if not pick:
+            return f"{name}: from the Global Standards until it gets its own pick."
+        title = dict((k, t) for k, t, _g, _s in TILES)[pick]
+        return f"{name}: from {title}, {self.tile_words(pick)[0]}." + (" Click to pick another." if self.can else "")
+
+    def pointed(self, pick, part):
+        self.where.setText(self.where_words(pick, part))
+        for key, tile in self.tiles.items():
+            tile.light(bool(pick) and key == pick)
+
+    def light(self, pick, from_tile=False):
+        """A tile under the pointer outlines every part it made on the pages, and says when it made none."""
+        n = self.strip.light(pick)
+        if from_tile:
+            title = dict((k, t) for k, t, _g, _s in TILES).get(pick, "")
+            self.where.setText(POINT if not pick else (f"{title}: outlined on the pages." if n else
+                               (f"{title}: Word's pages do not show which part it made. Show the sample pages." if self.strip.exact
+                                else f"{title}: nothing on the sample pages shows this pick. Draw with Word shows it in the file.")))
+        return n
+
+    def point_menu(self, pick, show=True):
+        """A click on a part opens its pick's menu, where the pointer is. Returns the menu."""
+        m = self.tile_menu(pick)
+        if show and not os.environ.get("AH_TEST"):
+            from PySide6.QtGui import QCursor
+            m.exec(QCursor.pos())
+        return m
+
+    def exact_button(self):
+        """Draw with Word; once Word's pages are kept, the same button goes between them and the sample pages."""
+        if self.saved_picks() and TX.cached(self.cfg, NT.get(self.cfg, self.tid)):
+            self.sketch = not self.sketch
+            self.fill()
+            return "sample" if self.sketch else "word"
+        self.sketch = False
+        return self.draw_exact()
 
     def saved_picks(self):
         """Whether the picks on screen are the ones the template holds."""
