@@ -188,7 +188,7 @@ class StylesPage(QWidget):
         self.bar = CommandBar(self)
         self.b_new = self.bar.add("New style", lambda: self.new_style(), "A simple style made here: font, size, color, bold, italic, "
                                   "underline, hidden")
-        self.b_bring = self.bar.primary("Bring in from a document...", lambda: self.bring_in(),
+        self.b_bring = self.bar.primary("Bring in styles...", lambda: self.bring_in(),
                                         "Only the styles of a Word file or template: tick the ones you keep (the file is only read)")
         self.bar.more("New set...", lambda: self.new_set())
         self.bar.more("Rename this set...", lambda: self.rename_set())
@@ -228,7 +228,7 @@ class StylesPage(QWidget):
         self.rows.itemDoubleClicked.connect(lambda li: self.review(li.data(Qt.UserRole)))    # 4.30.1: review or change it here
         mid.addWidget(self.rows, 1)
         self.empty = D.EmptyState("No styles yet", "Bring in the styles of a Word file or template you already use: each one is "
-                                  "kept with Word's own definition, and you choose which come in.", "Bring in from a document...",
+                                  "kept with Word's own definition, and you choose which come in.", "Bring in styles...",
                                   lambda: self.bring_in())
         mid.addWidget(self.empty)
         body.addLayout(mid, 1)

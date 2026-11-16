@@ -50,7 +50,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 check("Parts (3.95.0, was Section designs) is a tab beside Layout", ("designs", "Quick Parts") in dict(__import__("skqt.mainwin", fromlist=["x"]).RAIL)["Formatting"])   # 4.28.0: a menu entry, named Quick Parts
 w.go("designs"); app.processEvents()
 dp = w.designs_page
-check("empty: one way in", dp.empty.isVisibleTo(w) and dp.bar.main.text() == "Bring in from a document...")
+check("empty: one way in", dp.empty.isVisibleTo(w) and dp.bar.main.text() == "Bring in parts...")
 dlg = dp.bring_in(cover, run=False)
 dlg.plan["pages"][0]["kind"] = "cover"
 kept, _q = dlg.go()

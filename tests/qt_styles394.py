@@ -34,7 +34,7 @@ w.go("styles"); app.processEvents()
 sp = w.styles_page
 check("Styles is a tab of Standards", ("styles", "Styles") in dict(__import__("skqt.mainwin", fromlist=["x"]).RAIL)["Formatting"])   # 4.28.0: a menu entry of Templates
 check("empty: one way in", sp.empty.isVisible() and not sp.rows.isVisible())
-check("one bar: New style, Bring in from a document... (the main one)", sp.bar.main is sp.b_bring and len(sp.bar.commands) <= 5)
+check("one bar: New style, Bring in styles... (the main one; 4.46.0, decision 71)", sp.bar.main is sp.b_bring and sp.b_bring.text() == "Bring in styles..." and len(sp.bar.commands) <= 5)
 DOC = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")
 rfp = sp.new_set(name="RFP volume")
 check("a new set shows on the left with its count", sp.sets.count() == 2 and "RFP volume" in sp.sets.item(1).text())

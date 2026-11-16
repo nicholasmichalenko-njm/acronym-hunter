@@ -144,7 +144,7 @@ class PartImport(QDialog):
 
 def bring_in(page, path=None, run=True):
     if path is None:
-        path, _f = QFileDialog.getOpenFileName(page, "Bring in parts from a document", "",
+        path, _f = QFileDialog.getOpenFileName(page, "Bring in parts: a Word document or template", "",
                                                "Word files and templates (*.docx *.dotx *.docm *.dotm)")
         if not path:
             return None

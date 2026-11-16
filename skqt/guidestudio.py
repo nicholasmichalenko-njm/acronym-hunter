@@ -112,7 +112,7 @@ DESIGNS = \
   "parts for a kind of effort.",
   ["Build the page in Word on the team template. Put each piece of text that changes per effort in its own paragraph "
    "and style; give each source a header or footer reads (STYLEREF) its own style.",
-   "Bring in from a document... reads a Word file once: its pages (one per Word section, each said to be a cover, a CUI "
+   "Bring in parts... reads a Word file once: its pages (one per Word section, each said to be a cover, a CUI "
    "page, a title page...: change it if the guess is wrong) and its Quick Parts gallery. Tick what you keep and pick its part set.",
    "On the right, What fills it: type the fill-in each styled paragraph takes, or leave it blank to keep the words as written.",
    "To change a page: right-click, Open in Word, save your changes as a new file, then Bring back as a new version... The "
@@ -125,7 +125,7 @@ DESIGNS = \
 # 3.94.0: the Styles library
 STYLES = ("styles", "Templates", "Styles", "Every style you keep, one row each, with a preview and the sets it is in.",
   "When a file has styles you want to keep; when you group styles for a kind of effort; when a style needs another look.",
-  ["Bring in from a document... reads only a Word file's styles: New, Different from yours (a new version) or Already have it, "
+  ["Bring in styles... reads only a Word file's styles: New, Different from yours (a new version) or Already have it, "
    "side by side; tick what you keep and pick its set. A style's versions are tabs on its row. Drag rows onto a set on the left; "
    "a set holds one version of each style and asks before moving to a newer one. New style makes a simple one; Make a copy to "
    "change (right-click) saves another version."],

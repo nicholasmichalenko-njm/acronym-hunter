@@ -48,7 +48,7 @@ class PartsPage(QWidget):
         self.find.setMinimumWidth(220); self.find.textChanged.connect(lambda _t: self.fill_rows())
         top.addWidget(self.find)
         self.bar = CommandBar(self)
-        self.bar.primary("Bring in from a document...", lambda: self.bring_in(),
+        self.bar.primary("Bring in parts...", lambda: self.bring_in(),
                          "The pages of a Word file (one per Word section: a cover, a CUI page, a title page...) and its Quick "
                          "Parts gallery; tick the ones you keep (the file is only read)")
         self.bar.more("New part set...", lambda: self.new_set())
@@ -79,7 +79,7 @@ class PartsPage(QWidget):
         mid.addWidget(self.rows, 1)
         self.empty = D.EmptyState("No parts yet", "Bring in a Word file that holds your covers, CUI page, title page or front "
                                   "matter, or a template with your Quick Parts: each page is kept whole, exactly as built in Word, "
-                                  "and you choose which come in.", "Bring in from a document...", lambda: self.bring_in())
+                                  "and you choose which come in.", "Bring in parts...", lambda: self.bring_in())
         mid.addWidget(self.empty)
         body.addLayout(mid, 3)
         side = QWidget(); sv = QVBoxLayout(side); sv.setContentsMargins(0, 0, 0, 0); sv.setSpacing(D.SPACE["s"])

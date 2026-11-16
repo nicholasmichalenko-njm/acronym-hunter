@@ -54,7 +54,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("designs"); app.processEvents()
 pp = w.designs_page
-check("empty: one way in", pp.empty.isVisibleTo(w) and not pp.rows.isVisibleTo(w) and pp.bar.main.text() == "Bring in from a document...")
+check("empty: one way in", pp.empty.isVisibleTo(w) and not pp.rows.isVisibleTo(w) and pp.bar.main.text() == "Bring in parts...")
 check("the kinds are tabs", [pp.tabs.tabText(i) for i in range(pp.tabs.count())] ==
       ["Covers", "Marking pages", "Title pages", "Front matter", "Tables", "Callouts", "Headers and footers", "Back covers", "Quick Parts"])
 ps = pp.new_set(name="Page-limited RFP")
@@ -125,6 +125,6 @@ pp.tabs.setCurrentIndex(8); app.processEvents(); pp.rows.setCurrentRow(0); app.p
 check("... a part whose styles are all here says nothing", not pp.problems.isVisibleTo(w))
 again = pp.bring_in(gl, run=False)
 check("met again: Already have it, unticked", all(e["state"] == "same" and not e["keep"] for e in again.plan["gallery"]))
-check("one command bar, one main button", pp.bar.main.text() == "Bring in from a document...")
+check("one command bar, one main button", pp.bar.main.text() == "Bring in parts...")
 print(f"QT PARTS 395 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)
