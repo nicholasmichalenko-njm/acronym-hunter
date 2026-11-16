@@ -176,7 +176,7 @@ class PartsPage(QWidget):
         if late:
             self.fit_line.setText(late); self.fit_line.setStyleSheet(""); self.fit_box.setVisible(True)
         has = any(PT.count(self.cfg(), k, self.lib) for k, _t, _s in PT.KINDS)
-        self.rows.setVisible(has); self.empty.setVisible(not has); self.side.setVisible(has)
+        self.rows.setVisible(has); self.empty.setVisible(not has); self.side.setVisible(has); self.bar.main.setVisible(has)   # 4.46.0 (decision 72)
         k = SL.get_set(self.lib, self.sid) if self.sid else None
         word = _count_words(len(rows), self.kind)
         ns = len(SL.sets(self.lib, "part"))

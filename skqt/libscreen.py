@@ -593,8 +593,8 @@ class PageLayoutPage(FormattingStandardsPage):
     def __init__(self, host):
         self._library = "formatting"
         super().__init__(host)
-        self.moved_note.setText("Paragraph and character styles are on Styles; covers, title pages and back covers are on Quick Parts. "
-                                "Right-click an item to rename it, set its status, compare it or draw it with Word.")
+        self.moved_note.setText("Right-click an item to rename it, set its status, compare it or draw it with Word.")   # 4.46.0 (decision 72):
+        # the sentence pointing to Styles and Quick Parts is gone (the menu shows them); this one goes when those actions get buttons
         self.row_actions.hide(); self.ver_btn.hide(); self.revert_btn.hide()     # one Save; the rest on a right-click
         self.t.setContextMenuPolicy(Qt.CustomContextMenu); self.t.customContextMenuRequested.connect(self.row_menu)
 

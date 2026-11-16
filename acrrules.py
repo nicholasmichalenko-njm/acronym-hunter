@@ -630,6 +630,14 @@ class AcronymRules:
                        {"Effort": L.name, "Client": L.client, "Solicitation": L.solicitation}[c] for c in cols])
         for col, w in zip("ABCDEFGHIJK", (14, 44, 14, 12, 50, 12, 12, 30, 22, 18, 18)):
             ws.column_dimensions[col].width = w
+        about = wb.create_sheet("About this list")          # 4.46.0 (decision 64): a working export names its scan
+        files = sorted({os.path.basename(p) for p in (getattr(self, "last_scan", None) or {}).get("paths", [])}
+                       or {f for r in rows for f in re.split(r"\s*;\s*", r.get("Found in", "")) if f}, key=str.lower)
+        for line in (("Effort", L.name), ("List made", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")),
+                     ("Last scan", max((str(r.get("Last found") or "") for r in rows), default="") or "not recorded"),
+                     ("Files scanned", len(files))) + tuple(("", f) for f in files):
+            about.append(list(line))
+        about.column_dimensions["A"].width, about.column_dimensions["B"].width = 16, 70
         xp = os.path.join(folder, f"{stem}_Acronym_List_{stamp}.xlsx")
         wb.save(xp); made.append(xp)
         diag.activity("effort_lists_exported", files=len(made), rows=len(rows))

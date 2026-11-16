@@ -275,7 +275,7 @@ class StylesPage(QWidget):
             self.rows.addItem(li); self.rows.setItemWidget(li, w)
             self.row_ids.append(it["id"])
         has = any(i["kind"] == "style" for i in self.lib.items)
-        self.rows.setVisible(has); self.empty.setVisible(not has)
+        self.rows.setVisible(has); self.empty.setVisible(not has); self.b_bring.setVisible(has)   # 4.46.0 (decision 72): one Bring in at a time
         k = SL.get_set(self.lib, self.sid) if self.sid else None
         self.count.setText((f"{k['name']}: {len(rows)} style(s)" if k else f"{len(rows)} style(s) · {len(SL.sets(self.lib))} set(s)")
                            if has else "")

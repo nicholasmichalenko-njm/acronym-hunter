@@ -68,10 +68,8 @@ class StyleImport(QDialog):
         self.table.setColumnWidth(0, 220); self.table.setColumnWidth(1, 230); self.table.setColumnWidth(4, 200)
         self.table.itemChanged.connect(lambda it: self.ticked(it))
         v.addWidget(self.table, 1)
-        v.addWidget(D.label("Every style of the file is listed and ticked, and nothing changes until Bring in. A style you already have "
-                            "with other values shows each value that would change; it becomes that style's new latest version, for every "
-                            "set that uses it, and the earlier versions are kept (Versions... on its row). A style in the set shown can "
-                            "also be kept beside yours under a numbered name, or skipped. A new style comes in as it is in the file.", "muted"))
+        v.addWidget(D.label("Nothing changes until Bring in. A style you already have with other values becomes its new latest version, "
+                            "for every set that uses it; the earlier versions are kept.", "muted"))   # 4.46.0 (decision 72): 26 words, was 90
         foot = QHBoxLayout()
         self.n_lab = D.label("", "muted", wrap=False); foot.addWidget(self.n_lab, 1)
         foot.addWidget(D.button("Cancel", None, self.reject))

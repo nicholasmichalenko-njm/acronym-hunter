@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.46.0": ["One word for one thing, from the UX review. Documents > Amendments is now What changed, and every button and sentence that points to it says so. The menu group Templates is now Formatting; its pages keep their names.",
+               "Acronyms: a find's status is said in plain words on Everything found, the card, Details and the acronym lists (New, no definition on record; Choose a definition; In the acronym database; Added to effort list; Ignored). Exports use the same words, and the exported Excel list has a second sheet, About this list, naming the effort, when it was made and the files scanned. Nothing saved in an effort changes.",
+               "Styles and Quick Parts: the button says what comes in (Bring in styles..., Bring in parts...) and shows once: in the empty page, or at the top when the page has content. The chips under Shred's title have no numbers."],
     "4.45.0": ["Templates: point at a part of a sample page in the builder to see which pick made it; a click picks another. Once Word's pages are kept, one button goes between them and the sample pages."],
     "4.44.0": ["Templates: Draw with Word in the builder shows the exported file's own pages, labelled Exact. Word can take a minute or more; the pages are kept until a pick changes."],
     "4.43.1": ["Proposal managers and production leads build, change and archive templates; everyone else looks inside one and exports it.",

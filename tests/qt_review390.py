@@ -101,8 +101,8 @@ check("Verify stamps a change", VS.changed_after(st, "Kestrel_Section_LM.pdf", "
 # Layout says where covers went
 w.go("layoutstd"); app.processEvents()
 lay = w.layoutstd_page
-check("Layout: covers, title pages and back covers are in Section designs", lay.moved_note.isVisibleTo(lay)
-      and "Parts" in lay.moved_note.text()
+check("Layout holds no covers, title pages or back covers; no sentence points to where they are (4.46.0, decision 72: the menu shows it)",
+      lay.moved_note.isVisibleTo(lay) and "Quick Parts" not in lay.moved_note.text() and "on Styles" not in lay.moved_note.text()
       and not any(lay.cats.item(r).text().startswith(("Covers", "Title pages", "Back covers")) for r in range(lay.cats.count())))
 if os.environ.get("SHOT_DIR"):
     w.go("crosswalk"); app.processEvents()
