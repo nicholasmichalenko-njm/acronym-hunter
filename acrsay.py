@@ -89,6 +89,8 @@ def definition(text):
     m = _MULTIPLE.match(s)
     if m:
         return f"{_n(m.group(1), 'meaning', 'meanings')}: " + "; ".join(x.strip() for x in m.group(2).split(" OR "))
+    if s.startswith("MULTIPLE: "):                       # Keep all: every meaning kept, saved with bars between
+        return "; ".join(x.strip() for x in s[len("MULTIPLE: "):].split(" | "))
     if s.startswith("[EXCLUDED] "):
         return s[len("[EXCLUDED] "):]
     return s

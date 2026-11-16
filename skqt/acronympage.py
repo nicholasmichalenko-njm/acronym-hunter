@@ -11,6 +11,7 @@ import diag
 import effortfolders as EF
 import app_gui as A
 import acrsession as S
+import acrsay as SAY                                               # 4.46.0: a saved status in the page's words
 import scanprogress as SP
 from . import design as D
 from . import progress as PR
@@ -275,8 +276,8 @@ class AcronymPage(QWidget):
             d = s.results[t]
             kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
             from .acrextras import source_text
-            vals = [t, d.get("category", ""), d.get("count", 0), AF.found_in(self, s, t, d), d.get("change", ""), A.status_text(d.get("status", "")),
-                    d.get("selected_definition", ""), s.known_cell(t, d), d.get("effort", ""), source_text(d)]
+            vals = [t, d.get("category", ""), d.get("count", 0), AF.found_in(self, s, t, d), d.get("change", ""), SAY.shown(A.status_text(d.get("status", ""))),
+                    SAY.definition(d.get("selected_definition", "")), s.known_cell(t, d), d.get("effort", ""), source_text(d)]
             if AF.same(self, i, (vals, kind, d.get("plural_of") or d.get("form_of"), fmap.get(t))):
                 continue
             for c, val in enumerate(vals):

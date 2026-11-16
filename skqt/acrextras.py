@@ -15,13 +15,14 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
                                QMenu, QMessageBox, QPlainTextEdit, QTableWidget, QTableWidgetItem, QVBoxLayout)
 
 import acrmore as AM
+import acrsay as SAY
 import app_gui as A
 import diag
 from . import design as D
 
 SORT_KEYS = {0: lambda t, d: t.casefold(), 1: lambda t, d: str(d.get("category", "")), 2: lambda t, d: -int(d.get("count") or 0),
-             3: None, 4: lambda t, d: str(d.get("change", "") or "~"), 5: lambda t, d: A.status_text(d.get("status", "")),
-             6: lambda t, d: str(d.get("selected_definition", "")).casefold(), 7: None, 8: lambda t, d: str(d.get("effort", "") or "~"),
+             3: None, 4: lambda t, d: str(d.get("change", "") or "~"), 5: lambda t, d: SAY.shown(A.status_text(d.get("status", ""))),
+             6: lambda t, d: SAY.definition(d.get("selected_definition", "")).casefold(), 7: None, 8: lambda t, d: str(d.get("effort", "") or "~"),
              9: lambda t, d: source_text(d)}
 
 
@@ -133,8 +134,8 @@ def details(page, run=True):
     if not t or s is None:
         return None
     d = s.results[t]
-    lines = [f"Term: {t}", f"Type: {d.get('category', '')}", f"Status: {A.status_text(d.get('status', ''))}",
-             f"Meaning: {d.get('selected_definition', '')}", f"Found: {d.get('count', 0)} time(s)", f"Change: {d.get('change', '')}",
+    lines = [f"Term: {t}", f"Type: {d.get('category', '')}", f"Status: {SAY.shown(A.status_text(d.get('status', '')))}",
+             f"Meaning: {SAY.definition(d.get('selected_definition', ''))}", f"Found: {d.get('count', 0)} time(s)", f"Change: {d.get('change', '')}",
              f"Known in: {s.known_cell(t, d)}", f"Acronym list: {d.get('effort', '')}", "", "Possible meanings:"]
     for x in d.get("definitions", []) or []:
         src = AM.sources_of(d, x)

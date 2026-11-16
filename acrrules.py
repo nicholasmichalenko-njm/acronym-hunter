@@ -7,6 +7,7 @@ The class expects what AcronymSession gives it: ws, efforts, effort, results, ma
 client_lists, tree, entry_def, status, and the hooks it overrides. Rules only (No AI); nothing leaves the PC."""
 import csv, datetime, os, re, time
 import diag
+import acrsay as SAY
 import effort as E
 from app_gui import (CLIENT_TAG, DB_TAG, LOC_MAX_LINES, RESOLVED_WORDS, STATUS_RANK, _file_of, ctx_text, status_kind,
                      status_text)
@@ -625,7 +626,7 @@ class AcronymRules:
         for c in ws[1]:
             c.font = Font(bold=True)
         for r in rows:
-            ws.append([r.get(c, "") if c not in ("Effort", "Client", "Solicitation") else
+            ws.append([(SAY.decision(r.get(c, "")) if c == "Status" else r.get(c, "")) if c not in ("Effort", "Client", "Solicitation") else
                        {"Effort": L.name, "Client": L.client, "Solicitation": L.solicitation}[c] for c in cols])
         for col, w in zip("ABCDEFGHIJK", (14, 44, 14, 12, 50, 12, 12, 30, 22, 18, 18)):
             ws.column_dimensions[col].width = w

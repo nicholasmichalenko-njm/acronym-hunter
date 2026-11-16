@@ -42,12 +42,41 @@ check("the Definition column: none on record",
 check("... several meanings, listed", S.definition("MULTIPLE (2 meanings) - Choose: Statement of Work OR Scope of Work")
       == "2 meanings: Statement of Work; Scope of Work"
       and S.definition("MULTIPLE (3 client meanings) - Choose: A OR B OR C") == "3 meanings: A; B; C")
+check("... every meaning kept (Keep all), listed the same way", S.definition("MULTIPLE: Statement of Work | Scope of Work") == "Statement of Work; Scope of Work")
 check("... an ignored term's definition without the mark; a real definition untouched",
       S.definition("[EXCLUDED] Statement of Work") == "Statement of Work" and S.definition("Statement of Work") == "Statement of Work")
 # what is saved is not changed: the app still sorts finds by the saved words
 check("the saved words still sort the finds (app_gui.status_kind reads what is saved)",
       A.status_kind("NEW CANDIDATE") == "candidate" and A.status_kind("CHOOSE DEFINITION") == "choice"
       and A.status_kind("Resolved (In DB)") == "resolved")
+# the exported acronym list (acrrules.export_effort_lists): Status in the page's words; the effort's rows keep theirs
+import tempfile, types, openpyxl
+import acrrules as R, effort as E
+tmp = tempfile.mkdtemp()
+L = E.EffortList(os.path.join(tmp, "Kestrel_Effort_List.xlsx"), "Kestrel")
+L.add_or_update("KZQ", Definition="Kestrel Zulu Quebec", Status="In the list")
+L.add_or_update("KAT", Definition="", Status="In the list")
+fake = types.SimpleNamespace(effort=L, efforts={"Kestrel": {}}, results={})
+fake._list_rows = types.MethodType(R.AcronymRules._list_rows, fake)
+made = R.AcronymRules.export_effort_lists(fake, folder=tmp, scope="whole")
+xp = [m for m in made or [] if m.endswith(".xlsx")]
+ws = openpyxl.load_workbook(xp[0])["Acronym list"] if xp else None
+heads = [c.value for c in ws[1]] if ws else []
+col = heads.index("Status") if "Status" in heads else None
+cells = [r[col] for r in ws.iter_rows(min_row=2, values_only=True)] if ws and col is not None else []
+check("the exported list's Status cells read Added to effort list", cells and all(c == "Added to effort list" for c in cells), cells)
+check("... while the effort's own rows still hold In the list", all(L.rows[t]["Status"] == "In the list" for t in ("KZQ", "KAT")),
+      {t: L.rows[t]["Status"] for t in L.rows})
+check("... and the headings Term and Definition stay (a Word macro reads them)", heads[:2] == ["Term", "Definition"], heads)
+docx = [m for m in made or [] if m.endswith(".docx")]
+import zipfile
+xml = zipfile.ZipFile(docx[0]).read("word/document.xml").decode("utf-8") if docx else ""
+check("... the Word list keeps its Term and Definition headings", ">Term<" in xml and ">Definition<" in xml)
+import acrimport as AI
+book = AI.read(xp[0]) if xp else {}
+back = AI.to_rows(book) if book else []
+check("Import a list reads the export back as In the list (the reader knows the page's words)",
+      back and all(E._norm_status(r.get("Status")) == "In the list" for r in back) and E._norm_status("Ignored") == "Not a term", back)
 k = sum(checks)
 print(f"ACRSAY 4460 {'PASS' if k == len(checks) and checks else 'FAIL'} ({k}/{len(checks)})")
 sys.exit(0 if checks and k == len(checks) else 1)

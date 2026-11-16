@@ -15,6 +15,7 @@ import os
 from PySide6.QtWidgets import (QComboBox, QDialog, QFileDialog, QInputDialog, QHBoxLayout, QHeaderView, QLabel, QMainWindow, QTableWidget, QTableWidgetItem,
                                QTabWidget, QVBoxLayout, QWidget)
 
+import acrsay as SAY
 import diag
 from . import design as D
 
@@ -227,7 +228,7 @@ class AcronymToolWindow(QMainWindow):
             if not path:
                 return None
         try:
-            n = export_list(rows, path)
+            n = export_list([(t, SAY.definition(m)) for t, m in rows], path)    # 4.46.0: placeholders in the page's words
         except PermissionError:
             self.host.status("That file is open. Close it, then export again.")
             return None

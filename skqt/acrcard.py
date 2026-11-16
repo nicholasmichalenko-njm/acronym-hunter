@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLineEdit, QListWidget, QVBoxLayout, 
 
 import app_gui as A
 import acrmore as AM
+import acrsay as SAY
 from . import design as D
 from . import acrextras as AX
 
@@ -30,14 +31,14 @@ def build(page, t, kind_tone):
     body = page.body
     kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
     top = QHBoxLayout(); top.setSpacing(D.SPACE["s"])
-    top.addWidget(D.Pill(A.status_text(d.get("status", "")), kind_tone.get(kind, "accent")))
+    top.addWidget(D.Pill(SAY.shown(A.status_text(d.get("status", ""))), kind_tone.get(kind, "accent")))
     top.addWidget(D.label(f"found {d.get('count', 0)} time(s)", "muted", wrap=False))
     top.addStretch(1)
     body.addLayout(top)
 
     # ---- the meaning
     chosen = d.get("selected_definition", "")
-    body.addWidget(D.label(f"Definition: <b>{chosen}</b>" if chosen else "Definition: none chosen yet"))
+    body.addWidget(D.label(f"Definition: <b>{SAY.definition(chosen)}</b>" if chosen else "Definition: none chosen yet"))
     # 3.88.0: what it could mean, in the stated order, each with its source and why; two customer meanings need a choice
     import acrsuggest as AS
     hint = AS.not_a_term_hint(t)

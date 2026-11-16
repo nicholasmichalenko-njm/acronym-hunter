@@ -26,7 +26,7 @@ IN, NOT = "In the list", "Not a term"
 OLD_HEADINGS = {"SS Approver": "Approver"}     # 3.52.0: the column renamed; workbooks saved before read the same, the next save writes the new heading
 SCAN_NEW, SCAN_FOUND, SCAN_GONE = "New in this scan", "Found", "No longer found in"
 STATUSES = [IN, NOT]
-OLD_STATUS = {"proposed": IN, "needs author": IN, "approved": IN, "rejected": NOT}
+OLD_STATUS = {"proposed": IN, "needs author": IN, "approved": IN, "rejected": NOT, "added to effort list": IN, "ignored": NOT}  # 4.46.0: an export says these
 
 
 def ready(row):

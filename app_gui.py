@@ -3475,6 +3475,7 @@ def corrections_on():
 def write_acronym_report(path, terms, results, known_cell):
     """The acronym report (CSV, opens in Excel): one row per term shown (2.67.0: shared with the Qt edition)."""
     strip = lambda x: x[len(CLIENT_TAG):] if x.startswith(CLIENT_TAG) else x[len(DB_TAG):] if x.startswith(DB_TAG) else x
+    import acrsay as SAY                       # 4.46.0: the status and placeholders in the page's words (decision 64)
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
         w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
@@ -3487,7 +3488,7 @@ def write_acronym_report(path, terms, results, known_cell):
             client = d.get("client_definitions", [])
             dbdefs = d.get("db_definitions", []) if d.get("client") else ([] if d.get("excluded") else
                                                                           [x for x in defs if not d.get("manual")])
-            w.writerow([term, d["category"], d["count"], d.get("change", ""), d["status"], d["selected_definition"],
+            w.writerow([term, d["category"], d["count"], d.get("change", ""), SAY.shown(status_text(d["status"])), SAY.definition(d["selected_definition"]),
                         "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
                         "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
                         "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", ""),
