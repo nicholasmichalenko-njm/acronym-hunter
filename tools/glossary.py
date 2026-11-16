@@ -46,6 +46,8 @@ RULES = [
      r"[Pp]arts and numbering|usual parts", r"$^"),
     ("compare-page", "What changed (the page; 4.46.0, decision 75; was Amendments, 4.29.0); Compare is picking two files by hand",
      r"\bCompare\b|\b(in|Open|>) (Changes|Amendments)\b|\bAmendments (shows|works)\b", r"Compare (two|the two|with|each|it|them)\b"),
+    ("datum-words", "Production Datum (the set a PC installs; 4.47.0); Connect from a file..., Connect to a folder...; Stationkeeper defaults",
+     r"starter set|[Bb]uilt-in starter|Take a file someone sent|Choose the shared folder", r"$^"),
     ("names-4290", "Overview (was Dashboard); Submission Checklist (was Rules & Dates); Crosswalk (was L to M); Themes (was Theme tags)",
      r"\bDashboard\b|Rules (&|&&) Dates|\bL to M\b|Theme tags", r"$^"),
 ]

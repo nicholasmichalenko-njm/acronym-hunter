@@ -8,6 +8,7 @@ client_lists, tree, entry_def, status, and the hooks it overrides. Rules only (N
 import csv, datetime, os, re, time
 import diag
 import acrsay as SAY
+import datum as DT
 import effort as E
 from app_gui import (CLIENT_TAG, DB_TAG, LOC_MAX_LINES, RESOLVED_WORDS, STATUS_RANK, _file_of, ctx_text, status_kind,
                      status_text)
@@ -635,6 +636,7 @@ class AcronymRules:
                        or {f for r in rows for f in re.split(r"\s*;\s*", r.get("Found in", "")) if f}, key=str.lower)
         for line in (("Effort", L.name), ("List made", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")),
                      ("Last scan", max((str(r.get("Last found") or "") for r in rows), default="") or "not recorded"),
+                     ("Working from", DT.line(DT.state(_eng().CONFIG_DIR))),   # 4.47.0: the Datum's number
                      ("Files scanned", len(files))) + tuple(("", f) for f in files):
             about.append(list(line))
         about.column_dimensions["A"].width, about.column_dimensions["B"].width = 16, 70

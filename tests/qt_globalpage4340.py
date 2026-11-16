@@ -42,11 +42,11 @@ w.go("globalstd"); app.processEvents()
 gp = w.globalstd_page
 vis = lambda b: not b.isHidden()
 check("the page opens with its title", w.stack.currentWidget() is gp and w.page_title.text() == "Global Standards", w.page_title.text())
-check("not connected: one sentence and one way to Settings; no setup buttons, no count", "not connected to your team's Global Standards" in gp.gs_folder.text()
+check("not connected: one sentence and one way to Settings; no setup buttons, no count", "No Production Datum is installed" in gp.gs_folder.text()
       and vis(gp.gs_setup) and not hasattr(gp, "gs_link") and not vis(gp.who_count) and not vis(gp.who_card), gp.gs_folder.text())
 check("there is no Update button and no Put back (ST14)", not hasattr(gp, "gs_update") and not hasattr(GV, "update_dialog"))
 words = (gp.gs_folder.text() + gp.edit_card.title.text() + GV.NOT_CONNECTED + " ".join(b.text() for b in gp.edit_buttons.values())).lower()
-check("the page's words: no publish, no draft, no changes waiting", not any(x in words for x in ("publish", "draft", "changes waiting", "put back")), words)
+check("the page's words: no publish, no draft, no changes waiting, no starter set", not any(x in words for x in ("publish", "draft", "changes waiting", "put back", "starter set", "built-in starter")), words)
 check("Settings holds the setup and the way to the page", hasattr(w.settings_page, "gsl_card") and not hasattr(w.settings_page, "gs_card"))
 GV.link(w.settings_page, F); gp.refresh(); app.processEvents()
 check("linked to a folder this PC can write to: a change saved here reaches everyone", GF.folder() == F and "reaches everyone" in gp.gs_folder.text() and not vis(gp.gs_setup), gp.gs_folder.text())
@@ -54,11 +54,11 @@ check("an empty shared folder: what this PC has becomes version 1", GF.versions(
 rules(11)
 gp.refresh(); app.processEvents()
 check("a save is shared at once: version 2 is in the folder with no button pressed", GF.versions(F) == [1, 2] and GS.state(cfg)["version"] == 2, GF.versions(F))
-check("the number is in the window's title", "Global Standards 2" in w.windowTitle(), w.windowTitle())
+check("the number is in the window's title", "Production Datum 2" in w.windowTitle(), w.windowTitle())
 rules(12)
 said = GV.share_now(w)
 check("the next save is the next version, and the person is told", GF.versions(F) == [1, 2, 3] and "Global Standards 3" in said and "is shared" in said
-      and "Global Standards 3" in w.windowTitle(), said)
+      and "Production Datum 3" in w.windowTitle(), said)
 check("with nothing saved since, nothing is shared", GV.share_now(w) == "" and GF.versions(F) == [1, 2, 3])
 rules(13)
 check("the tick shares too", GV.watch(w) != "" and GF.versions(F) == [1, 2, 3, 4])
@@ -108,14 +108,14 @@ with open(os.path.join(other, "rules.json"), "w") as fh:
     json.dump({"format": 1, "rules": [{"id": "r1", "limit": 20}]}, fh)
 GF.share(other, F, by="Ada")
 w.go("globalstd"); app.processEvents()
-check("a PC on an earlier version is told the newer one is ready, with who, and Use it now", f"version {top + 1} is ready, updated by Ada" in gp.gs_ready.text() and vis(gp.gs_use), gp.gs_ready.text())
+check("a PC on an earlier version is told the newer one is ready, with who, and Use it now", f"Production Datum {top + 1} is ready, updated by Ada" in gp.gs_ready.text() and vis(gp.gs_use), gp.gs_ready.text())
 rules(9)
 said = GV.at_open(w)
 check("this PC's own change is not shared over the newer version; it is told what Use it now replaces",
       GF.versions(F)[-1] == top + 1 and GS.state(cfg)["version"] == top and "is ready" in said and "replaces what this PC changed itself" in said, said)
 gp.refresh(); said = GV.use_now(gp); app.processEvents()
 check("Use it now takes it, says what it replaced and where the backup is, and the title follows", GS.state(cfg)["version"] == top + 1
-      and "replaced this PC's own changes in: Rules" in said and "Global Standards backups" in said and f"Global Standards {top + 1}" in w.windowTitle(), said)
+      and "replaced this PC's own changes in: Rules" in said and "Global Standards backups" in said and f"Production Datum {top + 1}" in w.windowTitle(), said)
 with open(os.path.join(other, "rules.json"), "w") as fh:
     json.dump({"format": 1, "rules": [{"id": "r1", "limit": 21}]}, fh)
 GF.share(other, F, by="Ada")
@@ -123,7 +123,7 @@ real = GF.can_update
 GF.can_update = lambda _f: False                                 # a PC whose account cannot write to the folder
 gp.refresh(); app.processEvents()
 check("a PC that only reads says so, and takes the newer version by itself when it opens", "reads the Global Standards from it" in gp.gs_folder.text()
-      and f"version {top + 2}" in GV.at_open(w) and GS.state(cfg)["version"] == top + 2, gp.gs_folder.text())
+      and f"Production Datum {top + 2}" in GV.at_open(w) and GS.state(cfg)["version"] == top + 2, gp.gs_folder.text())
 rules(99)
 check("... and shares nothing of its own", GV.share_now(w) == "" and GF.versions(F)[-1] == top + 2)
 GF.can_update = real

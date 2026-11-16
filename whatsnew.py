@@ -2,6 +2,7 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.47.0": ["The Production Datum: the name for what a PC installs to work the way the team does (the Global Standards, the acronym database and the custom dictionaries). A mark in the top bar, on every page, says which one this PC is on: No Production Datum installed, Production Datum 14, or Production Datum 14, 15 is ready.", "Click the mark for one small panel: with nothing installed, one sentence and Connect; installed, its number, when, and what it holds with counts; a newer one ready, which parts will change and Install Production Datum 15. Connect is two actions: Connect from a file... and Connect to a folder... Settings has the same two.", "Nothing is restricted without one. The number is the Global Standards version number, continued. The exported acronym list names the Production Datum it was made from."],
     "4.46.0": ["One word for one thing, from the UX review. Documents > Amendments is now What changed, and every button and sentence that points to it says so. The menu group Templates is now Formatting; its pages keep their names.", "Acronyms: a find's status is said in plain words on Everything found, the card, Details and the acronym lists (New, no definition on record; Choose a definition; In the acronym database; Added to effort list; Ignored). Exports use the same words, and the exported Excel list has a second sheet, About this list, naming the effort, when it was made and the files scanned. Nothing saved in an effort changes.", "Styles and Quick Parts: the button says what comes in (Bring in styles..., Bring in parts...) and shows once: in the empty page, or at the top when the page has content. The chips under Shred's title have no numbers."],
     "4.45.0": ["Templates: point at a part of a sample page in the builder to see which pick made it; a click picks another. Once Word's pages are kept, one button goes between them and the sample pages."],
     "4.44.0": ["Templates: Draw with Word in the builder shows the exported file's own pages, labelled Exact. Word can take a minute or more; the pages are kept until a pick changes."],
@@ -790,8 +791,7 @@ WHATS_NEW = {
     "2.81.0": ["Help and support in Settings: create a support file (no document content), the keyboard shortcuts, and this card.",
                "Ctrl+K searches pages, efforts, sentences and people from anywhere.",
                "After two starts in a row that did not finish, Stationkeeper opens without the last effort and says why."],
-    "2.80.0": ["Your data lives in 'Stationkeeper Data' beside the program folder; updates never touch it.",
-               "Effort health is checked when an effort opens; a damaged list or matrix is put back from its newest good copy.",
+    "2.80.0": ["Your data lives in 'Stationkeeper Data' beside the program folder; updates never touch it.", "Effort health is checked when an effort opens; a damaged list or matrix is put back from its newest good copy.",
                "Stationkeeper asks before overwriting a matrix another copy saved, and waits out OneDrive holding a file."],
     "2.79.0": ["Work modes: Secured (SCIF or closed network) or Connected (OneDrive team folder). Offline in both.", "Packages open where the sender was, with the same names, and say which copy is newer."],
     "2.78.0": ["Automatic backups, a recovery copy after a crash, Effort record > Restore, and each effort reopens where you were."],

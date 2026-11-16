@@ -17,6 +17,8 @@ def simplify(w):
     w.issue_btn.setVisible(False)
     w.effort_box.setVisible(False)
     w.statusBar().addPermanentWidget(w.saved)
+    from . import datummark                                   # 4.47.0: the Production Datum's mark, on every page
+    datummark.install(w)
     orig = w.show_mode_chip
 
     def show_mode_chip():

@@ -237,5 +237,5 @@ GLOBALSTD = \
    "leaves its own line when it opens Stationkeeper.",
    "When someone else has changed the standards while this PC holds a change of its own, the page says a newer version "
    "is ready and what Use it now would replace. Nothing moves until you press it."],
-  ["Setting this PC up is in Settings > Where the Global Standards come from: the shared folder, or a file someone sent.",
+  ["Setting this PC up is the mark in the top bar (or Settings > Where the Production Datum comes from): Connect to a folder, or Connect from a file.",
    "An effort takes a value from the Global Standards only when someone on the effort chooses it."])

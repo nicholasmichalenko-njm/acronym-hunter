@@ -23,7 +23,7 @@ def add_card(page, v):
     page.gs_text = page.gs_card.add(D.label("", None)); page.gs_text.setWordWrap(True)
     page.gs_folder = page.gs_card.add(D.label("", "muted")); page.gs_folder.setWordWrap(True)
     page.gs_setup = page.gs_card.add(D.button("Connect this PC in Settings", None, lambda: page.host.go("settings"),
-                                              "Settings > Where the Global Standards come from: your team's shared folder, or a file someone sent."))
+                                              "Settings > Where the Production Datum comes from: connect to a folder, or from a file."))
     page.gs_ready = page.gs_card.add(D.label("", None)); page.gs_ready.setWordWrap(True)
     page.gs_use = page.gs_card.add(D.button("Use it now", "primary", lambda: use_now(page)))
     v.addWidget(page.gs_card)
@@ -34,19 +34,19 @@ def add_link(page, v):
     """Settings > Where the Global Standards come from (ST21): the shared folder, or a file taken and a file to send.
     Setup of this PC, done once; changing the standards is the Global Standards page."""
     from PySide6.QtWidgets import QHBoxLayout, QWidget
-    page.gsl_card = D.Card("Where the Global Standards come from", "Your team keeps one copy of the Global Standards in a shared "
-                           "folder (OneDrive, SharePoint or a network drive). Choose it once and this PC stays current by itself. "
-                           "With no shared folder, the standards travel as a file.",
+    page.gsl_card = D.Card("Where the Production Datum comes from", "The Production Datum holds the Global Standards, the acronym "
+                           "database and the custom dictionaries. Connect to the folder it is kept in (OneDrive, SharePoint or a "
+                           "network drive) and this PC stays current by itself. With no folder, it travels as a file.",
                            actions=[D.button("Open Global Standards", None, lambda: page.host.go("globalstd"))])
     page.gsl_text = page.gsl_card.add(D.label("", None)); page.gsl_text.setWordWrap(True)
     page.gsl_folder = page.gsl_card.add(D.label("", "muted")); page.gsl_folder.setWordWrap(True)
     row = QWidget(); h = QHBoxLayout(row); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["s"])
-    page.gs_link = D.button("Choose the shared folder...", None, lambda: link(page),
-                            "The folder your team keeps the Global Standards in. This PC reads them from it each time Stationkeeper opens.")
-    page.gs_install = D.button("Take a file someone sent...", None, lambda: install(page),
-                               "For a PC with no shared folder: the Global Standards from a file (Global Standards version N.skgs). It is checked whole first.")
+    page.gs_link = D.button("Connect to a folder...", None, lambda: link(page),
+                            "The folder the Production Datum is kept in. This PC reads it from there each time Stationkeeper opens.")
+    page.gs_install = D.button("Connect from a file...", None, lambda: install(page),
+                               "For a PC with no folder to connect to: the Production Datum from a file (.skgs). It is checked whole first.")
     page.gs_save = D.button("Save a file to send...", None, lambda: save_file(page),
-                            "For a team with no shared folder: the Global Standards as this PC has them, in one file to send.")
+                            "For a team with no shared folder: the Production Datum as this PC has it, in one file to send.")
     for b in (page.gs_link, page.gs_install, page.gs_save):
         h.addWidget(b)
     h.addStretch(1)
@@ -58,7 +58,7 @@ def add_link(page, v):
 def folder_words(cfg, folder):
     """How this PC is connected, in one sentence."""
     if not folder:
-        return NOT_CONNECTED if not GS.state(cfg)["version"] else "This PC has no shared folder. It keeps the Global Standards it was given as a file."
+        return NOT_CONNECTED if not GS.state(cfg)["version"] else "This PC is not connected to a folder. It keeps the Production Datum it was given as a file."
     if not os.path.isdir(folder):
         return f"The shared folder {folder} cannot be reached now. This PC stays on the version it has."
     return f"Shared folder: {folder}. " + ("A change you save in the Global Standards reaches everyone the next time they open Stationkeeper."
@@ -95,7 +95,7 @@ def ready_words(cfg, folder):
     note = f' Note: "{man["note"]}"' if man.get("note") else ""
     n = len(GS.changed(cfg)) if GS.state(cfg)["version"] else 0
     lose = f" It replaces what this PC changed itself in {n} part{'s' if n != 1 else ''}; a backup is kept." if n else ""
-    return f"Global Standards version {man['version']} is ready{by} on {man.get('when', '')}.{note}{lose}"
+    return f"Production Datum {man['version']} is ready{by} on {man.get('when', '')}.{note}{lose}"
 
 
 def show(page):
@@ -114,7 +114,7 @@ def show(page):
     return page.gs_text.text()
 
 
-NOT_CONNECTED = ("This PC is not connected to your team's Global Standards. It runs on the starter set that comes with Stationkeeper.")
+NOT_CONNECTED = ("No Production Datum is installed. Stationkeeper runs on its own defaults.")      # 4.47.0 (decisions 36, 67)
 STARTER = NOT_CONNECTED
 
 
@@ -122,7 +122,7 @@ def install(page, path=None):
     """Take a version from its file. Returns what was said ("" when nothing was chosen or the file was refused)."""
     if path is None:
         from PySide6.QtWidgets import QFileDialog
-        path, _f = QFileDialog.getOpenFileName(page, "A Global Standards file", "", f"Global Standards (*{GX.EXT})")
+        path, _f = QFileDialog.getOpenFileName(page, "Connect from a file: a Production Datum file", "", f"Production Datum (*{GX.EXT})")
         if not path:
             return ""
     try:
@@ -141,7 +141,7 @@ def link(page, path=None):
     """Point this PC at the Global Standards folder. Returns the folder, or None when nothing was chosen."""
     if path is None:
         from PySide6.QtWidgets import QFileDialog
-        path = QFileDialog.getExistingDirectory(page, "Your team's shared folder for the Global Standards", GF.folder())
+        path = QFileDialog.getExistingDirectory(page, "Connect to a folder: the folder the Production Datum is kept in", GF.folder())
         if not path:
             return None
     GF.set_folder(path)
@@ -157,7 +157,7 @@ def _tell(host, got):
         by = GS.state(host.config_dir).get("by") or ""
     except Exception:  # noqa: BLE001
         pass
-    said = f"This PC is on Global Standards version {got['version']}" + (f", changed by {by}." if by else ".")
+    said = f"This PC is on Production Datum {got['version']}" + (f", changed by {by}." if by else ".")
     if got.get("replaced"):
         said += " It replaced this PC's own changes in: " + ", ".join(got["replaced"]) + f". They are kept in {got['backup']}."
     try:
@@ -226,7 +226,7 @@ def watch(w):
         n = man["version"] if man else 0
         if n and n != getattr(w, "_gs_said", 0):
             w._gs_said = n
-            said = f"Global Standards version {n} is ready. It is taken the next time Stationkeeper opens, or now: Global Standards > Use it now."
+            said = f"Production Datum {n} is ready. It is installed the next time Stationkeeper opens, or now from the mark in the top bar."
             w.status(said)
             return said
         if not n:
@@ -273,7 +273,7 @@ def badge(host):
     """For the window's title: the number every PC can be checked against at a glance."""
     try:
         n = GS.state(host.config_dir)["version"]
-        return f"  \u00b7  Global Standards {n}" if n else ""
+        return f"  \u00b7  Production Datum {n}" if n else ""       # 4.47.0: the set's name (decisions 39, 40)
     except Exception:  # noqa: BLE001
         return ""
 
@@ -311,6 +311,6 @@ def save_file(page, path=None):
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)
     diag.activity("global_standards_file_saved")
-    page.host.status(f"Saved {os.path.basename(path)}. On the other PC: Settings > Where the Global Standards come from > Take a file someone sent...")
+    page.host.status(f"Saved {os.path.basename(path)}. On the other PC: the mark in the top bar > Connect > Connect from a file...")
     show(page)
     return path

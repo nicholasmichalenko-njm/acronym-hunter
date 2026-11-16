@@ -72,7 +72,7 @@ wbx = openpyxl.load_workbook(xp[0]) if xp else None
 ab = {r[0]: r[1] for r in wbx["About this list"].iter_rows(values_only=True) if r[0]} if wbx and "About this list" in wbx.sheetnames else {}
 check("the export names its scan on a second sheet: effort, when made, the last scan, the files (decision 64)",
       wbx and wbx.sheetnames[0] == "Acronym list" and ab.get("Effort") == L.name and re.match(r"\d{4}-\d\d-\d\d \d\d:\d\d$", str(ab.get("List made")))
-      and "Last scan" in ab and "Files scanned" in ab, (wbx.sheetnames if wbx else None, ab))
+      and "Last scan" in ab and "Files scanned" in ab and str(ab.get("Working from", "")).startswith("Production Datum"), (wbx.sheetnames if wbx else None, ab))
 docx = [m for m in made or [] if m.endswith(".docx")]
 import zipfile
 xml = zipfile.ZipFile(docx[0]).read("word/document.xml").decode("utf-8") if docx else ""
