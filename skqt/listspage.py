@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QButtonGroup, QFileDialog, QHBoxLayout, QHeaderVi
 import diag
 import effortfolders as EF
 import volcheck as V
+import acrsay as SAY                 # 4.46.0: the decision in the page's words, on screen and in the export
 from . import design as D
 
 MODES = (("per", "One list per volume"), ("master", "One master list for all volumes"), ("both", "Both"))
@@ -130,7 +131,7 @@ class ListsPage(QWidget):
             t.verticalHeader().setVisible(False); t.setEditTriggers(QTableWidget.NoEditTriggers)
             t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
             for i, x in enumerate(unused):
-                for c, val in enumerate((x["term"], x.get("definition", ""), x.get("status", ""), "Not used in any submission volume")):
+                for c, val in enumerate((x["term"], x.get("definition", ""), SAY.decision(x.get("status", "")), "Not used in any submission volume")):
                     it = QTableWidgetItem(val)
                     it.setForeground(D.color("muted"))
                     t.setItem(i, c, it)
@@ -145,7 +146,7 @@ class ListsPage(QWidget):
         t.setColumnWidth(0, 160); t.setColumnWidth(2, 160)
         for i, x in enumerate(rows):
             bad = x["status"] == "Not a term" or not x["definition"]
-            for c, val in enumerate((x["term"], x["definition"] or "(no definition yet)", x["status"])):
+            for c, val in enumerate((x["term"], x["definition"] or "(no definition yet)", SAY.decision(x["status"]))):
                 it = QTableWidgetItem(val)
                 if bad and c > 0:
                     it.setForeground(D.color("warn"))
@@ -194,12 +195,12 @@ class ListsPage(QWidget):
             for c in ws[1]:
                 c.font = Font(bold=True)
             for x in rows:
-                ws.append([x["term"], x["definition"], x["status"]])
+                ws.append([x["term"], x["definition"], SAY.decision(x["status"])])
             ws.column_dimensions["A"].width = 18; ws.column_dimensions["B"].width = 70; ws.column_dimensions["C"].width = 18
         ws = wb.create_sheet("Left out")
         ws.append(["Term", "Definition", "Status", "Why"])
         for x in r.get("unused", []):
-            ws.append([x["term"], x.get("definition", ""), x.get("status", ""), "Not used in any submission volume"])
+            ws.append([x["term"], x.get("definition", ""), SAY.decision(x.get("status", "")), "Not used in any submission volume"])
         try:
             wb.save(path)
         except PermissionError:

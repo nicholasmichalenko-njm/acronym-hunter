@@ -277,7 +277,7 @@ class AcronymPage(QWidget):
             kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
             from .acrextras import source_text
             vals = [t, d.get("category", ""), d.get("count", 0), AF.found_in(self, s, t, d), d.get("change", ""), SAY.shown(A.status_text(d.get("status", ""))),
-                    SAY.definition(d.get("selected_definition", "")), s.known_cell(t, d), d.get("effort", ""), source_text(d)]
+                    SAY.definition(d.get("selected_definition", "")), s.known_cell(t, d), SAY.decision(d.get("effort", "")), source_text(d)]
             if AF.same(self, i, (vals, kind, d.get("plural_of") or d.get("form_of"), fmap.get(t))):
                 continue
             for c, val in enumerate(vals):

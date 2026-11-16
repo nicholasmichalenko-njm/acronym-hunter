@@ -135,7 +135,7 @@ def build(page, t, kind_tone):
     inner = QVBoxLayout(); inner.setContentsMargins(0, 0, 0, 0); inner.setSpacing(D.SPACE["s"])
     pills = QHBoxLayout(); pills.setSpacing(D.SPACE["s"])
     if d.get("effort"):
-        pills.addWidget(D.Pill(f"Acronym list: {__import__('skqt.acrwords', fromlist=['x']).shown(d['effort'])}" + ("" if ((d.get("list_definition") or "").strip() or d["effort"] == "Not a term") else ", no definition yet"),
+        pills.addWidget(D.Pill(f"Acronym list: {SAY.decision(d['effort'])}" + ("" if ((d.get("list_definition") or "").strip() or d["effort"] == "Not a term") else ", no definition yet"),
                             "ok" if (d.get("list_definition") or "").strip() and d["effort"] == "In the list" else "head" if d["effort"] == "Not a term" else "warn"))
     if d.get("from_drafts"):                                  # 4.4.0: Drafts > Acronyms sent it here
         pills.addWidget(D.Pill("From our drafts: " + ", ".join(d["from_drafts"]), "warn" if not d.get("effort") else "ctx"))

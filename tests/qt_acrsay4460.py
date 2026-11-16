@@ -46,6 +46,10 @@ check("... and the definition placeholder too", page.table.item(row, 6).text() =
 check("... while what is saved keeps the scan's words", s.results[term]["status"] == NEW and s.results[term]["selected_definition"] == PH,
       s.results[term])
 check("... and the saved words still sort the finds", A.status_kind(s.results[term]["status"]) == "candidate")
+s.results[term]["effort"] = "In the list"; page.fill(); app.processEvents()
+r8 = page.table.item(page.terms.index(term), 8).text() if term in page.terms else "(row gone)"
+check("the decision reads Added to effort list on the table, In the list where it is saved", r8 == "Added to effort list" and s.results[term]["effort"] == "In the list", r8)
+s.results[term]["effort"] = ""; page.fill(); app.processEvents(); row = page.terms.index(term)
 page.select(term); app.processEvents()
 pills = [p.text() for p in page.card.findChildren(D.Pill)]
 check("the card's pill says it the same way", "New, no definition on record" in pills and NEW not in pills, pills)

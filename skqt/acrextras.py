@@ -136,7 +136,7 @@ def details(page, run=True):
     d = s.results[t]
     lines = [f"Term: {t}", f"Type: {d.get('category', '')}", f"Status: {SAY.shown(A.status_text(d.get('status', '')))}",
              f"Meaning: {SAY.definition(d.get('selected_definition', ''))}", f"Found: {d.get('count', 0)} time(s)", f"Change: {d.get('change', '')}",
-             f"Known in: {s.known_cell(t, d)}", f"Acronym list: {d.get('effort', '')}", "", "Possible meanings:"]
+             f"Known in: {s.known_cell(t, d)}", f"Acronym list: {SAY.decision(d.get('effort', ''))}", "", "Possible meanings:"]
     for x in d.get("definitions", []) or []:
         src = AM.sources_of(d, x)
         lines.append(f"  {x}" + (f"   (customer document: {', '.join(src)})" if src else ""))
