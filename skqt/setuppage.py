@@ -156,7 +156,7 @@ class SetupPage(QWidget):
         if opts is None or go is None:
             info0 = self.host.efforts.get(self.host.effort_name) or {}
             pl0 = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info0)
-            d = MakeDialog(self, rd, ST.options(R.M, pl0[0]["std"] if pl0 else None))
+            d = MakeDialog(self, rd + [__import__("skqt.datummark", fromlist=["x"]).ready_row(self.host)], ST.options(R.M, pl0[0]["std"] if pl0 else None))   # 4.47.1
             if d.exec() != d.Accepted:
                 return None
             opts = d.values()

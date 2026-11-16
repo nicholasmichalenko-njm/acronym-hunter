@@ -581,7 +581,7 @@ class DetailsDialog(QDialog):
         row.addWidget(D.button("+ Detail", None, lambda: self.add_row("", "")))
         row.addWidget(D.button("Remove", "ghost", lambda: self.table.removeRow(self.table.currentRow()) if self.table.currentRow() >= 0 else None))
         row.addStretch(1)
-        v.addWidget(extra); extra.setVisible(bool(ident["fields"]))
+        v.addWidget(extra); extra.setVisible(bool(ident["fields"])); v.addWidget(__import__("skqt.datummark", fromlist=["x"]).started_label(parent.host))   # 4.47.1
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
         v.addWidget(bb)
 

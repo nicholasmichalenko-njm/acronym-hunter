@@ -63,6 +63,7 @@ check("Check: the volume's eight sections", got and {x["section"] for x in got[0
       {x["section"] for x in got[0]["lines"]} if got else None)
 top = fp.tree.topLevelItem(0)
 check("the report tree: the volume, its sections and lines", top.text(0) == "Volume I Technical" and top.childCount() == 8)
+check("... and the Format rules section says what the checks worked from (4.47.1)", [x for x in got[0]["lines"] if x["check"] == "Working from" and x["section"] == "Format rules" and "Production Datum" in x["detail"]], [x for x in got[0]["lines"] if x["section"] == "Format rules"])
 check("the counts in the pills", fp.p_fail.text().endswith("fail") and fp.p_pass.text().endswith("pass"))
 pl = [x for x in got[0]["lines"] if x["check"] == "Pages against the limit"][0]
 check("the page count leaves out what was ticked", "5 of 7 pages counted" in pl["detail"], pl["detail"])

@@ -60,6 +60,13 @@ check("Create effort makes it and opens it on Effort Home", name == "Kestrel The
       and w.stack.currentWidget() is hp and hp.scroll.isVisibleTo(w) and not hp.start_wrap.isVisibleTo(w))
 root = w.ws.root
 rec = RR.Record(root)
+import datum as DT
+from skqt import datummark as DM
+lab = DM.started_label(w)
+check("the effort remembers the Production Datum it was started on, and its details say so (4.47.1)",
+      w.ws.get(DT.STARTED_KEY, None) == 0 and DT.started(w.ws) == "Started with no Production Datum installed" and lab.text() == DT.started(w.ws) and not lab.isHidden(),
+      (w.ws.get(DT.STARTED_KEY, None), lab.text()))
+check("Make the setup's readiness list names what this PC works from, and never blocks on it", DM.ready_row(w) == (True, "Production Datum: none installed", 0), DM.ready_row(w))
 check("... with its picture, proposal manager and due date in the submission's time zone", BR.has_picture(root)
       and BR.identity(rec)["pm"] == "A. Rivera" and rec.data["due"].startswith("2026-12-15T14:00") and rec.zone_key() == "ET",
       (rec.data.get("due"), rec.zone_key()))

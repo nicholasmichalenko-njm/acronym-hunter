@@ -63,6 +63,25 @@ check("... and nothing was installed by asking", GS.state(B)["version"] == 1)
 check("a folder that is gone is nothing newer, not an error", DT.state(B, os.path.join(tmp, "nowhere"))["kind"] == DT.INSTALLED)
 check("the words never say Knowledge Pack, starter or Global Standards version",
       not any(w in " ".join([DT.mark(stb), DT.line(stb), DT.NOTHING, wc["words"]]) for w in ("Knowledge Pack", "starter", "Global Standards version")))
+# 4.47.1: an effort remembers what it was started on; the final check says what it worked from
+class WS:
+    def __init__(self): self.d = {}
+    def get(self, k, default=None): return self.d.get(k, default)
+    def set(self, k, v): self.d[k] = v
+ws = WS()
+check("an effort started before this was kept says nothing (nothing is guessed)", DT.started(ws) == "" and DT.started(None) == "")
+check("a new effort remembers the Production Datum it was started on", DT.record_start(ws, B) == 1 and DT.started(ws) == "Started on Production Datum 1", ws.d)
+empty = os.path.join(tmp, "C", "config"); os.makedirs(empty)
+ws2 = WS(); DT.record_start(ws2, empty)
+check("... or that none was installed", DT.started(ws2) == "Started with no Production Datum installed", ws2.d)
+import finalcheck as FC
+r1 = FC.run({"name": "Volume I"}, {"datum_line": DT.line(DT.state(empty))})
+r2 = FC.run({"name": "Volume I"}, {"datum_line": DT.line(DT.state(B))})
+l1 = [x for x in r1["lines"] if x["check"] == "Working from"]; l2 = [x for x in r2["lines"] if x["check"] == "Working from"]
+check("the checks before submission say what they worked from: none installed needs a person's look",
+      len(l1) == 1 and l1[0]["status"] == FC.HUMAN and l1[0]["detail"].startswith("Production Datum: none installed."), l1)
+check("... and with one installed it is named and passes", len(l2) == 1 and l2[0]["status"] == FC.PASS and l2[0]["detail"] == "Production Datum 1.", l2)
+check("... and a check run with no Datum line given is as it was", not [x for x in FC.run({"name": "Volume I"}, {})["lines"] if x["check"] == "Working from"])
 k = sum(checks)
 print(f"DATUM 4470 {'PASS' if k == len(checks) and checks else 'FAIL'} ({k}/{len(checks)})")
 sys.exit(0 if checks and k == len(checks) else 1)

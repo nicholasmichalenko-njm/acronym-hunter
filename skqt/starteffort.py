@@ -304,6 +304,7 @@ def start_effort(host, v):
             et = PRL.effort_type_of(PRL.load(host.config_dir), v["effort_type"])
             if et:
                 host.ws.set("prod_std", {"effort_type": et["id"], "type": et["default_profile"]})
+        __import__("datum").record_start(host.ws, host.config_dir)        # 4.47.1: the Production Datum it was started on
         diag.activity("qt_effort_started", n=sum(1 for k in ("picture", "pm", "due", "client", "solicitation") if v.get(k)))
     except Exception:
         diag.swallowed()

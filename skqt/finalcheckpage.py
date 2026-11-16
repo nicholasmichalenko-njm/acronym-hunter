@@ -193,6 +193,7 @@ class FinalCheckPage(QWidget):
                 c["marking"] = ((c["std"] or {}).get("variables") or {}).get("marking") or ""
             except Exception:  # noqa: BLE001
                 c["marking"] = ""
+            c["datum_line"] = __import__("datum").line(__import__("skqt.datummark", fromlist=["x"]).state(self.host))    # 4.47.1
             out.append(FC.run(vol, c))
         self.reports = out
         self.fill()

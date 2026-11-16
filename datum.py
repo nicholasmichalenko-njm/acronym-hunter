@@ -7,6 +7,8 @@ state(config_dir, folder)   {"kind": NONE | INSTALLED | READY, "number", "taken"
 mark(st)                    the top bar's words: "No Production Datum installed", "Production Datum 14",
                             "Production Datum 14, 15 is ready"
 line(st)                    where something is produced: "Production Datum: none installed" / "Production Datum 14"
+record_start(ws, config_dir)   a new effort remembers which one it was started on (4.47.1; decision 36, point 5)
+started(ws)                 "Started on Production Datum 12" / "Started with no Production Datum installed" / ""
 holds(config_dir, db_file)  what the installed one holds, one (name, count, word) per line
 will_change(config_dir, folder)   before a newer one is installed: the parts that differ, in counts
 
@@ -109,3 +111,21 @@ def will_change(config_dir, folder):
     words = (f"{_n(len(names), 'part', 'parts')} will change: " + ", ".join(names[:6])
              + (f" and {len(names) - 6} more" if len(names) > 6 else "") + ".") if names else "It replaces the one installed."
     return {"number": st["ready"], "parts": names, "words": words}
+
+
+STARTED_KEY = "datum_started"          # in the effort's own settings: the number it was started on (0: none installed)
+
+
+def record_start(ws, config_dir):
+    """A new effort remembers the Production Datum it was started on. Returns the number kept (0 when none)."""
+    n = GS.state(config_dir)["version"]
+    ws.set(STARTED_KEY, int(n))
+    return n
+
+
+def started(ws):
+    """What an effort's details say; "" for an effort started before this was kept (nothing is guessed)."""
+    n = ws.get(STARTED_KEY, None) if ws is not None else None
+    if not isinstance(n, int) or isinstance(n, bool):
+        return ""
+    return f"Started on {NAME} {n}" if n else f"Started with no {NAME} installed"

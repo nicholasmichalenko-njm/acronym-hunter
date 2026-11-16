@@ -354,6 +354,11 @@ def run(volume, ctx=None):
         lines.append(_line("Files", "The PDF as the portal takes it", FAIL if probs else PASS,
                            "; ".join(probs) if probs else f"{f['pages']} pages, {f['mb']:.1f} MB, fonts embedded, searchable text"
                            + (f"; {'; '.join(f['notes'])}" if f["notes"] else "") + "."))
+    if ctx.get("datum_line"):                               # 4.47.1 (decision 36): what the checks above worked from
+        none = "none installed" in ctx["datum_line"]
+        at = max([i for i, x in enumerate(lines) if x["section"] == "Format rules"], default=len(lines) - 1) + 1   # with its section
+        lines.insert(at, _line("Format rules", "Working from", HUMAN if none else PASS,
+                               ctx["datum_line"] + (". The standards checked are Stationkeeper's own defaults." if none else ".")))
     counts = {s: sum(1 for x in lines if x["status"] == s) for s in (PASS, FAIL, HUMAN)}
     return {"volume": name, "docx": docx, "pdf": pdf, "lines": lines, "counts": counts}
 

@@ -52,7 +52,7 @@ check("the builder holds no control that changes a piece: a name, tiles, and Clo
       and [x.text() for x in (b.b_close, b.b_export, b.b_save)] == ["Close", "Export", "Save"])
 check("the sample pages are there from the start, labelled Approximate", [p["key"] for p in b.strip.pages] == ["front", "body", "landscape", "appendix"]
       and b.kind.text().startswith("Approximate: drawn by Stationkeeper") and b.strip.pages[0]["m"] == [1.0] * 4)
-check("one line says the picks fit", b.line.text() == "Ready to make. The five components fit each other.", b.line.text())
+check("one line says the picks fit, and what the template is made from (4.47.1)", b.line.text() == "Ready to make. The five components fit each other.  Production Datum: none installed.", b.line.text())
 m = b.tile_menu("style_sets")
 check("a tile's menu lists what is saved, then Go to its page", [a.text() for a in m.actions() if a.text()] == ["RFP volume    1 style", "Page-limited    0 styles", "Go to its page"], [a.text() for a in m.actions()])
 b.toggle_style_set(ka["id"]); b.toggle_style_set(kb["id"])

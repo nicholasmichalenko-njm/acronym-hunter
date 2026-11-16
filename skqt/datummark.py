@@ -157,3 +157,16 @@ def take(w):
     said = GV.use_now(_settings(w))
     w.title()
     return said
+
+
+def started_label(host):
+    """For the effort's details: which Production Datum it was started on. Hidden when that was never recorded."""
+    said = DT.started(getattr(host, "ws", None))
+    lab = D.label(said, "muted")
+    lab.setVisible(bool(said))
+    return lab
+
+
+def ready_row(host):
+    """For a readiness list (Make the setup): what this PC works from. Never blocks: nothing is restricted without one."""
+    return (True, DT.line(state(host)), 0)

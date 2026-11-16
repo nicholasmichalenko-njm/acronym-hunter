@@ -174,7 +174,7 @@ class BuilderDialog(QDialog):
         self.rows = TP.rows(self.cfg, t, self.lib)
         ok, said = TP.ready(self.rows)
         tok = D.tokens()
-        self.line.setText(said)
+        self.line.setText(said + "  " + __import__("datum").line(__import__("skqt.datummark", fromlist=["x"]).state(self.host)) + ".")   # 4.47.1: what it is made from
         self.line.setStyleSheet(f"QLabel#tpLine{{color:{tok['ok' if ok else 'warn']};font-weight:600}}")
         self.kind.setStyleSheet(f"QLabel#sampleKind{{color:{tok['ok' if exact else 'warn']};}}")
         self.show_ticks()
