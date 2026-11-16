@@ -229,7 +229,7 @@ def refresh_stage_tools(w, rail_of, prof=None):
 
 # ------------------------------------------------------------------ inside a step: the stepper, the views, the bar
 class Stepper(QWidget):
-    """The Shred step's tabs as steps (4.0.0; Review's until 3.98.0): each with its number, its name and a count; done ones
+    """The Shred step's tabs as steps (4.0.0; Review's until 3.98.0): each with its name and a count (4.46.0: no number); done ones
     in green, the current outlined."""
     def __init__(self, w):
         super().__init__()
@@ -246,8 +246,8 @@ class Stepper(QWidget):
                 ln = QFrame(); ln.setFixedSize(18, 2); ln.setObjectName("stepLine"); h.addWidget(ln, 0, Qt.AlignVCenter)
                 self.chips[k + ":line"] = ln
             b = ClickFrame("stepChip")
-            bl = QHBoxLayout(b); bl.setContentsMargins(6, 3, 10, 3); bl.setSpacing(6)
-            no = QLabel(str(i)); no.setFixedSize(18, 18); no.setAlignment(Qt.AlignCenter); no.setObjectName("stepNo")
+            bl = QHBoxLayout(b); bl.setContentsMargins(8, 3, 10, 3); bl.setSpacing(6)
+            no = QLabel(""); no.setFixedSize(8, 8); no.setObjectName("stepNo")   # 4.46.0 (decision 16): no number, they are ways to see the shred, not steps; the mark keeps the state's color
             nm = QLabel(label); nm.setObjectName("stepName")
             ct = QLabel(""); ct.setObjectName("stepCount")
             for x in (no, nm, ct):
@@ -316,7 +316,7 @@ class Stepper(QWidget):
             b.setStyleSheet(f"QFrame#stepChip{{background:{bg};border:{bd};border-radius:6px;}}"
                             f"QLabel#stepName{{color:{fg};font-weight:600;background:transparent;}}"
                             f"QLabel#stepCount{{color:{t['muted']};font-size:11px;background:transparent;}}"
-                            f"QLabel#stepNo{{background:{fg};color:{t['bg']};border-radius:9px;font-size:10px;font-weight:700;}}")
+                            f"QLabel#stepNo{{background:{fg};color:{t['bg']};border-radius:4px;}}")
             ln = self.chips.get(k + ":line")
             if ln is not None:
                 ln.setStyleSheet(f"background:{t['ok'] if st == 'done' else t['border_strong']};")
