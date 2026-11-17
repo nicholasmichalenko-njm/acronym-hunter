@@ -4,7 +4,7 @@ screens that hold sentences; the effort is switched from the effort's card at th
 gone from the bar); Saved sits in the status line; the mode shows only until it is set."""
 from PySide6.QtWidgets import QMenu
 
-SENTENCES = {"assign", "prove", "shredreq", "sort", "matrix", "crosswalk", "evalcrit", "read", "library", "docs", "shredacc",
+SENTENCES = {"assign", "prove", "sort", "matrix", "crosswalk", "evalcrit", "read", "library", "docs", "shredacc",
              "compare", "impact", "requirements"}
 
 

@@ -4,7 +4,7 @@ Overview: Acronyms (the customer's document or ours), Shred to setup (the custom
 where the work goes in the same step (homes.choices). Inside an open program only Acronyms and Check a document show.
 
 What a door reads comes from the Quick tools uses it stands for (skqt/toolshome.USES): Acronyms is the use "acronyms",
-Shred to setup adds to Documents and shreds there ("library" and the quick shred's extensions), Check a document is
+Shred to setup adds to Documents and shreds there ("library" and the use "shred"'s extensions), Check a document is
 "audit". Standard library plus app_gui's list of the files the readers take; rules only (No AI); nothing leaves the PC.
 """
 import os

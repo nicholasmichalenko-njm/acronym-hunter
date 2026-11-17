@@ -18,12 +18,12 @@ PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"shredlist", "redline", "rcheck", "exceptions", "markups", "graphics", "overview", "tasks", "calendar", "activity", "efforts", "mywork", "home", "deliverables", "evalcrit", "sort", "settings", "tools", "refs"}   # 3.63.0: Evaluation Criteria   # 3.53.0: Quick tools, Team References
 TOOLS = {
-    "Production": {"studio", "applyword", "shredreq", "shredacc", "techedit", "library", "ours", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
+    "Production": {"studio", "applyword", "shredacc", "techedit", "library", "ours", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
-    "Author": {"shredreq", "techedit", "library", "ours", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
+    "Author": {"techedit", "library", "ours", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
                "acrlist", "keywords", "drafts"},
     "Reviewer": {"finalcheck", "techedit", "reviews", "library", "ours", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
-    "Capture": {"shredreq", "library", "ours", "read", "compare", "requirements", "custqa", "structure", "setups", "assign", "crosswalk", "storyboards", "truth"},
+    "Capture": {"library", "ours", "read", "compare", "requirements", "custqa", "structure", "setups", "assign", "crosswalk", "storyboards", "truth"},
 }
 for _r, _ks in TOOLS.items():                       # 4.4.0: Drafts > Acronyms follows Drafts
     if "drafts" in _ks:
@@ -66,7 +66,7 @@ def profile_of(role_text):
 
 
 MENU = ("tools", "mywork", "efforts", "home", "deliverables", "evalcrit", "effortfmt", "record", "reviews", "postsub", "library", "ours", "read", "compare", "requirements",
-        "custqa", "structure", "outline", "shredreq", "shredacc", "assign", "place", "sort", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "draftacr", "truth", "acronyms", "acrlist", "techedit",
+        "custqa", "structure", "outline", "shredacc", "assign", "place", "sort", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "draftacr", "truth", "acronyms", "acrlist", "techedit",
         "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "studio", "applyword", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles", "rules", "refs", "exportall", "settings", "prodstd")
 
 

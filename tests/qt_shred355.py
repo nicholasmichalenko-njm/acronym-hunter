@@ -1,6 +1,6 @@
-"""3.55.0 Shred and Compare, offscreen. Shred > Requirements: one file in, every requirement out, each labelled by kind
-(Requirement, Instruction (L), Evaluation (M), SOW task); filter; the draft matrix in Excel; File to an effort reads it
-into Review. Compare: one space with Customer versions and Any two files (sentence by sentence, changes by heading, the
+"""3.55.0 Shred and Compare, offscreen. The quick shred (shredquick): one file in, every requirement out, each labelled
+by kind (Requirement, Instruction (L), Evaluation (M), SOW task); the draft matrix in Excel. 4.54.0: it has no page of its
+own (Shred's table is its view). Compare: one space with Customer versions and Any two files (sentence by sentence, changes by heading, the
 redline in Word); Final Checks' Open in Compare and two files dropped on Quick tools open it. Fictional content."""
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,25 +42,10 @@ check("the draft compliance matrix: one row per requirement, the matrix's column
       and hdr[:4] == ["ID", "Kind", "Section", "Section title"], (n, ws.max_row, hdr))
 
 from skqt import mainwin as MW
-check("the quick shred (Requirements) is Quick tools' (4.19.0); the Matrix with Matrix & Outline", MW.RAIL_OF["shredreq"] == "tools"
+check("the quick shred is no page of its own (4.54.0: Shred's table); the Matrix with Matrix & Outline", "shredreq" not in MW.RAIL_OF
       and "shredlist" in MW.REVIEW_VIEWS and MW.RAIL_OF["matrix"] == "matrix")
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
-w.rail_go("shredreq"); app.processEvents()
-sp = w.shred_page
-check("Requirements opens with nothing to work on, as it is", w.ws is None and w.stack.currentWidget() is sp)
-sp.open(rfp)
-check("a file in: every requirement listed", sp.t.rowCount() == len(res["rows"]) and "requirement(s)" in sp.counts.text())
-sp.f_kind.setCurrentText("Evaluation (M)")
-check("filter by kind", sp.t.rowCount() == c["Evaluation (M)"])
-sp.t.selectRow(0); app.processEvents()
-check("the selected requirement with its words in bold", "<b>will" in sp.detail.toHtml().replace("font-weight:700;\">", "<b>") or "will" in sp.detail.toPlainText())
-check("Export the matrix", sp.export(os.path.join(tmp, "m.xlsx")) and os.path.isfile(os.path.join(tmp, "m.xlsx")))
-read = []
-w.read_page.read = lambda paths=None, **k_: read.append(list(paths or [])) or "read"
-import unfiled as UF
-got = sp.to_effort(UF.NAME)
-check("File to an effort: read into that effort's Review", got == "read" and read == [[rfp]] and w.effort_name == UF.NAME
-      and w.stack.currentWidget() is w.assign_page)          # 4.1.0: the extract shows on Shred
+check("... and no Quick shred page in the window", "shredreq" not in w.pages and not hasattr(w, "shred_page"))
 
 # Compare
 def doc(path, paras):
@@ -86,7 +71,7 @@ import zipfile
 check("the redline in Word", red and "batteries" in zipfile.ZipFile(red).read("word/document.xml").decode("utf-8"))
 from skqt import toolshome as TH
 uses = [k_ for k_, _t in TH.uses_for([a, b])]
-check("two files on Quick tools: Compare first; one file: Find the requirements", uses[0] == "compare" and "shred" not in uses
+check("two files on Quick tools: Compare first; one file: Shred to setup (4.54.0: the door's route, which takes several)", uses[0] == "compare"
       and "shred" in [k_ for k_, _t in TH.uses_for([rfp])])
 w.go("tools"); app.processEvents()
 check("... Compare opens with both picked", w.tools_page.files_in([a, b], use="compare") == "compare" and w.stack.currentWidget() is cs
@@ -97,7 +82,8 @@ w.go("checks"); app.processEvents()
 cs.tabs.setCurrentIndex(0)
 got = ck.open_compare()
 check("Final Checks: Open in Compare", got and w.stack.currentWidget() is cs and cs.tabs.currentIndex() == 1)
-check("guide topics for Requirements and Compare", "shredreq" in __import__("skqt.guide", fromlist=["TOPIC"]).TOPIC)
+check("guide topics: Compare; no Quick shred topic (4.54.0)", "shredreq" not in __import__("skqt.guide", fromlist=["TOPIC"]).TOPIC
+      and "compare" in __import__("skqt.guide", fromlist=["TOPIC"]).TOPIC)
 w.close()
 n = sum(checks)
 print(f"QT SHRED AND COMPARE {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

@@ -5,7 +5,7 @@ labelled by kind from where it sits and its words: Requirement (Section C and ot
 (Excel); File to an effort reads the file into that effort's Review. Rules only; nothing leaves the PC.
 
 shred(path) -> {"file", "rows": [{id, kind, section, title, page, words, text, loc, suggest}], "counts": {kind: n}}
-export(result, path) -> rows written."""
+export(result, path) -> rows written. export_rows(rows, path, about, sources) (4.54.0): Shred's table, as shown."""
 import os, re
 
 KINDS = ("Requirement", "Instruction (L)", "Evaluation (M)", "SOW task")
@@ -44,15 +44,36 @@ def shred(path):
 def export(result, path):
     """The draft compliance matrix: one row per requirement, the columns a matrix starts from."""
     import filesafety as FS
-    FS.guard(path, result.get("file"))            # 3.57.0: never over the file read
+    FS.guard(path, result.get("file"))            # 3.57.0: never over the file read (before anything is read)
+    rows = [[r["id"], r["kind"], r["section"], r["title"], r["page"], r["words"], r["text"], r["loc"], r["suggest"]] for r in result["rows"]]
+    about = [["File", os.path.basename(result["file"])], ["Requirements", len(result["rows"])],
+             *[[k, n] for k, n in (result.get("counts") or {}).items()],
+             ["Note", "A draft from Stationkeeper's quick shred. File it to an effort to decide each one in Shred."]]
+    return _book(path, COLUMNS, rows, about, result.get("file"))
+
+
+TABLE_COLUMNS = ("ID", "Type",) + COLUMNS[2:]          # 4.54.0: Shred's table writes the piece's type
+
+
+def export_rows(rows, path, about, sources=()):
+    """4.54.0: Shred's table (As a table) as a draft compliance matrix: rows are dicts with id, type, section, title, page,
+    words, text, loc, suggest, in the order shown; about is [[label, value], ...]. Never over a file read (sources)."""
+    vals = [[r.get(k, "") for k in ("id", "type", "section", "title", "page", "words", "text", "loc", "suggest")] for r in rows]
+    return _book(path, TABLE_COLUMNS, vals, about, *sources)
+
+
+def _book(path, columns, rows, about, *sources):
+    """The workbook both exports write: a Requirements sheet and an About sheet."""
+    import filesafety as FS
+    FS.guard(path, *sources)            # 3.57.0: never over the file read
     import openpyxl
     from openpyxl.styles import Alignment, Font, PatternFill
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Requirements"
-    ws.append(list(COLUMNS))
+    ws.append(list(columns))
     for c in ws[1]:
         c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1F3A5F")
-    for r in result["rows"]:
-        ws.append([r["id"], r["kind"], r["section"], r["title"], r["page"], r["words"], r["text"], r["loc"], r["suggest"]])
+    for r in rows:
+        ws.append(list(r))
     for col, w in zip("ABCDEFGHI", (12, 16, 10, 28, 7, 12, 80, 40, 10)):
         ws.column_dimensions[col].width = w
     for row in ws.iter_rows(min_row=2):
@@ -60,10 +81,8 @@ def export(result, path):
             c.alignment = Alignment(wrap_text=True, vertical="top")
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = f"A1:I{max(2, ws.max_row)}"
-    about = wb.create_sheet("About")
-    for line in (["File", os.path.basename(result["file"])], ["Requirements", len(result["rows"])],
-                 *[[k, n] for k, n in result["counts"].items()],
-                 ["Note", "A draft from Stationkeeper's quick shred. File it to an effort to decide each one in Shred."]):
-        about.append(line)
+    sheet = wb.create_sheet("About")
+    for line in about:
+        sheet.append(list(line))
     wb.save(path)
-    return len(result["rows"])
+    return len(rows)

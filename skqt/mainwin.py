@@ -73,8 +73,8 @@ TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("deliverab
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
-REVIEW_VIEWS = ("shredlist",)          # 4.19.0: Page and List; the quick shred, Accuracy and Theme tags are Quick tools
-TOOL_PAGES = ("shredreq", "shredacc", "sort")
+REVIEW_VIEWS = ("shredlist",)          # 4.54.0: On the page and As a table; Accuracy and Theme tags are Quick tools
+TOOL_PAGES = ("shredacc", "sort")
 TEAM, TEMPLATES = ("rules", "audit", "refs"), ("styles", "designs", "formatstd", "templates")   # 4.28.0: the standards have their own group
 # the menu entry each page lights up
 RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
@@ -247,10 +247,8 @@ class MainWindow(QMainWindow):
         self.compare_page = ComparePage(self)
         from .comparespace import CompareSpace
         self.compare_space = CompareSpace(self, self.compare_page)      # 3.55.0: one Compare: customer versions and any two files
-        from .shredpage import ShredPage
-        self.shred_page = ShredPage(self)                               # 3.55.0: requirements from any file
         from .shredlist import ListPage
-        self.shredlist_page = ListPage(self)                            # 4.19.0: the shred as a tree of the customer's structure
+        self.shredlist_page = ListPage(self)                            # 4.54.0: Shred as a table (4.19.0: a tree); no Quick shred page
         from .custqapage import CustQAPage
         self.custqa_page = CustQAPage(self)           # 2.98.0
         self.impact_page = ImpactPage(self)
@@ -340,7 +338,7 @@ class MainWindow(QMainWindow):
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
-                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "shredlist": self.shredlist_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}; __import__("skqt.effortpages", fromlist=["x"]).install(self)     # 4.27.1: Tasks, Calendar, Activity
+                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredlist": self.shredlist_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}; __import__("skqt.effortpages", fromlist=["x"]).install(self)     # 4.27.1: Tasks, Calendar, Activity
         for pg in dict.fromkeys(self.pages.values()):     # 4.3.0: Place, L to M and Coverage share the Shred page
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
@@ -425,7 +423,7 @@ class MainWindow(QMainWindow):
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
         self.refresh_access() if getattr(self, "group_items", None) else None   # 4.52.0: an effort made or gone shows in the menu
 
-    NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "globalstd", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles",
+    NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "globalstd", "refs", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles",
                  "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}
 
     def rail_go(self, key):
@@ -1086,7 +1084,7 @@ class MainWindow(QMainWindow):
                 self.assign_page.show_view(VIEWS[step])
             return ok
         step = {"format": "fixcopy", "dashboard": "home", "setup": "setups", "structure": "setups", "layoutstd": "formatstd",
-                "read": "assign"}.get(step, step)   # 3.74.0: one Setup page; 3.9.0, 3.12.0, 3.30.0; 4.1.0: no Extract tab
+                "read": "assign", "shredreq": "assign"}.get(step, step)   # 3.74.0: one Setup page; 3.9.0, 3.12.0, 3.30.0; 4.1.0: no Extract tab; 4.54.0: Quick shred is Shred
         if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has
             step = next((k for k in members(step)[1:] if self.blocked(k) is None), step)
         why = self.blocked(step)                     # 3.13.0: another role's tool, or a Preview tool not turned on

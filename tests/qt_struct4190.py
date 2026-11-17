@@ -1,5 +1,5 @@
-"""4.19.0 offscreen: Shred's views are Page and List; List shows the shred under the customer's headings and opens a piece
-on its page. A piece typed Structure (key O) feeds Start our structure: the card shows while the outline is empty and
+"""4.19.0 offscreen: Shred's views are On the page and As a table (4.54.0: List, the tree, became the table); the table
+opens a piece on its page. A piece typed Structure (key O) feeds Start our structure: the card shows while the outline is empty and
 recommends Door 1; the preview reads the headings, takes edits and puts them in with Required by; Check against the
 required structure finds a rename. Door 2 drafts headings; Use it as our structure takes Draft off. Fictional (Kestrel)."""
 import os, shutil, sys, tempfile, time
@@ -42,7 +42,7 @@ while (w.review is None or w.read_page.running()) and time.time() - t0 < 120:
 M = w.review.M
 by = lambda s: next(x for x in M.items if s in (x.get("text") or ""))          # noqa: E731
 w.go("assign"); app.processEvents()
-check("Shred's views are Page and List", list(w.stepper.views) == ["assign", "shredlist"])
+check("Shred's views are On the page and As a table (4.54.0)", list(w.stepper.views) == ["assign", "shredlist"])
 vol = by("Volume I holds the technical approach")
 pg = w.assign_page
 pg.load_files_keep(); pg.open_file("Section L.pdf"); app.processEvents()
@@ -52,30 +52,15 @@ SB.toggle_piece(pg, "structure"); app.processEvents()
 check("a piece typed Structure", ST.has(vol, "structure"))
 w.stepper.see("shredlist"); app.processEvents()
 lp = w.shredlist_page
-top = lp.t.topLevelItem(0)
-check("List: the document, its headings and counts", top is not None and top.text(0).startswith("Section L.pdf") and "shredded" in top.text(0)
-      and top.childCount() >= 1, top.text(0) if top else None)
-
-
-def find(item, iid):
-    for i in range(item.childCount()):
-        c = item.child(i)
-        d = c.data(0, 0x0100)
-        if d and d[1] == iid:
-            return c
-        got = find(c, iid)
-        if got is not None:
-            return got
-    return None
-
-
+ids_shown = lambda: [it["id"] for it in lp.rows]          # noqa: E731
+check("As a table (4.54.0; was List, the tree): the document's pieces as rows, with what is shredded", lp.t.rowCount() >= 1
+      and "shredded" in lp.say.text() and lp.t.item(0, 0) is not None, lp.say.text())
 late = by("shall not exceed 25 pages")
-row = find(top, late["id"])
-check("... each piece under its heading", row is not None)
+check("... each piece a row", late["id"] in ids_shown())
 lp.only.setChecked(True); app.processEvents()
-check("... Undecided only leaves the Structure piece out", find(lp.t.topLevelItem(0), vol["id"]) is None)
+check("... Not shredded only leaves the Structure piece out", vol["id"] not in ids_shown())
 lp.only.setChecked(False); app.processEvents()
-ok = lp.open_piece(find(lp.t.topLevelItem(0), late["id"])); app.processEvents()
+ok = lp.open_current(ids_shown().index(late["id"])); app.processEvents()
 check("double-click opens the piece on its page", ok and w.stack.currentWidget() is pg and late["id"] in [x["id"] for x in pg.selected()])
 w.go("structure"); bp = w.structure_page; bp.refresh(); app.processEvents()
 check("Start our structure shows while our outline is still the app's start, Door 1 recommended", SF.untouched(M) and bp.start_card.isVisibleTo(w)

@@ -16,7 +16,7 @@ RAIL_HEAD = "Effort"           # 4.50.0: the first group, under THE EFFORT'S PAT
 FORMATTING = "Formatting"      # 4.46.0 (decision 71): the menu group that holds Templates, Page Layout, Styles, Quick Parts
 
 # the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
-VIEWS = (("assign", "Page", None), ("shredlist", "List", None))   # 4.19.0: List is the shred by the customer's structure   # 4.3.0: placing, L to M and
+VIEWS = (("assign", "On the page", None), ("shredlist", "As a table", None))   # 4.54.0 (decision 62): one Shred, two views   # 4.3.0: placing, L to M and
 VIEW_OF = {"assign": "assign", "shredlist": "shredlist"}  # Coverage: Matrix & Outline
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
 CHIPS = (("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
@@ -291,14 +291,16 @@ class Stepper(QWidget):
         for k, label, _v in VIEWS:
             b = QPushButton(label); b.setCheckable(True); b.setObjectName("viewBtn"); b.setCursor(Qt.PointingHandCursor)
             b.setToolTip({"assign": "The customer's pages, each piece boxed",
-                          "shredlist": "Every piece under the customer's headings, with what is decided"}[k])
+                          "shredlist": "Every piece as a row that sorts by type, section or page; a type can be set here too"}[k])
             b.clicked.connect(lambda _=False, key=k: self.see(key))
             sh.addWidget(b); self.views[k] = b
         vh.addWidget(seg)
 
     def see(self, key):
-        """A way to see the shred: the page or the list (4.19.0; 4.3.0: placing is Matrix & Outline's)."""
-        ok = self.w.go(key)
+        """A way to see the shred: on the page or as a table (4.54.0; 4.3.0: placing is Matrix & Outline's). From the table,
+        the page opens on the table's piece."""
+        lp = getattr(self.w, "shredlist_page", None)
+        ok = lp.open_current() if key == "assign" and lp is not None and self.w.stack.currentWidget() is lp and lp.ids() else self.w.go(key)
         if key == "assign" and ok is not False:
             self.show_for("assign")
         return ok

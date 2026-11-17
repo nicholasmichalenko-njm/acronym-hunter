@@ -126,3 +126,17 @@ def toggle_piece(page, key, rows=None):
     who = rows[0]["id"] if len(rows) == 1 else f"{len(rows)} pieces"
     page.after(f"{who}: {names.get(key, key)} {'on' if on else 'off'}")
     return on
+
+
+def type_keys(page):
+    """4.54.0: {key sequence: type key} as the page registers them (assign._bind_keys: each decision's key set in Settings
+    whose decision is a type; the page's own O for Structure), so Shred's table reads the same keys."""
+    import reviewitems as RI
+    from .assign import RI_decisions
+    cfg = getattr(page, "items_cfg", None) or RI.load(page.host.config_dir)
+    out = {}
+    for d in RI_decisions(cfg, page.effort_type(), page.dec_all.isChecked()):
+        if d.get("key") and d["code"] in KEY_OF_CODE:
+            out[d["key"]] = KEY_OF_CODE[d["code"]]
+    out.setdefault("O", "structure")
+    return out

@@ -283,10 +283,10 @@ ONE WORD FOR ONE THING (4.20.0)
     Changes is where a new version's changes are decided (it was Compare), Acros & Abs names every page, tab and tile
     for acronyms, abbreviations, units and symbols, and the team's tools are under Team (it was Production).
   - The shred's count reads the same everywhere: the menu and Shred's stepper say "28 to shred", the bar under the page
-    and the Dashboard say "12 of 40 pieces shredded", Documents says "40 pieces, 28 to shred", and Shred's List says
-    "3 of 4 shredded" under each of the customer's headings.
+    and the Dashboard say "12 of 40 pieces shredded", Documents says "40 pieces, 28 to shred", and Shred's table
+    (As a table) says the same of the rows it shows.
   - Your Tools' tiles carry today's page names: Shred, Documents, Changes, Acros & Abs, Acros & Abs Finder, Dashboard.
-    The quick shred is named Quick shred, so Requirements means one thing: Shred's first tab.
+    Requirements means one thing: Shred's first tab. The quick shred is now Shred's table (4.54.0).
   - Effort Formatting says Company Standards where it said Global, and Make it a standard where it said Make it
     global (the menu under it still says which standard: the Company Standards, a profile or an effort type).
   - A volume is made of sections: Effort Profiles and Template Studio say Sections and Sections and numbering where
@@ -312,10 +312,10 @@ OUR RESPONSE STRUCTURE: TWO DOORS TO ONE OUTLINE; SHRED'S LIST (4.19.0)
     Shred as you read, arrange them in the builder, then Structure... > Use it as our structure.
   - Both at once: the required frame first, our drafts under it (Structure... holds both doors after the start).
   - The card shows while our outline is empty or still the start the app made from the customer's headings.
-  - Shred's views are Page and List. List shows the shred under the customer's headings (H1 to H9 from the references):
-    each heading with how many of its pieces are decided, each piece with its type, decision, owner and page; Undecided
-    only, a type, a document; double-click opens the piece on its page.
-  - The quick shred of any file (Requirements), Shred accuracy and Theme tags (was Sort: cross-cutting themes for
+  - Shred's views are On the page and As a table (4.54.0; List, a tree under the customer's headings, is no longer
+    shown): a row for each piece with its type, section, page and trigger word, sorted by any column; Not shredded
+    only, a type, a document; a type set in either view; double-click or Open on the page opens the piece on its page.
+  - Shred accuracy and Theme tags (was Sort: cross-cutting themes for
     filtering and assignments, never headings) are in Your Tools. The path strip has no Sort step.
 
 SHRED: COMPLIANCE LANGUAGE ON ANY WORDS (4.18.0)
@@ -593,7 +593,7 @@ MATRIX & OUTLINE (4.3.0)
     L to M. Right-click Leave out of the matrix...: a reason (Covered elsewhere, Duplicate, Not ours to answer,
     Information only, Other) and a note, kept on the piece; Put back in the matrix undoes it.
   - The matrix leaves out what was left out; the export lists those on a Left out sheet with their reasons.
-  - Shred's See it as: Page, List, Sort.
+  - Shred's See it as: On the page and As a table (4.54.0).
 
 ADDING STARTS THE SHRED (4.2.0)
   - Add a customer document in Documents and it is extracted for the shred in the background, whatever its role; you
@@ -1343,10 +1343,10 @@ SETUP (3.56.0)
   - The Structure Builder's Make templates button is now Make the setup and opens this page.
 
 SHRED AND COMPARE (3.55.0)
-  - Shred > Requirements: one file in, every requirement out, with no matrix to set up (an RFP, a draft RFP or a
-    statement of work). Each one labelled Requirement, Instruction (L), Evaluation (M) or SOW task, with its section,
-    page and the words that make it one. Export the matrix... writes a draft compliance matrix in Excel; File to an
-    effort... reads the file into that effort's Review.
+  - The quick shred of one file is now Shred's table (4.54.0): every piece of the effort's shred as a row, with its
+    type, section, page and the words that make it a requirement. Export > Draft compliance matrix... on the table
+    writes a draft compliance matrix in Excel. A file dropped on Quick tools goes to an effort's Documents and Shred
+    with Shred to setup.
   - Compare is one space with two tabs. Customer versions: the effort's Library documents, a decision on every change
     and what it touches. Any two files: our drafts or any Word, PDF, PowerPoint or Excel files, sentence by sentence,
     the changes by heading, the redline in Word.

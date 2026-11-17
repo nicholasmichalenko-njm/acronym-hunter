@@ -51,9 +51,9 @@ check("the menu, the stepper, Documents' panel and the List read them there", al
       [f for f, s in src.items() if "SW." not in s])
 from skqt import toolshome as TH
 names = {k: v[0] for k, v in TH.TOOLS.items()}
-check("Quick tools' tiles: Shred, Documents, Changes, Acronyms, Quick shred, Overview", names["assign"] == "Shred" and names["library"] == "Documents"
+check("Quick tools' tiles: Shred, Documents, Changes, Acronyms, Overview; no Quick shred tile (4.54.0)", names["assign"] == "Shred" and names["library"] == "Documents"
       and names["compare"] == "What changed" and names["acronyms"] == "Acronyms" and names["acrfinder"] == "Acronym Finder"
-      and names["shredreq"] == "Quick shred" and names["home"] == "Overview", names)
+      and "shredreq" not in names and names["home"] == "Overview", names)
 check("... no two tiles share a name", len(set(names.values())) == len(names))
 k = sum(checks)
 print(f"GLOSSARY 4200 {'PASS' if k == len(checks) and checks else 'FAIL'} ({k}/{len(checks)})")

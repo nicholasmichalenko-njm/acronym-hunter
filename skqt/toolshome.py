@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFileDialog
                                QListWidget, QListWidgetItem, QScrollArea, QVBoxLayout, QWidget)
 
 import diag
+import doors as DR
 import recentfiles as RF
 from . import design as D
 from .adaptive import FlowLayout
@@ -22,7 +23,7 @@ USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
         ("firstuse", "Check first use (First Use Check)", (".docx",)),
         ("copyreview", "Copy review (Technical Edit), in an effort", (".docx",)),
         ("fulltext", "Pull out all the text (Full Text)", None),
-        ("shred", "Find the requirements (Quick shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
+        ("shred", f"{DR.NAMES['shred']}: {DR.WHAT['shred']}", (".pdf", ".docx", ".pptx", ".xlsx")),   # 4.54.0: the door's own route
         ("library", "Add to Documents, in an effort or a program", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE),
         ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)),     # 3.57.0
@@ -31,8 +32,8 @@ USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
          (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")))
 # 4.51.0: the uses that work in a home (asked where in the same step), and those of them only an effort has: Technical Edit
 # is Drafts', Strip is Setup's and Final Checks is Submit's (programs.OUT); Audit reads the effort's volume standards
-NEEDS_HOME = ("acronyms", "copyreview", "library", "audit", "strip", "leftovers")
-EFFORT_ONLY = ("copyreview", "strip", "leftovers")     # 4.52.0: Audit works in a program too (the Check a document door)
+NEEDS_HOME = ("acronyms", "copyreview", "library", "audit", "strip", "leftovers", "shred")
+EFFORT_ONLY = ("copyreview", "strip", "leftovers", "shred")     # 4.52.0: Audit works in a program too; 4.54.0: Shred to setup
 NO_HOME = object()
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
 TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart from any effort", "window"),
@@ -50,15 +51,15 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "mywork": ("My Work", "Your work in every effort", "page"), "refs": ("Team References", "The lists the team keeps", "page"),
          "custqa": ("Customer Q&A", "Questions to the customer", "page"),
          "techedit": ("Technical Edit", "Copy review of a draft", "page"),
-         "shredreq": ("Quick shred", "Every requirement in one file, with no effort", "page"),
          "shredacc": ("Shred accuracy", "How well the reader finds requirements, on answer keys", "page"),     # 4.19.0: off Shred
          "sort": ("Themes", "Cross-cutting themes on requirements, for filtering and assignments", "page")}
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
-             "Proposal Manager": ["home", "shredreq", "assign", "reviews", "mywork", "acrfinder", "qa"],
+             "Proposal Manager": ["home", "assign", "reviews", "mywork", "acrfinder", "qa"],
              "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],
              "Reviewer": ["reviews", "assign", "checks", "acrfinder"],
-             "Capture": ["shredreq", "library", "assign", "structure", "custqa"]}
+             "Capture": ["library", "assign", "structure", "custqa"]}
 PINS_FILE = "home_pins.json"
+OLD = {"shredreq": "assign"}                 # 4.54.0: a pin saved before Quick shred became Shred's table
 
 
 def uses_for(paths):
@@ -67,7 +68,7 @@ def uses_for(paths):
     exts = {os.path.splitext(p)[1].lower() for p in paths}
     if not exts or not exts <= set(A.SUPPORTED_EXTS):
         return []
-    out = [(k, t) for k, t, ok in USES if (ok is None or exts <= set(ok)) and not (k == "shred" and len(paths) != 1)]
+    out = [(k, t) for k, t, ok in USES if ok is None or exts <= set(ok)]
     if len(paths) == 2:                                            # 3.55.0: two files dropped together
         out.insert(0, ("compare", "Compare the two files (earlier first)"))
     return out
@@ -80,8 +81,8 @@ def load_pins(config_dir, role=""):
     aside = MF.hidden(settings())                   # 3.57.0: a set-aside page is not pinned
     try:
         with open(os.path.join(config_dir, PINS_FILE), encoding="utf-8") as f:
-            got = [k for k in (json.load(f) or {}).get("pins", []) if k in TOOLS and k not in aside]
-        return got
+            got = [OLD.get(k, k) for k in (json.load(f) or {}).get("pins", [])]       # 4.54.0: Quick shred's pin is Shred
+        return [k for n, k in enumerate(got) if k in TOOLS and k not in aside and k not in got[:n]]
     except (OSError, ValueError, AttributeError):
         return [k for k in (ROLE_PINS.get(role) or ROLE_PINS["Production"]) if k not in aside]
 
@@ -163,8 +164,9 @@ class UseDialog(QDialog):
         return self.where.picked() if self.picked() in NEEDS_HOME else None
 
 
-def hand(h, use, paths):
-    """What a use that works in a home does once the home is open (Quick tools and the Overview's doors share it, 4.52.0)."""
+def hand(h, use, paths, choices=None):
+    """What a use that works in a home does once the home is open (Quick tools and the Overview's doors share it, 4.52.0).
+    choices (tests): Documents' table answers for Shred to setup."""
     if use == "acronyms":
         import acrlists as AL
         h.go("acronyms")
@@ -185,6 +187,13 @@ def hand(h, use, paths):
     if use == "leftovers":                              # 3.57.0
         h.go("checks")
         return h.checks_page.check_leftovers(paths)
+    if use == "shred":                                  # 4.54.0: Shred to setup, the door's own route
+        from . import doorsview as DVW
+        import programs as PG
+        if PG.is_program(h.efforts, h.effort_name):
+            h.status(DVW.REFUSE_SHRED)
+            return None
+        return DVW.shred(h, h.effort_name, paths, choices)
     return None
 
 
@@ -337,9 +346,9 @@ class ToolsHome(QWidget):
         from . import acrextras as AX
         return AX.paste_picture(w.page) if w is not None else None
 
-    def files_in(self, paths, use=None, home=None):
+    def files_in(self, paths, use=None, home=None, choices=None):
         """Ask which tool and, for a use that works in a home, where the file goes (one step), then hand the files to it.
-        use, home (tests): the answers, home as homeask.WhereBox.picked() gives it. Returns the use chosen (or None)."""
+        use, home, choices (tests): the answers, home as homeask.WhereBox.picked() gives it. Returns the use chosen (or None)."""
         if not paths:
             return None
         if not uses_for(paths):
@@ -352,14 +361,14 @@ class ToolsHome(QWidget):
             use, home = d.picked(), d.home()
         if not use:
             return None
-        if self.run(use, paths, home) is NO_HOME:
+        if self.run(use, paths, home, choices) is NO_HOME:
             return None
-        RF.add(self.host.config_dir, paths, dict((k, t.split(" (")[0]) for k, t, _ in USES).get(use, use))
+        RF.add(self.host.config_dir, paths, dict((k, t.split(" (")[0].split(": ")[0]) for k, t, _ in USES).get(use, use))
         self.refresh()
         diag.activity("home_files_used", n=len(paths))
         return use
 
-    def run(self, use, paths, home=None):
+    def run(self, use, paths, home=None, choices=None):
         """Hand the files to the use. NO_HOME when a use that works in a home has none (the status line says why)."""
         h = self.host
         if use == "acrfinder":
@@ -368,9 +377,6 @@ class ToolsHome(QWidget):
             s = w.page.session
             last = ((s.last_scan or {}).get("paths") if s is not None else None) or []
             return w.page.scan(AL.add_files(last, paths))
-        if use == "shred":
-            h.go("shredreq")
-            return h.shred_page.open(paths[0])
         if use == "compare":
             h.go("compare")
             return h.compare_space.show_files(paths[0], paths[1])
@@ -390,7 +396,7 @@ class ToolsHome(QWidget):
                 return NO_HOME
             if not settle(h, home):
                 return NO_HOME
-        return hand(h, use, paths)
+        return hand(h, use, paths, choices)
 
     def work_on(self, name):
         import unfiled as UF

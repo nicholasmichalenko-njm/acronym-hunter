@@ -65,8 +65,8 @@ check("... Requirements, Submission Checklist, Evaluation, Acronyms with counts 
       [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"]
       and w.stepper.chips["assign"].ct.text() == "nothing extracted")
 check("... and no chip carries a number (4.46.0, decision 16: ways to see the shred, not steps)", all(w.stepper.chips[k].no.text() == "" for k, _l in NR.CHIPS))
-check("... See it as: Page, List (4.19.0; 4.3.0: placing, Crosswalk and Coverage are Matrix & Outline's)",
-      [b.text() for b in w.stepper.views.values()] == ["Page", "List"] and w.stepper.views["assign"].isChecked())
+check("... See it as: On the page, As a table (4.54.0; 4.3.0: placing, Crosswalk and Coverage are Matrix & Outline's)",
+      [b.text() for b in w.stepper.views.values()] == ["On the page", "As a table"] and w.stepper.views["assign"].isChecked())
 w.stepper.chips["acronyms"].click(); app.processEvents()
 check("a step chip opens its tab: Acronyms is the Acronyms page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked()
       and w.page_title.text() == "Shred")
@@ -74,10 +74,10 @@ w.go("crosswalk"); app.processEvents()
 check("Crosswalk shows beside the page, in Matrix & Outline (4.3.0)", w.stack.currentWidget() is w.assign_page
       and w.assign_page.views.key == "lm" and w.step_btns["matrix"].isChecked() and w._tab_keys[3] == "crosswalk")
 w.stepper.see("shredlist"); app.processEvents()
-check("List is a way to see Shred (4.19.0: the shred by the customer's structure): the menu stays on Shred",
+check("As a table is a way to see Shred (4.54.0): the menu stays on Shred",
       w.stack.currentWidget() is w.shredlist_page and w.step_btns["assign"].isChecked()
       and w.stepper.views["shredlist"].isChecked() and w.page_title.text() == "Shred")
-check("Shred's views are Page and List; Sort and Accuracy are Quick tools' (4.19.0)", list(w.stepper.views) == ["assign", "shredlist"]
+check("Shred's views are On the page and As a table; Sort and Accuracy are Quick tools' (4.19.0)", list(w.stepper.views) == ["assign", "shredlist"]
       and __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["shredacc"] == "tools")
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()

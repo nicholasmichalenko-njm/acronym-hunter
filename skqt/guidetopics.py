@@ -197,15 +197,6 @@ TOPICS = [
    "Place in the section puts an answer into the response structure as context: the section's author sees it in the setup, "
    "the kickoff packet and Everything for this section."],
   ["Show: Overdue lists calls past their due date with no answer. The Author drafts gate can hold until every call is answered."]),
- ("shredreq", "Quick tools", "Quick shred",
-  "Every requirement in one file, with no matrix to set up: an RFP, a draft RFP or a statement of work. Each one labelled "
-  "Requirement, Instruction (L), Evaluation (M) or SOW task, with its section, page and the words that make it one.",
-  "The day an RFP or draft RFP drops, before any effort exists; or any time you need a quick list.",
-  ["Choose a file... (or drop it on Quick tools and pick Find the requirements).",
-   "Filter by kind. Select a row: the piece with its words in bold, and where it is.",
-   "Export the matrix...: a draft compliance matrix in Excel, one row per requirement.",
-   "File to an effort...: reads the file into that effort's shred, where each requirement gets its decision."],
-  ["The same reader as Shred; nothing is kept until you file it to an effort."]),
  ("assign", "Shred", "Shred",
   "The customer's document as it looks, every piece boxed. Say what each piece is (4.5.0: one job here; placing is "
   "Matrix & Outline > Place). Every customer document is extracted when it is added.",
@@ -229,8 +220,11 @@ TOPICS = [
    "done, tick This document is shredded. More holds Fix text and Fit width (Ctrl+0). Text the reader missed: drag a box, "
    "right-click inside it, Add missed text. Space and drag or the middle button moves the page; Ctrl+wheel zooms.",
    "Settings > Shred: decisions and captures sets every type's and capture's name, key, color and showing.",
-   "See it as > List shows every piece under the customer's headings with what is shredded; double-click a piece to "
-   "open it on its page.",
+   "See it as: On the page or As a table. The table has a row for each piece (ID, Type, Section, Page, Words, the "
+   "piece); click a column heading to sort by it, and filter by document, type or Not shredded only. A type is set in "
+   "either view, with the same keys (Set type, a type's letter, Enter, N); Ctrl+Z undoes in both. Open on the page "
+   "(or a double-click) opens the row's piece on its page. Export > Draft compliance matrix... is on the table: it "
+   "writes the rows shown, in the order shown.",
    "Fix text marks a line a heading at H1 to H9, or Not a heading. A marked heading, numbered or not, sets where its "
    "pieces are found in the matrix, the outline and the setup.",
    "Select words in a piece and right-click for Compliance language: just here, everywhere (the compliance words "
@@ -792,7 +786,7 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
 _ORDER = ("path home calendar tasks deliverables record meetings exportall library read compare datacalls redline graphics assign verify requirements evalcrit "
           "custqa acronyms acrlist lists structure matrix crosswalk prove impact setups effortfmt storyboards drafts techedit reviews truth "
           "finalcheck qa checks postsub keywords templates profiles formatstd layoutstd styles designs qpstd studio tools team "
-          "rules audit applyword fixcopy refs globalstd settings efforts mywork shredreq shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path
+          "rules audit applyword fixcopy refs globalstd settings efforts mywork shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):
     _last = float(_ORDER.index(_t[0])) if _t[0] in _ORDER else _last + 0.001
