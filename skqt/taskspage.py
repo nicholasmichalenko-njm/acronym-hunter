@@ -1,7 +1,8 @@
 """Tasks (4.27.1; Nicholas 2026-11-12, answer 2: "Tasks and Calendar are menu entries"; the recording 07:05 to 07:55).
 One page, two views. This effort: its tasks by gate, late ones first, with Add a task... and the status on the row.
 Mine, across efforts: one person's items in every effort on this PC, in Late, Today, This week, Later (the work My Work
-did, set aside in 3.57.0; its code and data are the same). Tasks are kept in the effort record, as before.
+did, set aside in 3.57.0; its code and data are the same). Tasks are kept in the effort record, as before. 4.52.0: with no
+effort open only Mine, across efforts shows (nothing that needs the open effort).
 Rules only (No AI); nothing leaves the PC."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -73,13 +74,22 @@ class TasksPage(QWidget):
         return names, me
 
     def set_view(self, k):
-        self.view = k if k in dict(VIEWS) else "effort"
+        self.view = k if k in dict(VIEWS) and (k == "mine" or self.host.ws is not None) else "mine" if self.host.ws is None else "effort"
         for key, b in self.view_btns.items():
             b.blockSignals(True); b.setChecked(key == self.view); b.blockSignals(False)
         diag.activity("tasks_view")
         return self.fill()
 
     def refresh(self):
+        on = self.host.ws is not None                     # 4.52.0 (decision 63): with nothing open, Mine, across efforts only
+        if not on:
+            self.view, self._forced = "mine", True
+        elif getattr(self, "_forced", False):            # an effort opened since: its own view, as before
+            self.view, self._forced = "effort", False
+        self.bar.setVisible(on)
+        for key, b in self.view_btns.items():
+            b.setVisible(on)
+            b.blockSignals(True); b.setChecked(key == self.view); b.blockSignals(False)
         keep = self.person()
         names, me = self._people()
         self.who.blockSignals(True)

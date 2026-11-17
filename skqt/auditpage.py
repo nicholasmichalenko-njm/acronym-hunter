@@ -107,7 +107,7 @@ class AuditPage(QWidget):
             if not quiet:
                 self.status.setText("Open an effort first, or Add files...")
             return 0
-        d = EF.folder(self.host.effort_path, "volumes")
+        d = EF.folder(self.host.effort_path, "volumes", make=False)   # 4.52.0: looking makes no folder (a program has none)
         paths = [os.path.join(d, f) for f in sorted(os.listdir(d))] if os.path.isdir(d) else []
         n = self.add_paths(paths)
         if not quiet:

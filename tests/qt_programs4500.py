@@ -68,7 +68,7 @@ check("it opens on its Overview, with the program panel and no page tabs", w.sta
       and not w.page_tabs_box.isVisibleTo(w) and w.overview_page.program.count.text() == "No program documents yet"
       and w.overview_page.program.name.text() == "Kestrel Fleet")
 op = w.overview_page.program
-check("the panel's two buttons", op.add_btn.text() == "Add documents" and op.acr_btn.text() == "Acronyms")
+check("the panel: Add documents, and the doors a program has (4.52.0)", op.add_btn.text() == "Add documents" and list(op.doors.btns) == ["acronyms", "check"])
 vis = {k for k, b in w.step_btns.items() if not b.isHidden()}
 check("the menu leaves out the steps, the Calendar and Tasks", not (vis & set(PG.OUT)), vis & set(PG.OUT))
 check("and shows Overview, Documents, Formatting, Quick tools, Settings", {"home", "library", "templates", "tools", "settings"} <= vis
@@ -76,7 +76,7 @@ check("and shows Overview, Documents, Formatting, Quick tools, Settings", {"home
 check("the head reads THE PROGRAM; Documents has no number; the switcher says Program", w.group_heads["Effort"].text() == "THE PROGRAM"
       and w.step_btns["library"].circle.isHidden() and w.rail_effort.stage.text() == "Program" and w.rail_effort.cap.text() == "Program"
       and not any(b.stage_dot.isVisibleTo(w) for b in w.step_btns.values()))
-op.acr_btn.click(); pump()
+w.go("acronyms"); pump()                                 # 4.52.0: the panel's Acronyms is a door (it asks for a file)
 check("Acronyms opens the acronyms page with no Shred stepper, tabs or title", w.stack.currentWidget() is w.acronym_page
       and not w.stepper.isVisibleTo(w) and not w.page_tabs_box.isVisibleTo(w) and w.page_title.text() != "Shred", w.page_title.text())
 op.add_btn.click(); pump()

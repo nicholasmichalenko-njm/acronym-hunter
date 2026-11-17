@@ -186,7 +186,7 @@ def refresh_access(w, rail_of, members):
     aside = MF.hidden(settings())
     from . import programsview as PV                                # 4.50.0: a program never shows the effort's steps
     prog = PV.is_open(w)
-    aside = set(aside) | (set(PV.PG.OUT) if prog else set())
+    aside = set(aside) | (set(PV.PG.OUT) if prog else set()) | until_work(w)
     head = getattr(w, "group_heads", {}).get(RAIL_HEAD)
     if head is not None:
         head.setText("THE PROGRAM" if prog else "THE EFFORT'S PATH")
@@ -198,12 +198,26 @@ def refresh_access(w, rail_of, members):
         b.style().unpolish(b); b.style().polish(b)
         b.setToolTip("" if ok else f"For {', '.join(RA.roles_for(key))}. Your role here: {prof}.")
         b.setVisible((ok or not hide) and key not in aside)
+    if head is not None:                                            # 4.52.0: it sits above Overview; shown with any entry but it
+        head.setVisible(any(not b.isHidden() for b in w.group_items.get(RAIL_HEAD, []) if b.key != "home"))
     th = getattr(w, "group_heads", {}).get(FORMATTING)               # 4.28.0: its heading goes when none of its entries show
     if th is not None:
         th.setVisible(any(not b.isHidden() for b in w.group_items[FORMATTING]))
     refresh_stage_tools(w, rail_of, prof)
     refresh_steps(w)
     return prof
+
+
+def until_work(w):
+    """4.52.0 (decisions 10, 63, 81): the menu entries left out until there is work for them. With nothing open, the
+    effort's steps and the entries under them (Overview stays); Calendar and Tasks while no effort exists on this PC."""
+    import programs as PG
+    out = set()
+    if w.ws is None:
+        out |= {b.key for b in getattr(w, "group_items", {}).get(RAIL_HEAD, []) if b.key not in ("home", "calendar", "tasks")}
+    if not PG.effort_names(w.efforts):
+        out |= {"calendar", "tasks"}
+    return out
 
 
 def refresh_stage_tools(w, rail_of, prof=None):

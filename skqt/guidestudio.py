@@ -64,6 +64,13 @@ APPLYWORD = \
 
 
 CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
+    ("home", "The app opens here. With nothing open, drop a document on the dashed box, use Choose a file..., or click a "
+             "door: Acronyms (the customer's document or ours), Shred to setup (the customer's; efforts only) or Check a "
+             "document (ours, against the standards; it changes nothing). The door and where the work goes are asked in one "
+             "step: the one open now first, another effort or program, a new effort or a new program."),
+    ("home", "With an effort open the doors are a row under your next step; a program shows Acronyms and Check a document. "
+             "All tools opens Quick tools. The effort's steps show in the menu while an effort is open."),
+    ("tools", "The Overview's three doors lead to what is most often done with a document; Quick tools keeps every tool."),
     ("rules", "Fix a Copy's checks: graphics, Excel and PowerPoint, and the words Fix a Copy reports and fixes (they were in "
               "Production Standards)."),
     ("formatstd", "Allowed styles...: the styles a finished document may use and the styles the rules read."),
@@ -211,7 +218,9 @@ CALENDAR = ("calendar", "The effort", "Calendar",
   "Daily. It is also the right column of the Overview.",
   ["Click a day for its list. Today brings the month and the list back to today. Add a date... adds a due date, a "
    "meeting, a review or a milestone on the day picked.",
-   "Set the due date by clicking it at the top of the Overview. A task's date is set on Tasks."],
+   "Set the due date by clicking it at the top of the Overview. A task's date is set on Tasks.",
+   "With no effort open the page lists every effort's dates, each naming its effort; Open on a row (or a double-click) "
+   "opens that effort on its Calendar. With one open, Other efforts lists the rest under it. A program has no calendar."],
   ["The Overview's All cards tab keeps the calendar card with the calendar file (.ics)."])
 
 TASKS = ("tasks", "The effort", "Tasks",
@@ -220,7 +229,7 @@ TASKS = ("tasks", "The effort", "Tasks",
   "Many times a day: what is mine, what is late, what to chase.",
   ["Add a task... takes what, who, by when and what it is about.",
    "Right-click a task for Not started, In progress, Done, or Remove the task.",
-   "Mine, across efforts: pick a name; double-click a row to open its effort."],
+   "Mine, across efforts: pick a name; double-click a row to open its effort. With no effort open, it is the only view."],
   ["Tasks are kept in the effort record. A late task also counts on the Overview."])
 
 GLOBALSTD = \

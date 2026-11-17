@@ -1,11 +1,12 @@
 """Programs in the window (4.50.0): what changes while a program is open, and the Programs view of All Efforts.
 
 A program (programs.py) opens on its Overview, which shows the program's name, a Program pill, how many program
-documents it holds, Add documents and Acronyms; nothing of an effort's. The menu leaves out the effort's steps, the
-Calendar and Tasks (programs.OUT); the Working on box lists the efforts, then the programs after a line. On All
-Efforts, the Programs view shows one card per program, + New program (a name only), and one row for each effort of the
-type Program deliverables, which offers the move and waits: nothing moves until the person says so. Every function
-that would ask takes the answer (tests). Rules only (No AI); nothing leaves the PC."""
+documents it holds, Add documents and (4.52.0) the doors a program has as a row: Acronyms and Check a document; nothing
+of an effort's. The menu leaves out the effort's steps, the Calendar and Tasks (programs.OUT); the Working on box lists
+the efforts, then the programs after a line. On All Efforts, the Programs view shows one card per program, + New program
+(a name only), and one row for each effort of the type Program deliverables, which offers the move and waits: nothing
+moves until the person says so. Every function that would ask takes the answer (tests). Rules only (No AI); nothing
+leaves the PC."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QInputDialog, QMenu, QMessageBox, QVBoxLayout, QWidget
 
@@ -81,8 +82,9 @@ class ProgramPanel(QWidget):
         self.count = D.label("", "muted"); v.addWidget(self.count)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); v.addLayout(row)
         self.add_btn = D.button("Add documents", "primary", lambda: host.go("library"), "The program documents: add, read and keep their versions")
-        self.acr_btn = D.button("Acronyms", None, lambda: host.go("acronyms"), "The program's acronyms")
-        row.addWidget(self.add_btn); row.addWidget(self.acr_btn); row.addStretch(1)
+        row.addWidget(self.add_btn); row.addStretch(1)
+        from .landing import DoorRow                             # 4.52.0: the doors a program has, as a row (decision 80)
+        self.doors = DoorRow(host, "program"); v.addWidget(self.doors)
         v.addStretch(1)
 
     def refresh(self):

@@ -423,6 +423,7 @@ class MainWindow(QMainWindow):
             self.effort_box.setCurrentText(cur)
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
+        self.refresh_access() if getattr(self, "group_items", None) else None   # 4.52.0: an effort made or gone shows in the menu
 
     NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "globalstd", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "tplprofiles",
                  "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}

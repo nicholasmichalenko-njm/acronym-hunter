@@ -2,7 +2,8 @@
 fold"; answer 2: a menu entry of its own). The month with every dated thing marked, the picked day's list, and the next
 dated things beside it. It reads the effort's calendar (the due date, questions due, stages, gate goals, tasks,
 reviews and meetings). 4.29.1: Add a date... adds a due date or an event on the day picked. The Dashboard's calendar card on All cards is the same data.
-Rules only (No AI); nothing leaves the PC."""
+4.52.0 (decision 63): with no effort open it lists every effort's dates (calacross), each naming its effort, with no add
+control; with one open, the others' dates are under it. Rules only (No AI); nothing leaves the PC."""
 import datetime
 import html
 
@@ -41,6 +42,7 @@ class CalendarPage(QWidget):
         v.addWidget(self.bar)
         self.empty = D.EmptyState("No effort open", "Open an effort to see its dates.", "All Efforts", lambda: host.go("efforts"))
         v.addWidget(self.empty, 1)
+        self.across = Across(self, "Across efforts"); v.addWidget(self.across, 1)     # 4.52.0: nothing open, every effort's dates
         self.body = QWidget(); v.addWidget(self.body, 1)
         h = QHBoxLayout(self.body); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["m"])
         self.cal = QCalendarWidget(); self.cal.setGridVisible(False); self.cal.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
@@ -58,6 +60,7 @@ class CalendarPage(QWidget):
         self.next_card = D.Card("Coming up", "The next dated things, soonest first.")
         self.next_box = QVBoxLayout(); self.next_box.setSpacing(2); self.next_card.body.addLayout(self.next_box)
         right.addWidget(self.next_card, 1)
+        self.others = Across(self, "Other efforts"); v.addWidget(self.others)          # 4.52.0: the rest, under the open one
         self._painted = []
 
     def load(self, today=None):
@@ -73,11 +76,29 @@ class CalendarPage(QWidget):
             diag.swallowed()
             return {}
 
+    def across_rows(self, today=None, skip=()):
+        import calacross as CA
+        try:
+            return CA.collect(self.host.efforts, today, skip)
+        except Exception:  # noqa: BLE001  the open effort's calendar shows whatever happens to the others
+            diag.swallowed()
+            return []
+
     def refresh(self, today=None):
-        on = self.host.ws is not None
-        self.empty.setVisible(not on); self.body.setVisible(on); self.bar.setVisible(on)
-        if not on:
+        import programs as PG
+        h = self.host
+        on = h.ws is not None
+        any_effort = bool(PG.effort_names(h.efforts))
+        self.empty.setVisible(not on and not any_effort); self.body.setVisible(on); self.bar.setVisible(on)
+        self.across.setVisible(not on and any_effort)
+        if not on:                                          # 4.52.0 (decision 63): every effort's dates, no add control
+            self.others.setVisible(False)
+            if any_effort:
+                self.across.fill(self.across_rows(today), today)
             return None
+        rest = self.across_rows(today, skip=(h.effort_name,))
+        self.others.fill(rest, today)
+        self.others.setVisible(bool(rest))
         self.today = today or datetime.date.today()
         self.cal_data = self.load(self.today)
         self.paint()
@@ -138,3 +159,45 @@ class CalendarPage(QWidget):
         if not items:
             self.day_box.addWidget(D.label("Nothing on this day.", "muted"))
         return items
+
+
+class Across(QWidget):
+    """4.52.0: dates from every effort, each line naming its effort; a double-click or the row's Open opens that effort on
+    its Calendar."""
+
+    def __init__(self, page, title):
+        super().__init__()
+        from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTableWidget
+        self.page, self.rows = page, []
+        v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(D.SPACE["s"])
+        self.title = D.label(title, "label"); v.addWidget(self.title)
+        self.table = QTableWidget(0, 4); self.table.setHorizontalHeaderLabels(["When", "What", "Effort", ""])
+        self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows); self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        hh = self.table.horizontalHeader(); hh.setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.doubleClicked.connect(lambda ix: self.open_row(ix.row()))
+        v.addWidget(self.table, 1)
+        self.none = D.label("No dates in any effort yet", "muted"); v.addWidget(self.none)
+
+    def fill(self, rows, today=None):
+        import calacross as CA
+        from PySide6.QtWidgets import QTableWidgetItem
+        self.rows = list(rows)
+        t = self.table
+        t.setRowCount(len(self.rows))
+        for r, x in enumerate(self.rows):
+            for c, val in enumerate((CA.when(x, today), f"{x['kind']}: {x['what']}", x["effort"])):
+                t.setItem(r, c, QTableWidgetItem(val))
+            t.setCellWidget(r, 3, D.button("Open", "ghost", lambda _c=False, r_=r: self.open_row(r_), f"Open {x['effort']} on its Calendar"))
+        t.setVisible(bool(self.rows)); self.none.setVisible(not self.rows)
+        return len(self.rows)
+
+    def open_row(self, r):
+        if not (0 <= r < len(self.rows)):
+            return False
+        h, name = self.page.host, self.rows[r]["effort"]
+        if (h.ws is None or h.effort_name != name) and not h.open_effort(name):
+            return False
+        h.effort_box.setCurrentText(name)
+        diag.activity("calendar_across_opened")
+        return h.go("calendar")

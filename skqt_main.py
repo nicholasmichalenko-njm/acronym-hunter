@@ -158,16 +158,14 @@ def main(argv=None):
     if safe:
         w.status("Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
                  "the Effort box; if it fails again, create a support file (Settings > Help and support).")
-        w.go("tools")
+        w.go("overview")                             # 4.52.0 (decision 7): the app opens on the Overview
         _QT.singleShot(800, then)
     elif w.efforts.current or len(_real(w)) == 1:
         cur = w.efforts.current or _real(w)[0]   # 2.84.0: the effort last open (or the only one), every start
         title = (f"Stationkeeper {A.APP_VERSION} is ready. Reopening your work" if after else "Opening " + __import__("homes").shown_name(w.efforts, cur))
-        _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), w.go("tools"), _QT.singleShot(600, then)))   # 3.53.0: Home first
+        _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), w.go("overview"), _QT.singleShot(600, then)))   # 4.52.0: its Overview
     else:
-        w.go("tools")                                # 3.53.0: Quick tools: drop a file, a pinned tool, an effort
-        if _real(w):
-            w.status("Pick what to work on in Working on (top right), or use a tool on any file.")
+        w.go("overview")                             # 4.52.0 (decision 7): the landing: drop a document, the three doors
         _QT.singleShot(800, then)
     if not os.environ.get("AH_TEST"):                # 4.51.0: once, after the first effort is open: name what Unfiled holds
         from skqt import unfiledview as _UV          # from before, or leave it where it is (nothing moves by itself)

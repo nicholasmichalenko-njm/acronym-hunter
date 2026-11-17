@@ -1142,6 +1142,8 @@ class LibraryPage(QWidget):
             self.show_added([d["id"] for d, _v in made])
             if getattr(self, "_ask_pkg", False) or getattr(self, "package_answer", None):    # 4.29.1: asked once per add
                 __import__("skqt.docgroups", fromlist=["x"]).ask_package(self, made, getattr(self, "package_answer", None))
+        then, self.then = getattr(self, "then", None), None   # 4.52.0: Shred to setup goes on to Shred once the add ends
+        then(made) if then is not None else None
 
     def show_added(self, ids):
         """3.15.1: what was just added, in view: every filter off, All documents, the new documents selected."""

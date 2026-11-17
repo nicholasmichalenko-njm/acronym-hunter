@@ -3,7 +3,9 @@ Dashboard entry opens. Left: your next step with the path under it, up to four c
 fixes them, the deliverables one row each, and the Wall of Truth as a line that stays up. Right: the calendar's next ten
 dated things (always there), the customer, and the last three things that happened. Every block reads what the effort
 already keeps (overview.py); the cards the Dashboard had are one tab over, in All cards, until Tasks and Activity have
-pages of their own. Rules only (No AI); nothing leaves the PC."""
+pages of their own. 4.52.0: the app opens here; with nothing open it is the landing (a place to drop a document and the
+three doors, skqt/landing.py), and with an effort open the doors are a row under the next step. Rules only (No AI);
+nothing leaves the PC."""
 import datetime
 import html
 
@@ -52,8 +54,9 @@ class OverviewPage(QWidget):
         for b in list(self.banner.toggles.values()) + list(self.banner.c_toggles.values()):
             b.setVisible(False)                              # Win themes and Wall of Truth strips are All cards' own
         v.addWidget(self.banner)
-        self.empty = D.EmptyState("No effort open", "Open an effort to see where it stands.", "All Efforts", lambda: host.go("efforts"))
-        v.addWidget(self.empty, 1)
+        from .landing import DoorRow, Landing                 # 4.52.0 (decision 7): with nothing open, a place to drop and the doors
+        self.landing = self.empty = Landing(host)
+        v.addWidget(self.landing, 1)
         from .programsview import ProgramPanel                # 4.50.0: what a program's Overview shows, and nothing else
         self.program = ProgramPanel(host); self.program.setVisible(False); v.addWidget(self.program, 1)
         self.body = QWidget(); v.addWidget(self.body, 1)
@@ -72,6 +75,7 @@ class OverviewPage(QWidget):
         self.path_row = QHBoxLayout(); self.path_row.setSpacing(D.SPACE["xs"])
         self.next_card.body.addLayout(self.path_row)
         left.addWidget(self.next_card)
+        self.door_row = DoorRow(host, "effort"); left.addWidget(self.door_row)   # 4.52.0 (decision 8): the doors, under the next step
         self.num_row = QHBoxLayout(); self.num_row.setSpacing(D.SPACE["m"]); self.num_row.setContentsMargins(0, 0, 0, 0)
         nw = QWidget(); nw.setLayout(self.num_row); left.addWidget(nw)
         self.deliv = D.Card("Deliverables", actions=[D.button("Open the board", None, lambda: host.go("deliverables"), "Every deliverable, its owner and status")])
@@ -185,6 +189,8 @@ class OverviewPage(QWidget):
         self.head_w.setVisible(not on); self.banner.setVisible(on)
         if not on:
             self.name.setText("Overview")
+            self.head_w.setVisible(False)                    # the page title already reads Overview; the landing is all
+            self.landing.refresh()
             return None
         try:                                                 # 4.29.3: the banner, filled as the Dashboard fills its own
             hp = h.home_page

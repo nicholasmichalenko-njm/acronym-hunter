@@ -1,4 +1,4 @@
-"""Home > Quick tools (3.53.0, the first screen): drop any file (or choose files, or paste a picture) and pick what to do with
+"""Home > Quick tools (3.53.0, the first screen until 4.52.0 opened on the Overview's doors): drop any file (or choose files, or paste a picture) and pick what to do with
 it from the tools that take that kind of file (plan decision 3: ask which tool); your pinned tools, one click each
 (decision 4: a starting set by role, changed freely); the files you last opened from here; your efforts and programs.
 4.51.0: a use that works in a home asks where the file goes in the same step (skqt/homeask: the open effort or program
@@ -32,7 +32,7 @@ USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
 # 4.51.0: the uses that work in a home (asked where in the same step), and those of them only an effort has: Technical Edit
 # is Drafts', Strip is Setup's and Final Checks is Submit's (programs.OUT); Audit reads the effort's volume standards
 NEEDS_HOME = ("acronyms", "copyreview", "library", "audit", "strip", "leftovers")
-EFFORT_ONLY = ("copyreview", "audit", "strip", "leftovers")
+EFFORT_ONLY = ("copyreview", "strip", "leftovers")     # 4.52.0: Audit works in a program too (the Check a document door)
 NO_HOME = object()
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
 TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart from any effort", "window"),
@@ -96,13 +96,13 @@ def save_pins(config_dir, pins):
 
 
 class DropZone(QFrame):
-    def __init__(self, on_files):
+    def __init__(self, on_files, text=None):
         super().__init__()
         self.on_files = on_files
         self.setAcceptDrops(True); self.setObjectName("dropzone")
         self.setStyleSheet("QFrame#dropzone { border: 2px dashed palette(mid); border-radius: 8px; }")
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["l"], D.SPACE["l"], D.SPACE["l"], D.SPACE["l"])
-        t = QLabel("Drop a file here: Word, PDF, PowerPoint, Excel or a picture. Then pick what to do with it.")
+        t = QLabel(text or "Drop a file here: Word, PDF, PowerPoint, Excel or a picture. Then pick what to do with it.")
         t.setAlignment(Qt.AlignCenter); t.setWordWrap(True); v.addWidget(t)
 
     def dragEnterEvent(self, e):
@@ -161,6 +161,31 @@ class UseDialog(QDialog):
     def home(self):
         """The home picked, as WhereBox.picked() gives it; None for a use beside any home."""
         return self.where.picked() if self.picked() in NEEDS_HOME else None
+
+
+def hand(h, use, paths):
+    """What a use that works in a home does once the home is open (Quick tools and the Overview's doors share it, 4.52.0)."""
+    if use == "acronyms":
+        import acrlists as AL
+        h.go("acronyms")
+        s = h.acronym_page.session
+        last = ((s.last_scan or {}).get("paths") if s is not None else None) or []
+        return h.acronym_page.scan(AL.add_files(last, paths))
+    if use == "copyreview":
+        h.go("techedit")
+        return h.techedit_page.add_files(paths, run=True)
+    if use == "library":
+        h.go("library")
+        return h.library_page.add(paths)
+    if use == "audit":
+        h.go("audit")
+        return h.audit_page.add_files(paths)
+    if use == "strip":                                  # 3.60.0
+        return h.setups_page.strip_files(paths)
+    if use == "leftovers":                              # 3.57.0
+        h.go("checks")
+        return h.checks_page.check_leftovers(paths)
+    return None
 
 
 class ToolsHome(QWidget):
@@ -365,27 +390,7 @@ class ToolsHome(QWidget):
                 return NO_HOME
             if not settle(h, home):
                 return NO_HOME
-        if use == "acronyms":
-            import acrlists as AL
-            h.go("acronyms")
-            s = h.acronym_page.session
-            last = ((s.last_scan or {}).get("paths") if s is not None else None) or []
-            return h.acronym_page.scan(AL.add_files(last, paths))
-        if use == "copyreview":
-            h.go("techedit")
-            return h.techedit_page.add_files(paths, run=True)
-        if use == "library":
-            h.go("library")
-            return h.library_page.add(paths)
-        if use == "audit":
-            h.go("audit")
-            return h.audit_page.add_files(paths)
-        if use == "strip":                                  # 3.60.0
-            return h.setups_page.strip_files(paths)
-        if use == "leftovers":                              # 3.57.0
-            h.go("checks")
-            return h.checks_page.check_leftovers(paths)
-        return None
+        return hand(h, use, paths)
 
     def work_on(self, name):
         import unfiled as UF

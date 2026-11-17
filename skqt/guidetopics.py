@@ -20,9 +20,9 @@ TOPICS = [
    "Press Ctrl+K to find a page, an effort, a piece or a person from anywhere.",
    "Every decision saves as you make it. Closing the app never loses work."]),
  ("tools", "Home", "Quick tools",
-  "The first screen: drop any file and pick what to do with it, your pinned tools, the files you opened from here, and your "
+  "Every tool on any file: drop any file and pick what to do with it, your pinned tools, the files you opened from here, and your "
   "efforts and programs.",
-  "Whenever you start: a quick job on any document, or the effort you are working on.",
+  "A quick job on any document with a tool the Overview's doors do not lead to.",
   ["Drop a file on the dashed box, or Choose files...: Stationkeeper lists the tools that take it (find acronyms, check first "
    "use, pull out all the text, add to Documents, audit). Pick one. A tool that works in an effort or a program asks, in the same step, where the file goes: the one open now, another one, a new effort or a new program (a name is enough).",
    "Paste a picture: a screenshot or a copied figure, read in Acronym Finder.",

@@ -9,7 +9,7 @@ import diag
 import supportfile as SF
 from . import design as D
 
-SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a piece or a person"),
+SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a piece or a person, or start a door, a new effort or a new program"),
              ("Anywhere", "Ctrl+Shift+I", "Issues and ideas: write down a bug, an improvement or an idea (stays on this PC)"),
              ("Anywhere", "Ctrl+F", "Find a piece by its words or number"),
              ("Anywhere", "F1", "The Guide, open at the page you are on"),
@@ -160,14 +160,15 @@ def after_update(host, run=True):
 
 # ---------------------------------------------------------------- Ctrl+K
 class Finder(QDialog):
-    """Type to find a page, an effort, a sentence or a person; Enter goes there."""
+    """Type to find a page, an effort, a sentence or a person, or something to do; Enter goes there. 4.52.0: it lists only what
+    can run now, and never a line that is greyed out."""
 
     def __init__(self, host):
         super().__init__(host)
         self.host = host
         self.setWindowTitle("Find"); self.setMinimumSize(680, 460)
         v = QVBoxLayout(self)
-        self.box = QLineEdit(); self.box.setPlaceholderText("A page, an effort, a piece's words or number, a person")
+        self.box = QLineEdit(); self.box.setPlaceholderText(placeholder(host))
         v.addWidget(self.box)
         self.list = QListWidget(); v.addWidget(self.list, 1)
         v.addWidget(D.label("Enter opens it. Esc closes.", "muted"))
@@ -180,7 +181,8 @@ class Finder(QDialog):
     def collect(self):
         from .mainwin import TITLES
         h = self.host
-        out = [("Page", t, sub, ("page", k)) for k, (t, sub) in TITLES.items()]
+        out = [("Page", t, sub, ("page", k)) for k, (t, sub) in TITLES.items() if page_now(h, k)]
+        out += do_entries(h)                 # 4.52.0: the doors, a new effort or program, Connect
         import homes as HM                   # 4.51.0: Unfiled only while it holds work from before, by the name it shows
         out += [(("Program", n, "Open this program", ("effort", n)) if (h.efforts.get(n) or {}).get("program")   # 4.50.0
                  else ("Effort", HM.shown_name(h.efforts, n), "Open it", ("effort", n)) if (h.efforts.get(n) or {}).get("unfiled")
@@ -190,7 +192,7 @@ class Finder(QDialog):
             out += [("Piece", f"{it['id']}  {it['text'][:90]}", (it.get("decision") or "Undecided") + (f" · {it['map']}" if it.get("map") else ""),
                      ("sentence", it["id"])) for it in h.review.M.items]
         try:
-            out += [("Person", n, "Pieces assigned to them", ("person", n)) for n in h.people()]
+            out += [("Person", n, "Pieces assigned to them", ("person", n)) for n in (h.people() if h.review is not None else [])]
         except Exception:
             diag.swallowed()
         return out
@@ -220,6 +222,8 @@ class Finder(QDialog):
         kind, val = act
         if kind == "page":
             h.go(val)
+        elif kind == "do":
+            run_do(h, val)
         elif kind == "effort":
             h.open_effort(val)
         elif kind == "sentence":
@@ -231,6 +235,53 @@ class Finder(QDialog):
         diag.activity("finder_used")
         self.accept()
         return act
+
+
+def page_now(h, key):
+    """4.52.0 (decision 63): a page is listed only when it can open now: not blocked for this person; with nothing open
+    only a page that needs no effort (Calendar and Tasks once an effort exists); with a program open none of an
+    effort's steps or Overview tabs."""
+    import programs as PG
+    from .mainwin import MainWindow
+    from . import programsview as PV
+    if key not in getattr(h, "pages", {}) or h.blocked(key) is not None:
+        return False
+    if h.ws is None:
+        return key in MainWindow.NO_EFFORT or key == "overview" or (key in ("calendar", "tasks") and bool(PG.effort_names(h.efforts)))
+    return not PV.hidden_page(h, key)
+
+
+def do_entries(h):
+    """The things Ctrl+K can start now: the doors this home has, a new effort, a new program, Connect."""
+    import doors as DR
+    from . import doorsview as DV
+    words = {"acronyms": "Open a document with Acronyms", "shred": "Shred a customer document to setup", "check": "Check a document"}
+    out = [("Do", words[k], DR.WHAT[k], ("do", "door:" + k)) for k in DR.for_home(DV.kind_now(h))]
+    out += [("Do", "New effort", "Start an effort: its name, then the rest when you have it", ("do", "new_effort")),
+            ("Do", "New program", "A program holds program documents; a name only", ("do", "new_program")),
+            ("Do", "Connect", "The Production Datum from a file someone sent", ("do", "connect"))]
+    return out
+
+
+def run_do(h, val):
+    if val.startswith("door:"):
+        from . import doorsview as DV
+        return DV.choose(h, val.split(":", 1)[1])
+    if val == "new_effort":
+        return h.efforts_page.add_effort()
+    if val == "new_program":
+        from .programsview import new_program
+        return new_program(h)
+    if val == "connect":
+        from .datummark import connect_file
+        return connect_file(h)
+    return None
+
+
+def placeholder(h):
+    if h.ws is None:
+        return "A page, a door, an effort or a program, New effort, Connect"
+    return "A page, a door, an effort, a piece's words or number, a person"
 
 
 def open_finder(host, run=True):
