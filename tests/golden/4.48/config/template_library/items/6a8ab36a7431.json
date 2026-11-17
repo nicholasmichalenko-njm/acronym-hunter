@@ -1,0 +1,87 @@
+{
+ "levels": [
+  [
+   "Heading 1",
+   1
+  ],
+  [
+   "Heading 2",
+   2
+  ],
+  [
+   "Heading 3",
+   3
+  ],
+  [
+   "Heading 7",
+   1
+  ],
+  [
+   "Heading 8",
+   2
+  ]
+ ],
+ "switches": [
+  "\\h",
+  "\\z"
+ ],
+ "title_style": "TOC Heading",
+ "entry_styles": {
+  "TOC 1": {
+   "number_at": 0.0,
+   "text_at": 0.4,
+   "right_indent": 0.5,
+   "tab": [
+    6.5,
+    "right",
+    "dot"
+   ]
+  },
+  "TOC 2": {
+   "number_at": 0.2,
+   "text_at": 0.7,
+   "right_indent": 0.5,
+   "tab": [
+    6.5,
+    "right",
+    "dot"
+   ]
+  },
+  "TOC 3": {
+   "number_at": 0.4,
+   "text_at": 1.0,
+   "right_indent": 0.5,
+   "tab": [
+    6.5,
+    "right",
+    "dot"
+   ]
+  },
+  "Table of Figures": {
+   "number_at": 0.0,
+   "text_at": 1.0,
+   "right_indent": 0.5,
+   "tab": [
+    6.5,
+    "right",
+    "dot"
+   ]
+  }
+ },
+ "lists": [
+  {
+   "title": "List of Tables",
+   "identifiers": [
+    "Table",
+    "TableApp"
+   ]
+  },
+  {
+   "title": "List of Figures",
+   "identifiers": [
+    "Figure",
+    "FigureApp"
+   ]
+  }
+ ]
+}

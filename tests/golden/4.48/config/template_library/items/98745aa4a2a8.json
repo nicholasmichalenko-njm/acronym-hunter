@@ -1,0 +1,29 @@
+{
+ "name": "Numbers",
+ "levels": [
+  {
+   "style": "List Number",
+   "fmt": "decimal",
+   "text": "%1.",
+   "font": "",
+   "left": 0.25,
+   "hanging": 0.25
+  },
+  {
+   "style": "List Number 2",
+   "fmt": "lowerLetter",
+   "text": "%2.",
+   "font": "",
+   "left": 0.5,
+   "hanging": 0.25
+  },
+  {
+   "style": "List Number 3",
+   "fmt": "lowerRoman",
+   "text": "%3.",
+   "font": "",
+   "left": 0.75,
+   "hanging": 0.25
+  }
+ ]
+}

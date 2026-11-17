@@ -1,0 +1,47 @@
+{
+ "columns": [
+  {
+   "key": "item",
+   "heading": "Response Section No. Item"
+  },
+  {
+   "key": "assigned_to",
+   "heading": "Assigned To"
+  },
+  {
+   "key": "page_alloc",
+   "heading": "Initial Page Allocation"
+  },
+  {
+   "key": "pct_complete",
+   "heading": "% Complete"
+  },
+  {
+   "key": "l_refs",
+   "heading": "RFP Solicitation Requirements (Section L)"
+  },
+  {
+   "key": "l_content",
+   "heading": "Section L Content"
+  },
+  {
+   "key": "m_refs",
+   "heading": "Evaluation Section (Section M)"
+  },
+  {
+   "key": "m_content",
+   "heading": "Evaluation Content"
+  }
+ ],
+ "v": 3,
+ "layout": "outline",
+ "roles": [
+  "Keep",
+  "Context"
+ ],
+ "customer_sheet": true,
+ "title": "",
+ "empty_sections": true,
+ "order": "structure",
+ "context": "cell"
+}

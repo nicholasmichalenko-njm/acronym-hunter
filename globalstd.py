@@ -31,6 +31,7 @@ MORE = {
     "sections": ("Section designs", [], ["section_designs"]),
     "outline": ("Outline layouts", ["outline_layouts.json"], []),
     "verify": ("Verify menu", ["verify_menu.json"], []),
+    "values": ("Values once built in", ["datum_values.json"], []),      # 4.48.0 (decision 67): datumvalues.py
 }
 LEFT_OUT = ("access",)                          # which Preview tools are on: a PC's own choice once Global Standards is read only
 

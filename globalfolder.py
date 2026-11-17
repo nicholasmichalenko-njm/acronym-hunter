@@ -29,6 +29,7 @@ Standard library only. Rules only (No AI); nothing leaves the PC."""
 import datetime, hashlib, json, os, re, shutil
 
 import globalstd as GS
+import datumvalues
 import teamdata as TD
 
 FORMAT = 2
@@ -178,6 +179,8 @@ def waiting(config_dir, folder):
 def update(config_dir, folder, by="", note="", when=None, after=0):
     """Write the next version from what this PC holds and name it the one in use. Returns its manifest. Raises OSError
     when the folder cannot be written, ValueError when there is nothing to put in a version."""
+    if _members(config_dir):
+        datumvalues.keep(config_dir)      # 4.48.0 (decision 67): the values the code carried join the set, once
     mine = _members(config_dir)
     if not mine:
         raise ValueError("This PC holds nothing of the Global Standards yet.")

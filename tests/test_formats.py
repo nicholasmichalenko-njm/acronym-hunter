@@ -122,7 +122,10 @@ check("effort standards", _ES.start(cfg_es := os.path.join(tmp, "es_cfg"), os.pa
 import globalfile as _GX                                                    # 4.33.0: what a version changed on this PC
 _gx = os.path.join(tmp, "gx_cfg"); os.makedirs(_gx, exist_ok=True); _GX._keep(_gx, {"version": 1}, [], {})
 check("global standards notice", json.load(open(os.path.join(_gx, _GX.NOTICE)))["format"] == F.number("global standards notice") == _GX.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 31, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
+import datumvalues as _DV                                                   # 4.48.0: the values the code carried, kept in the Production Datum
+_dv = os.path.join(tmp, "dv_cfg"); _DV.keep(_dv)
+check("datum values", json.load(open(os.path.join(_dv, _DV.FILE), encoding="utf-8"))["format"] == F.number("datum values") == _DV.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 32, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy; 4.10.0: suggestion scores
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

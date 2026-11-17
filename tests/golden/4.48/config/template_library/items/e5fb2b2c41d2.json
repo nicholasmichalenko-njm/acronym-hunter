@@ -1,0 +1,18 @@
+{
+ "body_font": "Georgia",
+ "body_size": 11,
+ "table_font": "Arial",
+ "table_size": 9,
+ "caption_font": "Arial",
+ "caption_size": 10,
+ "space_after_body": 6,
+ "line_spacing": "single",
+ "margin_top": 1.0,
+ "margin_bottom": 1.0,
+ "margin_left": 1.0,
+ "margin_right": 1.0,
+ "paper": "Letter",
+ "heading1_size": 14,
+ "marking": "Use or disclosure of data contained on this page is subject to the restriction on the title page of this proposal.",
+ "team_line": "Kestrel Systems proprietary"
+}
