@@ -5,7 +5,7 @@ keeps its key, its right-click entry or a place in More.
 apply(page, mode): mode "shred" or "place" (placemode.apply calls it on every visit).
 - Both: the selection bar, the topic bar, the bottom decide and capture panel and the help line leave; Fit width and
   Fix text are in More. Suggestions are always worked out: the piece pane
-  shows the suggested type dashed, and Enter takes it.
+  shows the suggested type dashed, and Enter takes it and goes to the next piece not shredded (4.53.0).
 - Shred: This document is shredded is a checkbox (4.26.0; it was the main button and opened the next document). N goes
   to the next piece not sorted.
 - Place: the piece pane is the place pane (placepane); N goes to the next piece not placed.
@@ -85,6 +85,7 @@ def apply(page, mode):
             page.sg_on = False
             page.restyle()
         page.show_card(page.selected())
+        __import__("skqt.shredselbar", fromlist=["x"]).gutter(page, mode == "shred")   # 4.53.0: the bar's margin
         __import__("skqt.shredselbar", fromlist=["x"]).later(page)
         __import__("skqt.shredprogress", fromlist=["x"]).refresh(page)
     except Exception:  # noqa: BLE001
@@ -115,25 +116,79 @@ def shredded(page, on=True):
 
 
 def enter(page):
-    """Enter: Place it on Place; take the suggestion on Shred."""
+    """Enter: Place it on Place. On Shred (4.53.0, UX decision 11): take the suggestion of each selected piece that has
+    one waiting, then go to the next piece not shredded after the last one selected (its bar opens beside it). With no
+    suggestion waiting Enter changes nothing and stays. A chip or a type letter sets a type and stays; only Enter moves."""
     if getattr(page, "focus", "") == "place":
         from . import placepane as PP
         return PP.place_it(page)
-    return page.accept_suggestions(rows=page.selected())
+    rows = page.selected()
+    before = (getattr(page.R, "undo", None) or [None])[-1] if page.R is not None else None
+    n = page.accept_suggestions(rows=rows)
+    if not n or getattr(page, "focus", "") != "shred" or page.cx is not None or page.R is None:
+        return n
+    try:
+        undo = getattr(page.R, "undo", None) or []
+        step = undo[-1][0] if undo and (before is None or undo[-1][0] is not before[0]) else None
+        page._enter_took = (step, [it["id"] for it in rows])          # Undo selects these again
+        go_on(page, rows[-1]["id"] if rows else None)
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return n
+
+
+def open_rows(page):
+    """The pieces of this document not shredded yet: no type and no decision (headings left out), in order."""
+    import shredtypes as ST
+    if page.R is None or not page.file:
+        return []
+    return [it for it in page.R.rows_of(page.file) if it.get("type") != "Heading"
+            and not ST._keys(it.get(ST.FIELD)) and not it.get("decision")]
+
+
+def go_on(page, after_id):
+    """After Enter: select the next piece not shredded after after_id, else the first one left in the document; with
+    none left the selection stays and the status line says so. Nothing is marked shredded here."""
+    rows = open_rows(page)
+    if not rows:
+        page.host.status("Every piece in this document has a type.")
+        return None
+    ids = [it["id"] for it in page.R.rows_of(page.file)]
+    at = ids.index(after_id) if after_id in ids else -1
+    nxt = next((it for it in rows if ids.index(it["id"]) > at), rows[0])
+    page.select(nxt["id"])
+    return nxt["id"]
+
+
+def taken_back(page):
+    """Called by do_undo before it undoes: when the step it undoes is the one Enter took, the ids Enter took (Undo
+    selects them again), else None."""
+    took = getattr(page, "_enter_took", None)
+    undo = getattr(page.R, "undo", None) if page.R is not None else None
+    if not took or not undo or took[0] is None or undo[-1][0] is not took[0]:
+        return None
+    page._enter_took = None
+    return list(took[1])
+
+
+def show_back(page, ids):
+    """After Undo put Enter's step back: the piece it took is in view again."""
+    b = page.view.boxes.get(ids[-1]) if ids else None
+    if b is not None:
+        page.view.ensureVisible(b, 40, 140)
 
 
 def next_open(page):
     """N: the next piece not sorted (Shred) or not placed (Place) in this document, after the one selected."""
     if page.R is None or not page.file:
         return None
-    import shredtypes as ST
     rows = [it for it in page.R.rows_of(page.file) if it.get("type") != "Heading"]
     if getattr(page, "focus", "") == "place":
         import homesuggest as HS
         left = set(HS.left(page.M)["unplaced"])
         rows = [it for it in rows if it["id"] in left]
     else:
-        rows = [it for it in rows if not ST._keys(it.get(ST.FIELD)) and not it.get("decision")]
+        rows = open_rows(page)
     if not rows:
         page.host.status("Nothing left here." if getattr(page, "focus", "") != "place" else "Everything here is placed.")
         return None
@@ -184,5 +239,6 @@ def off(page):
         page.progress_row.setVisible(False)
     for x in (page.shred_check, page.focus_more):
         x.setVisible(False)
+    __import__("skqt.shredselbar", fromlist=["x"]).gutter(page, False)
     page.show_card(page.selected())
     return None

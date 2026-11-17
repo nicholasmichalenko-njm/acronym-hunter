@@ -215,7 +215,7 @@ TOPICS = [
    "A piece can be several things: a requirement that is also a date shows on Requirements and on Submission Checklist. "
    "Not applicable clears the rest. The shred's decision follows: any answered type makes it a requirement (L from "
    "Instruction, M from Evaluation); only Rule, Date or Information makes it the customer's; none leaves it undecided.",
-   "The suggestion shows dashed on its chip, with why. Enter takes it; More > Take every suggestion takes them all.",
+   "The suggestion shows first on the bar beside the piece, with why on the pane. Enter takes it and goes to the next piece not shredded; a chip or a key sets a type and stays.",
    "Capture (a menu in the pane) files the picked words: a contact, an objective (O), a key point (K), a graphic need "
    "(P), the effort's own captures. Format & Submission and Key Date cover the rules and the dates; Acronyms holds "
    "the acronyms; Ask a question puts a customer question, citing the piece, in the Q&A log.",

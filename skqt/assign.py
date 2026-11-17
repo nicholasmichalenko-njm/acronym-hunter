@@ -4423,9 +4423,10 @@ class AssignPage(QWidget):
         if self.cx is not None and self.cx_hist:
             return self.cx.undo()
         label = self.R.undo_label() if self.R else ""
+        back = SF.taken_back(self)                               # 4.53.0: Undo after Enter selects the piece taken
         if self.R and self.R.undo_last():
             diag.activity("compliance_undo")
-            keep = [it["id"] for it in self.selected()]          # 3.0.4: the selection stays after Undo
+            keep = back or [it["id"] for it in self.selected()]  # 3.0.4: the selection stays after Undo
             self.build_boxes()
             self._guard = True
             for iid in keep:
@@ -4434,6 +4435,8 @@ class AssignPage(QWidget):
                     b.setSelected(True)
             self._guard = False
             self.cur = keep[-1] if keep else self.cur
+            if back:
+                SF.show_back(self, back)
             labs = set(O.labels(self.M))
             if self.target and self.target not in labs:          # the section it targeted was the one undone
                 self.target = None

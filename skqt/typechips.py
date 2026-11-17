@@ -92,9 +92,18 @@ def add(page, rows):
     page.cap_row = page.add(roww)                        # 4.29.3: on the bar at the selection while that shows
     pane(page, getattr(page, "sel_bar", None) is None)
     __import__("skqt.piececaptures", fromlist=["x"]).add(page, rows)        # 4.12.0: its deliverable, what it gave
+    count(page)                                                             # 4.53.0: Shred's keys, as Place says its own
     __import__("skqt.shredselbar", fromlist=["x"]).later(page)              # 4.26.0: the bar at the selection follows
     __import__("skqt.shredprogress", fromlist=["x"]).refresh(page)
     return page.type_chips
+
+
+def count(page):
+    """4.53.0: one muted line, as Place's: how many pieces of this document are not shredded yet, and the keys."""
+    n = len(__import__("skqt.shredfocus", fromlist=["x"]).open_rows(page))
+    page.shred_left = page.add(D.label(f"Not shredded yet: {n}" + ("  \u00b7  Enter takes the suggestion and goes on, N for the next"
+                                                                    if n else ""), "muted"))
+    return n
 
 
 def rule_row(page, rows, sug):

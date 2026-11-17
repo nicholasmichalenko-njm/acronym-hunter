@@ -91,6 +91,8 @@ check("4.10.0: Not right sits beside the suggestion", pg.not_right_btn is not No
 SF.enter(pg); app.processEvents()
 it = by("Integrated Master Schedule")
 check("Enter takes the suggestion", it.get("decision") == "Keep" and it.get("lm") == "L", (it.get("decision"), it.get("lm")))
+check("... 4.53.0: and goes to the next piece not shredded", pg.selected() and pg.selected()[-1]["id"] != it["id"])
+pg.select(it["id"]); app.processEvents()
 import suggestrules as SR
 check("4.10.0: a sorted piece offers Make it a team rule...", pg.team_rule_btn is not None and pg.not_right_btn is None)
 pg.make_rule(it, answer=("the Integrated Master Schedule", "L", "team")); app.processEvents()

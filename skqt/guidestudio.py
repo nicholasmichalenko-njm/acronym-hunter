@@ -71,6 +71,10 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
     ("home", "With an effort open the doors are a row under your next step; a program shows Acronyms and Check a document. "
              "All tools opens Quick tools. The effort's steps show in the menu while an effort is open."),
     ("tools", "The Overview's three doors lead to what is most often done with a document; Quick tools keeps every tool."),
+    ("assign", "Select a piece and its bar opens in the right margin, level with it: the suggested type first, then the other "
+               "types, Capture, Ask a question, Combine or Split when they apply, and Take the suggestion. The page keeps that "
+               "margin on Shred, so the bar never covers the text; the marks of what is decided sit in the left margin. "
+               "N goes to the next piece not shredded."),
     ("rules", "Fix a Copy's checks: graphics, Excel and PowerPoint, and the words Fix a Copy reports and fixes (they were in "
               "Production Standards)."),
     ("formatstd", "Allowed styles...: the styles a finished document may use and the styles the rules read."),

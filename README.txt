@@ -120,9 +120,9 @@ ACROS & ABS (4.26.1)
     so it is not found as a term.
 
 SHRED, SIMPLER (4.26.0)
-  - The bar at the selection. Select one piece or several and a small bar shows just above them: the types as
-    chips, Combine for several pieces, Split once you clicked the word to split before, and Take the selected
-    suggestions. The pane on the right is unchanged.
+  - The bar at the selection. Select one piece or several and a small bar shows beside them, in the page's right
+    margin (4.53.0; it never covers the text): the suggested type first, then the types as chips, Combine for several
+    pieces, Split once you clicked the word to split before, and Take the selected suggestions.
   - This document is shredded is a checkbox on the document row. It marks the document and opens nothing.
   - More holds Fix text and Fit width. Next document, Pan, Take every suggestion and the Captured list left it.
     The page moves with Space and drag or a middle-button drag at any time; Ctrl+wheel zooms.
@@ -548,7 +548,7 @@ SHRED AND PLACE, AS DESIGNED (4.5.0)
     Date, Evaluation, Deliverable, Information and Not applicable, as chips with their keys. A click or a key puts a type
     on; again takes it off. A piece can be several things (a requirement that is also a date shows on Requirements and
     on Rules & Dates); Not applicable clears the rest.
-  - The suggestion shows dashed on its chip, with why; Enter takes it.
+  - The suggestion shows dashed on its chip, with why; Enter takes it and goes to the next piece not shredded (4.53.0).
   - Capture is one menu in the pane (contact, objective, key point, graphic need, your own); Ask a question files a
     customer question citing the piece. Rule and Date now do what Submission, Formatting and Key date did.
   - The main button is Mark this document shredded (it opens the next one). More holds Fix text, Take every suggestion,

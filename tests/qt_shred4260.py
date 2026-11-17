@@ -98,9 +98,9 @@ it = by("Integrated Master Schedule")
 pg.select(it["id"]); app.processEvents()
 bar = SBR.refresh(pg)
 check("select a piece: a bar shows at the selection with the types as chips", bar is not None and bar.isVisible()
-      and list(bar.chips) == [k for k in ST.KEYS if ST.load(w.config_dir)[k].get("shown", True)], list(bar.chips) if bar else None)
-check("... inside the page, above or below the piece, never off it", bar.parentWidget() is pg.view.viewport() and bar.y() >= 0
-      and bar.y() + bar.height() <= pg.view.viewport().height() + 1, bar.geometry())
+      and sorted(bar.chips) == sorted(k for k in ST.KEYS if ST.load(w.config_dir)[k].get("shown", True)), list(bar.chips) if bar else None)
+check("... 4.53.0: in the right margin beside the piece, never over the page", bar.parentWidget() is pg.view
+      and bar.x() > pg.view.viewport().geometry().right() and bar.y() >= 0 and bar.y() + bar.height() <= pg.view.height() + 1, bar.geometry())
 check("... with Take the suggestion while one waits, and no Combine for one piece", bar.take is not None and bar.combine is None)
 bar.chips["requirement"].click(); app.processEvents()
 it = by("Integrated Master Schedule")
