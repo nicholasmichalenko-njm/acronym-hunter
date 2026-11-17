@@ -300,7 +300,7 @@ class SetupsPage(QWidget):
             M = R.M
         else:
             if self.host.ws is None or not self.host.effort_path:
-                self.host.status("Pick an effort first, or work in Unfiled.")
+                self.host.status("Pick an effort first.")
                 return None
             mpath = self.host.out_path("compliance_matrix")
             os.makedirs(os.path.dirname(mpath), exist_ok=True)
@@ -558,7 +558,7 @@ class SetupsPage(QWidget):
             M = R.M
         else:
             if self.host.ws is None or not self.host.effort_path:
-                self.host.status("Pick an effort first, or work in Unfiled.")
+                self.host.status("Pick an effort first.")
                 return None
             path = self.host.out_path("compliance_matrix")
             os.makedirs(os.path.dirname(path), exist_ok=True)

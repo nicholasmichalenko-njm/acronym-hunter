@@ -198,7 +198,7 @@ class OverviewPage(QWidget):
             __import__("diag").swallowed()
             self.head_w.setVisible(True); self.banner.setVisible(False)
         t = D.tokens()
-        self.name.setText(h.effort_name)
+        self.name.setText(__import__("homes").shown_name(h.efforts, h.effort_name))   # 4.51.0: Unfiled, from before
         self.sub.setText("  ·  ".join(x for x in (d["client"], d["solicitation"]) if x) or "Customer and solicitation not set yet")
         self.due.setText(OV.due_words(d["days"]) + (f"  ({d['due']})" if d["due"] else ""))
         late = d["days"] is not None and d["days"] <= 7

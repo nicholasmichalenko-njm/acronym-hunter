@@ -1,10 +1,12 @@
-"""Home (2.91.0): every effort in progress at a glance, the way in to a new one, and Unfiled work.
+"""Home (2.91.0): every effort in progress at a glance, the way in to a new one, and Unfiled work (4.51.0: from before).
 
 One card per effort (picture, name, client, sensitivity, stage, days to the due date, open tasks and questions,
 deliverables with no owner, who has it open), the soonest due first; click a card to open the effort. + Add an Effort
 is the main way to start one (its folders are made with it). Unfiled work has its own card while it holds anything:
-Open it, Make it an effort, or Add to an effort. 4.50.0: a third view, Programs (skqt/programsview). The rules are
-effortsummary's, programs' and unfiled's. Rules only (No AI); nothing leaves the PC."""
+Open it, Make it an effort, or Add to an effort. 4.50.0: a third view, Programs (skqt/programsview). 4.51.0: no Start
+without an effort (Unfiled takes no new work); the card reads Unfiled, from before, with Name it... as its main button,
+and stays hidden as 4.27.2 decided. The rules are effortsummary's, programs', unfiled's and homes'. Rules only (No AI);
+nothing leaves the PC."""
 import datetime, getpass, os, platform
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit,
@@ -94,7 +96,7 @@ class FileDialog(QDialog):
 
     def __init__(self, parent, names, docs):
         super().__init__(parent)
-        self.setWindowTitle("Add Unfiled work to an effort"); self.setMinimumWidth(520)
+        self.setWindowTitle("Add Unfiled, from before, to an effort"); self.setMinimumWidth(520)
         v = QVBoxLayout(self)
         f = QFormLayout(); v.addLayout(f)
         self.target = QComboBox(); self.target.addItems(names); f.addRow("Effort", self.target)
@@ -104,7 +106,7 @@ class FileDialog(QDialog):
             it = QListWidgetItem(f"{name}  ({nv} version{'s' if nv != 1 else ''})"); it.setData(Qt.UserRole, did)
             it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Checked); self.list.addItem(it)
         v.addWidget(self.list)
-        self.terms = QCheckBox("Add Unfiled's acronyms to that effort's effort list (none of its own are replaced)")
+        self.terms = QCheckBox("Add its acronyms to that effort's effort list (none of its own are replaced)")
         self.terms.setChecked(True); v.addWidget(self.terms)
         bb = QDialogButtonBox(QDialogButtonBox.Cancel); bb.addButton("Add to the effort", QDialogButtonBox.AcceptRole)
         bb.accepted.connect(self.accept); bb.rejected.connect(self.reject); v.addWidget(bb)
@@ -141,21 +143,17 @@ class EffortsHome(QWidget):
         self.show_prog.toggled.connect(lambda on: self.view("prog" if on else "live"))
         top.addWidget(self.show_live); top.addWidget(self.show_prog); top.addWidget(self.show_arch)
         self.count = D.label("", "muted", wrap=False); top.addWidget(self.count)
-        # Unfiled work
-        self.uf_card = D.Card("Unfiled work", "Documents and results not in an effort yet. File them when you know where they belong.")
+        # Unfiled work, from before (4.51.0)
+        import homes as HM
+        self.uf_card = D.Card(HM.SHOWN, "What was made with a tool before every document had a named home.")
         self.uf_text = self.uf_card.add(D.label("", None))
         ur = FlowLayout(None, D.SPACE["s"]); self.uf_card.body.addLayout(ur)
-        ur.addWidget(D.button("Open Unfiled", None, lambda: self.open_unfiled()))
-        self.mk_btn = D.button("Make it an effort...", "primary", lambda: self.host.make_unfiled_effort())
+        self.mk_btn = D.button("Name it...", "primary", lambda: self.host.make_unfiled_effort(), "Make it an effort or a program")
         self.add_to_btn = D.button("Add to an effort...", None, lambda: self.add_unfiled_to())
-        ur.addWidget(self.mk_btn); ur.addWidget(self.add_to_btn)
+        ur.addWidget(self.mk_btn); ur.addWidget(D.button("Open", None, lambda: self.open_unfiled())); ur.addWidget(self.add_to_btn)
         ur.addStretch()
-        ur.addWidget(D.button("Clear Unfiled...", "ghost", lambda: self.clear_unfiled(), "Empty it (a copy is kept)"))
+        ur.addWidget(D.button("Clear...", "ghost", lambda: self.clear_unfiled(), "Empty it (a copy is kept)"))
         outer.addWidget(self.uf_card)
-        self.start_row = QHBoxLayout(); outer.addLayout(self.start_row)
-        self.start_btn = D.button("Start without an effort: open Unfiled", "ghost", lambda: self.open_unfiled(),
-                                  "Use any tool now; file the work into an effort later")
-        self.start_row.addWidget(self.start_btn); self.start_row.addStretch(1)
         # 4.50.0: the efforts of the type Program deliverables, each offered the move (the Programs view only)
         self.offer_box = QWidget(); self.offer_lay = QVBoxLayout(self.offer_box); self.offer_lay.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(self.offer_box)
@@ -164,7 +162,7 @@ class EffortsHome(QWidget):
         self.grid_box = QWidget(); self.flow = FlowLayout(self.grid_box, D.SPACE["m"])
         outer.addWidget(self.grid_box)
         self.empty = D.EmptyState("No efforts yet", "+ Add an Effort starts one: its own folder with Customer Documents, Volumes, "
-                                  "Response Setup and Exports. Or start without one: Quick tools, at the bottom of the menu, works on any file.")
+                                  "Response Setup and Exports.")
         outer.addWidget(self.empty)
         self.prog_empty = D.EmptyState("No programs yet", "+ New program starts one: a name, and a folder for its program documents.")
         outer.addWidget(self.prog_empty)
@@ -223,7 +221,6 @@ class EffortsHome(QWidget):
         self.uf_counts = c
         has = not UF.empty(c)
         self.uf_card.setVisible(False)             # 4.27.2 (answer 4): Unfiled is a list under Quick tools, not a card here
-        self.start_btn.setVisible(False)
         self.uf_text.setText("Holds " + UF.summary_text(c) + "." if has else "")
         self.add_to_btn.setEnabled(bool(rows))
 
@@ -384,6 +381,6 @@ class EffortsHome(QWidget):
         diag.activity("qt_unfiled_added", n=n["documents"] + n["terms"])
         if was == target:
             h.open_effort(target)
-        h.toast(f"Added to {target}: {n['documents']} document(s), {n['terms']} term(s). Unfiled keeps its copies until you clear it (Home).")
+        h.toast(f"Added to {target}: {n['documents']} document(s), {n['terms']} term(s). Unfiled, from before keeps its copies until it is cleared.")
         self.refresh()
         return n

@@ -59,7 +59,7 @@ def hidden_page(w, page):
 
 
 def fill_box(box, registry, names):
-    """The Working on box: the efforts (and Unfiled) first, then a line, then the programs."""
+    """The Working on box: the efforts (and Unfiled while it holds work from before) first, then a line, then the programs."""
     box.clear()
     progs = [n for n in names if PG.is_program(registry, n)]
     box.addItems([n for n in names if n not in progs])

@@ -21,14 +21,15 @@ TOPICS = [
    "Every decision saves as you make it. Closing the app never loses work."]),
  ("tools", "Home", "Quick tools",
   "The first screen: drop any file and pick what to do with it, your pinned tools, the files you opened from here, and your "
-  "efforts and Unfiled.",
+  "efforts and programs.",
   "Whenever you start: a quick job on any document, or the effort you are working on.",
   ["Drop a file on the dashed box, or Choose files...: Stationkeeper lists the tools that take it (find acronyms, check first "
-   "use, pull out all the text, add to Documents, audit). Pick one.",
+   "use, pull out all the text, add to Documents, audit). Pick one. A tool that works in an effort or a program asks, in the same step, where the file goes: the one open now, another one, a new effort or a new program (a name is enough).",
    "Paste a picture: a screenshot or a copied figure, read in Acronym Finder.",
    "Pinned tools: one click each. Edit pins... picks them; your role's starting set is only a start.",
-   "Recent files: double-click to open one again with any tool. Your efforts: double-click to work on one, or Unfiled."],
-  ["Working on (top right) says what every space works on: an effort, or Unfiled (loose work kept until you file it).",
+   "Recent files: double-click to open one again with any tool. Your efforts: double-click to work on one.",
+   "Unfiled, from before shows here only while it holds work from before. Name it... makes that work an effort or a program."],
+  ["Every document has a named home: an effort or a program. Unfiled takes no new work.",
    "Ctrl+K finds any page, effort, piece or person."]),
  ("mywork", "Home", "My Work",
   "One person's work in every effort on this PC, soonest first: tasks, questions for them, customer questions, "
@@ -43,14 +44,13 @@ TOPICS = [
   ["My Work only reads the efforts; nothing changes until you open one.",
    "Refresh reads every effort again after teammates' changes come in."]),
  ("efforts", "Home", "All Efforts",
-  "Every effort on this PC, a new one, and work not filed under an effort yet.",
+  "Every effort and program on this PC, and a new one.",
   "You start a new proposal, switch efforts, or pick up an effort a teammate handed you.",
   ["Press + Add an Effort (or open Overview with no effort open). Type a name and press Create effort. The picture, "
    "client, solicitation, due date and proposal manager are optional; the effort's folders are made for you.",
    "Click an effort's card to open it. The menu then works on that effort.",
    "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent. An effort folder moved or copied: Open an effort from its folder... (pick the folder, its Effort List or its Open this effort.skeffort file). Right-click an effort: Archive... (Show archived restores it) or Add to this effort... to merge another copy of it.",
-   "To read documents before an effort exists, press Start without an effort: open Unfiled. Make it an effort... later "
-   "keeps the work."],
+   "To read documents before you know the effort, drop them on Quick tools and pick A new effort: a name is enough."],
   ["Each effort keeps its own decisions, lists and settings. Nothing crosses between efforts.",
    "The card shows the stage, the due date and what needs attention."]),
  ("home", "Overview", "Overview",

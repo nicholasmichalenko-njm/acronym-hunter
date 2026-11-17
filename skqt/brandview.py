@@ -317,7 +317,7 @@ class EffortBanner(QFrame):
         if self.edit_btn.property("kind") != want:
             self.edit_btn.setProperty("kind", want); self.edit_btn.style().unpolish(self.edit_btn); self.edit_btn.style().polish(self.edit_btn)
         self.pic.show_path(BR.picture_path(self.data_dir()))
-        self.name.setText(h.effort_name)
+        self.name.setText(__import__("homes").shown_name(h.efforts, h.effort_name))   # 4.51.0
         sens = self.ident["sensitivity"]
         self.sens.setText(sens or "Sensitivity not set"); self.sens.set_tone(BR.tone(sens))
         self.sens.setToolTip("How the effort is marked. CUI and Proprietary mark every page with a strip across the top.")
@@ -377,7 +377,7 @@ class EffortBanner(QFrame):
             r, c = divmod(i, per_row)
             a = D.label(lab, "spotlab", wrap=False); b = D.label(val, "spotval")
             self.grid.addWidget(a, r * 2, c); self.grid.addWidget(b, r * 2 + 1, c)
-        self.c_name.setText(h.effort_name)
+        self.c_name.setText(__import__("homes").shown_name(h.efforts, h.effort_name))
         self.c_sens.setText(sens or "Sensitivity not set"); self.c_sens.set_tone(BR.tone(sens))
         self.c_client.setText(self.client or "")
         self.due_iso = rec.data.get("due", "")
@@ -680,7 +680,7 @@ class RailEffort(QFrame):
 
     def set(self, name, stage="", color=""):
         self.effort = name or ""
-        self.name.setText((name or "No effort open") + "  ▾")
+        self.name.setText((__import__("homes").shown_name(self.host.efforts, name) or "No effort open") + "  ▾")   # 4.51.0
         self.stage.setText(stage or "")
         self.stage.setVisible(bool(stage))
         c = QColor(color or "#5B9BEB")                      # rgba(): Qt reads an 8-digit hex as #AARRGGBB

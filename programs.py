@@ -60,7 +60,7 @@ def check_name(registry, name):
     if not n:
         return "Give the program a name."
     if n.casefold() == UF.NAME.casefold():
-        return "Unfiled is the name of the work not filed yet. Pick another name."
+        return "Unfiled is the name of the work from before. Pick another name."
     if any(x.casefold() == n.casefold() for x in registry.names()):
         return "An effort or a program already has that name. Pick another name."
     if not re.search(r"[A-Za-z0-9]", safe_name(n)):

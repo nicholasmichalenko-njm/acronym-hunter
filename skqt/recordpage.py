@@ -160,7 +160,7 @@ class RecordPage(StageTableMixin, QWidget):
             return
         r = self.rec
         self.L = L = self.effort_list()
-        self.name.setText(h.effort_name)
+        self.name.setText(__import__("homes").shown_name(h.efforts, h.effort_name))   # 4.51.0: Unfiled, from before
         for w, val in ((self.client, L.client if L else ""), (self.sol, L.solicitation if L else ""), (self.internal, L.internal_no if L else "")):
             w.setText(val or "")
         due = r.data.get("due", "")

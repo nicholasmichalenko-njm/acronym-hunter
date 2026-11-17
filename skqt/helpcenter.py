@@ -181,8 +181,11 @@ class Finder(QDialog):
         from .mainwin import TITLES
         h = self.host
         out = [("Page", t, sub, ("page", k)) for k, (t, sub) in TITLES.items()]
+        import homes as HM                   # 4.51.0: Unfiled only while it holds work from before, by the name it shows
         out += [(("Program", n, "Open this program", ("effort", n)) if (h.efforts.get(n) or {}).get("program")   # 4.50.0
-                 else ("Effort", n, "Open this effort", ("effort", n))) for n in h.efforts.names() if not (h.efforts.get(n) or {}).get("archived")]
+                 else ("Effort", HM.shown_name(h.efforts, n), "Open it", ("effort", n)) if (h.efforts.get(n) or {}).get("unfiled")
+                 else ("Effort", n, "Open this effort", ("effort", n))) for n in h.efforts.names() if not (h.efforts.get(n) or {}).get("archived")
+                and (not (h.efforts.get(n) or {}).get("unfiled") or HM.holds_work(h.efforts))]
         if h.review is not None:
             out += [("Piece", f"{it['id']}  {it['text'][:90]}", (it.get("decision") or "Undecided") + (f" · {it['map']}" if it.get("map") else ""),
                      ("sentence", it["id"])) for it in h.review.M.items]

@@ -126,16 +126,15 @@ class ShredPage(QWidget):
 
     def to_effort(self, name=None):
         """Reads the file into an effort's Review (the effort's own read: identities, the matrix, every decision)."""
-        import unfiled as UF
         if not self.result:
             return None
         h = self.host
-        names = [n for n in h.efforts.names() if not any((h.efforts.get(n) or {}).get(k) for k in ("archived", "program"))]   # 4.50.0: a program has no Shred
+        names = [n for n in h.efforts.names() if not any((h.efforts.get(n) or {}).get(k) for k in ("archived", "program", "unfiled"))]   # 4.50.0: a program has no Shred; 4.51.0: Unfiled takes no new work
         if name is None:
             if not names:
-                h.status("No effort yet: start one on All Efforts, or Working on: Unfiled.")
+                h.status("No effort yet: start one on All Efforts.")
                 return None
-            name, ok = QInputDialog.getItem(self, "File to an effort", "Read this file into the Shred of:", names + [UF.NAME], 0, False)
+            name, ok = QInputDialog.getItem(self, "File to an effort", "Read this file into the Shred of:", names, 0, False)
             if not ok:
                 return None
         if h.effort_name != name and not h.work_on(name):

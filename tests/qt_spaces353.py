@@ -87,8 +87,8 @@ w.rail_go("formatstd"); app.processEvents()
 check("a space with nothing to work on, like Formatting Standards, opens as it is", w.ws is None and w.stack.currentWidget() is w.formatstd_page)
 w.rail_go("acronyms"); app.processEvents()                 # 4.0.0: Acros & Abs, in Shred
 import unfiled as UF
-check("a space that works on an effort opens on Unfiled when nothing is open", w.effort_name == UF.NAME
-      and w.stack.currentWidget() is w.acronym_page and w.acronym_page.session is not None)
+check("4.51.0: with nothing open, a space that works on an effort goes to its page and opens no Unfiled", w.ws is None
+      and w.stack.currentWidget() is w.acronym_page and w.efforts.get(UF.NAME) is None)
 w.close_effort(); app.processEvents()
 w.go("tools"); app.processEvents()
 home = w.tools_page
@@ -109,13 +109,13 @@ FT._OPEN[0].close()
 import recentfiles as RF
 check("... and it is a recent file", RF.shown(cfg)[0]["path"] == docx and home.recent.item(0).data(0x0100) == docx)
 import unfiled as UF
-check("Working on: Unfiled is always there", w.effort_box.findText(UF.NAME) >= 0 and "Unfiled" in w.effort_box.toolTip())
+check("4.51.0 Working on: no Unfiled while it holds nothing", w.effort_box.findText(UF.NAME) < 0 and "Unfiled" not in w.effort_box.toolTip())
 w.go("tools"); w.work_on(UF.NAME); app.processEvents()
 check("... working on Unfiled keeps you on Quick tools", w.effort_name == UF.NAME and w.stack.currentWidget() is home)
 added = []
 w.library_page.add = lambda paths=None, **k: added.append(list(paths or [])) or 1      # the Library asks where each file goes
-got = home.files_in([docx], use="library")
-check("Add to the Library of what I am working on: Unfiled's Library", got == "library" and w.effort_name == UF.NAME and added == [[docx]])
+got = home.files_in([docx], use="library", home=("new_effort", "Kestrel"))
+check("4.51.0 Add to Documents: where is asked in the same step (a new effort here)", got == "library" and w.effort_name == "Kestrel" and added == [[docx]])
 w.go("refs"); app.processEvents()
 refs = w.refs_page
 check("Team References: one space with every shared list", w.stack.currentWidget() is refs

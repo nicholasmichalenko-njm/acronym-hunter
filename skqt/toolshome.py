@@ -1,8 +1,9 @@
 """Home > Quick tools (3.53.0, the first screen): drop any file (or choose files, or paste a picture) and pick what to do with
 it from the tools that take that kind of file (plan decision 3: ask which tool); your pinned tools, one click each
-(decision 4: a starting set by role, changed freely); the files you last opened from here; your efforts and Unfiled.
-Any tool works on loose files in Unfiled or on the effort you are working on (the Working on box, top right).
-Rules only; nothing leaves the PC."""
+(decision 4: a starting set by role, changed freely); the files you last opened from here; your efforts and programs.
+4.51.0: a use that works in a home asks where the file goes in the same step (skqt/homeask: the open effort or program
+first, another one, a new effort or a new program); a tool beside any home asks nothing more. Unfiled takes no new work:
+what it holds from before shows here, as Unfiled, from before, only while it holds anything. Rules only; nothing leaves the PC."""
 import os
 
 from PySide6.QtCore import Qt
@@ -17,17 +18,22 @@ from .adaptive import FlowLayout
 OFFICE = (".docx", ".xlsx", ".pptx")
 # what a dropped file can be used for: key -> (what it says, the extensions it takes, None for any the reader takes)
 USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
-        ("acronyms", "Find acronyms in what I am working on", None),
+        ("acronyms", "Find acronyms in an effort or a program", None),
         ("firstuse", "Check first use (First Use Check)", (".docx",)),
-        ("copyreview", "Copy review (Technical Edit) of what I am working on", (".docx",)),
+        ("copyreview", "Copy review (Technical Edit), in an effort", (".docx",)),
         ("fulltext", "Pull out all the text (Full Text)", None),
         ("shred", "Find the requirements (Quick shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
-        ("library", "Add to Documents, in the effort I am working on", None),
+        ("library", "Add to Documents, in an effort or a program", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE),
         ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)),     # 3.57.0
         ("strip", "Strip the setup out (a clean copy)", (".docx",)),                             # 3.60.0
         ("redline", "Prepare it for redline (a Word file beside it)",                           # 4.22.0: a file outside any effort
          (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")))
+# 4.51.0: the uses that work in a home (asked where in the same step), and those of them only an effort has: Technical Edit
+# is Drafts', Strip is Setup's and Final Checks is Submit's (programs.OUT); Audit reads the effort's volume standards
+NEEDS_HOME = ("acronyms", "copyreview", "library", "audit", "strip", "leftovers")
+EFFORT_ONLY = ("copyreview", "audit", "strip", "leftovers")
+NO_HOME = object()
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
 TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart from any effort", "window"),
          "firstuse": ("First Use Check", "Your Word files' first uses", "window"),
@@ -110,27 +116,51 @@ class DropZone(QFrame):
 
 
 class UseDialog(QDialog):
-    """Ask which tool (decision 3): the uses that take these files."""
+    """Ask which tool (decision 3) and, for a use that works in a home, where the file goes, in one step (4.51.0)."""
 
-    def __init__(self, parent, paths, working_on):
+    def __init__(self, parent, paths, host):
         super().__init__(parent)
+        from .homeask import WhereBox
         self.setWindowTitle("What do you want to do?"); self.setMinimumWidth(520)
         v = QVBoxLayout(self)
         names = ", ".join(os.path.basename(p) for p in paths[:3]) + (f" and {len(paths) - 3} more" if len(paths) > 3 else "")
         v.addWidget(D.label(names, "label"))
         self.list = QListWidget(); v.addWidget(self.list)
         for k, t in uses_for(paths):
-            it = QListWidgetItem(t.replace("what I am working on", working_on)); it.setData(Qt.UserRole, k)
+            it = QListWidgetItem(t); it.setData(Qt.UserRole, k)
             self.list.addItem(it)
+        self.where = WhereBox(host.efforts, host.effort_name if host.ws is not None else "", paths)
+        v.addWidget(self.where)
+        self.list.itemDoubleClicked.connect(lambda _i: self.accept() if self.ok_btn.isEnabled() else None)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        self.ok_btn = bb.button(QDialogButtonBox.Ok)
+        v.addWidget(bb)
+        self.where.on_change = self.settle_ok
+        self.list.currentItemChanged.connect(lambda *_a: self.use_changed())
         if self.list.count():
             self.list.setCurrentRow(0)
-        self.list.itemDoubleClicked.connect(lambda _i: self.accept())
-        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
-        v.addWidget(bb)
+        self.use_changed()
+
+    def use_changed(self):
+        use = self.picked()
+        self.where.setVisible(use in NEEDS_HOME)
+        if use in NEEDS_HOME:
+            self.where.fill(programs=use not in EFFORT_ONLY)
+        return self.settle_ok()
+
+    def settle_ok(self):
+        use = self.picked()
+        ok = use is not None and (use not in NEEDS_HOME or self.where.ok())
+        self.ok_btn.setEnabled(ok)
+        return ok
 
     def picked(self):
         it = self.list.currentItem()
         return it.data(Qt.UserRole) if it is not None else None
+
+    def home(self):
+        """The home picked, as WhereBox.picked() gives it; None for a use beside any home."""
+        return self.where.picked() if self.picked() in NEEDS_HOME else None
 
 
 class ToolsHome(QWidget):
@@ -158,16 +188,17 @@ class ToolsHome(QWidget):
         ef = D.Card("Your efforts", "Double-click to work on one."); g.addWidget(ef, 0, 1)
         self.eff = QListWidget(); self.eff.setMinimumHeight(170); ef.add(self.eff)
         self.eff.itemDoubleClicked.connect(lambda it: self.work_on(it.data(Qt.UserRole)))
-        # 4.27.2 (Nicholas 2026-11-12 21:25, answer 4): Unfiled is a list here, not an effort
-        self.uf_card = D.Card("Unfiled", "What you made with a tool before it belonged to an effort. File it when you know where it goes.")
+        # 4.27.2 (Nicholas 2026-11-12 21:25, answer 4): Unfiled is a list here, not an effort; 4.51.0: only while it holds work
+        import homes as HM
+        self.uf_card = D.Card(HM.SHOWN, "What was made with a tool before every document had a named home.")
         self.uf_list = QListWidget(); self.uf_list.setMinimumHeight(110); self.uf_list.setMaximumHeight(200); self.uf_card.add(self.uf_list)
         self.uf_list.itemDoubleClicked.connect(lambda _it: self.open_unfiled())
         ur = FlowLayout(None, D.SPACE["s"]); self.uf_card.body.addLayout(ur)
         from PySide6.QtWidgets import QMenu      # 4.27.2: one button; the list's row opens on a double-click
-        self.uf_file = D.button("File it", None, None, "Open what is unfiled, make it an effort, add it to one, or clear it")
+        self.uf_file = D.button("File it", None, None, "Name it as an effort or a program, open it, add it to an effort, or clear it")
         m = QMenu(self.uf_file); self.uf_file.setMenu(m)
+        self.uf_make = m.addAction("Name it...", lambda: self.host.make_unfiled_effort())       # 4.51.0: one way to name it
         self.uf_open = m.addAction("Open", lambda: self.open_unfiled())
-        self.uf_make = m.addAction("Make it an effort...", lambda: self.host.make_unfiled_effort())
         self.uf_add = m.addAction("Add to an effort...", lambda: self.host.efforts_page.add_unfiled_to())
         self.uf_clear = m.addAction("Clear...", lambda: (self.host.efforts_page.clear_unfiled(), self.refresh()))
         ur.addWidget(self.uf_file)
@@ -246,18 +277,21 @@ class ToolsHome(QWidget):
         for r in rows:
             self.uf_list.addItem(QListWidgetItem(r))
         if not rows:
-            self.uf_list.addItem(QListWidgetItem("Nothing unfiled. A tool used with no effort open keeps its work here."))
+            self.uf_list.addItem(QListWidgetItem("Nothing in it."))
         for b in (self.uf_make, self.uf_add, self.uf_clear):
             b.setEnabled(bool(rows))
-        import unfiled as UF
-        self.uf_add.setEnabled(bool(rows) and any(n != UF.NAME for n in self.host.efforts.names()))
+        import homes as HM
+        import programs as PG
+        self.uf_add.setEnabled(bool(rows) and bool(PG.effort_names(self.host.efforts)))
+        self.uf_card.setVisible(HM.holds_work(self.host.efforts))      # 4.51.0: hidden while Unfiled holds nothing
         return rows
 
     def open_unfiled(self):
         return self.host.efforts_page.open_unfiled()
 
     def working_on(self):
-        return self.host.effort_name or "Unfiled"
+        """The home open now ('' when none is open; never Unfiled's name for nothing open)."""
+        return self.host.effort_name if self.host.ws is not None else ""
 
     # ---- actions
     def open(self, key):
@@ -278,27 +312,30 @@ class ToolsHome(QWidget):
         from . import acrextras as AX
         return AX.paste_picture(w.page) if w is not None else None
 
-    def files_in(self, paths, use=None):
-        """Ask which tool, then hand the files to it. Returns the use chosen (or None)."""
+    def files_in(self, paths, use=None, home=None):
+        """Ask which tool and, for a use that works in a home, where the file goes (one step), then hand the files to it.
+        use, home (tests): the answers, home as homeask.WhereBox.picked() gives it. Returns the use chosen (or None)."""
         if not paths:
             return None
         if not uses_for(paths):
             self.host.status("Stationkeeper does not read that kind of file.")
             return None
         if use is None:
-            d = UseDialog(self, paths, self.working_on())
+            d = UseDialog(self, paths, self.host)
             if d.exec() != QDialog.Accepted:
                 return None
-            use = d.picked()
+            use, home = d.picked(), d.home()
         if not use:
             return None
-        self.run(use, paths)
+        if self.run(use, paths, home) is NO_HOME:
+            return None
         RF.add(self.host.config_dir, paths, dict((k, t.split(" (")[0]) for k, t, _ in USES).get(use, use))
         self.refresh()
         diag.activity("home_files_used", n=len(paths))
         return use
 
-    def run(self, use, paths):
+    def run(self, use, paths, home=None):
+        """Hand the files to the use. NO_HOME when a use that works in a home has none (the status line says why)."""
         h = self.host
         if use == "acrfinder":
             w = h.open_tool("acronyms")
@@ -320,7 +357,14 @@ class ToolsHome(QWidget):
             return open_tool(h.config_dir, paths)
         if use == "redline":                                # 4.22.0: beside the file; no effort needed
             return [h.redline_page.prepare(path=p) for p in paths]
-        self.ensure_working_on()
+        if use in NEEDS_HOME and (home is not None or h.ws is None):   # 4.51.0: the home picked in the same step (the
+            from .homeask import settle                   # dialog always gives one, never Unfiled); a call from code with
+            import programs as PG                         # none works on the home open now, as before
+            if use in EFFORT_ONLY and home and (home[0] == "new_program" or (home[0] == "home" and PG.is_program(h.efforts, home[1]))):
+                h.status("That works in an effort. Pick an effort, or a new one.")
+                return NO_HOME
+            if not settle(h, home):
+                return NO_HOME
         if use == "acronyms":
             import acrlists as AL
             h.go("acronyms")
@@ -342,11 +386,6 @@ class ToolsHome(QWidget):
             h.go("checks")
             return h.checks_page.check_leftovers(paths)
         return None
-
-    def ensure_working_on(self):
-        """A use for 'what I am working on' with nothing open opens Unfiled (decision: loose work kept in Unfiled)."""
-        if self.host.ws is None:
-            self.host.efforts_page.open_unfiled(go=False)
 
     def work_on(self, name):
         import unfiled as UF

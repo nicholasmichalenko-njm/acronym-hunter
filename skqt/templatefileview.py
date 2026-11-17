@@ -178,7 +178,7 @@ class TemplateFileDialog(QDialog):
             return None
         if M is None or not M.outline:                     # 3.73.0: before the sections, it waits with the effort
             if self.host.ws is None:
-                self.host.status("Pick an effort first, or work in Unfiled.")
+                self.host.status("Pick an effort first.")
                 return None
             c = TS.set_waiting(self.host.ws, self.path, self.picks_now(), self.host.effort_path or "")
             diag.activity("setup_template_file_chosen")

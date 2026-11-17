@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
         self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(156)   # 3.15.0: the menu names the open effort; 3.18.2: 156 for Undo
-        self.effort_box.setToolTip("What every space works on: an effort, or Unfiled (loose work kept until you file it)")
+        self.effort_box.setToolTip("What every space works on: an effort or a program")
         self.effort_box.activated.connect(lambda i: self.work_on(self.effort_box.itemText(i)))
         bh.addWidget(self.effort_box)
         self.saved = D.Pill("Saved", "ok", dot=True); bh.addWidget(self.saved, 0, Qt.AlignVCenter)
@@ -414,10 +414,9 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ efforts
     def fill_efforts(self):
-        import unfiled as UF
-        names = [n for n in self.efforts.names() if not (self.efforts.get(n) or {}).get("archived")]
-        if UF.NAME not in names:                   # 3.53.0: Unfiled is always there to work on
-            names.append(UF.NAME)
+        names = [n for n in self.efforts.names() if not (self.efforts.get(n) or {}).get("archived")]   # 4.51.0: Unfiled (always there
+        names = [n for n in names if not (self.efforts.get(n) or {}).get("unfiled") or n == self.effort_name   # since 3.53.0) only
+                 or __import__("homes").holds_work(self.efforts)]                                     # while it holds work
         __import__("skqt.programsview", fromlist=["x"]).fill_box(self.effort_box, self.efforts, names)   # 4.50.0: efforts, a line, programs
         cur = self.efforts.current
         if cur in names:
@@ -429,12 +428,8 @@ class MainWindow(QMainWindow):
                  "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}
 
     def rail_go(self, key):
-        """3.53.0: a space that works on an effort opens on Unfiled when nothing is open (loose work is kept there)."""
-        if self.ws is None and key not in self.NO_EFFORT:
-            try:
-                self.efforts_page.open_unfiled(go=False)
-            except Exception:  # noqa: BLE001  the page then says no effort is open, as before
-                diag.swallowed()
+        """4.51.0: with nothing open, a space that works on an effort goes to its page, which says no effort is open (from
+        3.53.0 to 4.50.0 it opened Unfiled; Unfiled takes no new work). NO_EFFORT: the pages that need none."""
         return self.go("overview" if key == "home" else key)      # 4.27.0: the Dashboard entry opens the Overview
 
     def work_on(self, name):
@@ -462,7 +457,7 @@ class MainWindow(QMainWindow):
         finally:
             self.overlay.finish()
         if ok:
-            self.toast(f"{name} is open, as you left it.")
+            self.toast(__import__("homes").shown_name(self.efforts, name) + " is open, as you left it.")
         return ok
 
     def open_effort(self, name, force=False, progress=None):
@@ -558,9 +553,9 @@ class MainWindow(QMainWindow):
         return True
 
     def make_unfiled_effort(self, name=None):
-        """2.91.0: Unfiled work becomes a named effort (see unfiledview)."""
-        from .unfiledview import make_effort
-        return make_effort(self, name)
+        """2.91.0: Unfiled work becomes a named effort (see unfiledview); 4.51.0: Name it... asks effort or program."""
+        from .unfiledview import make_effort, name_it
+        return name_it(self) if name is None else make_effort(self, name)
 
     def open_effort_folder(self, kind=None, open_it=True):
         """2.90.0: the effort's folder (or one of its folders) in File Explorer. Returns the folder."""
@@ -1227,7 +1222,7 @@ class MainWindow(QMainWindow):
 
     def title(self):
         dirty = self.review is not None and self.review.M.pending
-        self.setWindowTitle(("* " if dirty else "") + (f"{self.effort_name}: " if self.effort_name else "")
+        self.setWindowTitle(("* " if dirty else "") + (__import__("homes").shown_name(self.efforts, self.effort_name) + ": " if self.effort_name else "")
                             + f"Stationkeeper {self.version}".strip() + self._mode_badge() + __import__("skqt.globalview", fromlist=["x"]).badge(self))
         if hasattr(self, "mode_chip"):
             try:

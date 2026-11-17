@@ -35,7 +35,7 @@ check("Home is first in the menu", list(w.step_btns)[0] == "home" and ("efforts"
 w.go("efforts"); app.processEvents()
 hp = w.efforts_page
 check("no efforts yet: Add an Effort (4.27.2: starting without one is Quick tools, in the menu)", hp.empty.isVisibleTo(w)
-      and hp.add_btn.text() == "+ Add an Effort" and not hp.start_btn.isVisibleTo(w) and not hp.uf_card.isVisibleTo(w) and "tools" in w.step_btns)
+      and hp.add_btn.text() == "+ Add an Effort" and not hasattr(hp, "start_btn") and not hp.uf_card.isVisibleTo(w) and "tools" in w.step_btns)
 base = os.path.join(A.DATA_DIR, "Efforts")
 hp.add_effort({"name": "Heron", "path": os.path.join(base, "Heron", "Heron_Effort_List.xlsx")})
 check("+ Add an Effort makes the effort with its folders and opens it", w.effort_name == "Heron"
@@ -58,7 +58,7 @@ w.go("efforts"); app.processEvents()
 hp.open_unfiled(); app.processEvents()
 check("Start without an effort opens Unfiled, in its own folder", w.effort_name == UF.NAME and UF.is_unfiled(w.efforts, w.effort_name)
       and w.effort_path == UF.list_path(A.DATA_DIR) and w.stack.currentWidget() is w.library_page)
-check("the strip says it is unfiled work", w.unfiled_strip.isVisibleTo(w) and "Working unfiled" in w.unfiled_strip.text.text())
+check("the strip says it is Unfiled, from before (4.51.0)", w.unfiled_strip.isVisibleTo(w) and "Unfiled, from before." in w.unfiled_strip.text.text())
 B = os.path.join(A.BASE_DIR, "test_samples", "rfp")
 w.read_page.read([os.path.join(B, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(os.path.dirname(w.effort_path), "Unfiled_Compliance_Matrix.xlsx"))
 t = time.time()

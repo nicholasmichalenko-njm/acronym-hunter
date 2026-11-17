@@ -101,12 +101,12 @@ w.rail_go("tools"); app.processEvents()
 tl = w.pages["tools"]
 check("the entry opens Quick tools and stays lit", w.stack.currentWidget() is tl and w.step_btns["tools"].isChecked() and w.page_title.text() == "Quick tools")
 rows = [tl.uf_list.item(i).text() for i in range(tl.uf_list.count())]
-check("Unfiled is a list on Quick tools; with nothing unfiled it says so and its buttons wait", tl.uf_card.isVisibleTo(tl)
-      and rows == ["Nothing unfiled. A tool used with no effort open keeps its work here."] and not tl.uf_make.isEnabled(), rows)
+check("4.51.0: with nothing in Unfiled, Quick tools hides its block (its buttons wait)", not tl.uf_card.isVisibleTo(tl)
+      and rows == ["Nothing in it."] and not tl.uf_make.isEnabled(), rows)
 effs = [tl.eff.item(i).text() for i in range(tl.eff.count())]
 check("Your efforts lists efforts only", any(x.startswith("Osprey") for x in effs) and not any("Unfiled" in x for x in effs), effs)
 w.go("efforts"); app.processEvents()
-check("All Efforts has no Unfiled card", not w.efforts_page.uf_card.isVisibleTo(w) and not w.efforts_page.start_btn.isVisibleTo(w))
+check("All Efforts has no Unfiled card (4.51.0: and no Start without an effort button at all)", not w.efforts_page.uf_card.isVisibleTo(w) and not hasattr(w.efforts_page, "start_btn"))
 w.close()
 print(f"QT TOPBAR 4272 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

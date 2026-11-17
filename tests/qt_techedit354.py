@@ -39,7 +39,9 @@ check("Technical Edit is the Drafts step's Edit, after Status and Acronyms (4.4.
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.rail_go("techedit"); app.processEvents()
 pg = w.techedit_page
-check("from the menu with nothing open: Technical Edit on Unfiled", w.effort_name == UF.NAME and w.stack.currentWidget() is pg)
+check("4.51.0 from the menu with nothing open: Technical Edit's page, and no Unfiled opened", w.ws is None and w.stack.currentWidget() is pg
+      and w.efforts.get(UF.NAME) is None)
+w.work_on(UF.NAME); w.rail_go("techedit"); app.processEvents()      # a workspace to review in
 found = pg.add_files([draft], run=True)
 rules = {f["rule"] for f in found}
 check("Review: findings for the draft", {"doubled", "numbers_small", "variants", "passive", "customer_terms", "spelling"} <= rules, rules)
@@ -101,7 +103,7 @@ check("Copy review is offered for a Word file on Quick tools", "copyreview" in {
       and "copyreview" not in {k for k, _t in TH.uses_for([os.path.join(tmp, "x.pdf")])})
 w.go("tools"); app.processEvents()
 pg.found = []
-check("... and runs Technical Edit on it", w.tools_page.files_in([draft], use="copyreview") == "copyreview"
+check("... and runs Technical Edit on it", w.tools_page.files_in([draft], use="copyreview", home=("new_effort", "Kestrel review")) == "copyreview"
       and w.stack.currentWidget() is pg and pg.found)
 check("Technical Edit has a Guide topic", "techedit" in __import__("skqt.guide", fromlist=["TOPIC"]).TOPIC)
 w.close()
