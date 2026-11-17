@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 import diag
 import effortrelink as ER
+import programs as PG
 
 
 def find_moved(win, name, folder=None):
@@ -67,7 +68,9 @@ def open_from_folder(win, path=None):
         while win.efforts.get(f"{base} ({k})"):
             k += 1
         name = f"{base} ({k})"
-    win.efforts.put(name, path=lst, customer_dir=_customer(lst))
+    prog = lst.endswith(PG.LIST_TAIL)       # 4.50.0: a program's folder comes back as a program
+    win.efforts.put(name, path=lst, customer_dir=os.path.join(os.path.dirname(lst), PG.DOCS) if prog else _customer(lst),
+                    program=True if prog else None)
     diag.activity("effort_opened_from_folder", n=got["repointed"])
     win.fill_efforts()
     win.open_effort(name)

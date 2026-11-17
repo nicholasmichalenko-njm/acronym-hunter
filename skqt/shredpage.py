@@ -130,7 +130,7 @@ class ShredPage(QWidget):
         if not self.result:
             return None
         h = self.host
-        names = [n for n in h.efforts.names() if not (h.efforts.get(n) or {}).get("archived")]
+        names = [n for n in h.efforts.names() if not any((h.efforts.get(n) or {}).get(k) for k in ("archived", "program"))]   # 4.50.0: a program has no Shred
         if name is None:
             if not names:
                 h.status("No effort yet: start one on All Efforts, or Working on: Unfiled.")

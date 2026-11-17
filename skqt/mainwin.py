@@ -418,8 +418,7 @@ class MainWindow(QMainWindow):
         names = [n for n in self.efforts.names() if not (self.efforts.get(n) or {}).get("archived")]
         if UF.NAME not in names:                   # 3.53.0: Unfiled is always there to work on
             names.append(UF.NAME)
-        self.effort_box.clear()
-        self.effort_box.addItems(names)
+        __import__("skqt.programsview", fromlist=["x"]).fill_box(self.effort_box, self.efforts, names)   # 4.50.0: efforts, a line, programs
         cur = self.efforts.current
         if cur in names:
             self.effort_box.setCurrentText(cur)
@@ -534,7 +533,7 @@ class MainWindow(QMainWindow):
             diag.swallowed()
         say(0.7, f"{name}: setting up the pages")
         self.read_page.refresh()
-        self.go("assign")                          # 4.1.0: Shred lists the documents to extract
+        self.go(__import__("skqt.programsview", fromlist=["x"]).on_open(self, name))   # 4.1.0: Shred; 4.50.0: a program's Overview
         self.safety.opened()
         self.warm_up()                             # 2.82.0: pages that read every document are ready before you open them
         say(0.9, f"{name}: back where you were")
@@ -1125,7 +1124,7 @@ class MainWindow(QMainWindow):
         t = TITLES[head][0] if step in HEAD_OF and head in TITLES and step in dict(TABS.get(head, [])) else TITLES[step][0]
         from .navrail import STEP_TITLES                          # 3.96.0: a step's pages carry the step's name
         e = RAIL_OF.get(step, step)
-        if e in STEP_TITLES and (step in dict(TABS.get(e, [])) or e == "assign"):
+        if e in STEP_TITLES and (step in dict(TABS.get(e, [])) or e == "assign") and not __import__("skqt.programsview", fromlist=["x"]).hidden_head(self, e):
             t = STEP_TITLES[e][0]
         self.page_crumb.setText(GROUP_OF.get(step, ""))
         self.page_title.setText(t)
@@ -1151,7 +1150,7 @@ class MainWindow(QMainWindow):
         """3.16.0: the tabs of the menu item the page belongs to (none for a page that is its own item). 3.96.0:
         Review's are a stepper with counts, beside the ways to see it."""
         head = HEAD_OF.get(step, step)
-        on_review = RAIL_OF.get(step, head) == "assign"
+        on_review = RAIL_OF.get(step, head) == "assign" and not __import__("skqt.programsview", fromlist=["x"]).is_open(self)   # 4.50.0
         self.stepper.setVisible(on_review)
         self.page_tabs.setVisible(not on_review)
         if on_review:
@@ -1159,7 +1158,7 @@ class MainWindow(QMainWindow):
             self._tab_keys = []
             self.page_tabs_box.setVisible(True)
             return [k for k, _t in TABS["assign"]]
-        tabs = TABS.get(head) if step in dict(TABS.get(head, [])) else None
+        tabs = __import__("skqt.programsview", fromlist=["x"]).tabs_for(self, head, step, TABS.get(head) if step in dict(TABS.get(head, [])) else None)
         if tabs:                                                          # 3.57.0: set-aside tabs leave the bar
             import menufocus as MF
             from .modes import settings

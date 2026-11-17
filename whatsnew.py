@@ -2,6 +2,7 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.50.0": ["Programs are a second kind of home beside Efforts, for program documents. All Efforts > Programs lists them; + New program asks for a name only.", "A program opens on its Overview and shows Overview and Documents. It has no steps, Calendar or Tasks.", "Program deliverables is no longer offered when an effort is started. An effort of that type is offered a move on All Efforts > Programs, which changes nothing until you say so."],
     "4.48.1": ["For whoever keeps the Production Datum: six smaller lists Stationkeeper carries inside the program join the part Values once built in the next time a change you save becomes a version: the days each stage takes by default, the field recipes, the after-submission checklist, the cover's property names, the default front matter, and the section-title synonyms. A Datum already made on 4.48.0 gains them and keeps every value it holds. Nothing on any page changes, and nothing has left the program."],
     "4.48.0": ["For whoever keeps the Production Datum: the next time a change you save becomes a version, the rules, effort folders, stages, phrase list, topics, effort types and page numbering scheme that Stationkeeper has carried inside the program are written into the Datum as one more part, exactly as they are. It happens once, by itself. Nothing changes on screen and nothing has left the program yet; this makes sure the Datum holds them first."],
     "4.47.1": ["Where something is made, the app says which Production Datum it worked from: in Make the setup's Ready to make list, on the template builder's line, and as a Working from line in the Final Checks (a person's look when none is installed).", "A new effort remembers the Production Datum it was started on; Edit details... shows it. Efforts started earlier say nothing, since nothing is guessed."],
@@ -173,8 +174,7 @@ WHATS_NEW = {
     "4.28.0": ["Templates is its own group in the menu: Styles, Quick Parts, Page Layout, Template.",
                "Formatting and Layout are one screen, Page Layout. Parts is named Quick Parts.",
                "Team keeps Rules, Check a Draft and Team References."],
-    "4.27.3": ["Light and dark change every page at once. The menu is one navy in both.",
-               "Settings > People: each person's role on the open effort is on their row of the author list."],
+    "4.27.3": ["Light and dark change every page at once. The menu is one navy in both.", "Settings > People: each person's role on the open effort is on their row of the author list."],
     "4.27.2": ["The top bar's button is Quick note. Undo left the bar: Ctrl+Z, a line at the foot, and History.",
                "Quick tools is at the bottom of the menu.",
                "Unfiled is a list on Quick tools, not an effort to switch to."],

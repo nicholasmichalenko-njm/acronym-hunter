@@ -12,6 +12,7 @@ import shredwords as SW
 import navsteps as NS
 from . import design as D
 
+RAIL_HEAD = "Effort"           # 4.50.0: the first group, under THE EFFORT'S PATH (THE PROGRAM while a program is open)
 FORMATTING = "Formatting"      # 4.46.0 (decision 71): the menu group that holds Templates, Page Layout, Styles, Quick Parts
 
 # the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
@@ -183,6 +184,14 @@ def refresh_access(w, rail_of, members):
     prof, _src = w.profile()
     hide = bool((settings() or {}).get("hide_other_roles"))
     aside = MF.hidden(settings())
+    from . import programsview as PV                                # 4.50.0: a program never shows the effort's steps
+    prog = PV.is_open(w)
+    aside = set(aside) | (set(PV.PG.OUT) if prog else set())
+    head = getattr(w, "group_heads", {}).get(RAIL_HEAD)
+    if head is not None:
+        head.setText("THE PROGRAM" if prog else "THE EFFORT'S PATH")
+    if "library" in w.step_btns:
+        w.step_btns["library"].circle.setVisible(not prog)
     for key, b in w.step_btns.items():
         ok = any(RA.allowed(prof, k) for k in members(key))
         b.setProperty("offrole", not ok)
@@ -205,7 +214,12 @@ def refresh_stage_tools(w, rail_of, prof=None):
     from .modes import settings
     st = settings() or {}
     tools, color, name = [], "", ""
-    if w.ws is not None:
+    from . import programsview as PV                                # 4.50.0: a program has no stages
+    prog = PV.is_open(w)
+    w.rail_effort.cap.setText("Program" if prog else "Effort")
+    if prog:
+        name = "Program"
+    elif w.ws is not None:
         try:
             import effortrec as _R
             r = _R.Record(w.ws.root)

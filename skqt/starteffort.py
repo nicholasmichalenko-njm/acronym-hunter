@@ -185,8 +185,10 @@ class StartEffort(QFrame):
             self.etype.blockSignals(True)
             self.etype.clear()
             self.etype.addItem("None", "")
+            import programs as PG                       # 4.50.0: Program deliverables is a program now, not offered here
             for e in data.get("effort_types", []):
-                self.etype.addItem(e["name"], e["id"])
+                if e["id"] != PG.TYPE:
+                    self.etype.addItem(e["name"], e["id"])
             want = keep if keep is not None else ""
             self.etype.setCurrentIndex(max(0, self.etype.findData(want)))
             self.etype.blockSignals(False)

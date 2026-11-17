@@ -26,7 +26,7 @@ class MergeDialog(QDialog):
         self.src = QComboBox(); self.src.setMinimumWidth(420)
         for n in host.efforts.names():
             info = host.efforts.get(n) or {}
-            if n != target and not info.get("unfiled") and info.get("path"):
+            if n != target and not info.get("unfiled") and not info.get("program") and info.get("path"):   # 4.50.0: efforts only
                 self.src.addItem(n + ("  (archived)" if info.get("archived") else ""), n)
         self.src.addItem("An effort's folder...", FOLDER)
         self.src.addItem("An effort package (.skpkg)...", PACKAGE)

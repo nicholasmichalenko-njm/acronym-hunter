@@ -130,7 +130,7 @@ def collect(registry, person, load_matrix=True, names=None):
     out = []
     for name in (names if names is not None else registry.names()):
         info = registry.get(name) or {}
-        if info.get("archived"):
+        if info.get("archived") or info.get("program"):     # 4.50.0: a program has no tasks or dates
             continue
         got = for_effort(name, info, person, load_matrix)
         if got and (got["items"] or got["sections"]):

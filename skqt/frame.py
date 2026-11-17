@@ -50,9 +50,11 @@ def effort_menu(w):
     import unfiled as UF                                       # 4.27.2: Unfiled is a list under Quick tools, not an effort to switch to
     others = [w.effort_box.itemText(i) for i in range(w.effort_box.count())
               if w.effort_box.itemText(i) and w.effort_box.itemText(i) not in (w.effort_name, UF.NAME)]
-    if others:
-        m.addSeparator()
-        for name in others[:15]:
+    progs = [n for n in others if (w.efforts.get(n) or {}).get("program")]     # 4.50.0: the programs after the efforts
+    for group in ([n for n in others if n not in progs][:15], progs[:15]):
+        if group:
+            m.addSeparator()
+        for name in group:
             m.addAction("Switch to " + name, lambda n=name: switch(w, n))
     m.addSeparator()
     m.addAction("All Efforts", lambda: w.go("efforts"))

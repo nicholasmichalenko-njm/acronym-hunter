@@ -460,7 +460,7 @@ class Safety:
             if v.get("volume") and a.volume.findData(v["volume"]) >= 0:
                 a.volume.setCurrentIndex(a.volume.findData(v["volume"]))
                 a.pick_volume(v["volume"])
-            if v.get("page") in h.pages and v["page"] != "settings":
+            if v.get("page") in h.pages and v["page"] != "settings" and not __import__("skqt.programsview", fromlist=["x"]).hidden_page(h, v["page"]):   # 4.50.0
                 h.go(v["page"])
             if v.get("target") and h.review is not None:
                 a.set_target(v["target"])

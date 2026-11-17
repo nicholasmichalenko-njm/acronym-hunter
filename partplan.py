@@ -147,7 +147,7 @@ def efforts_on_pc(config_dir):
     reg = E.Registry(os.path.join(config_dir, "efforts.json"))
     for name in reg.names():
         path = (reg.get(name) or {}).get("path") or ""
-        if not path or not os.path.isdir(W.data_dir_for(path)):
+        if not path or (reg.get(name) or {}).get("program") or not os.path.isdir(W.data_dir_for(path)):   # 4.50.0: not a program
             continue                                         # an effort whose folder is gone, or not opened yet
         try:
             ws = W.Workspace(W.data_dir_for(path), name)

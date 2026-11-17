@@ -54,6 +54,8 @@ class OverviewPage(QWidget):
         v.addWidget(self.banner)
         self.empty = D.EmptyState("No effort open", "Open an effort to see where it stands.", "All Efforts", lambda: host.go("efforts"))
         v.addWidget(self.empty, 1)
+        from .programsview import ProgramPanel                # 4.50.0: what a program's Overview shows, and nothing else
+        self.program = ProgramPanel(host); self.program.setVisible(False); v.addWidget(self.program, 1)
         self.body = QWidget(); v.addWidget(self.body, 1)
         bv = QVBoxLayout(self.body); bv.setContentsMargins(0, 0, 0, 0); bv.setSpacing(D.SPACE["m"])
         cols = QHBoxLayout(); cols.setSpacing(D.SPACE["m"]); bv.addLayout(cols, 1)
@@ -167,6 +169,14 @@ class OverviewPage(QWidget):
     # ------------------------------------------------------------------ the page
     def refresh(self, today=None):
         h = self.host
+        prog = __import__("skqt.programsview", fromlist=["x"]).is_open(h)
+        self.program.setVisible(prog)
+        if prog:                                             # 4.50.0: no effort block, and no effort gather
+            self.data = None
+            for x in (self.head_w, self.banner, self.empty, self.body):
+                x.setVisible(False)
+            self.program.refresh()
+            return None
         d = self.data = self.gather(today)
         on = d is not None
         self.empty.setVisible(not on); self.body.setVisible(on)

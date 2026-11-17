@@ -32,7 +32,7 @@ FILES = ["diagwatch.py", "effortvalues.py", "skqt/effortvaluesview.py", "picread
          "skqt/librarypage.py", "ctxdocs.py", "skqt/ctxassign.py", "changereview.py", "skqt/changeview.py",
          "skqt/nowheel.py", "skqt/listspage.py", "skqt/adaptive.py", "skqt/whereview.py", "delivboard.py",
          "skqt/delivboardview.py", "branding.py", "effortcal.py", "skqt/brandview.py", "skqt/calview.py",
-         "teampack.py", "skqt/teamview.py", "effortfolders.py", "unfiled.py", "effortsummary.py", "postsub.py",
+         "teampack.py", "skqt/teamview.py", "effortfolders.py", "unfiled.py", "effortsummary.py", "programs.py", "skqt/programsview.py", "postsub.py",
          "skqt/effortshome.py", "skqt/unfiledview.py", "skqt/postsubpage.py", "tzones.py", "readablejob.py",
          "tqexport.py", "skqt/stagesedit.py", "process.py", "skqt/processview.py", "skqt/rolesview.py", "doctypes.py",
          "skqt/doctypeui.py", "skqt/doctypesview.py", "watch.py", "skqt/watchview.py", "folderplan.py",

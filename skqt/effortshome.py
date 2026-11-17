@@ -3,14 +3,15 @@
 One card per effort (picture, name, client, sensitivity, stage, days to the due date, open tasks and questions,
 deliverables with no owner, who has it open), the soonest due first; click a card to open the effort. + Add an Effort
 is the main way to start one (its folders are made with it). Unfiled work has its own card while it holds anything:
-Open it, Make it an effort, or Add to an effort. The rules are effortsummary's and unfiled's. Rules only (No AI);
-nothing leaves the PC."""
+Open it, Make it an effort, or Add to an effort. 4.50.0: a third view, Programs (skqt/programsview). The rules are
+effortsummary's, programs' and unfiled's. Rules only (No AI); nothing leaves the PC."""
 import datetime, getpass, os, platform
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QProgressBar, QScrollArea, QVBoxLayout, QWidget)
 import diag
 import effortsummary as ES
+import programs as PG
 import unfiled as UF
 from . import design as D
 from .adaptive import FlowLayout
@@ -120,21 +121,25 @@ class EffortsHome(QWidget):
         self.host = host
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
         top = FlowLayout(None, D.SPACE["s"]); outer.addLayout(top)
-        self.add_btn = D.button("+ Add an Effort", "primary", lambda: self.add_effort(), "A new effort, with its own folder")
+        self.add_btn = D.button("+ Add an Effort", "primary", lambda: self.primary(), "A new effort, with its own folder")
         self.add_btn.setMinimumHeight(36)
         top.addWidget(self.add_btn)
-        top.addWidget(D.button("Import effort package...", None, lambda: self.host.import_package()))
-        top.addWidget(D.button("Open an effort from its folder...", None, lambda: self.open_folder(),       # 3.68.0
-                               "Pick an effort's folder (or its Effort List): it opens wherever the folder now lives"))
+        self.imp_btn = D.button("Import effort package...", None, lambda: self.host.import_package())
+        self.folder_btn = D.button("Open an effort from its folder...", None, lambda: self.open_folder(),       # 3.68.0
+                                   "Pick an effort's folder (or its Effort List): it opens wherever the folder now lives")
+        top.addWidget(self.imp_btn); top.addWidget(self.folder_btn)
         top.addStretch()
         # 4.24.0 (Nicholas 2026-11-12 16:59): two views, Efforts and Archived, in place of the small Show archived box
-        self.show_live = D.button("Efforts", None, lambda: self.show_arch.setChecked(False), "The efforts in use")
+        self.show_live = D.button("Efforts", None, lambda: self.view("live"), "The efforts in use")
         self.show_live.setCheckable(True); self.show_live.setChecked(True)
         self.show_arch = D.button("Archived", None, None, "The archived efforts: right-click one to restore it, or to delete it "
                                   "from Stationkeeper")
         self.show_arch.setCheckable(True)
-        self.show_arch.toggled.connect(lambda _on: self.refresh())           # 3.70.0
-        top.addWidget(self.show_live); top.addWidget(self.show_arch)
+        self.show_arch.toggled.connect(lambda on: self.view("arch" if on else "live"))           # 3.70.0
+        self.show_prog = D.button("Programs", None, None, "The programs: homes for program documents (4.50.0)")
+        self.show_prog.setCheckable(True)
+        self.show_prog.toggled.connect(lambda on: self.view("prog" if on else "live"))
+        top.addWidget(self.show_live); top.addWidget(self.show_prog); top.addWidget(self.show_arch)
         self.count = D.label("", "muted", wrap=False); top.addWidget(self.count)
         # Unfiled work
         self.uf_card = D.Card("Unfiled work", "Documents and results not in an effort yet. File them when you know where they belong.")
@@ -151,38 +156,69 @@ class EffortsHome(QWidget):
         self.start_btn = D.button("Start without an effort: open Unfiled", "ghost", lambda: self.open_unfiled(),
                                   "Use any tool now; file the work into an effort later")
         self.start_row.addWidget(self.start_btn); self.start_row.addStretch(1)
+        # 4.50.0: the efforts of the type Program deliverables, each offered the move (the Programs view only)
+        self.offer_box = QWidget(); self.offer_lay = QVBoxLayout(self.offer_box); self.offer_lay.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(self.offer_box)
+        self.offer_btns = {}
         # the efforts
         self.grid_box = QWidget(); self.flow = FlowLayout(self.grid_box, D.SPACE["m"])
         outer.addWidget(self.grid_box)
         self.empty = D.EmptyState("No efforts yet", "+ Add an Effort starts one: its own folder with Customer Documents, Volumes, "
                                   "Response Setup and Exports. Or start without one: Quick tools, at the bottom of the menu, works on any file.")
         outer.addWidget(self.empty)
+        self.prog_empty = D.EmptyState("No programs yet", "+ New program starts one: a name, and a folder for its program documents.")
+        outer.addWidget(self.prog_empty)
         outer.addStretch(1)
         self.cards = {}
+
+    def view(self, which):
+        """4.50.0: Efforts, Programs or Archived, one at a time."""
+        for b, k in ((self.show_arch, "arch"), (self.show_prog, "prog")):
+            b.blockSignals(True); b.setChecked(which == k); b.blockSignals(False)
+        self.refresh()
+        return which
+
+    def primary(self):
+        if self.show_prog.isChecked():
+            from .programsview import new_program
+            return new_program(self.host)
+        return self.add_effort()
 
     def refresh(self):
         h = self.host
         reg = h.efforts
         arch = self.show_arch.isChecked()
-        rows = ES.all_efforts(reg, archived=arch)
-        self.rows = rows if not arch else [r for r in ES.all_efforts(reg)]       # Unfiled's Add to keeps the efforts in use
+        prog = self.show_prog.isChecked() and not arch
+        rows = ES.all_efforts(reg, archived=arch) if not prog else []
+        self.rows = rows if not (arch or prog) else [r for r in ES.all_efforts(reg)]       # Unfiled's Add to keeps the efforts in use
         while self.flow.count():
             it = self.flow.takeAt(0)
             if it.widget() is not None:
                 it.widget().setParent(None)
         self.cards = {}
+        from . import programsview as PV                   # 4.50.0: the Programs view
+        progs = PV.fill_view(self, h.effort_name) if prog else []
+        PV.offer_rows(self, self.offer_lay, prog)
+        self.offer_box.setVisible(prog and self.offer_lay.count() > 0)
+        self.prog_empty.setVisible(prog and not progs)
+        self.add_btn.setText("+ New program" if prog else "+ Add an Effort")
+        self.add_btn.setToolTip("A new program: a name, and a folder for its program documents" if prog else "A new effort, with its own folder")
+        self.imp_btn.setVisible(not prog); self.folder_btn.setVisible(not prog)
+        self.show_prog.setText(f"Programs ({len(PG.names(reg))})")
         for s in rows:
             c = EffortCard(self, s, current=(s["name"] == h.effort_name))
             if arch:
                 c.setEnabled(True); c.setToolTip("Archived. Right-click to restore it, or to delete it from Stationkeeper."); c.setStyleSheet(c.styleSheet() + " QFrame#ecard QLabel{color:gray;}")
             self.cards[s["name"]] = c
             self.flow.addWidget(c)
-        self.empty.setVisible(not rows and not arch)
+        self.empty.setVisible(not rows and not arch and not prog)
         n_arch = len(ES.all_efforts(reg, archived=True))
         self.show_arch.setText(f"Archived ({n_arch})")
-        self.show_live.blockSignals(True); self.show_live.setChecked(not arch); self.show_live.blockSignals(False)
+        self.show_live.blockSignals(True); self.show_live.setChecked(not arch and not prog); self.show_live.blockSignals(False)
         self.show_live.setText(f"Efforts ({len(ES.all_efforts(reg))})")
         self.count.setText((f"{len(rows)} archived effort(s)" if arch else f"{len(rows)} effort(s)") if rows else ("No archived efforts" if arch else ""))
+        if prog:
+            self.count.setText(f"{len(progs)} program{'' if len(progs) == 1 else 's'}" if progs else "")
         c = UF.counts(reg)
         self.uf_counts = c
         has = not UF.empty(c)
@@ -223,6 +259,9 @@ class EffortsHome(QWidget):
         else:
             m.addAction("Open", lambda: self.open(name))
             m.addAction("Add to this effort...", lambda: self.add_to(name))
+            if name in PG.all_candidates(self.host.efforts):          # 4.50.0: offered, never moved by itself
+                from .programsview import make_program
+                m.addAction("Make it a program...", lambda: make_program(self.host, name))
             m.addSeparator()
             m.addAction("Archive...", lambda: self.archive(name))
         return m

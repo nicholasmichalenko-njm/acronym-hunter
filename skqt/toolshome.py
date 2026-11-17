@@ -207,7 +207,8 @@ class ToolsHome(QWidget):
         names = [n for n in h.efforts.names() if not (h.efforts.get(n) or {}).get("archived") and n != UF.NAME]
         cur = h.effort_name
         for n in sorted(names, key=lambda x: (x != cur, x.casefold())):
-            it = QListWidgetItem(n + ("   (working on)" if n == cur else "")); it.setData(Qt.UserRole, n); self.eff.addItem(it)
+            it = QListWidgetItem(n + ("   (program)" if (h.efforts.get(n) or {}).get("program") else "") + ("   (working on)" if n == cur else ""))   # 4.50.0
+            it.setData(Qt.UserRole, n); self.eff.addItem(it)
         if not names:
             self.eff.addItem(QListWidgetItem("No efforts yet. All Efforts starts one."))
         self.fill_unfiled()
