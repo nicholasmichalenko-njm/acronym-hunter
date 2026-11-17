@@ -57,6 +57,15 @@ put(A, "banned_words.csv", "word\nsynergy\n")
 GF.update(A, Fd, by="Ada", note="A change")
 check("... not by a later version either", DV.read(A)["topics"] == ["Kestrel topic"])
 
+less = json.load(open(os.path.join(A, DV.FILE), encoding="utf-8")); gone = less["values"].pop("after_submission")
+json.dump(less, open(os.path.join(A, DV.FILE), "w", encoding="utf-8"))
+check("4.48.1: a file made before a list was sorted gains that list, and keeps what it holds",
+      DV.keep(A) is True and DV.read(A)["after_submission"] == gone and DV.read(A)["topics"] == ["Kestrel topic"] and DV.keep(A) is False)
+check("4.48.1: the smaller lists that are the team's are collected", {"stage_days", "field_recipes", "after_submission", "cover_properties",
+      "front_matter_kit", "section_synonyms"} <= set(c))
+put(os.path.join(tmp, "D", "config"), DV.FILE, "not a file anyone can read")
+check("4.48.1: a file that cannot be read is left alone", DV.keep(os.path.join(tmp, "D", "config")) is False
+      and open(os.path.join(tmp, "D", "config", DV.FILE)).read() == "not a file anyone can read")
 fresh = os.path.join(tmp, "C", "config")
 check("asked directly, a PC with no file gets one, and a second ask writes nothing", DV.keep(fresh) is True and DV.read(fresh) == c and DV.keep(fresh) is False)
 check("the code still holds every value: this release moves nothing out", len(rulebook.BUILTIN) >= 8 and len(folderplan.DEFAULT_TREE) >= 11 and banned.STARTER)

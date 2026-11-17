@@ -11,7 +11,8 @@ Nothing reads the file yet and no value has left the code: this release only mak
 holds them. The release after reads them from the file and takes them out of the code.
 
 collect()            every built-in value, by name, as plain data
-keep(config_dir)     write the file when it is not there (never over one that is); True when it was written
+keep(config_dir)     write the file when it is not there; add a value the file lacks (4.48.1); never change one it
+                     holds; True when anything was written
 read(config_dir)     {name: value} from the file ({} when there is none)
 
 No effort data, no customer or company name: these are practices. Rules only (No AI)."""
@@ -34,7 +35,8 @@ def _plain(x):
 
 def collect():
     """Every value the code carries that the team wrote or that is the team's practice: {name: value}."""
-    import banned, effortrec, folderplan, process, prodrules, rulebook, topics
+    import banned, coverlayout, effortrec, effortsched, fieldrecipes, folderplan, placelearn, postsub, process
+    import prodrules, responseelements, rulebook, topics
     std = prodrules._company_default()
     out = {
         "effort_folders": folderplan.DEFAULT_TREE,
@@ -53,6 +55,13 @@ def collect():
         "captions": std.get("captions"),
         "checks": std.get("checks"),
         "style_roles": std.get("style_roles"),
+        # 4.48.1: the smaller lists that are the team's practice (sorted 2026-11-16)
+        "stage_days": effortsched.BUILT_IN,
+        "field_recipes": fieldrecipes.STARTERS,
+        "after_submission": postsub.BUILT_IN,
+        "cover_properties": coverlayout.BUILTIN,
+        "front_matter_kit": responseelements.DEFAULT_KIT,
+        "section_synonyms": placelearn.STARTER_SYNONYMS,
     }
     return _plain(out)
 
@@ -61,16 +70,36 @@ def _path(config_dir):
     return os.path.join(config_dir, FILE)
 
 
-def keep(config_dir):
-    """Write the file when it is not there. Never writes over one: what a Datum holds is not replaced by the code."""
+def _write(config_dir, values):
     p = _path(config_dir)
-    if os.path.isfile(p):
-        return False
     os.makedirs(config_dir, exist_ok=True)
     tmp = p + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"format": FORMAT, "values": collect()}, f, indent=1, ensure_ascii=False)
+        json.dump({"format": FORMAT, "values": values}, f, indent=1, ensure_ascii=False)
     os.replace(tmp, p)
+
+
+def keep(config_dir):
+    """Write the file when it is not there; when it is, add only the values it lacks (4.48.1: lists sorted after the
+    first file was made). A value the file holds is never changed: what a Datum holds is not replaced by the code.
+    A file that cannot be read is left alone."""
+    p = _path(config_dir)
+    c = collect()
+    if not os.path.isfile(p):
+        _write(config_dir, c)
+        return True
+    try:
+        with open(p, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return False
+    have = d.get("values") if isinstance(d, dict) else None
+    if not isinstance(have, dict):
+        return False
+    new = {k: v for k, v in c.items() if k not in have}
+    if not new:
+        return False
+    _write(config_dir, dict(have, **new))
     return True
 
 
