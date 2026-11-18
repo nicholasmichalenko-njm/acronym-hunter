@@ -131,9 +131,11 @@ def _done(page, s, snap, result, error):
             s.effort.pending = False
         elif not did_l:
             s.list_unsaved = True
+        s.list_failed = did_l is False
     import datetime
     if snap["list"] is not None and did_l is False and not error:
-        say(page, "The effort list is open in Excel: your decisions are kept here and are written when it is closed.")
+        say(page, "The acronym list file is open in another program and could not be saved yet. Your decisions are kept "
+                  "and saved again when you decide or close.")
     elif error:
         say(page, "Your decisions are kept here; writing them will be tried again.")
     else:

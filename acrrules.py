@@ -335,7 +335,7 @@ class AcronymRules:
         self._save_effort_list()
         self.apply_effort()
         self.update_effort_ui()
-        self.status.configure(text=f"Effort list: {added} added, {updated} updated." + ("" if not self.effort.pending else " NOT SAVED yet: close the list in Excel."))
+        self.status.configure(text=f"Effort list: {added} added, {updated} updated." + ("" if not getattr(self, "list_failed", False) else " NOT SAVED yet: the list file is open in another program."))
 
     def remove_from_effort(self, terms=None):
         if self.effort is None:
