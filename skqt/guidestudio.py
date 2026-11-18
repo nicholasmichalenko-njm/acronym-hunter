@@ -218,8 +218,8 @@ GRAPHICS = ("graphics", "Documents", "Graphics",
   "are read and its acronyms are swept.",
   "When you want to know that every graphic was read and swept, and again when a new version of one arrives.",
   ["Words read: Not read; Read, not confirmed; Confirmed. Acronyms: Not scanned; a count to decide; Swept.",
-   "Right-click a row to tick Words read: confirmed, or Acronyms: swept. Swept is the same mark as Page done "
-   "on Acronyms. A new version starts with neither mark.",
+   "Right-click a row to tick Words read: confirmed, or Acronyms: swept. Swept is a mark of its own, kept "
+   "with the effort. A new version starts with neither mark.",
    "Double-click a row to open the picture in Acronyms with the words the reader found.",
    "Add graphics... adds pictures of ours to Documents as Internal graphics. A graphic need: right-click for "
    "Needed, In work, Done, and Answered by to link the picture that answers it (or Answers the need on the picture)."],

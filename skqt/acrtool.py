@@ -56,14 +56,16 @@ class ToolHost:
 
 def list_rows(session, terms=None):
     """[(term, meaning)] for the list to export: every term found that is not excluded, not rejected, not a plural or
-    form (tied to its term) and not on the omit list; sorted as the list shows them."""
+    form (tied to its term) and not on the omit list; sorted as the list shows them. 4.56.0: a term marked Later stays out
+    until it is decided."""
+    later = __import__("acrlater").marks(session)
     out = []
     for t, d in session.results.items():
         if terms is not None and t not in terms:
             continue
         if d.get("excluded") or d.get("known") or d.get("plural_of") or d.get("form_of") or d.get("gone") or d.get("file_error"):
             continue
-        if (d.get("effort") or "") == "Not a term" or t.startswith("["):
+        if (d.get("effort") or "") == "Not a term" or t.startswith("[") or t in later:
             continue
         meaning = d.get("selected_definition") or ""
         if meaning == "Keep All Possibilities":

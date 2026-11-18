@@ -68,6 +68,27 @@ def add(s, kind, read, right="", places=(), crop=None):
     return x
 
 
+def remove(s, sid):
+    """4.56.0: Undo of a fix: the sample with this id leaves the effort's samples (its crop, if any, too). True when
+    it was there."""
+    root = _root(s)
+    rows = load(root)
+    keep = [r for r in rows if r.get("id") != sid]
+    if not root or len(keep) == len(rows):
+        return False
+    gone = [r for r in rows if r.get("id") == sid]
+    try:
+        W.write_json(path_of(root), {"format": FORMAT, "samples": keep})
+        for r in gone:
+            if r.get("crop", "").startswith(CROPS + "/") and os.path.isfile(os.path.join(root, r["crop"])):
+                os.remove(os.path.join(root, r["crop"]))
+    except OSError:
+        import diag
+        diag.swallowed()
+        return False
+    return True
+
+
 def learn(roots, have=(), crops_to=""):
     """Learn from an effort: the samples of the effort folders in roots that are not in have (ids). With crops_to, each
     sample's picture crop is copied there (3.80.0) and the sample names the copy. Returns [sample]."""

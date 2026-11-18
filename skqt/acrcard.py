@@ -44,8 +44,8 @@ def build(page, t, kind_tone):
     hint = AS.not_a_term_hint(t)
     if hint and not d.get("excluded") and d.get("effort") != "Not a term":
         hr = QHBoxLayout(); hr.setSpacing(D.SPACE["s"])
-        hr.addWidget(D.label(f"Suggested: ignore in this effort. {hint}.", "muted"), 1)
-        hr.addWidget(D.button("Ignore in this effort", "ghost", lambda: page.set_status([t], "Not a term")))
+        hr.addWidget(D.label(f"Suggested: Not a term in this effort. {hint}.", "muted"), 1)
+        hr.addWidget(D.button("Not a term", "ghost", lambda: page.set_status([t], "Not a term")))
         body.addLayout(hr)
     means = AS.meanings(d)
     if means:
@@ -82,17 +82,7 @@ def build(page, t, kind_tone):
     # ---- the find as text, then the definition box
     # 4.23.1 (Nicholas 2026-11-12 13:51): two lines. Reads as: the term, typable, to fix a wrong reading. Means: the
     # definition, picked above or typed, or left empty. The line it was read in is the page beside the card, not a box.
-    from PySide6.QtWidgets import QFormLayout
-    from . import symbols as SYM
-    form = QFormLayout(); form.setHorizontalSpacing(D.SPACE["s"]); form.setVerticalSpacing(D.SPACE["s"])
-    page.reads = QLineEdit(t)
-    page.reads.setToolTip("The term as it will go in the list. Fix it here if it was read wrong")
-    form.addRow(D.label("Candidate", "muted", wrap=False), page.reads)      # 4.30.7 (Nicholas 20:30): Candidate and Definition
-    page.typed = QLineEdit(); page.typed.setPlaceholderText("Pick one above or type one; it may stay empty")
-    page.typed.setToolTip("Right-click for subscript, superscript and symbols")
-    tr = QHBoxLayout(); tr.setSpacing(D.SPACE["s"])
-    tr.addWidget(page.typed, 1); tr.addWidget(SYM.button(page.typed))
-    form.addRow(D.label("Definition", "muted", wrap=False), tr)
+    form, page.reads, page.typed = boxes(t, "Pick one above or type one; it may stay empty")
     body.addLayout(form)
     # 4.30.7: what is selected on the page shows here, on the card, with where it can go. It was a second text box under
     # the page with Put in Reads as and Put in Means: the same two boxes reached a second way.
@@ -166,6 +156,24 @@ def build(page, t, kind_tone):
     page.details_btn, block = _fold(page, "details", inner)
     body.addWidget(page.details_btn, 0, Qt.AlignLeft); body.addWidget(block)
     body.addStretch(1)
+
+
+def boxes(t, placeholder):
+    """4.30.7 (Nicholas 20:30): Candidate and Definition, the two boxes of a term's card (the list's card and, 4.56.0,
+    the card in the page's margin). Candidate: the term as read, typable to fix a wrong reading. Definition: picked
+    above or typed, or left empty. Returns (the form, the Candidate box, the Definition box)."""
+    from PySide6.QtWidgets import QFormLayout
+    from . import symbols as SYM
+    form = QFormLayout(); form.setHorizontalSpacing(D.SPACE["s"]); form.setVerticalSpacing(D.SPACE["s"])
+    reads = QLineEdit(t)
+    reads.setToolTip("The term as it will go in the list. Fix it here if it was read wrong")
+    form.addRow(D.label("Candidate", "muted", wrap=False), reads)
+    typed = QLineEdit(); typed.setPlaceholderText(placeholder)
+    typed.setToolTip("Right-click for subscript, superscript and symbols")
+    tr = QHBoxLayout(); tr.setSpacing(D.SPACE["s"])
+    tr.addWidget(typed, 1); tr.addWidget(SYM.button(typed))
+    form.addRow(D.label("Definition", "muted", wrap=False), tr)
+    return form, reads, typed
 
 
 def _selected(page, text):

@@ -161,6 +161,37 @@ def picture_menu(page, term, run=True):
     return _show(page, m, run)
 
 
+def later(page, terms, reason=None):
+    """4.56.0 (UX decisions 107, 108): mark the terms Later with a reason (None: take the mark off), from the list's card."""
+    import acrlater as LT
+    s = page.session
+    if reason is None:
+        LT.unmark(s, terms)
+        said = f"{', '.join(terms[:4])}: the mark for later is taken off."
+    else:
+        LT.mark(s, terms, reason)
+        said = LT.notice(", ".join(terms[:4]), reason)
+    page.host.toast(said)
+    page.fill()
+    return said
+
+
+def later_menu(page, m, terms):
+    import acrlater as LT
+    import acrpages as AG
+    s = page.session
+    open_ = [t for t in terms if AG.state_of(s.results.get(t) or {}) == "decide"]
+    if not open_:
+        return m
+    if all(t in LT.marks(s) for t in open_):
+        m.addAction("Take the mark off").triggered.connect(lambda: later(page, open_))
+    else:
+        for k, words, _c in LT.REASONS:
+            m.addAction(f"Later: {words.lower()}").triggered.connect(lambda _c=False, k=k: later(page, open_, k))
+    m.addSeparator()
+    return m
+
+
 def more_menu(page, terms, run=True):
     s = page.session
     m = QMenu(page)
@@ -197,6 +228,7 @@ def more_menu(page, terms, run=True):
         if s.effort is not None and getattr(page.host, "truth_page", None) is not None:
             m.addAction("Add to the Wall of Truth...").triggered.connect(lambda: to_wall(page, t))
         m.addSeparator()
+    later_menu(page, m, terms)                             # 4.56.0: Later from the list's card too (the Acronym Finder)
     if len(terms) == 1:                                    # 4.30.7: from the card's Sources button
         from . import acrlayout as AL
         m.addAction("Sources and timeline...").triggered.connect(lambda: AL.sources_window(page, terms[0]))

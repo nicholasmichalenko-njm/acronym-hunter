@@ -62,7 +62,7 @@ SB.not_term(op, here, everywhere=True); app.processEvents()
 check("a decision on the page does not build the list behind it", built == [] and pg.list_stale is True, len(built))
 check("... and does not write the session file there and then", os.path.getmtime(sess) == m0 and s.unsaved is True)
 check("... the decision itself is made, and the count on the page follows", (s.results[here[0]].get("excluded") or "Not a term" in str(s.results[here[0]].get("status")))
-      and "finds left to decide" in op.progress_lab.text())
+      and ("to decide" in op.progress_lab.text() or "Nothing to decide" in op.progress_lab.text()))     # 4.56.0: N to decide
 t0 = time.time()
 while (getattr(s, "unsaved", False) or (getattr(pg, "_saver", None) is not None and pg._saver.isRunning())) and time.time() - t0 < 10:
     app.processEvents(); time.sleep(0.05)

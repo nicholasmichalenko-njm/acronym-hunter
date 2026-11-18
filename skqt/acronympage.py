@@ -12,6 +12,7 @@ import effortfolders as EF
 import app_gui as A
 import acrsession as S
 import acrsay as SAY                                               # 4.46.0: a saved status in the page's words
+import acrlater as LT                                              # 4.56.0: Later, a mark on a term
 import scanprogress as SP
 from . import design as D
 from . import progress as PR
@@ -23,11 +24,14 @@ COLS = ["Term", "Type", "Count", "Found in", "Change", "Status", "Definition", "
 STATUS = ("All statuses", "To decide", "In the list", "No definition yet", "Needs a choice", "No longer found", "Not a term")   # 3.76.0
 
 
-def status_ok(d, wanted, kind):
+def status_ok(d, wanted, kind, mark=None):
     """Whether a term passes a status filter. To decide: every term not in the effort's list yet and not Not a term
-    (3.76.0: adding a term to the list is the decision; there is no approval)."""
+    (3.76.0: adding a term to the list is the decision; there is no approval). 4.56.0: mark, the term's Later mark: a
+    term marked Later is not To decide, and is in For later or For author review by its reason."""
+    if wanted in LT.FILTERS:
+        return bool(mark) and mark.get("reason") == LT.FILTERS[wanted]
     if wanted == "To decide":
-        return (not d.get("excluded") and not d.get("known") and not d.get("effort") and kind != "error"
+        return (not mark and not d.get("excluded") and not d.get("known") and not d.get("effort") and kind != "error"
                 and not d.get("gone"))
     if wanted == "In the list":
         return d.get("effort") == "In the list"
@@ -109,7 +113,7 @@ class AcronymPage(QWidget):
         self.f_search.setMinimumWidth(280)
         from . import symbols as SYM
         SYM.attach(self.f_search)                                       # 3.50.0: search for H₂O, µm, Δv
-        self.f_excl = QCheckBox("Show ignored")
+        self.f_excl = QCheckBox("Show Not a term")
         self.f_pics = QCheckBox("Found in pictures")                     # 3.53.0: only terms read from a picture
         self.f_pics.setToolTip("Only the terms read from pictures: image files, pictures in documents, diagrams and charts")
         self.f_pics.toggled.connect(lambda _on: self.fill())
@@ -232,8 +236,7 @@ class AcronymPage(QWidget):
         if s is None:
             return []
         ftype, fstat, ffound = self.f_type.currentText(), __import__("skqt.acrwords", fromlist=["x"]).key(self.f_status.currentText()), self.f_found.currentText()
-        q = self.f_search.text().strip().casefold()
-        out = []
+        q, out, mk = self.f_search.text().strip().casefold(), [], LT.marks(s)
         for term, d in s.results.items():
             if d.get("excluded") and not (self.f_excl.isChecked() or fstat == "Not a term"):
                 continue
@@ -241,7 +244,7 @@ class AcronymPage(QWidget):
                 continue                                     # 3.34.1: a plural or form is decided: tied to its term, out of the list
             if ftype != A.ALL_TYPES and A.base_type(d["category"]) != ftype:
                 continue
-            if fstat != STATUS[0] and not status_ok(d, fstat, A.status_kind(d.get("status", ""))):
+            if fstat != STATUS[0] and not status_ok(d, fstat, A.status_kind(d.get("status", "")), mk.get(term)):
                 continue
             if ffound != A.FOUND_FILTERS[0] and s.found_in(d) != ffound.split()[0]:
                 continue
@@ -267,7 +270,7 @@ class AcronymPage(QWidget):
         self.table.setVisible(has or self.worker is not None)
         self.card_area.setVisible(has)
         AF.sync_rows(self)
-        fmap = {}                                              # 3.34.1: {term: its plurals and forms}
+        fmap, mk = {}, LT.marks(s) if s else {}                                              # 3.34.1: {term: its plurals and forms}
         for t_, d_ in (s.results.items() if s else []):
             b_ = d_.get("plural_of") or d_.get("form_of")
             if b_:
@@ -276,7 +279,7 @@ class AcronymPage(QWidget):
             d = s.results[t]
             kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
             from .acrextras import source_text
-            vals = [t, d.get("category", ""), d.get("count", 0), AF.found_in(self, s, t, d), d.get("change", ""), SAY.shown(A.status_text(d.get("status", ""))),
+            vals = [t, d.get("category", ""), d.get("count", 0), AF.found_in(self, s, t, d), d.get("change", ""), SAY.shown(A.status_text(d.get("status", ""))) + ("  (for later)" if t in mk else ""),
                     SAY.definition(d.get("selected_definition", "")), s.known_cell(t, d), SAY.decision(d.get("effort", "")), source_text(d)]
             if AF.same(self, i, (vals, kind, d.get("plural_of") or d.get("form_of"), fmap.get(t))):
                 continue
@@ -385,8 +388,8 @@ class AcronymPage(QWidget):
             r1.addWidget(D.button("Put back in the list", None, lambda: self.set_status(terms, "In the list"),
                                   "It is a term after all: back in this effort's list"))
         else:
-            r1.addWidget(D.button("Ignore in this effort", "danger", lambda: self.set_status(terms, "Not a term"),
-                                  "Ignored in this effort: this scan and every later one, new document versions too"))
+            r1.addWidget(D.button("Not a term", "danger", lambda: self.set_status(terms, "Not a term"),
+                                  "Not a term in this effort: this scan and every later one, new document versions too"))
         # 4.23.1: The picture says something else... is gone: a wrong reading is fixed in Reads as; Part of a longer term
         # and Not text are under More
         self.more_btn = D.button("More", "ghost", lambda: AP.more_menu(self, terms))

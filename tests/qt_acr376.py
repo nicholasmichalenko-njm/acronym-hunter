@@ -58,7 +58,7 @@ a, b, c = terms[0], terms[1], terms[2]
 ap.tabs.setCurrentIndex(1); app.processEvents()                    # 3.93.0: the card is in The list
 ap.select(a); app.processEvents()
 got = labels(ap)
-check("the card: Add to effort list and Not a term", "Add to effort list" in got and "Ignore in this effort" in got, got)
+check("the card: Add to effort list and Not a term (4.56.0: the word ignore is gone)", "Add to effort list" in got and "Not a term" in got and "Ignore in this effort" not in got, got)
 check("... no Approve, Needs author, Omit or Exclusion List", not {"Approve...", "Needs author", "Omit", "Exclusion List",
                                                                   "Exclusion List...", "Back to Proposed"} & set(got), got)
 check("... the rest under More", "More" in got)
@@ -81,7 +81,7 @@ ap.f_status.setCurrentIndex(0); app.processEvents()
 ap.set_status([b], "Not a term")
 check("Not a term: in the list as Not a term, and hidden", E.EffortList(LIST).load().rows[b]["Status"] == "Not a term"
       and s.results[b]["excluded"] and b not in ap.terms)
-ap.f_status.setCurrentText("Ignored"); app.processEvents()
+ap.f_status.setCurrentText("Not a term"); app.processEvents()             # 4.56.0: was Ignored
 check("... the Not a term filter shows it", b in ap.terms, ap.terms)
 ap.select(b); app.processEvents()
 check("... and its card offers Put back in the list", "Put back in the list" in labels(ap))

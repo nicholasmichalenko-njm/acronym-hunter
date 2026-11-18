@@ -99,9 +99,9 @@ check("... in typed text, by what lies between", AP.combined([{"term": "U", "spa
 # ---- the tabs and the words
 check("three tabs: On the page, Everything found, Effort list", [ap.tabs.tabText(i) for i in range(ap.tabs.count())]
       == ["On the page", "Everything found", "Effort list"])
-check("the chips read Undecided, Added to effort list and Not a term", ap.count_btns["To decide"].text().startswith("Undecided ")
+check("the chips read To decide, Added to effort list and Not a term (4.56.0: was Undecided)", ap.count_btns["To decide"].text().startswith("To decide ")
       and ap.count_btns["In the list"].text().startswith("Added to effort list ") and not ap.count_btns["Not a term"].isHidden())
-check("the pages list says undecided", "undecided" in op.foot.text() and "to decide" not in op.foot.text(), op.foot.text())
+check("the pages list says to decide (4.56.0: was undecided)", "undecided" not in op.foot.text() and "to decide" in op.foot.text(), op.foot.text())
 
 # ---- the document picker, and following Shred's document
 names = op.docs()
@@ -128,31 +128,29 @@ op.select(vis[:1]); app.processEvents()                              # so take w
 SB.keep_part(op); app.processEvents()                    # it was read with doubt: "It reads right: decide it"
 t1 = op.selected()[0]["term"]
 labs = labels(op.bar)
-check("one find: Add to effort list, Not a term here, and what More held on the bar", any(x.startswith("Add to effort list") for x in labs)
-      and any(x.startswith("Ignore here") for x in labs) and all(x in labs for x in ("Plural of...", "A form of...", "Part of a longer term..."))
+check("one find: Add to effort list, Not a term, Not a term on this page only, and what More held on the card", any(x.startswith("Add to effort list") for x in labs)
+      and "Not a term  X" in labs and "Not a term on this page only" in labs and all(x in labs for x in ("Plural of...", "A form of...", "Part of a longer term..."))
       and "More" not in labs, labs)
-n_places = AP.places(s, t1)
-check("... Not a term everywhere shows its count only when the term is found in other places too",
-      (op.bar.b_everywhere is not None) == (n_places > len(AP.here(s, t1, op.key))), (n_places, AP.here(s, t1, op.key)))
+check("... 4.56.0: no third button for the whole effort (X is the whole effort)", op.bar.b_everywhere is None)
 
 # ---- Not a term here
 s.results[t1].setdefault("locations", []).append("Elsewhere.docx (para 3)")
 op.select(vis[:1]); app.processEvents()
 SB.keep_part(op); app.processEvents()
-check("found in another place too: Not a term everywhere in this effort (n)", op.bar.b_everywhere is not None
-      and op.bar.b_everywhere.text() == f"Ignore in this effort ({AP.places(s, t1)})", labels(op.bar))
-SB.key(op, "X"); app.processEvents()
-check("X is Not a term here: off this page, still found elsewhere, not Not a term in the effort",
+check("found in another place too: Not a term on this page only is the second choice", op.bar.b_here is not None
+      and op.bar.b_here.text() == "Not a term on this page only", labels(op.bar))
+op.bar.b_here.click(); app.processEvents()
+check("Not a term on this page only (X before 4.56.0): off this page, still found elsewhere, not Not a term in the effort",
       not AP.here(s, t1, op.key) and "Elsewhere.docx (para 3)" in s.results[t1]["locations"] and s.results[t1].get("effort") != "Not a term"
       and not s.results[t1].get("excluded"), s.results[t1].get("locations"))
 check("... it is kept with the effort, so the next scan leaves it off this page too", any(AG.place_of(l) == PKEY for l in s.ws.instance_excludes().get(t1, [])))
-check("... and Undo is offered", "on this page" in op.undo_lab.text() and "Undo" in op.undo_lab.text(), op.undo_lab.text())
+check("... and Undo is offered", "on this page only" in op.undo_lab.text() and "Undo" in op.undo_lab.text(), op.undo_lab.text())
 op.undo_last(); app.processEvents()
 check("Undo puts it back on the page", AP.here(s, t1, op.key) and not s.ws.instance_excludes().get(t1))
 op.select([i for i, x in enumerate(op.items) if x["term"] == t1][:1]); app.processEvents()
 SB.keep_part(op); app.processEvents()
-op.bar.b_everywhere.click(); app.processEvents()
-check("Not a term everywhere: the whole effort, as before", s.results[t1].get("effort") == "Not a term" or s.results[t1].get("excluded"))
+SB.key(op, "X"); app.processEvents()
+check("4.56.0: X is Not a term for the whole effort", s.results[t1].get("effort") == "Not a term" or s.results[t1].get("excluded"))
 op.undo_last(); app.processEvents()
 
 # ---- the bar: two finds, combined
@@ -191,12 +189,12 @@ check("Effort list opens on what was added", lp.f_status.currentText() == "Added
 pgs_ = op.pages()
 tot_, left_ = sum(len(p["terms"]) for p in pgs_), sum(p["to_decide"] for p in pgs_)
 op.fill(); app.processEvents()
-check("On the page says how many finds are left of how many, with a bar", op.progress_lab.text() in (f"{left_} of {tot_} finds left to decide", "Every find is decided")
+check("On the page says how many finds are left to decide (4.56.0: N to decide), with a bar of how many", op.progress_lab.text() in (f"{left_} to decide", "Nothing to decide, as of the last scan")
       and op.progress_bar.maximum() == max(1, tot_) and op.progress_bar.value() == tot_ - left_, op.progress_lab.text())
 und = next((t for p in pgs_ for t, st in p["terms"].items() if st == "decide"), None)
 if und:
     s.add([und], "A made-up definition"); op.decided(); op.fill(); app.processEvents()
-    check("... one decision and the count drops by itself, for every place the term is found", op.progress_lab.text() != f"{left_} of {tot_} finds left to decide"
+    check("... one decision and the count drops by itself, for every place the term is found", op.progress_lab.text() != f"{left_} to decide"
           and op.progress_bar.value() > tot_ - left_, op.progress_lab.text())
 check("the bar has Scan again beside Page done", ap.b_rescan.text() == "Scan again" and ap.b_rescan.isVisibleTo(ap) or ap.tabs.currentIndex() != 0, ap.b_rescan.text())
 # 4.29.2 (answer 12 of 2026-11-13): the page beside the Effort list

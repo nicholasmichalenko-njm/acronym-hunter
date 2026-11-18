@@ -1,7 +1,7 @@
 """Acronyms in two tabs (3.93.0; claude/stationkeeper-acronyms-two-tabs-3.93.md): On the page (the customer's pages, one
 at a time, every find boxed; acrpageview) and The list (the effort's terms, definitions, sources and where each goes;
 acrlayout). One set of decisions underneath: a term decided in either tab is decided in both. Each tab has its own
-bar with one main button (Page done; In our drafts). A page opens on On the page while finds are left to decide, else
+bar with one main button (Next page with finds, 4.56.0: Page done is gone, his answer 10; Add a term). A page opens on On the page while finds are left to decide, else
 on The list. Acronym Finder (the tool window) keeps the list with the page beside it. Rules only (No AI)."""
 from PySide6.QtWidgets import QHBoxLayout, QStackedWidget, QTabBar, QWidget
 
@@ -23,14 +23,11 @@ def install(page, v):
         page.tabs.addTab(name)
     ob = CommandBar(page)
     page.on_bar = ob
-    page.b_nextpage = ob.add("Next page with finds", lambda: page.onpage.next_page(),
-                             "The next page with finds to decide (pages marked done are skipped)")
-    page.b_pagedone = ob.primary("Page done", lambda: page.onpage.page_done(),
-                                 "This page is done: marked with the effort, and the next page with finds shows")
     page.b_rescan = ob.add("Scan again", lambda: page.scan_again(),       # 4.29.3: one click reads the same files again
                            "Read the same files again: what you decided is kept, and what the reader finds now is counted again")
-    page.show_not_act = ob.more("Show ignored", lambda: _show_not(page), checkable=True)
-    ob.more("Every page to do again", lambda: again(page), "Clears the Page done marks")
+    page.b_nextpage = ob.primary("Next page with finds", lambda: page.onpage.next_page(),
+                                 "The next page with finds to decide, with its first find selected")
+    page.show_not_act = ob.more("Show Not a term", lambda: _show_not(page), checkable=True)
     page.bars = QStackedWidget()
     page.bars.addWidget(ob); page.bars.addWidget(page.bar)
     page.head_w = QWidget()
@@ -47,6 +44,8 @@ def install(page, v):
 
 
 def switch(page, i):
+    from . import acrmargin as MG
+    MG.gutter(page.onpage, i == 0 and not getattr(page, "tool", False))      # 4.56.0: the card's margin on On the page only
     page.tab_stack.setCurrentIndex(i)
     page.bars.setCurrentIndex(i)
     from . import acrfast as AF
@@ -72,7 +71,7 @@ def after_fill(page):
         return None
     if s is not None and s.results and not page.tab_set:
         page.tab_set = True
-        left = AG.totals(AG.pages(s.results, AG.done_set(s.ws)))["to_decide"]
+        left = AG.totals(AG.pages(s.results))["to_decide"]
         if page.tabs.currentIndex() != (0 if left else 1):
             page.tabs.setCurrentIndex(0 if left else 1)      # switch() fills the page
             return page.tabs.currentIndex()
@@ -117,6 +116,8 @@ def show_every(page):
 def tool(page):
     """Acronym Finder: no tabs; the list with the page beside it, as before."""
     page.list_only = False
+    from . import acrmargin as MG
+    MG.gutter(page.onpage, False)
     page.tabs.setVisible(False)
     page.tabs.setCurrentIndex(1)
     page.tab_stack.setCurrentIndex(1); page.bars.setCurrentIndex(1)
@@ -149,14 +150,3 @@ def show_place(page, loc):
 
 def _show_not(page):
     return page.onpage.set_show_not(page.show_not_act.isChecked())
-
-
-def again(page):
-    s = page.session
-    if s is None or s.ws is None:
-        return 0
-    n = len(AG.done_set(s.ws))
-    s.ws.set(AG.DONE_KEY, [])
-    page.onpage.fill()
-    page.host.toast(f"{n} page(s) to do again")
-    return n

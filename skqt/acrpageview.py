@@ -2,8 +2,8 @@
 like Verify: the pages with finds to decide on the left, the page in the middle with every find boxed (yellow to
 decide, green in the list, orange read with doubt, blue selected). Click a box to select it, Ctrl or Shift adds; drag on
 the page to select every find inside (the drag box is gone when you let go; words the scan never found are selected as
-the reader sees them). The bar beside the selection decides (acrselbar). Page done marks the page and goes on.
-acrpages holds the rules. Files are only read. Rules and the trained readers only (No AI); nothing leaves the PC."""
+the reader sees them). The card beside the selection decides (acrselbar), in the right margin (acrmargin, 4.56.0), and
+the next find to decide is selected (acrmove; Page done is gone, his answer 10). acrpages holds the rules. Files are only read. Rules and the trained readers only (No AI); nothing leaves the PC."""
 import html
 import os
 
@@ -12,16 +12,19 @@ from PySide6.QtGui import QBrush, QColor, QPen, QTextCursor
 from PySide6.QtWidgets import (QApplication, QFrame, QGraphicsRectItem, QHBoxLayout, QListWidget, QListWidgetItem, QStackedWidget,
                                QTextBrowser, QVBoxLayout, QWidget)
 
+import acrlater as LT
 import acrpages as AG
 import app_gui as A
 import diag
+from . import acrmargin as MG
+from . import acrmove as MV
 from . import design as D
 from . import foundview as FV
 from .whereview import parse_loc
 
 _PICS = {}                                   # page key -> (QImage, lines, typed finds, note); the session's pages
 FILL = {"decide": (252, 231, 161), "list": None, "doubt": None, "sel": (46, 123, 224), "not": None}
-TEXT_BG = {"decide": "#FCE7A1", "list": "#D9F2E1", "doubt": "#F9D3BF", "sel": "#BFD7F7", "not": "#E5E7EB"}
+TEXT_BG = {"decide": "#FCE7A1", "list": "#D9F2E1", "doubt": "#F9D3BF", "sel": "#BFD7F7", "not": "#E5E7EB", "later": "#E9DDFB"}
 
 
 def _mods():
@@ -52,13 +55,13 @@ class OnPage(QWidget):
         self.state = "none"
         h = QHBoxLayout(self); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["m"])
         left = QVBoxLayout(); left.setSpacing(D.SPACE["s"])
-        left.addWidget(D.label("PAGES WITH UNDECIDED FINDS", "faint", wrap=False))
+        left.addWidget(D.label("PAGES WITH FINDS TO DECIDE", "faint", wrap=False))
         from PySide6.QtWidgets import QComboBox                  # 4.26.1 (answer 19): its own document picker; it follows
         self.doc_pick = QComboBox(); self.doc_pick.setMaximumWidth(320)      # the document open in Shred until you pick
         self.doc_pick.setToolTip("The pages of one document, or of every document. It follows the document open in "
                                  "Shred > Requirements until you pick one here.")
         self.doc_pick.addItem(EVERY_DOC, "")
-        self.doc_pick.currentIndexChanged.connect(lambda _i: self.fill(keep=False) if not self._filling else None)
+        self.doc_pick.currentIndexChanged.connect(lambda _i: (MV.clear_pass(self), self.fill(keep=False)) if not self._filling else None)
         self._filling, self._followed = False, None
         # 4.29.3 (Nicholas 2026-11-13 11:13): how much is left, large, first in the column, again after every decision
         self.progress_lab = D.label("", "title", wrap=False); left.addWidget(self.progress_lab)
@@ -74,8 +77,9 @@ class OnPage(QWidget):
         h.addLayout(left)
         mid = QVBoxLayout(); mid.setSpacing(D.SPACE["s"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"])
-        for name, col, fill in (("undecided", AG.COLORS["decide"], "rgba(252,231,161,160)"), ("added to effort list", AG.COLORS["list"], "transparent"),
-                                ("read with doubt", AG.COLORS["doubt"], "transparent"), ("selected", AG.COLORS["sel"], "rgba(46,123,224,60)")):
+        for name, col, fill in (("to decide", AG.COLORS["decide"], "rgba(252,231,161,160)"), ("added to effort list", AG.COLORS["list"], "transparent"),
+                                ("read with doubt", AG.COLORS["doubt"], "transparent"), ("for later", AG.COLORS["later"], "transparent"),
+                                ("selected", AG.COLORS["sel"], "rgba(46,123,224,60)")):
             sw = QFrame(); sw.setFixedSize(12, 12); sw.setStyleSheet(f"QFrame{{border:2px solid {col};background:{fill}}}")
             top.addWidget(sw); top.addWidget(D.label(name, "muted", wrap=False))
             top.addSpacing(6)
@@ -102,9 +106,12 @@ class OnPage(QWidget):
         mid.addLayout(hint)
         h.addLayout(mid, 1)
         self.bar = None
+        self.after_load, self.said, self.margin_on = None, "", False
         self.install_keys()
         for sb in (self.view.horizontalScrollBar(), self.view.verticalScrollBar(), self.text.verticalScrollBar()):
             sb.valueChanged.connect(lambda _v: self.place_bar())
+            sb.rangeChanged.connect(lambda _a, _b: self.place_bar())       # 4.56.0: a zoom or a resize moves the find too
+        MG.gutter(self, True)                    # 4.56.0: the card's right margin while On the page shows (acrtabs.switch)
 
     # ------------------------------------------------------------ the pages
     @property
@@ -115,7 +122,7 @@ class OnPage(QWidget):
         s = self.session
         if s is None:
             return []
-        return AG.pages(s.results, AG.done_set(s.ws))
+        return LT.adjust_pages(s, AG.pages(s.results))      # 4.56.0: no Page done marks (kept, not read); Later counted apart
 
     def shown_pages(self):
         """The pages of the document picked (every document: all of them)."""
@@ -172,17 +179,20 @@ class OnPage(QWidget):
                 f = hd.font(); f.setBold(True); hd.setFont(f); hd.setForeground(QColor(t["text"]))
                 self.list.addItem(hd); last = p["name"]
             n = p["to_decide"]
-            it = QListWidgetItem(f"    {p['label']}    " + ("done" if p["done"] else f"{n} undecided" if n else "decided"))
+            it = QListWidgetItem(f"    {p['label']}    " + (LT.words(n, p["later"]) if n or any(p["later"].values())
+                                                                  else MV.NOTHING.rstrip(".")))
             it.setData(Qt.UserRole, p["key"])
-            it.setForeground(QColor(t["faint"] if (p["done"] or not n) else t["warn"]))
+            it.setForeground(QColor(t["faint"] if not n else t["warn"]))
             self.list.addItem(it)
             if p["key"] == cur:
                 self.list.setCurrentItem(it)
         self.list.blockSignals(False)
         self.show_progress(pgs)
         tot = AG.totals(pgs)
-        self.foot.setText(f"{tot['to_decide']} undecided in {tot['pages_left']} page(s). {tot['pages_done']} page(s) done."
-                          if pgs else "")
+        nodef = sum(1 for d in self.session.results.values() if d.get("effort") == "In the list"
+                    and not " ".join(str(d.get("list_definition") or "").split())) if pgs else 0
+        self.foot.setText((f"{tot['to_decide']} to decide in {tot['pages_left']} page(s)." + (f" {nodef} in the effort list with "
+                           "no definition yet." if nodef else "")) if pgs else "")
         if not pgs:
             self.key = None
             self.show_empty("Scan the customer documents (in The list, More): every page with a find shows here.")
@@ -190,24 +200,30 @@ class OnPage(QWidget):
             self.go(AG.next_page(pgs) or pgs[0]["key"])
         else:
             self.redraw()
-        self.left_lab.setText(f"{self.left_here()} undecided on this page" if self.key else "")
+        self.left_lab.setText(f"{self.left_here()} to decide on this page" if self.key else "")
         return pgs
 
     def show_progress(self, pgs):
-        """The finds left to decide of all the finds shown (the documents picked), in words and as a bar."""
+        """The finds left to decide of all the finds shown (the documents picked), in words and as a bar. 4.56.0: a find
+        marked Later is not to decide; it is counted by its reason beside it."""
         total = sum(len(p["terms"]) for p in pgs)
         left = sum(p["to_decide"] for p in pgs)
-        self.progress_bar.setRange(0, max(1, total)); self.progress_bar.setValue(total - left)
+        later = {}
+        for p in pgs:
+            for k, n in p.get("later", {}).items():
+                later[k] = later.get(k, 0) + n
+        self.progress_bar.setRange(0, max(1, total)); self.progress_bar.setValue(total - left - sum(later.values()))
         self.progress_bar.setVisible(bool(total)); self.progress_lab.setVisible(bool(total))
-        self.progress_lab.setText("Every find is decided" if total and not left else f"{left} of {total} finds left to decide")
+        self.progress_lab.setText(MV.NOTHING if total and not left and not any(later.values()) else LT.words(left, later))
         return left, total
 
     def left_here(self):
         s = self.session
         if s is None or not self.key:
             return 0
+        mk = LT.marks(s)
         return sum(1 for t in {x["term"] for x in self.items if x.get("term")}
-                   if AG.state_of(s.results.get(t) or {}) == "decide")
+                   if AG.state_of(s.results.get(t) or {}) == "decide" and t not in mk)
 
     def _picked(self, item):
         key = item.data(Qt.UserRole) if item is not None else None
@@ -283,7 +299,8 @@ class OnPage(QWidget):
     # ------------------------------------------------------------ a picture
     def paint(self, qimg, lines, typed, note=""):
         self.lines = list(lines)
-        finds = list(typed) + AG.line_finds(lines, self.terms_here())
+        here = self.terms_here()                 # 4.56.0: a find taken off this page only is not drawn (as redraw does)
+        finds = [x for x in typed if x.get("term") in here] + AG.line_finds(lines, here)
         self.items = AG.resolve(finds, self.session.results)
         self.items.sort(key=lambda x: (round(x["box"][1] / 12), x["box"][0]))
         self.view.set_picture(qimg, [])          # a new scene: the boxes drawn before are gone with it
@@ -294,7 +311,8 @@ class OnPage(QWidget):
         QTimer.singleShot(0, self._reframe)                # again once the view has its size
         self.draw_boxes()
         self.where.setText(self.key + (f"   {note}" if note else ""))
-        self.left_lab.setText(f"{self.left_here()} undecided on this page")
+        self.left_lab.setText(f"{self.left_here()} to decide on this page")
+        MV.loaded(self)                                    # 4.56.0: a move to this page selects its first find now
         return self.items
 
     def frame(self):
@@ -325,6 +343,8 @@ class OnPage(QWidget):
         st = AG.state_of(d)
         if st == "tied":
             st = "list"
+        if st == "decide" and x["term"] in LT.marks(self.session):           # 4.56.0: marked Later
+            return "later"
         if st == "decide" and x.get("conf") is not None and x["conf"] < A.ocr_cutoff():
             st = "doubt"
         return st
@@ -400,7 +420,8 @@ class OnPage(QWidget):
         self.state = "text"
         self.stack.setCurrentWidget(self.text)
         self.draw_text()
-        self.left_lab.setText(f"{self.left_here()} undecided on this page")
+        self.left_lab.setText(f"{self.left_here()} to decide on this page")
+        MV.loaded(self)                                    # 4.56.0: a move to this page selects its first find now
         return self.items
 
     def draw_text(self):
@@ -475,8 +496,7 @@ class OnPage(QWidget):
             self.draw_boxes()
         if not self.sel and not self.new_text and self.new_area is None:
             return None
-        host = self.view.viewport() if self.state == "picture" else self.text.viewport()
-        self.bar = SB.build(self, host)
+        self.bar = SB.build(self, MG.host(self))           # 4.56.0: a child of the view, in its right margin
         self.bar.show()
         self.place_bar()
         return self.bar
@@ -512,55 +532,17 @@ class OnPage(QWidget):
         return out.adjusted(-2, -2, 60, 2)
 
     def place_bar(self):
-        """Beside the selection, never over it: under its line (the words before and after it stay in view), else above,
-        else to its right, else to its left."""
-        b, r = self.bar, self.sel_rect()
-        if b is None or r is None:
-            return None
-        host = b.parentWidget()
-        b.adjustSize()
-        W, H, w, h, gap = host.width(), host.height(), b.width(), b.height(), 12
-        x = max(0, min(W - w, r.left()))
-        if r.bottom() + gap + h <= H:
-            pos = (x, r.bottom() + gap)
-        elif r.top() - gap - h >= 0:
-            pos = (x, r.top() - gap - h)
-        elif r.right() + gap + w <= W:
-            pos = (r.right() + gap, max(0, min(H - h, r.top())))
-        else:
-            pos = (max(0, r.left() - gap - w), max(0, min(H - h, r.top())))
-        b.move(int(pos[0]), int(pos[1]))
-        return b.geometry()
+        """4.56.0 (UX decisions 20 and 61): in the right margin, level with the first selected find (acrmargin)."""
+        return MG.place(self)
 
     # ------------------------------------------------------------ after a decision
-    def decided(self, msg="", undo=None):
-        """Every decision ends here: the page and the list are drawn again; the page shown stays."""
-        if undo is not None:
-            self.undo = undo
-            self.undo_lab.setText(f"{html.escape(undo[0])}: ignored. <a href='u'>Undo</a>")
-        if msg:
-            self.page.host.toast(msg)
-        self.sel, self.new_text, self.new_area = [], "", None
-        self.close_bar()
-        self.page.from_page = True               # 4.30.3: the list behind this tab is built when it is opened
-        try:
-            self.page.fill()                     # the counts and this page (acrtabs.after_fill)
-        finally:
-            self.page.from_page = False
-        return msg
+    def decided(self, msg="", undo=None, move=True, line=None):
+        """Every decision ends here: one line with Undo, the page and the list drawn again, then the next find to decide
+        (acrmove)."""
+        return MV.decided(self, msg, undo, move, line)
 
     def undo_last(self):
-        if self.undo is None:
-            return 0
-        words, was = self.undo
-        if isinstance(was, dict) and "__here__" in was:                # 4.26.1: Not a term on this page only
-            n = __import__("acrplace").undo(self.session, was["__here__"])
-        else:
-            n = AG.undo_not_term(self.session, was)
-        self.undo = None
-        self.undo_lab.setText("")
-        self.decided(f"{words}: back as before")
-        return n
+        return MV.undo_last(self)
 
     def redraw(self):
         if self.state == "picture":
@@ -573,27 +555,13 @@ class OnPage(QWidget):
             self.items = AG.resolve(AG.all_spans(self.src_text, self.terms_here()), self.session.results)
             self.draw_text()
 
-    def page_done(self):
-        """The page is done: marked with the effort; the next page with finds to decide shows."""
-        s = self.session
-        if s is None or not self.key:
-            return None
-        AG.set_done(s.ws, self.key, True)
-        diag.activity("acronym_page_done")
-        nxt = AG.next_page(self.shown_pages(), self.key)
-        self.fill()
-        if nxt:
-            self.go(nxt)
-        else:
-            self.page.host.toast("Every page with finds is done.")
-        return nxt
-
     def next_page(self):
-        nxt = AG.next_page(self.shown_pages(), self.key)
+        """Next page with finds (the tab's main button): the next page with finds to decide, its first find selected."""
+        nxt = MV.next_page(self)
         if nxt:
-            self.go(nxt)
+            MV.go_then(self, nxt)
         else:
-            self.page.host.toast("No other page has finds to decide.")
+            MV._say(self, MV.NOTHING if not any(p["to_decide"] for p in self.shown_pages()) else "No other page has finds to decide.")
         return nxt
 
     def show_term(self, term):
@@ -616,15 +584,16 @@ class OnPage(QWidget):
         return self.show_not
 
     def install_keys(self):
-        """Keys while a bar is open: Enter its main step (typing too), X Not a term, 1 and 2 a definition, A B U S the type."""
+        """Keys while a card is open: Enter its main step (typing too), X Not a term, N Skip, L Later (R its second reason,
+        Esc closes the reasons), 1 and 2 a definition, A B U S the type. Only Enter and Esc work while typing in a box."""
         from PySide6.QtGui import QKeySequence, QShortcut
         from . import acrselbar as SB
         from .acrlayout import _typing
         self.keys = []
-        for seq in (Qt.Key_Return, Qt.Key_Enter, "X", "1", "2", "A", "B", "U", "S"):
+        for seq in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Escape, "X", "N", "L", "R", "1", "2", "A", "B", "U", "S"):
             sc = QShortcut(QKeySequence(seq), self); sc.setContext(Qt.WidgetWithChildrenShortcut)
-            name = "enter" if seq in (Qt.Key_Return, Qt.Key_Enter) else seq
-            sc.activated.connect(lambda n=name: None if (self.bar is None or (n != "enter" and _typing())) else SB.key(self, n))
+            name = {Qt.Key_Return: "enter", Qt.Key_Enter: "enter", Qt.Key_Escape: "Escape"}.get(seq, seq)
+            sc.activated.connect(lambda n=name: None if (self.bar is None or (n not in ("enter", "Escape") and _typing())) else SB.key(self, n))
             self.keys.append(sc)
 
 

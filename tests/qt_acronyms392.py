@@ -55,7 +55,7 @@ while ap.worker is not None and time.time() - t0 < 240:
 s = ap.session
 check("the scan is noted on the effort's timeline", P.timeline(s.ws) and P.timeline(s.ws)[-1]["what"] == "Scan", P.timeline(s.ws))
 c = P.count_of(s.results, lambda d: "excluded" if d.get("excluded") else A.status_kind(d.get("status", "")))
-check("the counts on the page (4.26.1: the chip reads Undecided)", ap.count_btns["To decide"].text() == f"Undecided {c['To decide']}" and c["To decide"] > 0,
+check("the counts on the page (4.56.0: the chip reads To decide)", ap.count_btns["To decide"].text() == f"To decide {c['To decide']}" and c["To decide"] > 0,
       [b.text() for b in ap.count_btns.values()])
 ap.count_btns["To decide"].click(); app.processEvents()
 check("a count clicked filters the list", ap.f_status.currentText() == "To decide" and ap.count_btns["To decide"].isChecked())

@@ -59,7 +59,7 @@ class EffortListPage(QWidget):
         self.bar.primary("Edit definition...", lambda: self.edit_definition(), "The selected term's definition (double-click works too)")
         self.bar.add("Import a list...", lambda: IV.import_list(self), "Any Excel or CSV list, merged into this one: new terms "
                      "come in, the same meaning fills empty fields, a second meaning is kept for review")
-        self.bar.add("Ignore in this effort", lambda: self.set_status("Not a term"), "The selected terms are ignored in this effort")
+        self.bar.add("Not a term", lambda: self.set_status("Not a term"), "The selected terms are Not a term in this effort")
         self.bar.add("Scan...", lambda: self.host.go("acronyms"), "Scan the customer's documents or your drafts")
         self.bar.more("Put back in the list", lambda: self.set_status("In the list"))
         self.bar.more("Take out of the list", lambda: self.remove())

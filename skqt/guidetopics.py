@@ -387,8 +387,8 @@ TOPICS = [
   "Lists to submit, by volume, builds each volume's list from what it uses.",
   "At the start (scan the customer's documents), throughout (add terms and their definitions), and at the end (the lists you submit).",
   ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
-   "Tabs: On the page, Everything found, Effort list. On the page: Add to effort list, or Ignore here (this place only; "
-   "Ignore in this effort is beside it). Select finds side by side to combine them into one term.",
+   "Tabs: On the page, Everything found, Effort list. On the page the card opens in the margin to the right of the page, level with the find. Keys: Enter Add to effort list, X Not a term (the whole effort), N Skip, L Later; each moves to the next find to decide, then the next page with finds. "
+   "Not a term on this page only is the smaller choice under them. Later asks why: Come back to it (L or Enter) or For author review (R), with a note if you like; a term marked for later is counted apart (3 for later) and has its own filter in Everything found. Fix a wrong read in Candidate: the four become Fix and add to effort list, Fix and mark Not a term, Fix and skip, Fix and mark Later, and one press keeps the fix with the decision. Select finds side by side to combine them into one term.",
    "From a picture, The picture says something else... offers Part of a longer term... (VW in MOC-VW, held where they "
    "sit together), Misread letters... and Not text. Each fix also saves a training sample with the effort.",
    "More holds Plural of, A form of, Another way of writing, Part of a longer term, Add to this PC's database and Remove "
@@ -396,11 +396,11 @@ TOPICS = [
    "Add to the database keeps the term and its meaning in this PC's acronym database, apart from the effort's list "
    "(usually after submission). Add a term... adds one by hand: to this scan, the effort list, the database, or all three.",
    "The card: the definition, then two lines. Candidate is the term: fix it there if it was read wrong, and the list gets what you type. Definition: pick one, type one, or leave it empty. "
-   "Add to effort list and Ignore each move to the next term to decide. More has Part of a longer term, Plural of, A form of, Another way of writing and Add to the Wall of Truth.",
+   "Add to effort list and Not a term each move to the next term to decide. More has Part of a longer term, Plural of, A form of, Another way of writing and Add to the Wall of Truth.",
    "The preview boxes what the scan read. Page < and > go through every page or picture of the file. Click a box to see "
    "what it read, or select words in a passage: the card shows them with As the candidate and As the definition. A click on a box that holds another term puts that term on the card. A "
    "reading fixed on a picture is kept for every later scan on this PC. Find < and > step through the finds and come back to the place. Drag to draw a box: Read this area again, Add as a term...; right-drag or Space to move.",
-   "Why is a term missing? Type a term you expected: the Exclusion List, Ignored, a plural or form you set, the filters, or "
+   "Why is a term missing? Type a term you expected: the Exclusion List, Not a term, a plural or form you set, the filters, or "
    "what the last scan read (with near misses in pictures). Save as the answer key... makes your decided scan the key of "
    "your acronym set (a folder outside the repository), scored by each build.",
    "The table: click a heading to sort (again to turn it around); Ctrl+wheel or Ctrl+plus and minus change the text size; "

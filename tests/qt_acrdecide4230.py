@@ -56,8 +56,8 @@ check("In our drafts and the report are in More, not on the face", ap.bar.action
 ex = [a.text() for a in ap.bar.export_menu.actions()]
 check("one export: the list, whole or one per volume", ex == ["The list: the whole effort...", "The list: one per volume..."], ex)
 shown = [n for n, b in ap.count_btns.items() if not b.isHidden()]
-check("the counts row shows Undecided, Added to effort list and Not a term (4.26.1)", shown == ["To decide", "In the list", "Not a term"]
-      and ap.count_btns["To decide"].text().startswith("Undecided ") and ap.count_btns["In the list"].text().startswith("Added to effort list "), shown)
+check("the counts row shows To decide (4.56.0: was Undecided), Added to effort list and Not a term (4.26.1)", shown == ["To decide", "In the list", "Not a term"]
+      and ap.count_btns["To decide"].text().startswith("To decide ") and ap.count_btns["In the list"].text().startswith("Added to effort list "), shown)
 more = [a.text() for a in ap.bar.more_menu.actions()]
 check("the other filters are in More, with their counts", all(any(m.startswith(f"Show only: {n} (") for m in more)
       for n in ("Needs a choice", "No definition yet", "On pictures")), more)
@@ -75,7 +75,7 @@ add_btn = [b for b in ap.card_area.findChildren(QPushButton) if b.text() == "Add
 add_btn.click(); app.processEvents()
 check("Add to effort list adds the term", todo[0] in s.effort.rows and s.effort.rows[todo[0]]["Status"] == "In the list")
 check("... and moves to the next term to decide", ap.current() == todo[1], (ap.current(), todo[1]))
-nt = [b for b in ap.card_area.findChildren(QPushButton) if b.text() == "Ignore in this effort"][0]
+nt = [b for b in ap.card_area.findChildren(QPushButton) if b.text() == "Not a term"][0]   # 4.56.0: was Ignore in this effort
 nt.click(); app.processEvents()
 check("Not a term moves to the next one too", s.effort.rows[todo[1]]["Status"] == "Not a term" and ap.current() == todo[2], (ap.current(), todo[2]))
 AL.add_current(ap); app.processEvents()

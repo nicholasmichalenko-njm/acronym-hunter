@@ -157,9 +157,13 @@ def refresh_steps(w, force=False):
         try:
             acr = None
             ses = getattr(getattr(w, "acronym_page", None), "session", None)
+            w.acr_later = {}
             if ses is not None:
                 c = ses.counts()
-                acr = c.get("choice", 0) + c.get("candidate", 0)
+                import acrlater as LT                # 4.56.0: a term marked Later is not to decide; named by its reason
+                by = LT.counts(ses)
+                acr = max(0, c.get("choice", 0) + c.get("candidate", 0) - sum(by.values()))
+                w.acr_later = by
             import menufocus as MF
             from .modes import settings
             f = NS.facts(w.ws, w.effort_path, w.review.M if w.review is not None else None, acr,
@@ -323,8 +327,8 @@ class Stepper(QWidget):
                            "warn" if r and r["undecided"] else "done" if r else "todo"),
                 "requirements": (f"{nr} from the shred" if nr else "none from the shred", "done" if nr else "todo"),
                 "evalcrit": (f"{ne} from the shred" if ne else "none from the shred", "done" if ne else "todo"),
-                "acronyms": (f"{acr} to decide" if acr else f"{tot} in the list" if tot else "not scanned",
-                             "warn" if acr else "done" if tot else "todo")}
+                "acronyms": (__import__("acrlater").words(acr, getattr(self.w, "acr_later", {})) if acr or any(getattr(self.w, "acr_later", {}).values())
+                             else f"{tot} in the list" if tot else "not scanned", "warn" if acr else "done" if tot else "todo")}
 
     def show_for(self, step):
         t = D.tokens()

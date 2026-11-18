@@ -1,6 +1,7 @@
 """Acronyms on the page, page by page (3.93.0; claude/stationkeeper-acronyms-two-tabs-3.93.md). The rules behind the On the
 page tab: the pages (each place a scan found terms: a PDF page, a picture, a section of typed text) with the finds on
-each and how many are left to decide; Page done, kept with the effort; where each term sits in a picture's readings or
+each and how many are left to decide; Page done marks (4.56.0: no longer made or read on the page; saved ones are left
+in place); where each term sits in a picture's readings or
 in a passage of typed text; which bar a selection gets (decide, part of a longer term, read with doubt, not found
 before); the type of a term; Not a term with its way back. Rules only (No AI); nothing leaves the PC."""
 import re
@@ -9,7 +10,7 @@ import acrpage as P
 
 DONE_KEY = "acronym_pages_done"
 TYPES = (("Acronym", "A"), ("Abbreviation", "B"), ("Unit", "U"), ("Symbol", "S"))
-COLORS = {"decide": "#E0A800", "list": "#16A34A", "doubt": "#C2410C", "sel": "#2E7BE0", "new": "#2E7BE0"}
+COLORS = {"decide": "#E0A800", "list": "#16A34A", "doubt": "#C2410C", "sel": "#2E7BE0", "new": "#2E7BE0", "later": "#7C3AED"}
 _PAGE = re.compile(r"\(p\.(\d+)")
 
 

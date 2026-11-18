@@ -143,7 +143,7 @@ GRAPHICS (4.25.5)
     a picture inside a document that the scan found terms in, and each graphic need you tag in Shred.
   - Each row says, for its current version, two things: Words read (Not read; Read, not confirmed; Confirmed) and
     Acros and abs (Not scanned; N to decide; Swept). Right-click to tick Words read: confirmed, or Acros and abs:
-    swept. Swept is the same mark as Page done on Acros & Abs.
+    swept. Swept is a mark of its own, kept with the effort (4.56.0: Acronyms no longer marks a page done).
   - Both marks are kept by the file, so a new version of a graphic starts with neither.
   - Double-click a row to open the picture in Acros & Abs with the words the reader found. Add graphics... adds
     pictures of ours to Documents as Internal graphics. The filter shows Customer, Internal, Needs or Left to do.
@@ -726,21 +726,23 @@ STYLES: ONE LIBRARY, WITH SETS (3.94.0)
 ACRONYMS IN TWO TABS: ON THE PAGE AND THE LIST (3.93.0)
   - On the page: the customer's pages one at a time, like Verify. The pages with finds to decide are on the left (each
     with how many are left); the page is in the middle with every find boxed: yellow to decide, green in the list,
-    orange read with doubt, blue selected. Page done marks the page and shows the next one; Next page with finds skips
-    ahead. A page opens wide enough to read, at its first find left to decide.
+    orange read with doubt, purple for later, blue selected. Next page with finds (the main button, 4.56.0) shows the
+    next page with finds to decide. A page opens wide enough to read, at its first find left to decide.
   - Select on the page: click a box; Ctrl or Shift adds; drag on the page to select every find inside. The drag box is
     gone when you let go. Drag around words the scan never found: they are selected as the reader sees them now.
-  - The bar opens under the selection, never over it:
+  - The card opens in the margin to the right of the page (320 pixels), level with the selection, never over it:
       found, to decide: its definitions (1 and 2 pick, or type one), the type (A Acronym, B Abbreviation, U Unit,
-      S Symbol), Add to the list (Enter), Not a term (X), More (Show in the list, Plural of, A form of, Part of a
-      longer term).
+      S Symbol), Candidate and Definition, Add to effort list (Enter), Not a term for the whole effort (X), Skip (N),
+      Later (L: Come back to it with L or Enter, For author review with R, and a note), then Not a term on this page
+      only, Plural of, A form of, Part of a longer term. Each decision selects the next find to decide, then the next
+      page with finds. A read fixed in Candidate is kept with the decision (the buttons then read Fix and...).
       partly found (DC inside DC-RVM, with the rest of DC-RVM dashed): Use DC-RVM (Enter), or Keep DC too.
       read with doubt: what it was read as and how sure; It says (type the right text), Fix the reading (Enter), Read
       again, Not text.
       not found before: what the reader sees there now, the term and its definition, the type, Add as a term (Enter),
       Read this area again.
-  - Not a term takes every place of the term off the page at once; Undo (under the page) puts it back as it was. More >
-    Show Not a term shows them again, dashed.
+  - Not a term takes every place of the term off the page at once; the line under the page says what happened, and
+    Undo puts it back as it was. More > Show Not a term shows them again, dashed.
   - In typed text (Word, PowerPoint, Excel) the passage shows with every find as a link; select words with no find to
     add them.
   - The list: the effort's terms with their type, state, definition and source; filters as counts; the card with where

@@ -21,7 +21,7 @@ from .splitlines import SplitView
 
 KEEP_COLS = (0, 5, 6)                       # Term, Status, Definition; the rest stay in Export and Details
 SHOWN_COUNTS = ("To decide", "In the list", "Not a term")   # 4.23.0: what is left and what is done; 4.26.1: and Not a term
-SAYS = {"To decide": "Undecided", "In the list": "Added to effort list", "Not a term": "Ignored"}     # 4.26.1: what the chips read (the filters keep their saved words)
+SAYS = {"To decide": "To decide", "In the list": "Added to effort list", "Not a term": "Not a term"}     # 4.26.1: what the chips read (the filters keep their saved words)
 LIST_COLS = (0, 5, 6)                       # 4.26.1: Term, Status, Definition, with the page beside them (was five columns, no page)
 
 
@@ -76,6 +76,13 @@ def install(page):
         b.clicked.connect(lambda _c=False, n=name: pick_count(page, n))
         page.counts_row.addWidget(b); page.count_btns[name] = b
         b.setVisible(name in SHOWN_COUNTS)                 # 4.23.0: the other filters are in More
+    import acrlater as LT                                  # 4.56.0 (UX decisions 107, 108): a filter for each reason on Later
+    page.f_status.addItems(list(LT.FILTERS))
+    for k, _w, _c in sorted(LT.REASONS, key=lambda r: r[0] != "author"):
+        name = LT.filter_name(k)
+        b = QPushButton(name); b.setCheckable(True); b.setObjectName("chip"); D.themed(b, chip)
+        b.clicked.connect(lambda _c=False, n=name: pick_count(page, n))
+        page.counts_row.addWidget(b); page.count_btns[name] = b
     page.count_acts = {}
     bar.more_sep()
     for name in P.COUNTS:
@@ -137,6 +144,15 @@ def kind_of(d):
 def fill_counts(page):
     s = page.session
     c = P.count_of(s.results, kind_of) if s else {k: 0 for k in P.COUNTS}
+    import acrlater as LT                                  # 4.56.0: a term marked Later is not to decide; counted by reason
+    mk = LT.marks(s) if s else {}
+    c["To decide"] -= sum(1 for t in mk if P.passes(s.results[t], "To decide", kind_of(s.results[t]))
+                          and not (s.results[t].get("plural_of") or s.results[t].get("form_of") or s.results[t].get("part_of")))
+    by = LT.counts(s) if s else {}
+    for name, k in LT.FILTERS.items():
+        c[name] = by.get(k, 0)
+        if name in page.count_btns:
+            page.count_btns[name].setVisible(bool(c[name]) or current_count(page) == name)
     want = current_count(page)
     for name, b in page.count_btns.items():
         b.setText(f"{SAYS.get(name, name)} {c[name]}")
@@ -152,7 +168,7 @@ def current_count(page):
     if page.f_pics.isChecked():
         return "On pictures"
     st = W.key(page.f_status.currentText())
-    return st if st in P.COUNTS else None
+    return st if st in P.COUNTS or st in __import__("acrlater").FILTERS else None
 
 
 def pick_count(page, name):
@@ -283,7 +299,7 @@ def card_more(page, t):
             box.addWidget(f)
             page.suggest_widgets.append(f)
         body.insertLayout(1, box)
-        body.insertWidget(2, D.label("Keys: 1 to 4 pick · Enter adds to the list · X ignores it here", "muted"))
+        body.insertWidget(2, D.label("Keys: 1 to 4 pick · Enter adds to the list · X: Not a term", "muted"))
         page.pick = 1
         mark_pick(page)
     lg = P.longer(s.results, t)

@@ -69,11 +69,12 @@ check("4.26.1: three tabs: On the page, Everything found, Effort list", [ap.tabs
       == ["On the page", "Everything found", "Effort list"]
       and ap.head_w.isVisible())
 check("it opens on On the page while finds are left to decide", ap.tabs.currentIndex() == 0 and ap.tab_stack.currentWidget() is op)
-check("On the page has one main button, Page done, and at most five commands", ap.on_bar.main is ap.b_pagedone
+check("On the page has one main button, Next page with finds (4.56.0: Page done is gone), and at most five commands",
+      ap.on_bar.main is ap.b_nextpage and ap.b_nextpage.text() == "Next page with finds" and not hasattr(ap, "b_pagedone")
       and len(ap.on_bar.commands) <= 5 and ap.bars.currentWidget() is ap.on_bar)
 keys = [op.list.item(i).data(Qt.UserRole) for i in range(op.list.count()) if op.list.item(i).data(Qt.UserRole)]
 check("the pages with finds are listed, by file", PKEY in keys and any("Program_Manual.pdf (p." in k for k in keys)
-      and "undecided" in op.foot.text(), (keys, op.foot.text()))
+      and "to decide" in op.foot.text() and "undecided" not in op.foot.text(), (keys, op.foot.text()))
 
 # ---- a PDF page: the typed finds where they are written
 pdf6 = next(k for k in keys if k.endswith("(p.6)"))
@@ -91,12 +92,13 @@ i_eps = terms6.index("EPS")
 op.clicked(center(op.items[i_eps])); app.processEvents()
 check("a click selects the find; the bar opens", op.sel == [i_eps] and op.bar is not None and op.bar.kind == "decide")
 r = op.sel_rect()
-check("the bar sits beside the selection, never over it", op.bar.isVisible() and not op.bar.geometry().intersects(r),
-      (op.bar.geometry(), r))
+check("the card sits beside the selection, never over it (4.56.0: in the right margin)", op.bar.isVisible()
+      and op.bar.geometry().left() > op.view.viewport().geometry().right(), (op.bar.geometry(), r))
 SB.key(op, "U"); app.processEvents()
 check("a type key picks the type", SB.chosen_type(op.bar) == "Unit")
 SB.key(op, "A"); SB.key(op, "enter"); app.processEvents()
-check("Enter adds it to the list", s.results["EPS"].get("effort") == "In the list" and op.bar is None, s.results["EPS"].get("effort"))
+check("Enter adds it to the list (4.56.0: and the card moves on to the next find to decide)", s.results["EPS"].get("effort") == "In the list"
+      and (op.bar is None or "EPS" not in op.bar.terms), s.results["EPS"].get("effort"))
 check("... and its box turns green", op.kind(op.items[[x["term"] for x in op.items].index("EPS")]) == "list")
 
 
@@ -123,8 +125,8 @@ check("... and the drag box is gone when you let go", op.view._area_item is None
 op.select([i for i, x in enumerate(op.items) if x["term"] == "kWh"] or op.sel[:1]); app.processEvents()
 nt = op.selected()[0]["term"]
 n_drawn = len(op._drawn)
-SB.key(op, "X"); app.processEvents()
-check("4.26.1: X says Not a term here: this page only, the term stays in the effort",
+op.bar.b_here.click(); app.processEvents()
+check("4.56.0: Not a term on this page only (X before 4.56.0): this page only, the term stays in the effort",
       not any(AG.place_of(l) == op.key for l in s.results[nt].get("locations", [])) and s.results[nt].get("effort") != "Not a term", nt)
 check("... and takes it off the page at once", len(op._drawn) < n_drawn and "Undo" in op.undo_lab.text(), (len(op._drawn), n_drawn))
 op.undo_last(); app.processEvents()
@@ -181,11 +183,11 @@ c = op.text.textCursor(); c.setPosition(0); c.setPosition(5, QTextCursor.KeepAnc
 op.text_selected(); app.processEvents()
 check("words selected with no find: Not found before", op.bar is not None and op.bar.kind == "new", op.new_text)
 
-# ---- Page done
+# ---- Next page with finds (4.56.0: Page done is gone)
 op.go(PKEY); op.wait()
-nxt = op.page_done(); app.processEvents()
-check("Page done marks the page and shows the next page with finds", PKEY in AG.done_set(s.ws) and op.key == nxt and nxt != PKEY,
-      (op.key, nxt))
+nxt = op.next_page(); op.wait(); app.processEvents()
+check("Next page with finds shows the next page with finds to decide; no page is marked", (nxt is None or (op.key == nxt and nxt != PKEY))
+      and PKEY not in AG.done_set(s.ws), (op.key, nxt))
 
 # ---- The list
 ap.tabs.setCurrentIndex(1); app.processEvents()
@@ -200,8 +202,8 @@ labs = [b.text() for b in op.bar.findChildren(QPushButton)] if op.bar is not Non
 check("4.26.1: the bar holds what More held (Plural of, A form of, Part of a longer term); More and Show in the list are gone",
       all(x in labs for x in ("Plural of...", "A form of...", "Part of a longer term...")) and "More" not in labs
       and not hasattr(SB, "more"), labs)
-check("... its buttons read Add to effort list and Not a term here", any(x.startswith("Add to effort list") for x in labs)
-      and any(x.startswith("Ignore here") for x in labs), labs)
+check("... its buttons read Add to effort list and Not a term (4.56.0: no Ignore)", any(x.startswith("Add to effort list") for x in labs)
+      and any(x.startswith("Not a term  X") for x in labs) and not any("Ignore" in x for x in labs), labs)
 
 print(f"{sum(checks)}/{len(checks)} passed")
 w.close()
