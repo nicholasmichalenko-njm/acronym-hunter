@@ -142,6 +142,8 @@ def _first(op, later):
     nxt = next_page(op, later)
     if nxt:
         go_then(op, nxt, later)
+    elif not later:
+        _end(op)
     return None
 
 
@@ -170,6 +172,12 @@ def move_on(op, after):
     nxt = next_page(op)
     if nxt:
         return go_then(op, nxt)
+    return _end(op)
+
+
+def _end(op):
+    """No page is left with a find to serve in this pass: end the pass and say what is left; else the Later finds; else
+    nothing is left."""
     if skipped(op) or unboxed(op):                    # only skipped finds, or finds no page boxes, are left: the pass ends
         left = sum(p["to_decide"] for p in _pages(op))
         nobox = bool(unboxed(op)) and not skipped(op)
