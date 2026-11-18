@@ -202,6 +202,8 @@ class AcronymPage(QWidget):
                 import app_gui
                 self.session = S.AcronymSession(h.ws, h.effort_path, h.efforts, app_gui.load_settings())
                 self.session.restore()
+                if self.session.list_recovered:             # 4.55.1: what the list file could not take last time
+                    h.status("Your last decisions were brought back: the acronym list file could not be saved before.")
             except Exception:
                 diag.swallowed()
                 self.session = None
@@ -539,7 +541,7 @@ class AcronymPage(QWidget):
         if eff is None:                                     # the Acronym Finder window: Not a term hides it for this scan
             n = self.session.exclude(terms, status == "Not a term")
         what = "not a term" if status == "Not a term" else "in the list"
-        self.host.toast(f"Acronym list: {n} {what}" + ("" if eff is None or not eff.pending else ". NOT SAVED yet: close the list in Excel."))
+        self.host.toast(f"Acronym list: {n} {what}" + ("" if eff is None or not getattr(self.session, "list_failed", False) else ". NOT SAVED yet: the list file is open in another program."))
         self.fill()
         self._move_on(after)
         return n

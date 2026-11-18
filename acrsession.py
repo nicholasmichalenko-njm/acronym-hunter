@@ -89,6 +89,8 @@ class AcronymSession(AcronymRules):
         self.matrix = None                                   # the Qt edition sets the open compliance matrix (keyword asks)
         self.sort_col, self.sort_desc = "term", False
         self.effort = E.EffortList(effort_path, getattr(ws, "name", "") or "").load() if effort_path else None
+        self.list_failed = False                             # 4.55.1: the last write of the list was refused
+        self.list_recovered = self._recover_list()
         self.tree, self.entry_def, self.status = _Tree(), _Entry(), _Status()
         self._last_approver = ""
         self.client_lists = []
@@ -134,6 +136,29 @@ class AcronymSession(AcronymRules):
             return True
         return self._save_list_now(L, backup)
 
+    def _recover_list(self):
+        """4.55.1 (D13, D14): decisions the list's workbook could not take (Excel, a sync tool or a virus scanner holding
+        it) were kept in its recovery copy, but opening again read the workbook alone, so they came back undecided.
+        The copy is taken back when it is newer than the workbook, and the workbook is written again. True when taken."""
+        L, read = self.effort, getattr(self.ws, "read_recovery", None)
+        if L is None or read is None:
+            return False
+        try:
+            rec = read("effort", L.path)
+            st = (rec or {}).get("state")
+            if not st:
+                return False
+            rows, order = dict(st["rows"]), list(st["order"])
+            L.rows, L.order = rows, order
+            L.history, L.keywords = [list(x) for x in st.get("history") or []], list(st.get("keywords") or [])
+        except Exception:  # noqa: BLE001  a damaged copy: the workbook as it is
+            diag.swallowed()
+            return False
+        diag.event("acronyms", "Decisions taken back from the list recovery copy", n=len(rows))
+        L.pending = True
+        self._save_list_now(L, backup=False)
+        return True
+
     def _save_list_now(self, L, backup=True):
         if L is self.effort:
             self.list_unsaved = False
@@ -144,6 +169,8 @@ class AcronymSession(AcronymRules):
         try:
             L.save()
             self.ws.clear_recovery("effort", L.path)
+            if L is self.effort:
+                self.list_failed = False
             if backup:
                 try:
                     self.ws.backup(L.path, "effort")
@@ -152,6 +179,8 @@ class AcronymSession(AcronymRules):
             return True
         except (E.ListLocked, OSError):
             diag.swallowed()
+            if L is self.effort:                             # 4.55.1: still waiting; tried again at the next save
+                self.list_unsaved = self.list_failed = True
             return False
 
     # ------------------------------------------------------------ restore and save the session (shared with the classic window)

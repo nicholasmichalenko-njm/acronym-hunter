@@ -242,16 +242,16 @@ class Workspace:
     def write_recovery(self, kind, path, state):
         write_json(self.p("recovery", f"{kind}_{_key(path)}.json"),
                    {"kind": kind, "path": os.path.abspath(path), "time": datetime.datetime.now().isoformat(timespec="seconds"),
-                    "state": state})
+                    "stamp": time.time(), "state": state})
 
     def read_recovery(self, kind, path):
         """The unsaved copy for this file when it is newer than the file on disk, else None."""
         rec = read_json(self.p("recovery", f"{kind}_{_key(path)}.json"), None)
         if not isinstance(rec, dict) or "state" not in rec:
             return None
-        try:
-            t = datetime.datetime.fromisoformat(rec["time"]).timestamp()
-        except (KeyError, ValueError):
+        try:                                            # 4.55.1: the exact time when kept (the time to the second may
+            t = float(rec["stamp"]) if "stamp" in rec else datetime.datetime.fromisoformat(rec["time"]).timestamp()
+        except (KeyError, TypeError, ValueError):       # be earlier than a save made in the same second)
             return None
         if os.path.isfile(path) and os.path.getmtime(path) >= t:
             self.clear_recovery(kind, path)            # the file was saved after the copy: nothing to recover
