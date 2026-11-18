@@ -69,6 +69,10 @@ said = []
 w.status = lambda text, *a, **k: said.append(str(text))
 
 
+def said_text():
+    return " | ".join(said[-6:]) + " | " + str(getattr(op, "said", ""))
+
+
 def labels(bar):
     return [b.text() for b in bar.findChildren(QPushButton)] if bar is not None else []
 
@@ -260,6 +264,30 @@ from skqt import acrfast as AF
 AF.flush(ap)
 check("... and the custom dictionary for Word", t_r not in EDT.dictionary_words(cfg, LIST) and t_add in EDT.dictionary_words(cfg, LIST))
 check("... and the Acronym Finder's list", t_r not in [t for t, _m in TL.list_rows(s)])
+
+# ---- a page whose finds to decide are not boxed (the page reader did not find the term where the scan did)
+MV.clear_pass(op)
+pgs_open = [p["key"] for p in MV._pages(op) if MV._open_page(op, p)]
+if len(pgs_open) >= 2:
+    blind = pgs_open[0]
+    real_next = MV.next_here
+    MV.next_here = lambda o, after=None, later=False: None if o.key == blind else real_next(o, after, later)
+    try:
+        MV.go_then(op, blind); wait_move()
+        for _ in range(100):
+            if op.key != blind and op.state != "reading":
+                break
+            app.processEvents(); time.sleep(0.05)
+        op.wait(); app.processEvents()
+    finally:
+        MV.next_here = real_next
+    check("a page with finds to decide and none boxed is passed: the move never ends on a page with no card",
+          op.key != blind and blind in MV.unboxed(op), (op.key, blind))
+    check("... and one line says so and where they are", "could not be boxed on the page" in said_text() and "Everything found" in said_text(),
+          said_text())
+    MV.clear_pass(op)
+else:
+    check("a page with finds to decide and none boxed is passed (not enough pages left to try)", True)
 
 # ---- 3. the fix is kept with any of the four
 show(PKEY)

@@ -39,8 +39,15 @@ def skipped(op):
     return op.__dict__.setdefault("skip_pass", set())
 
 
+def unboxed(op):
+    """The pages passed in this pass because none of their finds to decide is boxed on the page (the page reader did not
+    find the term where the scan did, or the file is not on this PC)."""
+    return op.__dict__.setdefault("nobox_pass", set())
+
+
 def clear_pass(op):
     skipped(op).clear()
+    unboxed(op).clear()
 
 
 def _open_here(op, i, later=False):
@@ -78,6 +85,8 @@ def _pages(op):
 def _open_page(op, p, later=False):
     """True when the page has a term to serve: still to decide (or marked Later, with later), not skipped there."""
     mk = LT.marks(op.session)
+    if p["key"] in unboxed(op):
+        return False
     for t, st in p["terms"].items():
         if st != "decide" or (p["key"], t) in skipped(op):
             continue
@@ -111,13 +120,29 @@ def go_then(op, key, later=False):
     return key
 
 
+NOT_BOXED = "{n} to decide on {page} could not be boxed on the page. They are in Everything found."
+
+
 def _first(op, later):
+    """The first find to serve on the page just shown. A page whose finds to decide are not boxed (nothing to select
+    there) is passed, with a line saying so, and the move goes on to the next page: it never ends on a page with no card."""
     i = next_here(op, None, later)
     if i is not None:
         serve(op, i)
         if later:
             _say(op, ONLY_LATER)
-    return i
+        return i
+    if op.state == "reading":
+        return None
+    here = next((p for p in _pages(op) if p["key"] == op.key), None)
+    n = here["to_decide"] if here else 0
+    unboxed(op).add(op.key)
+    if n:
+        _say(op, NOT_BOXED.format(n=n, page=op.key))
+    nxt = next_page(op, later)
+    if nxt:
+        go_then(op, nxt, later)
+    return None
 
 
 def loaded(op):
@@ -145,10 +170,13 @@ def move_on(op, after):
     nxt = next_page(op)
     if nxt:
         return go_then(op, nxt)
-    if skipped(op):                                   # only skipped finds are left: the pass ends
+    if skipped(op) or unboxed(op):                    # only skipped finds, or finds no page boxes, are left: the pass ends
         left = sum(p["to_decide"] for p in _pages(op))
+        nobox = bool(unboxed(op)) and not skipped(op)
         clear_pass(op)
-        return _say(op, f"You have been through every find. {left} still to decide.")
+        if left:
+            return _say(op, f"{left} still to decide could not be boxed on a page. They are in Everything found." if nobox
+                        else f"You have been through every find. {left} still to decide.")
     i = next_here(op, None, later=True)
     if i is not None:
         serve(op, i)
