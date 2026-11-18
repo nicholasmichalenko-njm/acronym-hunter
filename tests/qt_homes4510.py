@@ -235,4 +235,4 @@ w2.close_effort(); w2.close()
 n = sum(checks)
 print(f"QT HOMES 4510 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.stdout.flush()
-os._exit(0 if n == len(checks) else 1)
+__import__("hangguard").end(0 if n == len(checks) else 1)   # D1: a bare os._exit crashed while Windows unloaded Qt
