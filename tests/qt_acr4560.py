@@ -361,8 +361,14 @@ LT.unmark(s, list(LT.marks(s)))
 pages_all = op.shown_pages()
 open_terms = sorted({t for p in pages_all for t, st in p["terms"].items() if st == "decide"})
 last_t = open_terms[0]
-for t in open_terms[1:]:
-    s.add([t], "")
+for cand in open_terms:                      # one the page reader boxes: the reader does not box every find of the scan
+    show(AG.place_of(s.results[cand]["locations"][0]))
+    if any(x["term"] == cand and op.visible(i) and not x.get("behind") for i, x in enumerate(op.items)):
+        last_t = cand
+        break
+for t in open_terms:
+    if t != last_t:
+        s.add([t], "")
 LT.unmark(s, list(LT.marks(s)))
 MV.clear_pass(op)
 op.fill(); app.processEvents()
