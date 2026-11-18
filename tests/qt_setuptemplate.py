@@ -63,10 +63,10 @@ SD.place(M, M.items[0]["id"], "1.1 Technical Approach")
 SD.place(M, M.items[1]["id"], "2.1 Program Management")
 w.go("setup"); app.processEvents()
 sp = w.setup_page
-d = MakeDialog(sp, ST.ready(M, None), ST.options(M))
-check("the dialog lists Ready to make and a style for each kind of reference text", len(d.rows) == len(ST.KINDS)
-      and d.rows["rfp"][0].text() == "SK RFP Requirement" and d.rows["rfp"][1].isChecked())
-opts = d.values(); opts["pm"]["hidden"] = False
+d = MakeDialog(sp, ST.ready(M, None))
+check("the dialog lists Ready to make and one line for the reference text (4.55.0: set in Effort Formatting)", len(d.lines) == len(ST.ready(M, None))
+      and d.ref_line.text().startswith("Reference text: 9 kinds in the file, 9 hidden."), d.ref_line.text())
+opts = ST.options(M); opts["pm"]["hidden"] = False
 out = sp.make_on_templates(opts=opts, go=True)
 check("a template per volume and the setup written on each", out and len(out) == 2 and all(os.path.isfile(x["setup"]) for x in out), out)
 check("into the effort's folders, templates in their own folder", out and all(os.path.basename(os.path.dirname(x["template"])) == "Templates" for x in out)

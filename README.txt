@@ -302,9 +302,11 @@ ONE WORD FOR ONE THING (4.20.0)
 
 OUR RESPONSE STRUCTURE: TWO DOORS TO ONE OUTLINE; SHRED'S LIST (4.19.0)
   - The customer prescribes it: in Shred, type the piece that sets the structure Structure (key O): "shall be organized
-    as follows", the volumes, a required order. On Matrix & Outline (or Setup), Start our structure > Read the Structure
-    pieces...: the volumes come in as H1, a list under the volume it names as H2, a marked heading at its H level, page
-    limits kept. Fix what the reading got wrong in the preview, then Put in our outline. Each heading keeps Required by
+    as follows", the volumes, a required order. On Matrix & Outline > Outline, Start our structure lists each piece typed
+    or suggested as Structure, in the customer's words: Use it (or Use all of them...): the volumes come in as H1, a
+    list under the volume it names as H2, a marked heading at its H level, page limits kept. Fix what the reading got
+    wrong in the preview, then Put in our outline (with a structure there, Add or Replace is asked first, with what each
+    does). Each heading keeps Required by
     (the piece and where it sits); the outline stays yours to edit, and Structure... > Check against the required
     structure lists a required heading renamed, taken out or moved out of order.
   - We build it: Start our structure > Draft headings from... the customer's headings, the SOW or PWS headings, the
@@ -1651,7 +1653,7 @@ THE OUTLINE MATRIX, MATRIX VIEWS, CLEARER STYLES (3.35.0)
     rows. Requirements in no item yet keep a row at the end (Not in the outline yet).
   - Review's bottom bar shows the target item's Assigned To, Initial Page Allocation and % Complete; change them
     there (one Undo step each). % Complete follows a renamed item.
-  - Matrix > View: Save as a view... keeps the columns, headings and rows in the template library (Matrix views);
+  - Matrix > Design... > Save as a view... keeps the columns, headings and rows in the template library (Matrix views);
     Save as a new version keeps the old one; pick a view for each effort; Start this effort type with it makes new
     efforts of the effort type start with it. Built in: Outline with L and M, RFP sentences. A matrix set up before
     3.35.0 keeps its design.
@@ -1879,7 +1881,8 @@ PRODUCTION STANDARDS, ONE PLACE PER JOB (3.25.0)
 THE SETUP WRITTEN ON THE TEMPLATE (3.24.0)
   - Response Setup > Make templates and setup...: Ready to make lists what is still open (sentences not decided,
     requirements not in a section, objectives not mapped, submission excerpts without a value, written formatting
-    rules without a check). Below it, the style each kind of reference text takes, and whether it is hidden.
+    rules without a check). Below it, one line says how many kinds of reference text go in the file and how many are
+    hidden; Effort Formatting > More > Reference text in the setup... sets the style each kind takes (4.55.0).
   - Make writes, for each planned volume: its template (Production Standards for that volume's profile, named
     "<effort> <volume>", the next version, the volume, solicitation and company on the cover, the fill-ins) into the
     setup folder's Templates folder, and the setup written into a document made from it. The template's styles, cover,

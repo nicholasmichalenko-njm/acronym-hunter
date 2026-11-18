@@ -91,11 +91,15 @@ vol = O.add_volume(M, "Technical"); O.add(M, "Approach", parent=vol)
 SD.set_volumes(M, "several", "", [vol])
 from skqt.maketemplates import MakeTemplatesDialog
 md = MakeTemplatesDialog(sp, start="effort"); app.processEvents()
-check("Make templates: each kind with Hidden and In the file", "capture" in md.ref_rows and len(md.ref_rows["rfp"]) == 3)
-e, cb, inc = md.ref_rows["pm"]
-e.setText("PM Note"); inc.setChecked(False)
-ST.set_options(M, md.ref_options(), w.ws)
+check("Make templates: one line for the reference text, set in Effort Formatting (4.55.0)", not hasattr(md, "ref_rows")
+      and md.ref_line.text().startswith("Reference text: 9 kinds in the file") and "Effort Formatting" in md.ref_line.text(), md.ref_line.text())
 md.close()
+from skqt import reftext as RT
+rd = RT.open_window(w.effortfmt_page, w, modal=False)
+check("... Effort Formatting's window: each kind with Hidden and In the file", "capture" in rd.rows and len(rd.rows["rfp"]) == 3)
+e, cb, inc = rd.rows["pm"]
+e.setText("PM Note"); inc.setChecked(False)
+rd.save(); rd.close()
 over = (w.ws.get("prod_std", {}) or {}).get("over") or {}
 check("... kept as this effort's change to the profile's map", over.get("content_map", {}).get("pm") == {"style": "PM Note", "hidden": True, "include": False})
 pl = ST.plan(M, cfg, w.ws, "Kestrel", w.efforts.get("Kestrel") or {})

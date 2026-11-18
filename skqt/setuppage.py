@@ -4,7 +4,7 @@ order (move a block up or down, take one out of a section), what is not placed y
 writes just what changed since the last export."""
 import datetime, os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QGridLayout, QHBoxLayout, QLineEdit, QTreeWidget,
+from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 import diag
 import effortfolders as EF
@@ -144,8 +144,9 @@ class SetupPage(QWidget):
         return paths
 
     def make_on_templates(self, folder=None, opts=None, go=None, starts=None, volumes=None):
-        """3.24.0: Ready to make, the reference styles, then a template per volume and the setup written on each.
-        opts and go (tests): the styles to use and whether to make with items still open. Returns the results."""
+        """3.24.0: Ready to make, then a template per volume and the setup written on each. go (tests): whether to make
+        with items still open; opts: styles to keep first (4.55.0: Make otherwise uses the saved ones, set in Effort
+        Formatting > More > Reference text in the setup...). Returns the results."""
         import setuptemplate as ST
         import effortrec as RR
         R = self.host.review
@@ -153,17 +154,16 @@ class SetupPage(QWidget):
             return None
         rec = RR.Record(self.host.ws.root)
         rd = ST.ready(R.M, rec)
-        if opts is None or go is None:
-            info0 = self.host.efforts.get(self.host.effort_name) or {}
-            pl0 = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info0)
-            d = MakeDialog(self, rd + [__import__("skqt.datummark", fromlist=["x"]).ready_row(self.host)], ST.options(R.M, pl0[0]["std"] if pl0 else None))   # 4.47.1
+        if go is None:                                  # 4.55.0: readiness and Make; the reference text is set in Effort Formatting
+            d = MakeDialog(self, rd + [__import__("skqt.datummark", fromlist=["x"]).ready_row(self.host)])   # 4.47.1
+            self._make_dlg = d
             if d.exec() != d.Accepted:
                 return None
-            opts = d.values()
             go = True
         if not go and not all(ok for ok, _w, _n in rd):
             return None
-        ST.set_options(R.M, opts, self.host.ws)            # 3.33.0: this effort's change to the profile's content map
+        if opts is not None:                            # given (tests, older callers): kept as this effort's change, as before
+            ST.set_options(R.M, opts, self.host.ws)     # 3.33.0: this effort's change to the profile's content map
         if folder is None:
             folder = self.host.out_path("setup_documents") if self.host.effort_path else os.path.dirname(R.M.path)
             folder = folder if os.path.isdir(folder) else os.path.dirname(folder)
@@ -213,32 +213,41 @@ class SetupPage(QWidget):
         return ch
 
 
-class MakeDialog(QDialog):
-    """3.24.0: Ready to make (what is still open), and the style each kind of reference text takes, hidden or shown."""
+FIX_AT = {"Every piece is decided or ignored": "assign", "Every requirement is in a section of the structure": "place",
+          "The response structure has sections": "outline"}        # 4.55.0: an open line links to where it is fixed
 
-    def __init__(self, parent, ready, opts):
+
+class MakeDialog(QDialog):
+    """3.24.0: Ready to make (what is still open). 4.55.0 (UX decision 14): the reference-text rows moved to Effort
+    Formatting > More > Reference text in the setup...; here one line says what will be used, with a link there. An
+    open line links to the page where it is fixed, when the dialog can tell which page that is."""
+
+    def __init__(self, parent, ready, host=None):
         super().__init__(parent)
-        import setuptemplate as ST
-        self.setWindowTitle("Make templates and setup"); self.setMinimumWidth(680)
+        from . import reftext as RT
+        self.host = host or parent.host
+        self.goto = None
+        self.setWindowTitle("Make templates and setup"); self.setMinimumWidth(560)
         v = QVBoxLayout(self)
         v.addWidget(D.label("Ready to make", "title"))
+        self.lines = []
         for ok, what, n in ready:
-            v.addWidget(D.label(("\u2713 " if ok else "\u2022 ") + what + ("" if ok else f" ({n} still open)"), None if ok else "muted"))
-        v.addWidget(D.label("Reference text in the setup", "title"))
-        v.addWidget(D.label("Each kind goes in its own style. Hidden text shows only with Show/Hide on, so authors see the "
-                            "response alone with it off. Type the name of one of your own styles to use it.", "muted"))
-        g = QGridLayout(); v.addLayout(g)
-        self.rows = {}
-        for r, (k, label, _s, _c, _i) in enumerate(ST.KINDS):
-            g.addWidget(D.label(label, None), r, 0)
-            e = QLineEdit(opts[k]["style"]); g.addWidget(e, r, 1)
-            cb = QCheckBox("Hidden"); cb.setChecked(opts[k]["hidden"]); g.addWidget(cb, r, 2)
-            inc = QCheckBox("In the file"); inc.setChecked(opts[k].get("include", True)); g.addWidget(inc, r, 3)
-            self.rows[k] = (e, cb, inc)
+            text = ("\u2713 " if ok else "\u2022 ") + what + ("" if ok else f" ({n} still open)")
+            key = None if ok else FIX_AT.get(what)
+            lab = D.label(text + (f" <a href='{key}'>Fix it</a>" if key else ""), None if ok else "muted")
+            if key:
+                lab.linkActivated.connect(lambda k: self.go_fix(k))
+            v.addWidget(lab); self.lines.append(lab)
+        self.ref_line = RT.line(self, self.host)
+        v.addWidget(self.ref_line)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Make" if all(ok for ok, _w, _n in ready) else "Make anyway")
         bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
         v.addWidget(bb)
 
-    def values(self):
-        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked(), "include": inc.isChecked()} for k, (e, cb, inc) in self.rows.items()}
+    def go_fix(self, key):
+        """Close without making and open the page where the open line is fixed."""
+        self.goto = key
+        self.reject()
+        self.host.go(key)
+        return key

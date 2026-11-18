@@ -960,6 +960,7 @@ class AssignPage(QWidget):
         self.done_btn.setText("Shredded \u2713" if here else "Mark shredded")
         self.done_btn.setToolTip(f"Marked shredded {done[self.file]}. Click to take the mark off." if here else
                                  "Every piece of this document is looked at")
+        __import__("skqt.shredfocus", fromlist=["x"]).place_row(self)     # 4.55.0: Place shows none of this row
 
     def mark_reviewed(self, on=None):
         if self.host.ws is None or not self.file:

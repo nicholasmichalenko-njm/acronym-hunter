@@ -8,7 +8,8 @@ apply(page, mode): mode "shred" or "place" (placemode.apply calls it on every vi
   shows the suggested type dashed, and Enter takes it and goes to the next piece not shredded (4.53.0).
 - Shred: This document is shredded is a checkbox (4.26.0; it was the main button and opened the next document). N goes
   to the next piece not sorted.
-- Place: the piece pane is the place pane (placepane); N goes to the next piece not placed.
+- Place: the piece pane is the place pane (placepane); N goes to the next piece not placed. 4.55.0 (decision 17): none of
+  Shred's whole-document row shows (place_row); the document picker stays and Fit width is a button beside it.
 Rules only (No AI); nothing leaves the PC."""
 from PySide6.QtWidgets import QMenu
 
@@ -88,9 +89,34 @@ def apply(page, mode):
         __import__("skqt.shredselbar", fromlist=["x"]).gutter(page, mode == "shred")   # 4.53.0: the bar's margin
         __import__("skqt.shredselbar", fromlist=["x"]).later(page)
         __import__("skqt.shredprogress", fromlist=["x"]).refresh(page)
+        place_row(page)
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return mode
+
+
+PLACE_HIDES = ("queue_lbl", "done_btn", "next_btn", "focus_more", "shred_check", "reshred_btn")
+
+
+def place_row(page):
+    """4.55.0 (UX decision 17): on Place (and L to M and Coverage) none of Shred's whole-document row shows: the count of
+    documents not shredded, Mark shredded, This document is shredded, re-shred, and More (Fix text, Fit width). The
+    document picker stays, and Fit width is a button of its own beside it (Ctrl+0 too). Shred's own row is unchanged.
+    show_queue calls it after it sets the row, so a document picked on Place keeps the row hidden."""
+    if getattr(page, "focus", None) != "place":
+        if getattr(page, "fit_btn", None) is not None:
+            page.fit_btn.setVisible(False)
+        if getattr(page, "focus_more", None) is not None and page.focus == "shred":
+            page.focus_more.setVisible(True)
+            page.queue_lbl.setVisible(True)
+        return False
+    for name in PLACE_HIDES:
+        x = getattr(page, name, None)
+        if x is not None:
+            x.setVisible(False)
+    if getattr(page, "fit_btn", None) is not None:
+        page.fit_btn.setVisible(bool(page.file))
+    return True
 
 
 def suggest_on(page):

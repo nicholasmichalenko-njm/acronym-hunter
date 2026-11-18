@@ -9,7 +9,7 @@ import copy
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QFileDialog, QGridLayout, QHBoxLayout, QLineEdit,
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QFileDialog, QHBoxLayout, QLineEdit,
                                QListWidget, QListWidgetItem, QRadioButton, QSplitter, QTextBrowser, QVBoxLayout, QWidget)
 
 import diag
@@ -63,9 +63,8 @@ class MakeTemplatesDialog(QDialog):
         lv.addWidget(self.name_box)
         self.setup_box = QWidget(); stb = QVBoxLayout(self.setup_box); stb.setContentsMargins(0, 0, 0, 0)
         self.ready_lbl = D.label("", None); stb.addWidget(D.label("Ready to make", "title")); stb.addWidget(self.ready_lbl)
-        stb.addWidget(D.label("Reference text in the setup", "title"))
-        stb.addWidget(D.label("Each kind goes in its own style; hidden text shows only with Show/Hide on.", "muted"))
-        self.ref_grid = QGridLayout(); stb.addLayout(self.ref_grid)
+        from . import reftext as RT                          # 4.55.0 (UX decision 14): one line, set in Effort Formatting
+        self.ref_line = RT.line(self, self.host); stb.addWidget(self.ref_line)
         # 3.27.0: Volume II continues Volume I
         self.cont = QCheckBox("Each volume continues the page and chapter numbers of the volume before")
         self.cont.toggled.connect(lambda on: self.fill_starts(suggest=on)); stb.addWidget(self.cont)
@@ -80,7 +79,7 @@ class MakeTemplatesDialog(QDialog):
                                "section) gets its pages in the setup: empty pages after its content, and the next section "
                                "starts on a new page. Placed Quick Parts count with their measured pages.")
         stb.addWidget(self.prepag)
-        self.ref_rows = {}
+        self._ref_read = False
         lv.addWidget(self.setup_box)
         lv.addWidget(D.label("Templates to make", "title"))
         self.list = QListWidget(); self.list.currentRowChanged.connect(lambda _r: (self.show_details(), self.show_sets() if self.choice() != "this" else None)); lv.addWidget(self.list, 1)
@@ -168,17 +167,10 @@ class MakeTemplatesDialog(QDialog):
             rd = ST.ready(R.M, RR.Record(self.host.ws.root))
             self.ready_lbl.setText("\n".join(("✓ " if ok else "• ") + what + ("" if ok else f" ({n} still open)") for ok, what, n in rd))
             self._ready_ok = all(ok for ok, _w, _n in rd)
-            if not self.ref_rows:
+            if not self._ref_read:
+                self._ref_read = True
                 self.prepag.setChecked(ST.prepaginate(R.M))
-                info0 = self.host.efforts.get(self.host.effort_name) or {}
-                pl0 = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info0)
-                opts = ST.options(R.M, pl0[0]["std"] if pl0 else None)      # 3.33.0: the profile's content map, this effort's changes
-                for r, (kk, label, _s, _c, _i) in enumerate(ST.KINDS):
-                    self.ref_grid.addWidget(D.label(label, None), r, 0)
-                    e = QLineEdit(opts[kk]["style"]); self.ref_grid.addWidget(e, r, 1)
-                    cb = QCheckBox("Hidden"); cb.setChecked(opts[kk]["hidden"]); self.ref_grid.addWidget(cb, r, 2)
-                    inc = QCheckBox("In the file"); inc.setChecked(opts[kk].get("include", True)); self.ref_grid.addWidget(inc, r, 3)
-                    self.ref_rows[kk] = (e, cb, inc)
+                self.ref_line.say()
             info = self.host.efforts.get(self.host.effort_name) or {}
             self._effort_plans = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info)
             st = self.starts()
@@ -260,10 +252,6 @@ class MakeTemplatesDialog(QDialog):
                 out[plans[r]["volume"]] = {"page": self.starts_t.cellWidget(r, 1).value(), "chapter": self.starts_t.cellWidget(r, 2).value()}
         return out
 
-    def ref_options(self):
-        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked(), "include": inc.isChecked()}
-                for k, (e, cb, inc) in self.ref_rows.items()}
-
     def make(self, word=None):
         """Makes what was chosen. Returns what the page or Response Setup returned."""
         k = self.choice()
@@ -274,7 +262,7 @@ class MakeTemplatesDialog(QDialog):
         import setuptemplate as ST
         if self.host.review is not None:
             ST.set_prepaginate(self.host.review.M, self.prepag.isChecked())
-        return self.host.setup_page.make_on_templates(opts=self.ref_options(), go=True, starts=self.starts() or None)
+        return self.host.setup_page.make_on_templates(go=True, starts=self.starts() or None)     # 4.55.0: the saved reference text
 
 
 def run(page, start=None):

@@ -2,7 +2,9 @@
 (and add columns of the team's own), choose the rows (requirements, context, in the RFP's order or your structure's,
 context in the requirement's cell or on its own rows), see it as it will be, and export it to Excel. Export the
 compliance package writes the matrix, the Response Setup, the coverage report and the L/M crosswalk into one dated
-folder. The design is kept with the matrix; Save as the team default makes it the starting design for new matrices."""
+folder. The design is kept with the matrix; Save as the team default makes it the starting design for new matrices.
+4.55.0 (UX decision 18; Nicholas 2026-11-17 21:19): the matrix leads the page and has the room; Design... opens the
+design beside it, with Save as a view... at its foot. Whether it was open is kept for the session only."""
 import datetime, os
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel
@@ -17,6 +19,8 @@ PREVIEW_ROWS = 400
 
 
 class MatrixPage(QWidget):
+    design_open = False                     # 4.55.0: this session only; the page opens with the design closed
+
     def __init__(self, host):
         super().__init__()
         self.setObjectName("page")
@@ -66,11 +70,15 @@ class MatrixPage(QWidget):
             rows.add(w)
         rows.add(D.label("In the cell, each piece of context starts with where it is in the RFP, e.g. (L.4.2, p.3).", "muted"))
         lv.addWidget(rows)
+        self.b_saveview = D.button("Save as a view...", None, lambda: self.save_view(),
+                                   "Keep this design in the template library under a name")      # 4.55.0: with the design
+        lv.addWidget(self.b_saveview)
         from PySide6.QtWidgets import QFrame, QScrollArea                  # 3.35.0: the design scrolls; nothing is squeezed
         self.cols.setMinimumHeight(170)
         lsc = QScrollArea(); lsc.setWidgetResizable(True); lsc.setFrameShape(QFrame.NoFrame)
         lsc.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff); lsc.setWidget(left); lsc.setMinimumWidth(left.minimumSizeHint().width() + 18)
         split.addWidget(lsc)
+        self.design_w = lsc
         prev = D.Card("As it will be", actions=())
         self.info = D.label("", "muted")
         prev.add(self.info)
@@ -88,7 +96,9 @@ class MatrixPage(QWidget):
         self.bar = CommandBar()
         self.bar.add("Bring the edited matrix back...", lambda: self.bring_back(),        # 3.73.0
                      "The exported matrix as the team filled it in: their values come back, after you look")
-        self.bar.add("Save as a view...", lambda: self.save_view(), "Keep this design in the template library under a name")
+        self.b_design = self.bar.add("Design...", None, "The view, the columns and the rows, beside the matrix")   # 4.55.0
+        self.b_design.setCheckable(True)
+        self.b_design.toggled.connect(lambda on: self.show_design_panel(on))
         self.bar.primary("Export the matrix...", self.export, "The matrix as an Excel workbook")
         self.ver_btn = self.bar.more("Save as a new version", lambda: self.save_version(),
                                     "A new version of the view in use, with this design; the old version stays")
@@ -103,6 +113,16 @@ class MatrixPage(QWidget):
                         "Matrix, Response Setup, coverage report and L/M crosswalk in one dated folder")
         v.insertWidget(0, self.bar)
         self.timer = QTimer(self, singleShot=True, interval=250, timeout=self.preview)
+        self.b_design.setChecked(MatrixPage.design_open)
+        self.design_w.setVisible(MatrixPage.design_open)
+
+    def show_design_panel(self, on=True):
+        """Design...: the design opens beside the matrix, or closes; kept for the session."""
+        MatrixPage.design_open = bool(on)
+        self.design_w.setVisible(bool(on))
+        if self.b_design.isChecked() != bool(on):
+            self.b_design.blockSignals(True); self.b_design.setChecked(bool(on)); self.b_design.blockSignals(False)
+        return bool(on)
 
     # ------------------------------------------------------------ the design
     def refresh(self):

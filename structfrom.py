@@ -55,6 +55,66 @@ def pieces(M):
     return [it for it in M.items if ST.has(it, "structure")]
 
 
+def _norm(t):
+    return " ".join((t or "").split()).lower()
+
+
+def group(M, it):
+    """The piece and the list it leads in: the pieces after it whose lead is its words ("shall be organized as follows:"
+    is read into one piece, each item of the list into a piece of its own with that lead)."""
+    out, key = [it], _norm(it.get("text"))
+    if not _LIST_START.search(it.get("text") or ""):
+        return out
+    seen = False
+    for x in M.items:
+        if x is it:
+            seen = True
+        elif seen and _norm(x.get("lead")) == key:
+            out.append(x)
+    return out
+
+
+def suggested(M):
+    """4.55.0 (UX decision 13): the pieces not typed Structure whose own words read as setting it: a lead-in such as
+    "shall be organized as follows:" (with the list it leads in), or two or more volumes named in one piece. A list item
+    is covered by its lead-in piece. A suggestion only: nothing is typed until the person uses it."""
+    import shredtypes as ST
+    leads = {_norm(it.get("text")) for it in M.items if _LIST_START.search(it.get("text") or "")}
+    out = []
+    for it in M.items:
+        if ST.has(it, "structure") or it.get("decision") == "Drop" or (it.get("lead") and _norm(it.get("lead")) in leads):
+            continue
+        text = " ".join((it.get("text") or "").split())
+        vols = {_n(v.group("n")) for v in _VOL.finditer(text)} - {0}
+        if _LIST_START.search(text) or (_LIST_START.search(it.get("lead") or "") and not vols) or len(vols) >= 2:
+            out.append(it)
+    return out
+
+
+def where(it):
+    """Where a piece is, in the customer's documents: "Section L.pdf, L.2 Proposal Organization, page 1"."""
+    sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
+    pg = it.get("page", "")
+    return ", ".join(x for x in (it.get("file", ""), sec, f"page {pg}" if pg else "") if x)
+
+
+def effect(M, heads):
+    """4.55.0: what putting these headings in would do, before anything changes: {"add": headings made, "have": headings
+    in our outline now, "lose": [ids of requirements placed in a section Replace takes away], "lose_other": other placed
+    pieces that would lose their place}. A piece that loses its place stays in the matrix, not placed."""
+    import setupdoc as SD
+    ents = number(heads)
+    new = {C.outline_label(o) for o in C.parse_outline(C.outline_text(ents))}
+    lose, other = [], 0
+    for it in M.items:
+        if it.get("map") and not any(s in new for s in SD.item_sections(M, it)):
+            if it.get("decision") == "Keep":
+                lose.append(it.get("id", ""))
+            else:
+                other += 1
+    return {"add": len(ents), "have": len(M.outline), "lose": lose, "lose_other": other}
+
+
 def _ref(it):
     sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
     pg = it.get("page", "")
@@ -88,7 +148,7 @@ def read(M, its=None):
             if len(parts) == 1:
                 parts = [p for p in re.split(r"\s*;\s*|\s*,\s+and\s+|\s*,\s*", rest) if p.strip()]
             for p in parts:
-                t = _title(p)
+                t = _title(_MARK.sub("", p))          # 4.55.0: "(1) Technical Approach" alone in its piece keeps no "1)"
                 if t and len(t.split()) <= 12:
                     out.append(dict(base, title=t, level=2 if vol else 1, limit=_limit(p), vol=vol))
                     found = True

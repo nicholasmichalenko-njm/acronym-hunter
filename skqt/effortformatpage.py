@@ -39,6 +39,10 @@ class EffortFormatPage(QWidget):
         outer.addWidget(self.empty)
         self.body = QWidget(); outer.addWidget(self.body, 1)
         bv = QVBoxLayout(self.body); bv.setContentsMargins(0, 0, 0, 0); bv.setSpacing(D.SPACE["m"])
+        from .commandbar import CommandBar                   # 4.55.0 (UX decision 14): More > Reference text in the setup
+        self.bar = CommandBar(); bv.addWidget(self.bar)
+        self.bar.more("Reference text in the setup...", lambda: __import__("skqt.reftext", fromlist=["x"]).open_window(self, self.host),
+                      "The style each kind of reference text takes in the setup, whether it is hidden, and whether it is in the file")
         __import__("skqt.effortsetview", fromlist=["x"]).add_card(self, bv)   # 4.32.0: the effort's own set
         top = D.Card("Effort Formatting", "This effort's formatting. It starts from this effort's standards (Production "
                      "Standards) and keeps its own changes here, for every volume or for one.",

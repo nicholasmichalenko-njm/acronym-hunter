@@ -135,7 +135,8 @@ def set_options(M, opts, ws=None):
     over["content_map"] = dict(over.get("content_map") or {}, **clean)
     eff["over"] = over
     ws.set("prod_std", eff)
-    SD.setup_of(M).pop("on_template", None)
+    if M is not None:                                  # 4.55.0: Effort Formatting saves them with no matrix open too
+        SD.setup_of(M).pop("on_template", None)
 
 
 def skip_kinds(opts):

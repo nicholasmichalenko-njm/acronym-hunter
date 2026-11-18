@@ -277,7 +277,7 @@ TOPICS = [
  ("matrix", "Matrix & Outline", "Matrix",
   "The compliance matrix as the customer will see it, built from what was shredded and placed.",
   "You deliver the matrix, or share it with the team.",
-  ["Choose the columns. Add a column... adds your own.",
+  ["Design... opens the columns, rows and Save as a view... beside the matrix. Add a column... adds your own.",
    "Press Export the matrix..., or Export the compliance package... for the matrix with its reports.",
    "Save as the team default keeps this layout for new efforts."],
   ["The exported workbook is a dated copy. Exports are never overwritten."]),
@@ -317,8 +317,8 @@ TOPICS = [
   "Our response structure: volumes and sections at H1 to H9. Start our structure offers two doors to the one outline: "
   "the customer prescribes it, or we build it.",
   "When the shred has reached the pieces that say how the response is organized, or as soon as you have headings.",
-  ["The customer prescribes it: in Shred, type those pieces Structure (O). Read the Structure pieces... shows the "
-   "headings to fix, then Put in our outline. Each heading keeps Source.",
+  ["The customer prescribes it: in Shred, select the piece that sets the structure (\"shall be organized as follows\", the "
+   "volumes) and type it Structure (O). Outline lists it in the customer's words; Use it shows the headings to fix.",
    "We build it: Draft headings from... the customer's headings, the SOW or PWS, the evaluation factors, or blank. "
    "Arrange them, then Structure... > Use it as our structure.",
    "+ H1, + H2 and H4 to H9... add sections; + Volume adds a volume. Structure... > Check against the required "

@@ -96,7 +96,17 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
                "before you have the workbook. A new version of the outline is compared first; changes in both wait for your "
                "pick. Outline versions... compares any two and writes the workbook back out in its own layout."),
     ("matrix", "Bring the edited matrix back... (3.73.0): the exported matrix as the team filled it in; their values come back "
-               "after you look. Merge another copy's matrix... keeps ours unless you take theirs."))
+               "after you look. Merge another copy's matrix... keeps ours unless you take theirs."),
+    ("structure", "Until a start is chosen, Outline lists each piece typed Structure, then each piece only suggested as "
+                  "Structure (marked Suggested), in the customer's words with where it is: Use it, or Show on its page. Using a "
+                  "suggested piece types it Structure. Use all of them... reads every typed piece. With none, Outline says No "
+                  "piece sets the structure yet; Go to Shred opens Shred to type one."),
+    ("structure", "Use it on an outline that already has a structure asks first: Add to our outline, or Replace our outline, "
+                  "with how many headings each adds or replaces and which placed requirements would lose their place. A "
+                  "requirement that loses its place stays in the matrix, not placed."),
+    ("effortfmt", "More > Reference text in the setup...: the style each kind of reference text takes in the setup, whether "
+                  "it is hidden and whether it is in the file. Make the setup uses them and says so in one line."),
+    ("structure", "Place shows the document picker and Fit width; whether a document is shredded is said on Shred."))
 
 VERIFY = \
 ("verify", "Shred", "Fix text",
