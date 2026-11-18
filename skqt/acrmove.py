@@ -110,10 +110,11 @@ def serve(op, i):
     return i
 
 
-def go_then(op, key, later=False):
+def go_then(op, key, later=False, stay=False):
     """Show another page and select its first find to serve once it has loaded (a picture is read off the window's
-    thread: the selection waits for it)."""
-    op.after_load = lambda: _first(op, later)
+    thread: the selection waits for it). stay: the person asked for this page (Next page with finds), so a page with
+    nothing boxed is shown with a line saying so, not passed."""
+    op.after_load = lambda: _first(op, later, stay)
     op.go(key)
     if op.state != "reading":
         return _loaded(op)
@@ -123,7 +124,7 @@ def go_then(op, key, later=False):
 NOT_BOXED = "{n} to decide on {page} could not be boxed on the page. They are in Everything found."
 
 
-def _first(op, later):
+def _first(op, later, stay=False):
     """The first find to serve on the page just shown. A page whose finds to decide are not boxed (nothing to select
     there) is passed, with a line saying so, and the move goes on to the next page: it never ends on a page with no card."""
     i = next_here(op, None, later)
@@ -136,9 +137,11 @@ def _first(op, later):
         return None
     here = next((p for p in _pages(op) if p["key"] == op.key), None)
     n = here["to_decide"] if here else 0
-    unboxed(op).add(op.key)
     if n:
         _say(op, NOT_BOXED.format(n=n, page=op.key))
+    if stay:
+        return None
+    unboxed(op).add(op.key)
     nxt = next_page(op, later)
     if nxt:
         go_then(op, nxt, later)

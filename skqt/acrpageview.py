@@ -559,7 +559,7 @@ class OnPage(QWidget):
         """Next page with finds (the tab's main button): the next page with finds to decide, its first find selected."""
         nxt = MV.next_page(self)
         if nxt:
-            MV.go_then(self, nxt)
+            MV.go_then(self, nxt, stay=True)
         else:
             MV._say(self, MV.NOTHING if not any(p["to_decide"] for p in self.shown_pages()) else "No other page has finds to decide.")
         return nxt
