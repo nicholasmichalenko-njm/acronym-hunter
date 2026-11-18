@@ -253,7 +253,8 @@ class Workspace:
             t = float(rec["stamp"]) if "stamp" in rec else datetime.datetime.fromisoformat(rec["time"]).timestamp()
         except (KeyError, TypeError, ValueError):       # be earlier than a save made in the same second)
             return None
-        if os.path.isfile(path) and os.path.getmtime(path) >= t:
+        slack = 0.5 if "stamp" in rec else 0.0          # 4.56.1: Windows can give a file a time a few ms past the clock
+        if os.path.isfile(path) and os.path.getmtime(path) >= t + slack:
             self.clear_recovery(kind, path)            # the file was saved after the copy: nothing to recover
             return None
         return rec
