@@ -280,6 +280,17 @@ fa = openpyxl.load_workbook(book)["Fonts allowed"]
 check("... and the sheet is left as the person has it when the app writes", head(fa)[:3] == ["Name", "Status", "Used for"]
       and [r[0].value for r in fa.iter_rows(min_row=2)] == ["Georgia", "Verdana", "Tahoma", "Calibri"], head(fa))
 
+# ---- the same when the workbook changed while a change of the app's waited (the two are merged, 4.56.2)
+d = PRL.load(cfg); d["company"]["style_defs"]["Heading 1"]["size"] = 15; PRL.save(cfg, d)
+excel(lambda wb: wb["Table looks"].cell(names(wb["Table looks"]).index("short") + 2, col(wb["Table looks"], "Recognized by")).__setattr__("value", "1 to 4 words"))
+r = T.tick(cfg, S)
+wb = openpyxl.load_workbook(book); tl = wb["Table looks"]; fa = wb["Fonts allowed"]
+c = PRL.load(cfg)["company"]
+check("after a merge the macros' looks are still only on their sheet, and Fonts allowed is still as the person has it",
+      "short" not in c["row_types"] and len(c["row_types"]) == n_looks and head(fa)[:3] == ["Name", "Status", "Used for"]
+      and tl.cell(names(tl).index("short") + 2, col(tl, "Recognized by")).value == "1 to 4 words"
+      and c["style_defs"]["Heading 1"]["size"] == 15 and not T.state(cfg).get("dirty"), (sorted(c["row_types"]), head(fa), r["said"]))
+
 # ---- a workbook in a newer format: not read, never written over
 def newer(wb):
     ab = wb["About"]

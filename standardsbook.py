@@ -507,7 +507,8 @@ def apply(company, recipes, book, user=None, removed_answer=None):
         gone = [k for k in last_cols if k not in here]
         for k in gone:
             res["removed_cols"].append((sheet, k))
-        new_rows, held, meta = [], {}, {"_cols": sorted(set(kmap[h] for h in prop_cols))}
+        kept_cols = set() if removed_answer == "drop" else set(gone)     # a column taken out is asked about until answered
+        new_rows, held, meta = [], {}, {"_cols": sorted(here | kept_cols)}
         aside = {str(x).casefold() for x in (book.get("aside") or {}).get(sheet) or ()} - {k.casefold() for k in before}
         if sheet in (book.get("leave") or ()):
             meta["_leave"] = True                               # 4.57.0: read, and left on its sheet as the person has it
