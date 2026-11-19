@@ -183,7 +183,7 @@ def _merge_book(config_dir, p, st, settings=None):
     st["own_cols"] = res["own_cols"]
     _save_state(config_dir, st)
     _said.extend(BM.said("The Global Standards workbook", rep))
-    diag.activity("team_book_merged", taken=rep["taken"], both=len(rep["both"]))
+    diag.activity("team_book_merged", rows=rep["taken"], warnings=len(rep["both"]))
     return "merged"
 
 
@@ -619,7 +619,7 @@ def write_effort_book(ws, effort_path, effort_name, config_dir=None):
         eb["own_cols"] = own
         ws.set("effort_book", eb)
         _said.extend(BM.said("This effort's formatting workbook", rep))
-        diag.activity("effort_book_merged", taken=rep["taken"], both=len(rep["both"]))
+        diag.activity("effort_book_merged", rows=rep["taken"], warnings=len(rep["both"]))
         if _stamp(p) != seen:
             return "waiting"
     try:
