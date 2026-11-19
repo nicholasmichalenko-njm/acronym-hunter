@@ -16,14 +16,55 @@ import diag
 # sheet: (columns, load(config_dir) -> rows, save(config_dir, rows))
 
 
+WAITING = "banned_words_waiting.csv"            # 4.57.0: phrases whose Status is Draft or Retired; kept, never checked for
+
+
+def _waiting_path():
+    import banned as B
+    return os.path.join(os.path.dirname(B.path()), WAITING)
+
+
+def phrases_waiting():
+    """The phrases a workbook holds as Draft or Retired: [{Phrase, Level, Use instead, Why, Status}]. They are not in
+    the list the checks use; the app keeps them so its next write of the workbook does not lose them."""
+    import csv
+    p = _waiting_path()
+    if not os.path.isfile(p):
+        return []
+    with open(p, encoding="utf-8-sig", newline="") as f:
+        return [dict(r) for r in csv.DictReader(f) if (r.get("Phrase") or "").strip()]
+
+
 def _phrases_load(cfg):
     import banned as B
-    return [dict(r) for r in B.load()]
+    held = phrases_waiting()
+    if not held:
+        return [dict(r) for r in B.load()]
+    return [dict(r, Status="Approved") for r in B.load()] + held
+
+
+def _status(r):
+    s = str(r.get("Status") or "").strip().capitalize()
+    return s if s in ("Draft", "Retired") else "Approved"
 
 
 def _phrases_save(cfg, rows):
+    """4.57.0: only Approved phrases (a blank Status counts) go to the list the checks use; Draft and Retired wait."""
     import banned as B
-    return B.save([{k: r.get(k) or "" for k in B.COLUMNS} for r in rows])
+    import csv
+    held = [dict({k: " ".join(str(r.get(k) or "").split()) for k in B.COLUMNS}, Status=_status(r))
+            for r in rows if _status(r) != "Approved" and str(r.get("Phrase") or "").strip()]
+    p = _waiting_path()
+    if held:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p + ".tmp", "w", encoding="utf-8-sig", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(B.COLUMNS) + ["Status"])
+            w.writeheader()
+            w.writerows(held)
+        os.replace(p + ".tmp", p)
+    elif os.path.isfile(p):
+        os.remove(p)
+    return B.save([{k: r.get(k) or "" for k in B.COLUMNS} for r in rows if _status(r) == "Approved"])
 
 
 def _authors_load(cfg):
@@ -152,7 +193,9 @@ def load_all(config_dir):
     out = {}
     for sheet, (cols, load, _save) in SHEETS.items():
         try:
-            out[sheet] = (list(cols), load(config_dir))
+            rows = load(config_dir)
+            more = ["Status"] if sheet == "Phrases" and any(r.get("Status") for r in rows) else []
+            out[sheet] = (list(cols) + more, rows)
         except Exception:  # noqa: BLE001
             diag.swallowed()
     return out
@@ -171,7 +214,12 @@ def apply(config_dir, book):
             continue
         try:
             edit = [c for c in cols if c not in READ_ONLY.get(sheet, ())]
-            if _norm(rows, edit) != _norm(load(config_dir), edit) and save(config_dir, rows) is not False:
+            have = load(config_dir)
+            if sheet == "Phrases":                              # 4.57.0: Status, where the workbook or the app has one
+                rows = [dict(r, Status=_status(r)) for r in rows]
+                have = [dict(r, Status=_status(r)) for r in have]
+                edit = edit + ["Status"]
+            if _norm(rows, edit) != _norm(have, edit) and save(config_dir, rows) is not False:
                 saved.append(sheet)
         except Exception:  # noqa: BLE001
             diag.swallowed()

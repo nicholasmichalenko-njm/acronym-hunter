@@ -197,6 +197,9 @@ def write_book(config_dir, settings=None):
     p = book_path(config_dir, settings)
     st = state(config_dir)
     seen = _stamp(p)
+    if seen is not None and SB.newer(p):                    # 4.57.0: a newer format is never written over
+        _said.append("The Global Standards workbook: " + __import__("bookshape").FORMAT_NEWER + " Your changes wait.")
+        return "unread"
     if seen is not None and _moved(p, st.get("book"), st.get("sha")):
         if _merge_book(config_dir, p, st, settings) == "unread":
             return "unread"
@@ -606,8 +609,11 @@ def write_effort_book(ws, effort_path, effort_name, config_dir=None):
     cfg = _effort_cfg(config_dir)
     eb = dict(ws.get("effort_book") or {})
     seen = _stamp(p)
+    import standardsbook as SB
+    if seen is not None and SB.newer(p):                    # 4.57.0: a newer format is never written over
+        _said.append("This effort's formatting workbook: " + __import__("bookshape").FORMAT_NEWER + " Your changes wait.")
+        return "unread"
     if seen is not None and _moved(p, eb.get("stamp"), eb.get("sha")):
-        import standardsbook as SB
         theirs = SB.read(p)
         if theirs["problems"]:
             _said.extend("This effort's formatting workbook changed and could not be read, so your changes are not "

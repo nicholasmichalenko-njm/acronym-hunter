@@ -319,6 +319,8 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     fill = PatternFill("solid", fgColor="DCE6F1")
     colsheet = [("Sheet", "Column", "Key", "Group", "What it holds")]
     for sheet, _p, _s, _k in SHEETS:
+        if _meta(company, sheet).get("_leave") and sheet in wb.sheetnames:
+            continue                                            # 4.57.0: a sheet in a shape this version reads only
         ws = make(sheet)
         own = list((own_cols or {}).get(sheet) or [])
         keys = cols[sheet]
@@ -434,7 +436,18 @@ def read(path):
             out["sheets"][ws.title] = got
     finally:
         wb.close()
-    return out
+    import bookshape as BS                                      # 4.57.0: the plain column names, read as today's
+    n = BS.format_of(out)
+    if n is not None and n > FORMAT:
+        out["problems"].append(BS.FORMAT_NEWER)
+        return out
+    return BS.old_shape(out)
+
+
+def newer(path):
+    """4.57.0: the workbook states a format this version does not know. It is not read and never written over."""
+    import bookshape as BS
+    return os.path.isfile(path) and BS.FORMAT_NEWER in read(path)["problems"]
 
 
 def split_volumes(book, labels=()):
@@ -446,7 +459,8 @@ def split_volumes(book, labels=()):
             found |= {" ".join(str(r.get(VOLUME) or "").split()) for r in rows}
     out = {}
     for lab in found:
-        b = {"sheets": {}, "headers": book["headers"], "problems": list(book.get("problems") or [])}
+        b = {"sheets": {}, "headers": book["headers"], "problems": list(book.get("problems") or []),
+             "aside": book.get("aside") or {}, "leave": book.get("leave") or set()}
         for sheet, rows in book["sheets"].items():
             if VOLUME in (book["headers"].get(sheet) or []):
                 b["sheets"][sheet] = [r for r in rows if " ".join(str(r.get(VOLUME) or "").split()) == lab]
@@ -458,7 +472,8 @@ def split_volumes(book, labels=()):
 
 def _key_map(book, sheet):
     """Header -> property key for a sheet, from the Columns sheet (the app's own labels as a fallback)."""
-    m = {}
+    import bookshape as BS
+    m = dict(BS.key_map(sheet))                                 # 4.57.0: a workbook with no Columns sheet is read too
     for r in book["sheets"].get(COLUMNS, []):
         if r.get("Sheet") == sheet and r.get("Column") and r.get("Key"):
             m[str(r["Column"]).strip()] = str(r["Key"]).strip()
@@ -492,7 +507,10 @@ def apply(company, recipes, book, user=None, removed_answer=None):
         gone = [k for k in last_cols if k not in here]
         for k in gone:
             res["removed_cols"].append((sheet, k))
-        new_rows, held, meta = [], {}, {"_cols": sorted(set(kmap.values()))}
+        new_rows, held, meta = [], {}, {"_cols": sorted(set(kmap[h] for h in prop_cols))}
+        aside = {str(x).casefold() for x in (book.get("aside") or {}).get(sheet) or ()} - {k.casefold() for k in before}
+        if sheet in (book.get("leave") or ()):
+            meta["_leave"] = True                               # 4.57.0: read, and left on its sheet as the person has it
         id_name = {m.get("id"): n for n, m in old_meta.items() if isinstance(m, dict) and m.get("id")}
         for r in book["sheets"][sheet]:
             name = str(r.get("Name") or "").strip()
@@ -531,7 +549,7 @@ def apply(company, recipes, book, user=None, removed_answer=None):
                 m["changed"] = f"{who} {_now()} (Excel)"
                 res["changed"].append((sheet, name))
             meta[name] = m
-            if status == "Approved":
+            if status == "Approved" and name.casefold() not in aside:
                 new_rows.append((name, props))
             else:
                 held[name] = props
