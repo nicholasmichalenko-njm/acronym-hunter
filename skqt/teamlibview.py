@@ -49,6 +49,7 @@ def tick(w, ask=True):
                 said.append("This effort's formatting workbook is open in Excel: your changes are written when it closes.")
             for pr in (r or {}).get("problems", []) if isinstance(r, dict) else []:
                 said.append("This effort's formatting workbook: " + pr)
+            said += T.take_said()                       # 4.56.2: a workbook read first, rows changed in both places
     except Exception:  # noqa: BLE001
         diag.swallowed()
     more = __import__("skqt.globalview", fromlist=["x"]).watch(w)      # 4.31.0: a newer Global Standards version is ready

@@ -27,6 +27,7 @@ CONTENT = "Content"
 STATE = "team_library_state.json"
 PAIRS = (("production_parts", "Standards parts"), (os.path.join("template_library", "sources"), "Library files"))
 _reading = False
+_said = []                                       # 4.56.2: lines for the person from the last writes (take_said)
 
 
 def default_folder(data_dir):
@@ -117,13 +118,91 @@ def mark_dirty(config_dir):
 
 
 # ------------------------------------------------------------------ the workbook
+def _moved(p, stamp, sha):
+    """The workbook is not as the app last read or wrote it."""
+    now = _stamp(p)
+    return now is not None and now != stamp and _sha(p) != sha
+
+
+def take_said():
+    """The lines the last writes left for the person (a workbook read first, rows changed in both places)."""
+    out = list(_said)
+    del _said[:]
+    return out
+
+
+def _mine(write):
+    """The workbook the app would write now, as a reading (written to a temp folder, read back, removed)."""
+    import tempfile
+    import standardsbook as SB
+    d = tempfile.mkdtemp(prefix="sk_book_")
+    try:
+        return SB.read(write(os.path.join(d, "mine.xlsx")))
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def _base(config_dir, p):
+    import bookmerge as BM
+    import standardsbook as SB
+    b = BM.base_path(config_dir, p)
+    if not os.path.isfile(b):
+        return None
+    got = SB.read(b)
+    return None if got["problems"] else got
+
+
+def _merge_book(config_dir, p, st, settings=None):
+    """4.56.2: the workbook changed while the app's changes were waiting: read it first and merge row by row
+    (bookmerge). Returns "merged", or "unread" when the workbook cannot be read (nothing is written over it)."""
+    import bookmerge as BM
+    import fieldrecipes as FR
+    import listsbook as LB
+    import prodrules as PRL
+    import standardsbook as SB
+    theirs = SB.read(p)
+    if theirs["problems"]:
+        _said.extend("The Global Standards workbook changed and could not be read, so your changes are not "
+                     "written over it yet: " + x for x in theirs["problems"])
+        return "unread"
+    data = PRL.load(config_dir)
+    recipes = FR.load(config_dir)
+    SB.stamp_since(data["company"], st.get("rows") or {})
+    mine = _mine(lambda t: SB.write(t, data["company"], recipes, st.get("own_cols") or {}, LB.load_all(config_dir)))
+    merged, rep = BM.merge(_base(config_dir, p), mine, theirs, readonly=LB.READ_ONLY)
+    res = SB.apply(data["company"], recipes, merged, removed_answer=(st.get("answers") or {}).get("removed"))
+    global _reading
+    _reading = True
+    try:
+        data["company"] = res["company"]
+        PRL.save(config_dir, data)
+        FR.save(config_dir, res["recipes"])
+        LB.apply(config_dir, merged)
+    finally:
+        _reading = False
+    st["own_cols"] = res["own_cols"]
+    _save_state(config_dir, st)
+    _said.extend(BM.said("The Global Standards workbook", rep))
+    diag.activity("team_book_merged", taken=rep["taken"], both=len(rep["both"]))
+    return "merged"
+
+
 def write_book(config_dir, settings=None):
-    """Write the workbook from the cache. Returns "written", or "waiting" when Excel has it open."""
+    """Write the workbook from the cache. Returns "written"; "waiting" when Excel has it open; "unread" when it
+    changed since the app last saw it and cannot be read. 4.56.2: a workbook that changed meanwhile is read first."""
+    import bookmerge as BM
     import fieldrecipes as FR
     import prodrules as PRL
     import standardsbook as SB
     p = book_path(config_dir, settings)
     st = state(config_dir)
+    seen = _stamp(p)
+    if seen is not None and _moved(p, st.get("book"), st.get("sha")):
+        if _merge_book(config_dir, p, st, settings) == "unread":
+            return "unread"
+        st = state(config_dir)
+        if _stamp(p) != seen:                               # it changed again while it was read: the next tick
+            return "waiting"
     data = PRL.load(config_dir)
     SB.stamp_since(data["company"], st.get("rows") or {})        # Changed: the app, on the rows it changed
     try:
@@ -144,6 +223,7 @@ def write_book(config_dir, settings=None):
     st.update(dirty=False, waiting="", book=_stamp(p), sha=_sha(p), written=time.strftime("%Y-%m-%d %H:%M"),
               rows=SB.row_hashes(company))
     _save_state(config_dir, st)
+    BM.keep_base(config_dir, p)
     diag.activity("team_book_written")
     return "written"
 
@@ -194,6 +274,7 @@ def read_book(config_dir, settings=None, removed_answer=None, force=False):
         out["question"] = res["removed_cols"]
     _save_state(config_dir, st)
     out.update(read=True, changed=res["changed"], problems=res["problems"])
+    __import__("bookmerge").keep_base(config_dir, p)          # 4.56.2: what the next merge compares with
     diag.activity("team_book_read", n=len(res["changed"]))
     return out
 
@@ -451,9 +532,12 @@ def tick(config_dir, settings=None):
                 said.append("The Global Standards workbook was written in the team library.")
         elif state(config_dir).get("dirty"):
             got = write_book(config_dir, settings)
-            if got == "waiting":
+            if got == "waiting" and state(config_dir).get("waiting"):
                 said.append("The Global Standards workbook is open in Excel: your changes are written when it closes.")
         else:
+            if state(config_dir).get("book") == _stamp(p) and not os.path.isfile(
+                    __import__("bookmerge").base_path(config_dir, p)):
+                __import__("bookmerge").keep_base(config_dir, p)   # 4.56.2: the first base, from a workbook not changed since
             res = read_book(config_dir, settings)
             if res.get("read") and res.get("changed"):
                 said.append(f"Read from the Global Standards workbook: {len(res['changed'])} change(s).")
@@ -462,6 +546,7 @@ def tick(config_dir, settings=None):
             if res.get("conflicts"):
                 said.append("A copy of the workbook from another PC is in the team library: " + ", ".join(res["conflicts"])
                             + ". It was not read; keep the one you want.")
+        said += take_said()
         ls = sync_lists(config_dir, settings)                   # 4.7.1
         if ls["in"] or ls["dics"]:
             said.append("Read from the team library's lists: " + ", ".join([os.path.basename(x) for x in ls["in"]] + ls["dics"]) + ".")
@@ -494,45 +579,64 @@ def _volume_names(config_dir=None):
         return {}
 
 
-def write_effort_book(ws, effort_path, effort_name, config_dir=None):
-    """The effort's own changes as a workbook: only what it sets; a blank means the default. Rows for every volume have
-    a blank Volume; a change for one volume kind carries its name (4.10.0)."""
+def _effort_cfg(config_dir=None):
+    if config_dir is None:
+        import app_gui as A
+        config_dir = A.CONFIG_DIR
+    return config_dir
+
+
+def _effort_write(ws, p, config_dir=None):
+    """Write the effort's layers to the workbook at p (the real one, or a temp one for a merge)."""
     import effortformat as EFM
     import standardsbook as SB
-    p = effort_book_path(effort_path, effort_name)
     lay = EFM.layer(ws)
     names = _volume_names(config_dir)
     ov = EFM.eff_of(ws).get("over_vol") or {}
     vols = sorted(((names.get(t, t), EFM.layer(ws, t)) for t in ov), key=lambda x: x[0].casefold())
+    return SB.write(p, lay, None, (ws.get("effort_book") or {}).get("own_cols") or {}, volumes=vols)
+
+
+def write_effort_book(ws, effort_path, effort_name, config_dir=None):
+    """The effort's own changes as a workbook: only what it sets; a blank means the default. Rows for every volume have
+    a blank Volume; a change for one volume kind carries its name (4.10.0). 4.56.2: a workbook that changed since the
+    app last read or wrote it is read first and merged (bookmerge); one that cannot be read is not written over."""
+    import bookmerge as BM
+    p = effort_book_path(effort_path, effort_name)
+    cfg = _effort_cfg(config_dir)
+    eb = dict(ws.get("effort_book") or {})
+    seen = _stamp(p)
+    if seen is not None and _moved(p, eb.get("stamp"), eb.get("sha")):
+        import standardsbook as SB
+        theirs = SB.read(p)
+        if theirs["problems"]:
+            _said.extend("This effort's formatting workbook changed and could not be read, so your changes are not "
+                         "written over it yet: " + x for x in theirs["problems"])
+            return "unread"
+        merged, rep = BM.merge(_base(cfg, p), _mine(lambda t: _effort_write(ws, t, config_dir)), theirs)
+        _changed, _problems, own = _apply_effort(ws, merged, config_dir)
+        eb = dict(ws.get("effort_book") or {})
+        eb["own_cols"] = own
+        ws.set("effort_book", eb)
+        _said.extend(BM.said("This effort's formatting workbook", rep))
+        diag.activity("effort_book_merged", taken=rep["taken"], both=len(rep["both"]))
+        if _stamp(p) != seen:
+            return "waiting"
     try:
-        SB.write(p, lay, None, (ws.get("effort_book") or {}).get("own_cols") or {}, volumes=vols)
+        _effort_write(ws, p, config_dir)
     except PermissionError:
         return "waiting"
     eb = dict(ws.get("effort_book") or {})
     eb.update(stamp=_stamp(p), sha=_sha(p), dirty=False)
     ws.set("effort_book", eb)
+    BM.keep_base(cfg, p)
     return "written"
 
 
-def read_effort_book(ws, effort_path, effort_name, force=False, config_dir=None):
-    """The effort's workbook into its layer when it changed. Returns the changes, or None when nothing was read."""
+def _apply_effort(ws, book, config_dir=None):
+    """A reading of the effort's workbook into its layers. Returns (changed, problems, the columns people added)."""
     import effortformat as EFM
     import standardsbook as SB
-    p = effort_book_path(effort_path, effort_name)
-    eb = dict(ws.get("effort_book") or {})
-    now = _stamp(p)
-    if now is None or (not force and now == eb.get("stamp")):
-        return None
-    sha = _sha(p)
-    if not force and sha == eb.get("sha"):
-        eb["stamp"] = now
-        ws.set("effort_book", eb)
-        return None
-    book = SB.read(p)
-    if book["problems"]:
-        eb["stamp"] = now
-        ws.set("effort_book", eb)
-        return {"changed": [], "problems": book["problems"]}
     names = _volume_names(config_dir)
     by_name = {v.casefold(): k for k, v in names.items()}
     had = [names.get(t, t) for t in (EFM.eff_of(ws).get("over_vol") or {})]
@@ -558,8 +662,31 @@ def read_effort_book(ws, effort_path, effort_name, force=False, config_dir=None)
             own = own or res["own_cols"]
     finally:
         _reading = False
+    return changed, problems, own
+
+
+def read_effort_book(ws, effort_path, effort_name, force=False, config_dir=None):
+    """The effort's workbook into its layer when it changed. Returns the changes, or None when nothing was read."""
+    import standardsbook as SB
+    p = effort_book_path(effort_path, effort_name)
+    eb = dict(ws.get("effort_book") or {})
+    now = _stamp(p)
+    if now is None or (not force and now == eb.get("stamp")):
+        return None
+    sha = _sha(p)
+    if not force and sha == eb.get("sha"):
+        eb["stamp"] = now
+        ws.set("effort_book", eb)
+        return None
+    book = SB.read(p)
+    if book["problems"]:
+        eb["stamp"] = now
+        ws.set("effort_book", eb)
+        return {"changed": [], "problems": book["problems"]}
+    changed, problems, own = _apply_effort(ws, book, config_dir)
     eb.update(stamp=now, sha=sha, own_cols=own)
     ws.set("effort_book", eb)
+    __import__("bookmerge").keep_base(_effort_cfg(config_dir), p)   # 4.56.2: what the next merge compares with
     return {"changed": changed, "problems": problems}
 
 
@@ -573,6 +700,9 @@ def effort_tick(ws, effort_path, effort_name):
         eb = ws.get("effort_book") or {}
         if not os.path.isfile(p) or eb.get("dirty"):
             return write_effort_book(ws, effort_path, effort_name)
+        import bookmerge as BM
+        if eb.get("stamp") == _stamp(p) and not os.path.isfile(BM.base_path(_effort_cfg(), p)):
+            BM.keep_base(_effort_cfg(), p)                    # 4.56.2: the first base, from a workbook not changed since
         return read_effort_book(ws, effort_path, effort_name)
     except Exception:  # noqa: BLE001
         diag.swallowed()

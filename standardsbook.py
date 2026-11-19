@@ -277,6 +277,30 @@ def _with_volumes(sheets, cols, volumes):
     return sheets, cols
 
 
+def _open_kept(path):
+    """4.56.2 (the one-system rule): the workbook as it is, so a sheet the app does not know (a Read me, a list the
+    Stationkeeper Macros keep, a sheet of the person's own) is still there after the app writes. Before, the app wrote
+    a new workbook each time and such a sheet was lost. A workbook that is not there or cannot be opened: a new one."""
+    import openpyxl
+    if os.path.isfile(path):
+        try:
+            return openpyxl.load_workbook(path)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+    return wb
+
+
+def _fresh(wb, name):
+    """The app's own sheet, written new in the place it had (people may put the sheets in any order)."""
+    if name in wb.sheetnames:
+        i = wb.sheetnames.index(name)
+        wb.remove(wb[name])
+        return wb.create_sheet(name, i)
+    return wb.create_sheet(name)
+
+
 def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     """Write the workbook (to a .tmp, then in place). own_cols: {sheet: [column names people added]}, kept. volumes
     (an effort's workbook): [(volume name, its own layer)], written as rows with a Volume column. Raises
@@ -289,13 +313,13 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     if volumes is not None:
         sheets, cols = _with_volumes(sheets, cols, volumes)
         org = ORG[:2] + (VOLUME,) + ORG[2:]
-    wb = openpyxl.Workbook()
-    wb.remove(wb.active)
+    wb = _open_kept(path)                                       # 4.56.2: sheets the app does not know stay as they are
+    make = lambda name: _fresh(wb, name)                        # noqa: E731
     head = Font(bold=True)
     fill = PatternFill("solid", fgColor="DCE6F1")
     colsheet = [("Sheet", "Column", "Key", "Group", "What it holds")]
     for sheet, _p, _s, _k in SHEETS:
-        ws = wb.create_sheet(sheet)
+        ws = make(sheet)
         own = list((own_cols or {}).get(sheet) or [])
         keys = cols[sheet]
         header = list(org) + [_label(k) for k in keys] + [OTHER] + own
@@ -313,13 +337,13 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
             colsheet.append((sheet, _label(k), k, group_of(k), ""))
         for h in own:
             colsheet.append((sheet, h, "", "Yours", "A column you added: kept, never sent to Word"))
-    ws = wb.create_sheet(SETTINGS)
+    ws = make(SETTINGS)
     sh = ["Name", VOLUME, "Value", "Notes"] if volumes is not None else ["Name", "Value", "Notes"]
     ws.append(sh)
     for r in sheets[SETTINGS]:
         ws.append([r["Name"]] + ([r.get(VOLUME, "")] if volumes is not None else []) + [to_cell(r["Value"]), ""])
     _dress(ws, sh, head, fill, get_column_letter, freeze="B2")
-    ws = wb.create_sheet(FIELDS)
+    ws = make(FIELDS)
     own = list((own_cols or {}).get(FIELDS) or [])
     header = ["ID", "Name", "Category", "Status", "Changed"] + [lab for lab, _k in FIELD_COLS] + \
         ["Menu group", "Show in menu", "Notes", "Tags", OTHER] + own
@@ -329,31 +353,32 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     _dress(ws, header, head, fill, get_column_letter)
     if volumes is None:                                         # 4.10.0: the theme's colors and fonts (the team's book)
         import themebook as TB
-        ws = wb.create_sheet(TB.SHEET)
+        ws = make(TB.SHEET)
         ws.append(list(TB.COLS))
         for r in TB.rows(company):
             ws.append([r[c] for c in TB.COLS])
         _dress(ws, list(TB.COLS), head, fill, get_column_letter, freeze="B2")
         ws.column_dimensions["C"].width = 48
     for sheet, (cols, rows) in (lists or {}).items():          # 4.7.1: the team's small lists (listsbook)
-        ws = wb.create_sheet(sheet)
+        ws = make(sheet)
         own = [h for h in (own_cols or {}).get(sheet) or [] if h not in cols]
         ws.append(list(cols) + own)
         for r in rows:
             ws.append([to_cell(r.get(c)) for c in cols] + [to_cell((r.get("_own") or {}).get(h)) for h in own])
         _dress(ws, list(cols) + own, head, fill, get_column_letter, freeze="B2")
-    ws = wb.create_sheet(ABOUT)
+    ws = make(ABOUT)
     for row in (("What", "Value"), ("Format", FORMAT), ("Made by", "Stationkeeper"),
                 ("How to use it", "Edit values here or in the app; the app reads what changed and writes what it changes. "
                  "A blank cell in an effort's workbook means the Global Standards value; a blank Volume means "
                  "every volume, a volume's name means that volume only. Only Approved rows "
                  "reach templates and the macros. Columns you add are kept and never reach Word.")):
         ws.append(list(row))
-    ws = wb.create_sheet(COLUMNS)
+    ws = make(COLUMNS)
     for row in colsheet:
         ws.append(list(row))
     for c in ws[1]:
         c.font = head
+    wb.active = 0
     tmp = path + ".tmp.xlsx"
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     wb.save(tmp)
