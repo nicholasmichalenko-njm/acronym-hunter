@@ -333,5 +333,11 @@ check("... and it is not written over while a change of the app's waits", open(b
       and any(BS.FORMAT_NEWER in x for x in r["said"]), r["said"])
 check("the waiting file of phrases is the only new file the app keeps", os.path.isfile(os.path.join(os.path.dirname(B.path()), LB.WAITING)))
 
+for left in (B.path(), os.path.join(os.path.dirname(B.path()), LB.WAITING)):       # 4.58.0: none left for a later test
+    if os.path.isfile(left) and left.startswith(tmp):                               # (test_lists471 counts the phrases)
+        os.remove(left)
+w = os.path.join(os.path.dirname(B.path()), LB.WAITING)
+if os.path.isfile(w):
+    os.remove(w)
 print(f"BOOKSHAPE 4570 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

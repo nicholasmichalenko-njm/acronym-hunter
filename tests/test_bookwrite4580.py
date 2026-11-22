@@ -173,6 +173,9 @@ check("written again: the same names on Table looks, no second Shaded header", s
 strip = lambda d: {k: v for k, v in d.items() if k not in ("ID", "Changed")}                    # noqa: E731
 check("written again: the same table types row for row", [strip(r) for r in rows(wb2["Table types"])] == [strip(r) for r in rows(wb["Table types"])])
 
+again = SB.apply(c, [], SB.read(p2))
+check("read straight after the app wrote it, nothing counts as changed in Excel (a type's own look included)", again["changed"] == [], again["changed"][:5])
+
 # ---- Fonts allowed: one row per font; the person's own sizes and notes kept where the app changed nothing
 fa = rows(wb["Fonts allowed"])
 check("Fonts allowed is one row per font with its use", [(r["Name"], r["Used for"]) for r in fa][:3] ==

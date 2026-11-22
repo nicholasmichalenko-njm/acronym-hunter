@@ -210,7 +210,7 @@ def _table_types(book):
                 if not name or name.casefold() == role or name.casefold() not in looks:
                     continue
                 base = looks.get(role) or {}                    # 4.58.0: an effort's workbook may hold only the change
-                diff = {k: v for k, v in looks[name.casefold()].items() if base.get(k) != v}
+                diff = {k: v for k, v in looks[name.casefold()].items() if base.get(k) != v or v is None}   # "none": as written
                 if diff:
                     import standardsbook as SB
                     over[role] = SB._unflat(diff)

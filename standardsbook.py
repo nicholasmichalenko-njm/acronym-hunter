@@ -165,7 +165,14 @@ def rows_of(company, sheet):
 
 def _clean(props):
     """A row's values without the empty ones (a blank cell and a value never set are the same)."""
-    return {k: v for k, v in (props or {}).items() if v is not None and v != ""}
+    return {k: v for k, v in (props or {}).items() if v is not None and v != "" and v != {}}   # 4.58.0: {} is not set
+
+
+def _same(props):
+    """4.58.0: a row's values as compared: a table type's kinds of row are a set (the Has columns give no order)."""
+    if isinstance(props.get("roles"), list):
+        return dict(props, roles=sorted(map(str, props["roles"])))
+    return props
 
 
 def put_rows(company, sheet, rows):
@@ -345,7 +352,7 @@ def keep_before(path, keep_dir):
     os.makedirs(d, exist_ok=True)
     shutil.copyfile(path, dst + ".tmp")
     os.replace(dst + ".tmp", dst)
-    diag.activity("workbook_kept_before_plain_names", fmt=n)
+    diag.activity("workbook_kept_before_plain_names")
     return dst
 
 
@@ -635,13 +642,15 @@ def apply(company, recipes, book, user=None, removed_answer=None):
                 props["used_on"] = str(r["Used on"])
             status = str(r.get("Status") or "Approved").strip().capitalize()
             status = status if status in STATUSES else "Approved"
-            old_props = _clean(before.get(was or name))
+            held_before = old_meta.get("_held") or {}               # 4.58.0: a row kept aside is compared with itself
+            old_props = _clean(before.get(was or name) if (was or name) in before else held_before.get(was or name))
             m = {"id": rid or uuid.uuid4().hex[:10], "category": r.get("Category") or "", "status": status,
                  "changed": r.get("Changed") or "", "set": r.get("Set") or "", "menu_group": r.get("Menu group") or "",
                  "show_in_menu": r.get("Show in menu") or "", "notes": r.get("Notes") or "", "tags": r.get("Tags") or "",
                  "owner": r.get("Owner") or "", "other": other or "", "own": {h: r.get(h) for h in own if r.get(h) is not None}}
-            if props != old_props or was not in (None, name):
-                m["changed"] = f"{who} {_now()} (Excel)"
+            named_look = name.casefold() in aside and was is None and name not in old_meta
+            if (_same(props) != _same(old_props) or was not in (None, name)) and not named_look:   # 4.58.0: a type's own look,
+                m["changed"] = f"{who} {_now()} (Excel)"           # written by the app: the type's row carries a change
                 res["changed"].append((sheet, name))
             meta[name] = m
             if status == "Approved" and name.casefold() not in aside:
