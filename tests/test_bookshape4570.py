@@ -127,6 +127,24 @@ def plain(src, dst):
     wb.save(dst)
 
 
+def dump_old(src, dst):
+    """4.58.0: the app writes the plain names now. A workbook under the names 4.57.0 wrote is made from a reading of
+    src (bookshape turns a reading into those names), with a Columns sheet and an About sheet stating Format 2."""
+    book = SB.read(src)
+    wb = openpyxl.Workbook(); wb.remove(wb.active)
+    for sheet, hdr in book["headers"].items():
+        if sheet in ("About", "Columns"):
+            continue
+        ws = wb.create_sheet(sheet); ws.append(list(hdr))
+        aside = {str(x).casefold() for x in (book.get("aside") or {}).get(sheet) or ()}
+        for r in book["sheets"].get(sheet) or []:
+            if str(r.get("Name") or "").casefold() not in aside:     # a look a type names: 4.57.0 had none
+                ws.append([r.get(h) for h in hdr])
+    ab = wb.create_sheet("About"); ab.append(["What", "Value"]); ab.append(["Format", 2])
+    wb.create_sheet("Columns").append(["Sheet", "Column", "Key", "Group", "What it holds"])
+    wb.save(dst)
+
+
 def standard():
     c = PRL.load(tempfile.mkdtemp())["company"]
     c["style_defs"] = {"Body Text": {"type": "paragraph", "font": "Arial", "size": 11, "jc": "both", "line": 13, "line_rule": "exact"},
@@ -154,7 +172,9 @@ def read_into(path, base):
 tmp = tempfile.mkdtemp()
 std = standard()
 old_p, new_p = os.path.join(tmp, "old.xlsx"), os.path.join(tmp, "new.xlsx")
-SB.write(old_p, std, FR.load(tmp))
+app_p = os.path.join(tmp, "app.xlsx")
+SB.write(app_p, std, FR.load(tmp))
+dump_old(app_p, old_p)
 plain(old_p, new_p)
 nh = {ws.title: head(ws) for ws in openpyxl.load_workbook(new_p).worksheets}
 check("the second workbook really is under the plain names, with no Columns or About sheet", "Number format" in nh["Heading numbering"]
@@ -194,6 +214,7 @@ check("a type's own header look came through as its change to the header", c["ta
       and R.row_look(c, "header", first)["fill"] == "D9E2F3", sorted(c["table_types"][first].get("override") or {}))
 check("... the look a type names is kept on its sheet and is not made a kind of row", f"header, {first}" not in c["row_types"]
       and f"header, {first}" in (c["book_meta"]["Table looks"].get("_held") or {}), sorted(c["row_types"]))
+check("the app's own plain workbook reads to the same table types as the old names", effect(read_into(app_p, blank)[0]["company"]) == effect(ro["company"]))
 check("a reading under today's names is left as it is", bo["headers"]["Heading numbering"] == head(openpyxl.load_workbook(old_p)["Heading numbering"]))
 
 # ---- both names on one sheet: the value under the older name wins; a blank older cell takes the plain one
@@ -233,7 +254,8 @@ def macro_rows(wb):
         ws.cell(r, col(ws, "Name")).value = nm; ws.cell(r, col(ws, "Status")).value = "Approved"; ws.cell(r, col(ws, "Bold")).value = True
     add(ws, "Recognized by", [None] * (ws.max_row - 3) + ["digits", "1 to 3 words"])
     ph = wb["Phrases"]
-    add(ph, "Status", [None] * (ph.max_row - 1))
+    if "Status" not in head(ph):                     # 4.58.0: the app writes Status itself
+        add(ph, "Status", [None] * (ph.max_row - 1))
     ph.append(["robust solution", "Avoid", "", "proposed by a writer", "Draft"])
     ph.append(["turnkey", "Banned", "", "no longer checked", "Retired"])
     ph.append(["best in class", "Banned", "", "", "Approved"])
@@ -258,7 +280,7 @@ check("after the app writes, the macros' looks and their own column are still on
 rows = {r[0].value: r[-1].value for r in wb["Phrases"].iter_rows(min_row=2)}
 check("... the Draft and Retired phrases are still on the Phrases sheet with their Status", head(wb["Phrases"])[-1] == "Status"
       and rows.get("robust solution") == "Draft" and rows.get("turnkey") == "Retired" and rows.get("best in class") == "Approved", rows)
-check("... and the app still writes today's column names", "Fmt" in head(wb["Heading numbering"]) and "Number format" not in head(wb["Heading numbering"]))
+check("... and since 4.58.0 the app writes the plain column names", "Number format" in head(wb["Heading numbering"]) and "Fmt" not in head(wb["Heading numbering"]))
 
 # ---- Fonts allowed, one row per font: read, and left on its sheet as the person has it
 def fonts_plain(wb):
@@ -277,8 +299,8 @@ check("Fonts allowed with one row per font is read by use; a Draft font is not a
 d = PRL.load(cfg); d["company"]["style_defs"]["Body Text"]["size"] = 11; PRL.save(cfg, d)
 T.tick(cfg, S)
 fa = openpyxl.load_workbook(book)["Fonts allowed"]
-check("... and the sheet is left as the person has it when the app writes", head(fa)[:3] == ["Name", "Status", "Used for"]
-      and [r[0].value for r in fa.iter_rows(min_row=2)] == ["Georgia", "Verdana", "Tahoma", "Calibri"], head(fa))
+check("... and the rows are written back as the person has them when the app did not change the fonts", "Used for" in head(fa)
+      and names(fa) == ["Georgia", "Verdana", "Tahoma", "Calibri"], (head(fa), names(fa)))
 
 # ---- the same when the workbook changed while a change of the app's waited (the two are merged, 4.56.2)
 d = PRL.load(cfg); d["company"]["style_defs"]["Heading 1"]["size"] = 15; PRL.save(cfg, d)
@@ -287,7 +309,7 @@ r = T.tick(cfg, S)
 wb = openpyxl.load_workbook(book); tl = wb["Table looks"]; fa = wb["Fonts allowed"]
 c = PRL.load(cfg)["company"]
 check("after a merge the macros' looks are still only on their sheet, and Fonts allowed is still as the person has it",
-      "short" not in c["row_types"] and len(c["row_types"]) == n_looks and head(fa)[:3] == ["Name", "Status", "Used for"]
+      "short" not in c["row_types"] and len(c["row_types"]) == n_looks and names(fa) == ["Georgia", "Verdana", "Tahoma", "Calibri"]
       and tl.cell(names(tl).index("short") + 2, col(tl, "Recognized by")).value == "1 to 4 words"
       and c["style_defs"]["Heading 1"]["size"] == 15 and not T.state(cfg).get("dirty"), (sorted(c["row_types"]), head(fa), r["said"]))
 

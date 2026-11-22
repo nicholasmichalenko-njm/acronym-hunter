@@ -882,7 +882,7 @@ class StandardsPage(QWidget):
             val = _get(self.work, path)
             self.row_binder.show(self.row_binder.items[-1], val if val is not None else look.get(field))
             self.row_binder.loading = False
-        add("Tag style (marks the row's role)", QLineEdit(), "tag_style", "text")
+        add("Row style (marks the row's role)", QLineEdit(), "tag_style", "text")
         fw = enum(vars_ + [], editable=True); add("Font", fw, "font", "enum")
         sw = enum([x for x in vars_ if x[0].endswith("size")], editable=True); add("Size (pt)", sw, "size", "enum")
         add("Bold", QCheckBox(), "bold", "bool")

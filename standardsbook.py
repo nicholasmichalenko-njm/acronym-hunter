@@ -43,7 +43,8 @@ SETTINGS = "Settings"
 FIELDS = "Fields"
 COLUMNS = "Columns"
 ABOUT = "About"
-FORMAT = 2                                   # formats.py "Global Standards workbook" (2: 4.10.0, Volume, Theme, Suggestion rules)
+FORMAT = 3                                   # formats.py "Global Standards workbook" (2: 4.10.0, Volume, Theme, Suggestion rules;
+#                                              3: 4.58.0, the plain column names and Word's words)
 FIELD_COLS = (("Field code(s)", "codes"), ("Text between", "between"), ("What it does", "note"), ("Where it goes", "where"),
               ("Use case", "use_case"), ("Bookmark it needs", "bookmark"), ("What the bookmark spans", "spans"),
               ("Style it reads", "style"), ("Depends on", "depends"), ("Sample result", "sample"))
@@ -301,8 +302,55 @@ def _fresh(wb, name):
     return wb.create_sheet(name)
 
 
-def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
-    """Write the workbook (to a .tmp, then in place). own_cols: {sheet: [column names people added]}, kept. volumes
+BEFORE = "Workbooks as they were before 4.58"   # 4.58.0: in the config folder, one copy per workbook
+
+
+def disk_format(path):
+    """The format number a workbook on disk states on its About sheet (None when it states none)."""
+    import openpyxl
+    try:
+        wb = openpyxl.load_workbook(path, read_only=True)
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        if ABOUT not in wb.sheetnames:
+            return None
+        for row in wb[ABOUT].iter_rows(values_only=True):
+            if row and str(row[0] or "").strip().casefold() == "format" and len(row) > 1:
+                try:
+                    return int(float(row[1]))
+                except (TypeError, ValueError):
+                    return None
+    finally:
+        wb.close()
+    return None
+
+
+def keep_before(path, keep_dir):
+    """4.58.0: before the first write in the plain shape over a workbook written in an older format, a copy of it as it
+    was is kept in the config folder. Once: a copy already kept for that file is never written over. Returns its path."""
+    import shutil
+    if not keep_dir or not os.path.isfile(path):
+        return None
+    n = disk_format(path)
+    if n is not None and n >= FORMAT:
+        return None
+    d = os.path.join(keep_dir, BEFORE)
+    base = os.path.splitext(os.path.basename(path))[0]
+    tag = __import__("hashlib").sha256(os.path.normcase(os.path.abspath(path)).encode("utf-8")).hexdigest()[:8]
+    dst = os.path.join(d, f"{base} as it was ({tag}).xlsx")
+    if os.path.isfile(dst):
+        return dst
+    os.makedirs(d, exist_ok=True)
+    shutil.copyfile(path, dst + ".tmp")
+    os.replace(dst + ".tmp", dst)
+    diag.activity("workbook_kept_before_plain_names", fmt=n)
+    return dst
+
+
+def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None, keep_dir=None):
+    """Write the workbook (to a .tmp, then in place). keep_dir (4.58.0): the config folder, where a workbook written in
+    an older format is copied once before the plain shape is written over it. own_cols: {sheet: [column names people added]}, kept. volumes
     (an effort's workbook): [(volume name, its own layer)], written as rows with a Volume column. Raises
     PermissionError when Excel has it open; the caller waits and says so."""
     import openpyxl
@@ -313,32 +361,51 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     if volumes is not None:
         sheets, cols = _with_volumes(sheets, cols, volumes)
         org = ORG[:2] + (VOLUME,) + ORG[2:]
+    keep_before(path, keep_dir)                                 # 4.58.0: the workbook as it was, before the new shape
     wb = _open_kept(path)                                       # 4.56.2: sheets the app does not know stay as they are
     make = lambda name: _fresh(wb, name)                        # noqa: E731
     head = Font(bold=True)
     fill = PatternFill("solid", fgColor="DCE6F1")
     colsheet = [("Sheet", "Column", "Key", "Group", "What it holds")]
+    import bookwrite as BW                                      # 4.58.0: the plain shape, written
+    lab = lambda _sheet, k: _label(k)                           # noqa: E731
+    labelled, keyof = {}, {}
     for sheet, _p, _s, _k in SHEETS:
-        if _meta(company, sheet).get("_leave") and sheet in wb.sheetnames:
-            continue                                            # 4.57.0: a sheet in a shape this version reads only
+        own = list((own_cols or {}).get(sheet) or [])
+        rows = []
+        for r in sheets[sheet]:
+            d = {h: r.get(h) for h in org}
+            for k in cols[sheet]:
+                d[_label(k)] = r.get(k)
+            d[OTHER] = r.get(OTHER)
+            for h in own:
+                if h in r:
+                    d[h] = r[h]
+            rows.append(d)
+        labelled[sheet] = rows
+        known = list(cols[sheet]) + [k for k in __import__("bookshape").KEYS.get(sheet, ()) if k not in cols[sheet]]
+        if sheet == "Styles":
+            import libstyle as LS
+            known += [k for k, _n, _t in LS.PROPS if k not in known]
+        keyof[sheet] = {BW.plain_name(sheet, _label(k)): k for k in known if k not in ("roles", "override", "rules")}
+    BW.convert(labelled, {sh: _meta(company, sh) for sh, _p, _s, _k in SHEETS}, lab, effort=volumes is not None)
+    for sheet, _p, _s, _k in SHEETS:
         ws = make(sheet)
         own = list((own_cols or {}).get(sheet) or [])
-        keys = cols[sheet]
-        header = list(org) + [_label(k) for k in keys] + [OTHER] + own
+        header = BW.header(sheet, org, labelled[sheet], OTHER, own)
         ws.append(header)
-        for r in sheets[sheet]:
-            ws.append([to_cell(r.get(h)) for h in org] + [to_cell(r.get(k)) for k in keys] + [to_cell(r.get(OTHER))]
-                      + [to_cell(r.get(h)) for h in own])
+        for r in labelled[sheet]:
+            ws.append([to_cell(r.get(h)) for h in header])
         _dress(ws, header, head, fill, get_column_letter)
-        start = len(org) + 1                                     # the property columns, grouped
-        for g in GROUPS:
-            idx = [start + i for i, k in enumerate(keys) if group_of(k) == g]
-            if idx:
-                ws.column_dimensions.group(get_column_letter(idx[0]), get_column_letter(idx[-1]), outline_level=1)
-        for i, k in enumerate(keys):
-            colsheet.append((sheet, _label(k), k, group_of(k), ""))
-        for h in own:
-            colsheet.append((sheet, h, "", "Yours", "A column you added: kept, never sent to Word"))
+        BW.dress(ws, sheet, header, len(org) + 1)
+        if sheet != "Fonts allowed":                             # Fonts allowed is read by its own names (bookshape)
+            for h in header:
+                k = keyof[sheet].get(h)
+                if k:
+                    colsheet.append((sheet, h, k, BW.group_of(sheet, h, k), ""))
+        for h in header:
+            if h in own and h not in keyof[sheet]:
+                colsheet.append((sheet, h, "", "Yours", "A column you added: kept, never sent to Word"))
     ws = make(SETTINGS)
     sh = ["Name", VOLUME, "Value", "Notes"] if volumes is not None else ["Name", "Value", "Notes"]
     ws.append(sh)
@@ -364,10 +431,12 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
     for sheet, (cols, rows) in (lists or {}).items():          # 4.7.1: the team's small lists (listsbook)
         ws = make(sheet)
         own = [h for h in (own_cols or {}).get(sheet) or [] if h not in cols]
+        cols = list(cols) + (["Status"] if sheet == "Phrases" and "Status" not in cols else [])   # 4.58.0: always
         ws.append(list(cols) + own)
         for r in rows:
-            ws.append([to_cell(r.get(c)) for c in cols] + [to_cell((r.get("_own") or {}).get(h)) for h in own])
+            ws.append([to_cell(_list_cell(sheet, c, r)) for c in cols] + [to_cell((r.get("_own") or {}).get(h)) for h in own])
         _dress(ws, list(cols) + own, head, fill, get_column_letter, freeze="B2")
+        BW.dress(ws, sheet, list(cols) + own, len(cols) + len(own) + 1)
     ws = make(ABOUT)
     for row in (("What", "Value"), ("Format", FORMAT), ("Made by", "Stationkeeper"),
                 ("How to use it", "Edit values here or in the app; the app reads what changed and writes what it changes. "
@@ -393,6 +462,21 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
             pass
         raise
     return path
+
+
+LIST_CELLS = (("Authors", "Efforts"), ("Document types", "Words that find it"))   # 4.58.0: several names, semicolons
+
+
+def _list_cell(sheet, col, r):
+    v = r.get(col)
+    if sheet == "Phrases" and col == "Status":
+        return str(v or "").strip().capitalize() if str(v or "").strip().capitalize() in STATUSES else "Approved"
+    if (sheet, col) in LIST_CELLS:
+        if isinstance(v, (list, tuple)):
+            return "; ".join(str(x).strip() for x in v if str(x).strip())
+        if isinstance(v, str) and "," in v and ";" not in v:
+            return "; ".join(x.strip() for x in v.split(",") if x.strip())
+    return v
 
 
 def _dress(ws, header, head, fill, letter, freeze="C2"):
@@ -461,6 +545,11 @@ def split_volumes(book, labels=()):
     for lab in found:
         b = {"sheets": {}, "headers": book["headers"], "problems": list(book.get("problems") or []),
              "aside": book.get("aside") or {}, "leave": book.get("leave") or set()}
+        pf = book.get("plain_fonts")
+        if pf:                                                  # 4.58.0: each volume's own font rows
+            import bookshape as BS
+            b["plain_fonts"] = {"rows": [r for r in pf["rows"] if " ".join(str(r.get(VOLUME) or "").split()) == lab],
+                                "seen": {k: v for k, v in pf["seen"].items() if k.partition(BS.SEP)[0] == lab}}
         for sheet, rows in book["sheets"].items():
             if VOLUME in (book["headers"].get(sheet) or []):
                 b["sheets"][sheet] = [r for r in rows if " ".join(str(r.get(VOLUME) or "").split()) == lab]
@@ -512,6 +601,9 @@ def apply(company, recipes, book, user=None, removed_answer=None):
         aside = {str(x).casefold() for x in (book.get("aside") or {}).get(sheet) or ()} - {k.casefold() for k in before}
         if sheet in (book.get("leave") or ()):
             meta["_leave"] = True                               # 4.57.0: read, and left on its sheet as the person has it
+        if sheet == "Fonts allowed" and book.get("plain_fonts"):  # 4.58.0: written back as it was where not changed
+            meta["_plain_rows"] = book["plain_fonts"]["rows"]
+            meta["_plain_seen"] = book["plain_fonts"]["seen"]
         id_name = {m.get("id"): n for n, m in old_meta.items() if isinstance(m, dict) and m.get("id")}
         for r in book["sheets"][sheet]:
             name = str(r.get("Name") or "").strip()

@@ -210,7 +210,8 @@ def write_book(config_dir, settings=None):
     SB.stamp_since(data["company"], st.get("rows") or {})        # Changed: the app, on the rows it changed
     try:
         import listsbook as LB                              # 4.7.1: the small lists as sheets
-        SB.write(p, data["company"], FR.load(config_dir), st.get("own_cols") or {}, LB.load_all(config_dir))
+        SB.write(p, data["company"], FR.load(config_dir), st.get("own_cols") or {}, LB.load_all(config_dir),
+                 keep_dir=config_dir)                       # 4.58.0: a copy first, before the plain names
     except PermissionError:
         st["dirty"], st["waiting"] = True, time.strftime("%Y-%m-%d %H:%M")
         _save_state(config_dir, st)
@@ -597,7 +598,8 @@ def _effort_write(ws, p, config_dir=None):
     names = _volume_names(config_dir)
     ov = EFM.eff_of(ws).get("over_vol") or {}
     vols = sorted(((names.get(t, t), EFM.layer(ws, t)) for t in ov), key=lambda x: x[0].casefold())
-    return SB.write(p, lay, None, (ws.get("effort_book") or {}).get("own_cols") or {}, volumes=vols)
+    return SB.write(p, lay, None, (ws.get("effort_book") or {}).get("own_cols") or {}, volumes=vols,
+                    keep_dir=_effort_cfg(config_dir))      # 4.58.0: a copy first, before the plain names
 
 
 def write_effort_book(ws, effort_path, effort_name, config_dir=None):

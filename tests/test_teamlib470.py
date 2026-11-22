@@ -38,8 +38,8 @@ check("its sheets", wb.sheetnames == ["Styles", "Table looks", "Table types", "H
                                       "Document types", "Suggestion rules", "About", "Columns"], wb.sheetnames)   # 4.7.1: the lists; 4.10.0: Theme
 ws = wb["Styles"]
 hdr = [c.value for c in ws[1]]
-check("organizing columns first, then only the properties some row uses, Other Word settings last",
-      hdr[:12] == list(SB.ORG) and "Size (pt)" in hdr and "Small caps" not in hdr and hdr[-1] == SB.OTHER, hdr)
+check("organizing columns first, then every agreed column (4.58.0, rule 3 of the column list), Other Word settings last",
+      hdr[:12] == list(SB.ORG) and "Size (pt)" in hdr and "Small caps" in hdr and hdr[-1] == SB.OTHER, hdr)
 check("ID hidden, the key columns frozen, the property columns grouped", ws.column_dimensions["A"].hidden and ws.freeze_panes == "C2"
       and any(d.outlineLevel for d in ws.column_dimensions.values()))
 check("Used on is a column of its own", [r[hdr.index("Used on")].value for r in ws.iter_rows(min_row=2)] == ["", "Body"]
@@ -89,8 +89,10 @@ r = T.tick(cfg, S)
 check("a property column taken out asks once (the values kept until you answer)", ("Styles", "bold") in [tuple(x) for x in r.get("question", [])]
       and PRL.load(cfg)["company"]["style_defs"]["Heading One"].get("bold") is True, r.get("question"))
 T.answer_removed(cfg, "drop", S)
-check("... Take it off every row: gone from the standard and the workbook", "bold" not in PRL.load(cfg)["company"]["style_defs"]["Heading One"]
-      and "Bold" not in [c.value for c in openpyxl.load_workbook(book)["Styles"][1]])
+_ws = openpyxl.load_workbook(book)["Styles"]; _h = [c.value for c in _ws[1]]
+check("... Take it off every row: gone from the standard; the column comes back empty (4.58.0: every column always)",
+      "bold" not in PRL.load(cfg)["company"]["style_defs"]["Heading One"] and "Bold" in _h
+      and all(r[_h.index("Bold")].value is None for r in _ws.iter_rows(min_row=2)))
 # a file that cannot be read, and a copy from another PC
 shutil.copy2(book, book.replace(".xlsx", "-LAPTOP7.xlsx"))
 open(book, "wb").write(b"not a workbook")
@@ -139,7 +141,7 @@ check("the effort's workbook is written beside its list", T.effort_tick(w, epath
 ewb = openpyxl.load_workbook(T.effort_book_path(epath, "Kestrel"))
 eh = [c.value for c in ewb["Styles"][1]]
 check("... holding only the effort's changes", [r[1].value for r in ewb["Styles"].iter_rows(min_row=2)] == ["Body Text"]
-      and "Size (pt)" not in eh and [r[0].value for r in ewb["Settings"].iter_rows(min_row=2)] == ["body_size"], eh)
+      and all(r[eh.index("Size (pt)")].value is None for r in ewb["Styles"].iter_rows(min_row=2)) and [r[0].value for r in ewb["Settings"].iter_rows(min_row=2)] == ["body_size"], eh)
 ews = ewb["Styles"]; ews.cell(2, eh.index("Font") + 1).value = "Georgia"
 sh_ = [c.value for c in ewb["Settings"][1]]
 ewb["Settings"].cell(2, sh_.index("Value") + 1).value = None  # blank: back to the Global Standards

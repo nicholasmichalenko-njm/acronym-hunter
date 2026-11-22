@@ -77,7 +77,8 @@ def merge(base, mine, theirs, readonly=None):
     """The merged reading (the shape standardsbook.read gives) and a report {"taken": n, "both": [text]}.
     base may be None. readonly: {sheet: columns only the app fills}, left out when rows are compared."""
     out = {"sheets": {}, "headers": {}, "problems": [],
-           "aside": theirs.get("aside") or {}, "leave": theirs.get("leave") or set()}   # 4.57.0: what the workbook's shape says
+           "aside": theirs.get("aside") or {}, "leave": theirs.get("leave") or set(),
+           "plain_fonts": theirs.get("plain_fonts")}   # 4.57.0: what the workbook's shape says
     rep = {"taken": 0, "both": []}
     for sheet, m_rows in mine["sheets"].items():
         m_head = list(mine["headers"].get(sheet) or [])

@@ -30,9 +30,10 @@ FORMATS = {
     "section designs": ("sectiondesigns -> section_designs/index.json in the config folder", "format", 1),   # 3.87.0
     "piece types": ("shredtypes.save -> piece_types.json in the config folder", "format", 1),   # 4.1.0
     "Company Standards workbook": ("standardsbook.write -> Company Standards.xlsx in the team library, and an effort's "
-                                   "Effort Formatting.xlsx; the About sheet", "Format", 2),   # 4.7.0; 2 in 4.10.0: an effort's
+                                   "Effort Formatting.xlsx; the About sheet", "Format", 3),   # 4.7.0; 2 in 4.10.0: an effort's
     # workbook has a Volume column (a Format 1 workbook has none: every row is every volume) and the team's has the Theme
-    # and Suggestion rules sheets (a Format 1 workbook has neither: nothing to read)
+    # and Suggestion rules sheets (a Format 1 workbook has neither: nothing to read). 3 in 4.58.0: the plain column
+    # names and Word's words (bookwrite); a Format 2 workbook is read by bookshape and copied once before it is written
     "team library state": ("teamlib -> team_library_state.json in the config folder", "format", 1),   # 4.7.0
     "suggestion scores": ("teamlib.sync_scores -> suggestion_scores.json in the config folder and Lists, Suggestion "
                           "scores, <PC>.json in the team library", "format", 1),   # 4.10.0

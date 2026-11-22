@@ -11,7 +11,7 @@ turns a reading of such a workbook into the shape the rest of the app already kn
 - Fonts allowed with one row per font is taken as one row per use;
 - names separated by semicolons are taken as the comma lists two list sheets hold.
 Where a workbook holds both the older column and the plain one, a value under the older name wins (as in the macros).
-The app still WRITES the older names: the plain ones come with a later release. Nothing here writes a file.
+4.58.0: the app writes the plain shape (bookwrite); this module still reads both. Nothing here writes a file.
 
 Rules only (No AI); nothing leaves the PC."""
 import json
@@ -200,16 +200,17 @@ def _table_types(book):
              for r in book["sheets"].get("Table looks") or []}
     aside = book.setdefault("aside", {}).setdefault("Table looks", set())
     for r in book["sheets"].get(sheet) or []:
-        if has and _blank(r.get("Roles")):
+        if has and _blank(r.get("Roles")) and any(not _blank(r.get(c)) for c, _role in has):   # 4.58.0: all blank: every kind
             roles = {role for c, role in has if _yes(r.get(c))} | {"body"}
             r["Roles"] = json.dumps([x for x in ROLES if x in roles])
         if look and _blank(r.get("Override")):
             over = {}
             for c, role in look:
                 name = str(r.get(c) or "").strip()
-                if not name or name.casefold() == role or name.casefold() not in looks or role not in looks:
+                if not name or name.casefold() == role or name.casefold() not in looks:
                     continue
-                diff = {k: v for k, v in looks[name.casefold()].items() if looks[role].get(k) != v}
+                base = looks.get(role) or {}                    # 4.58.0: an effort's workbook may hold only the change
+                diff = {k: v for k, v in looks[name.casefold()].items() if base.get(k) != v}
                 if diff:
                     import standardsbook as SB
                     over[role] = SB._unflat(diff)
@@ -255,38 +256,64 @@ def _page_setups(book):
         header.append("Rules")
 
 
-def _fonts(book):
-    """One row per font with Used for, as one row per use with its fonts. The app holds one smallest and one largest
-    size for a use, so where a use's fonts differ the widest limits are taken."""
-    sheet = "Fonts allowed"
-    header = book["headers"].get(sheet)
-    used = _col(header or [], "Used for")
-    if not used:
-        return
-    lo_c, hi_c = _col(header, "Min size (pt)"), _col(header, "Max size (pt)")
+SEP = "\x1f"                                             # 4.58.0: volume and use in one key of the kept rows
+
+
+def _clean_cell(v):
+    return v if v is None or isinstance(v, (str, int, float, bool)) else str(v)
+
+
+def fonts_by_use(rows, header):
+    """{(volume, use): [rows]} of the Approved font rows (a blank Status counts), and the sizes of each use."""
+    used = _col(header, "Used for")
+    vol = _col(header, "Volume")
     by_use = {}
-    for r in book["sheets"].get(sheet) or []:
+    for r in rows:
         font = str(r.get("Name") or "").strip()
         status = str(r.get("Status") or "Approved").strip().casefold()
         if not font or status not in ("approved", ""):
             continue
         u = " ".join(str(r.get(used) or "any").split()).casefold()
+        v = " ".join(str(r.get(vol) or "").split()) if vol else ""
         for use in (ALL_USES if u in ("any", "") else (USES.get(u),)):
             if use:
-                by_use.setdefault(use, []).append(r)
-    rows = []
-    for use in ALL_USES:
-        got = by_use.get(use) or []
-        if not got:
-            continue
-        lo = [float(r[lo_c]) for r in got if lo_c and isinstance(r.get(lo_c), (int, float))]
-        hi = [float(r[hi_c]) for r in got if hi_c and isinstance(r.get(hi_c), (int, float))]
-        rows.append({"Name": use, "Status": "Approved",
-                     "Fonts": json.dumps(list(dict.fromkeys(str(r["Name"]).strip() for r in got))),
-                     "Min size": min(lo) if len(lo) == len(got) else None, "Max size": max(hi) if len(hi) == len(got) else None,
-                     "Rfp ref": next((r.get("Rfp ref") for r in got if not _blank(r.get("Rfp ref"))), None)})
+                by_use.setdefault((v, use), []).append(r)
+    return by_use
+
+
+def _fonts(book):
+    """One row per font with Used for, as one row per use with its fonts. The app holds one smallest and one largest
+    size for a use, so where a use's fonts differ the widest limits are taken. 4.58.0: the rows as the workbook has
+    them are kept with the reading (book["plain_fonts"]), so the app writes back unchanged the uses it did not change;
+    an effort's rows are told apart by their Volume."""
+    sheet = "Fonts allowed"
+    header = book["headers"].get(sheet)
+    if not _col(header or [], "Used for"):
+        return
+    lo_c, hi_c = _col(header, "Min size (pt)"), _col(header, "Max size (pt)")
+    rf_c = _col(header, "RFP reference") or _col(header, "Rfp ref")
+    vol = _col(header, "Volume")
+    orig = [{h: _clean_cell(v) for h, v in r.items()} for r in book["sheets"].get(sheet) or []]
+    by_use = fonts_by_use(book["sheets"].get(sheet) or [], header)
+    rows, seen = [], {}
+    for v in sorted({k[0] for k in by_use}):
+        for use in ALL_USES:
+            got = by_use.get((v, use)) or []
+            if not got:
+                continue
+            lo = [float(r[lo_c]) for r in got if lo_c and isinstance(r.get(lo_c), (int, float))]
+            hi = [float(r[hi_c]) for r in got if hi_c and isinstance(r.get(hi_c), (int, float))]
+            fonts = list(dict.fromkeys(str(r["Name"]).strip() for r in got))
+            row = {"Name": use, "Status": "Approved", "Fonts": json.dumps(fonts),
+                   "Min size": min(lo) if len(lo) == len(got) else None, "Max size": max(hi) if len(hi) == len(got) else None,
+                   "Rfp ref": next((r.get(rf_c) for r in got if rf_c and not _blank(r.get(rf_c))), None)}
+            if vol:
+                row["Volume"] = v
+            rows.append(row)
+            seen[v + SEP + use] = [fonts, row["Min size"], row["Max size"], _clean_cell(row["Rfp ref"])]
     book["sheets"][sheet] = rows
-    book["headers"][sheet] = ["Name", "Status", "Fonts", "Min size", "Max size", "Rfp ref"]
+    book["headers"][sheet] = ["Name"] + (["Volume"] if vol else []) + ["Status", "Fonts", "Min size", "Max size", "Rfp ref"]
+    book["plain_fonts"] = {"rows": orig, "seen": seen}
     book.setdefault("leave", set()).add(sheet)         # the app reads it and leaves the sheet as the person has it
 
 
