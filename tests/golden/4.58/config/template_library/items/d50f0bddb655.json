@@ -1,0 +1,12 @@
+{
+ "name": "Letter portrait, 1 in",
+ "w": 8.5,
+ "h": 11,
+ "orient": "portrait",
+ "top": "=margin_top",
+ "bottom": "=margin_bottom",
+ "left": "=margin_left",
+ "right": "=margin_right",
+ "header": 0.5,
+ "footer": 0.5
+}
