@@ -257,5 +257,18 @@ check("it reads back: the type's own header, the font, and the volume's own size
       and e0["fonts"]["body"]["fonts"] == ["Georgia"] and e1["style_defs"]["Body Text"].get("size") == 12,
       (e0["table_types"].get("kp"), e0.get("fonts"), e1.get("style_defs")))
 
+# ---- Other Word settings: Word's words or the older ones read to the same value (asked by the macros thread, 2026-11-22)
+ow = os.path.join(tmp, "other.xlsx"); SB.write(ow, {"style_defs": {"Heron Note": {"size": 9}, "Heron Quote": {"size": 9}}}, [])
+x = openpyxl.load_workbook(ow); ws = x["Styles"]; h = head(ws)
+for i in range(2, ws.max_row + 1):
+    nm = ws.cell(i, h.index("Name") + 1).value
+    ws.cell(i, h.index("Other Word settings") + 1).value = json.dumps({"jc": "Justified", "line_rule": "Exactly"} if nm == "Heron Note"
+                                                                      else {"jc": "both", "line_rule": "exact"})
+x["Styles"].delete_cols(h.index("Line rule") + 1); x["Styles"].delete_cols(h.index("Alignment") + 1)   # a workbook without them
+x.save(ow)
+sd = SB.apply({}, [], SB.read(ow))["company"]["style_defs"]
+check("Other Word settings: Justified and both, Exactly and exact, read the same", sd["Heron Note"].get("jc") == sd["Heron Quote"].get("jc") == "both"
+      and sd["Heron Note"].get("line_rule") == sd["Heron Quote"].get("line_rule") == "exact", sd)
+
 print(f"BOOKWRITE 4580 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

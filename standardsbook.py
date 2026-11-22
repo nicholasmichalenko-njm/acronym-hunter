@@ -48,6 +48,7 @@ FORMAT = 3                                   # formats.py "Global Standards work
 FIELD_COLS = (("Field code(s)", "codes"), ("Text between", "between"), ("What it does", "note"), ("Where it goes", "where"),
               ("Use case", "use_case"), ("Bookmark it needs", "bookmark"), ("What the bookmark spans", "spans"),
               ("Style it reads", "style"), ("Depends on", "depends"), ("Sample result", "sample"))
+OTHER_WORDS = {"jc": "align", "align": "align", "line_rule": "rule", "fmt": "fmt", "valign": "lower", "orient": "lower"}
 SETTING_ROWS = (("heading_numbering.on", "Heading numbering on"), ("list_numbering.on", "List numbering on"))
 
 
@@ -624,8 +625,9 @@ def apply(company, recipes, book, user=None, removed_answer=None):
             if other:
                 try:
                     extra = json.loads(other) if str(other).strip()[:1] == "{" else {}
-                    for k, v in extra.items():
-                        props.setdefault(k, v)
+                    import bookshape as BS
+                    for k, v in extra.items():               # 4.58.0: Word's words or the older ones, the same value
+                        props.setdefault(k, BS._word(OTHER_WORDS[k], v) if k in OTHER_WORDS else v)
                 except ValueError:
                     res["problems"].append(f"{sheet}, {name}: Other Word settings is not readable; kept as it was.")
             props = _clean(props)
