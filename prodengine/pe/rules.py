@@ -283,15 +283,21 @@ VARIABLE_TARGETS = {
 }
 
 
-def deep_merge(base, over):
-    """over wins; a None in over means 'not set here' and keeps base; lists are replaced whole."""
+def deep_merge(base, over, _in_edges=False):
+    """over wins; a None in over means 'not set here' and keeps base; lists are replaced whole.
+    4.59.1 (G14, Nicholas 2026-11-23 07:44: "The app should be taking the line away, the same as the standard and the
+    macro"): inside an "edges" table a None is a line taken away and wins over the line below it, as the workbook's
+    "none" and the Stationkeeper Macros say. A line never set has no key at all."""
     if not isinstance(base, dict) or not isinstance(over, dict):
         return copy.deepcopy(base if over is None else over)
     out = copy.deepcopy(base)
     for k, v in over.items():
         if v is None:
+            if _in_edges:
+                out[k] = None
             continue
-        out[k] = deep_merge(out.get(k), v) if isinstance(v, dict) and isinstance(out.get(k), dict) else copy.deepcopy(v)
+        out[k] = deep_merge(out.get(k), v, k == "edges") if isinstance(v, dict) and isinstance(out.get(k), dict) \
+            else copy.deepcopy(v)
     return out
 
 
