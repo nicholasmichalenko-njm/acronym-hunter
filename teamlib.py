@@ -201,7 +201,7 @@ def write_book(config_dir, settings=None):
     if seen is not None and SB.newer(p):                    # 4.57.0: a newer format is never written over
         _said.append("The Global Standards workbook: " + __import__("bookshape").FORMAT_NEWER + " Your changes wait.")
         return "unread"
-    why = SB.wrong_kind(p, "global") if seen is not None else None
+    why = SB.wrong_kind(p, "Global Standards") if seen is not None else None
     if why:                                                 # 4.59.0: the wrong kind is never written over
         _said.append("The Global Standards workbook: " + why + " Your changes wait.")
         return "unread"
@@ -255,7 +255,7 @@ def read_book(config_dir, settings=None, removed_answer=None, force=False):
         _save_state(config_dir, st)
         return out
     book = SB.read(p)
-    why = __import__("bookreadme").refused(book, "global")   # 4.59.0: the wrong kind is not read
+    why = __import__("bookreadme").refused(book, "Global Standards")   # 4.59.0: the wrong kind is not read
     if why:
         book["problems"] = list(book["problems"]) + [why]
     if book["problems"]:

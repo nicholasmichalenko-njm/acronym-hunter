@@ -79,10 +79,10 @@ def has_tab(book):
 
 
 def refused(book, expect):
-    """The plain-words reason a reading is not taken as expect ("global", or "effort" for an effort's or a program's),
+    """The plain-words reason a reading is not taken as expect (GLOBAL, or "effort" for an effort's or a program's),
     or None. Only a line that says the other kind refuses."""
     kind, _owner = kind_of(book)
-    if expect == "global" and kind in (EFFORT, PROGRAM):
+    if expect == GLOBAL and kind in (EFFORT, PROGRAM):
         return (f"This workbook says it is {'an' if kind == EFFORT else 'a'} {kind} workbook (the line \"{KIND_LINE}\" "
                 f"on its Read me tab). It is not read as the Global Standards, and nothing is written over it.")
     if expect == "effort" and kind == GLOBAL:

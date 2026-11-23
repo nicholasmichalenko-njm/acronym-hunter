@@ -77,11 +77,11 @@ check("the words and the value in one cell, any letter case", SB.read(one)["kind
 nol = os.path.join(tmp, "no line.xlsx")
 z = openpyxl.Workbook(); z.active.title = "Styles"; z.active.append(["ID", "Name"]); z.save(nol)
 check("no Read me line: no kind, and never refused for that alone", SB.read(nol)["kind"] == ""
-      and BR.refused(SB.read(nol), "global") is None and BR.refused(SB.read(nol), "effort") is None)
+      and BR.refused(SB.read(nol), "Global Standards") is None and BR.refused(SB.read(nol), "effort") is None)
 
 # ---- the wrong kind is refused, on both sides
 check("an Effort Standards workbook is not taken as the Global Standards", "not read as the Global Standards" in
-      (BR.refused(SB.read(m), "global") or ""))
+      (BR.refused(SB.read(m), "Global Standards") or ""))
 check("a Global Standards workbook is not taken as an effort's", "not read as this effort's workbook" in (BR.refused(SB.read(g), "effort") or ""))
 check("an effort's line takes a Program Standards workbook (decision 118)", BR.refused(SB.read(one), "effort") is None)
 

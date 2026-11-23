@@ -535,7 +535,7 @@ def read(path):
 
 
 def wrong_kind(path, expect):
-    """4.59.0: the reason the workbook at path is not taken as expect ("global" or "effort"), or None. A workbook that
+    """4.59.0: the reason the workbook at path is not taken as expect ("Global Standards" or "effort"), or None. A workbook that
     says it is the other kind is not read and never written over."""
     import bookreadme as BR
     return BR.refused(read(path), expect) if os.path.isfile(path) else None
