@@ -42,8 +42,8 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 # ---- the menu
 texts = [b.text() for b in w.step_btns.values()]
-check("the menu is in Title Case (4.0.0: the six steps; 4.25.3: Prepare for Redline left it; 4.25.5: Graphics)", texts == ["Overview", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup",
-                                                                                         "Drafts", "Submit", "Templates", "Page Layout", "Styles", "Quick Parts", "Quick tools", "Team", "Global Standards", "Settings"], texts)   # 4.34.0: its own page
+check("the menu is in Title Case (4.0.0: the six steps; 4.25.5: Graphics; 4.59.2: Redlining)", texts == ["Overview", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup",
+                                                                                         "Drafts", "Submit", "Redlining", "Templates", "Page Layout", "Styles", "Quick Parts", "Quick tools", "Team", "Global Standards", "Settings"], texts)   # 4.34.0: its own page
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton as _QPB
 check("the menu is the effort's path, then Team and Settings (3.96.0)", list(w.step_btns)[-3:] == ["team", "globalstd", "settings"])
