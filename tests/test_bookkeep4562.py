@@ -65,7 +65,7 @@ check("the first write keeps a copy to compare with later", os.path.isfile(BM.ba
 
 # ---- F1: sheets the app does not know stay, in their place
 def add_sheets(wb):
-    rm = wb.create_sheet("Read me", 0)
+    rm = wb["Read me"] if "Read me" in wb.sheetnames else wb.create_sheet("Read me", 0)   # 4.59.0: the app makes one
     rm["A1"], rm["B1"], rm["A2"], rm["B2"] = "This workbook is", "Global Standards", "It belongs to", "Kestrel team"
     sm = wb.create_sheet("Style map"); sm.append(["From", "To"]); sm.append(["Body", "Body Text"])
     own = wb.create_sheet("My notes", 3); own.append(["Anything"]); own.append(["kept"])
@@ -84,7 +84,7 @@ check("... a list the macros keep is still there with its rows", "Style map" in 
 check("... a sheet of the person's own keeps its place and its cells", wb.sheetnames.index("My notes") == 3 and wb["My notes"]["A2"].value == "kept",
       wb.sheetnames)
 check("... and the app's own change is written", styles(book)["Body Text"]["Size (pt)"] == 12 and not T.state(cfg).get("dirty"), r["said"])
-check("... each of the app's sheets is there once", all(wb.sheetnames.count(n) == 1 for n in ("Styles", "Settings", "Phrases", "About", "Columns")),
+check("... each of the app's sheets is there once", all(wb.sheetnames.count(n) == 1 for n in ("Styles", "Settings", "Phrases", "Read me", "Columns")),
       wb.sheetnames)
 
 # ---- F2: the workbook changed while the app's change was waiting; different rows

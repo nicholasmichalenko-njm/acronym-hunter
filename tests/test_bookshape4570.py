@@ -123,7 +123,10 @@ def plain(src, dst):
     for r in rows:
         for font in json.loads(r.get("Fonts") or "[]"):
             fa.append([font, "Approved", use_word.get(r["Name"], r["Name"].capitalize()), r.get("Min size"), r.get("Max size"), r.get("RFP reference")])
-    wb.remove(wb["Columns"]); wb.remove(wb["About"])
+    wb.remove(wb["Columns"])
+    for nm in ("About", "Read me"):                    # 4.59.0: the app writes Read me, not About
+        if nm in wb.sheetnames:
+            wb.remove(wb[nm])
     wb.save(dst)
 
 
@@ -315,7 +318,7 @@ check("after a merge the macros' looks are still only on their sheet, and Fonts 
 
 # ---- a workbook in a newer format: not read, never written over
 def newer(wb):
-    ab = wb["About"]
+    ab = wb["Read me"] if "Read me" in wb.sheetnames else wb["About"]   # 4.59.0: the format is on Read me
     for r in ab.iter_rows():
         if r[0].value == "Format":
             r[1].value = SB.FORMAT + 1

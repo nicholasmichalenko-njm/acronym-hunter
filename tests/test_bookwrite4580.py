@@ -143,7 +143,7 @@ check("the agreed columns fold", any(d.outlineLevel for d in wb["Styles"].column
 cs = [(r[0].value, r[1].value, r[2].value) for r in wb["Columns"].iter_rows(min_row=2)]
 check("the Columns sheet lists the plain names", ("Heading numbering", "Number format", "fmt") in cs
       and ("List numbering", "Left indent (in)", "left") in cs and not any(s == "Fonts allowed" for s, _c, _k in cs), cs[:4])
-check("the format is 3, as formats.py says", SB.disk_format(p) == 3 == F.number("Company Standards workbook"))
+check("the format is this version's, as formats.py says", SB.disk_format(p) == SB.FORMAT == F.number("Company Standards workbook"))
 
 # ---- it reads back to the same standard
 res, book = read_into(p, blank_of(std))
@@ -219,7 +219,7 @@ kept = os.path.join(cfg, SB.BEFORE)
 copies = os.listdir(kept) if os.path.isdir(kept) else []
 check("before the first write a copy of it as it was is kept in the config folder", len(copies) == 1
       and filecmp.cmp(os.path.join(kept, copies[0]), gold, shallow=False), copies)
-check("... and the workbook is now format 3, under the plain names", SB.disk_format(old) == 3 and "Number format" in head(openpyxl.load_workbook(old)["Heading numbering"]))
+check("... and the workbook is now this version's format, under the plain names", SB.disk_format(old) == SB.FORMAT and "Number format" in head(openpyxl.load_workbook(old)["Heading numbering"]))
 after = SB.apply(blank_of(std), [], SB.read(old))
 for part in PARTS:
     a, b = got["company"].get(part), after["company"].get(part)
@@ -234,11 +234,11 @@ check("the copy is made once: a second write leaves it as it was", os.listdir(ke
 # ---- a newer format than this one is still refused
 nw = os.path.join(tmp, "newer.xlsx"); shutil.copyfile(p, nw)
 x = openpyxl.load_workbook(nw)
-for r in x["About"].iter_rows():
+for r in x["Read me" if "Read me" in x.sheetnames else "About"].iter_rows():   # 4.59.0: Read me
     if r[0].value == "Format":
         r[1].value = SB.FORMAT + 1
 x.save(nw)
-check("a workbook of format 4 is not read", BS.FORMAT_NEWER in SB.read(nw)["problems"])
+check("a workbook of a newer format is not read", BS.FORMAT_NEWER in SB.read(nw)["problems"])
 
 # ---- an effort's workbook: only its changes, a volume, and a type's own look with no base look in the file
 lay = {"style_defs": {"Body Text": {"font": "Garamond"}}, "table_types": {"kp": {"override": {"header": {"fill": "112233"}}}},

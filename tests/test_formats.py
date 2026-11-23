@@ -30,7 +30,7 @@ check("team pack", TP.FORMAT == F.number("team pack"))
 check("Stationkeeper Data file", TD.FORMAT == F.number("Stationkeeper Data file"))
 import standardsbook as SB, teamlib as TLB, openpyxl                     # 4.7.0
 bk = os.path.join(tmp, "Company Standards.xlsx"); SB.write(bk, PRL.load(cfg)["company"], [])
-about = {r[0]: r[1] for r in openpyxl.load_workbook(bk)["About"].iter_rows(values_only=True)}
+about = {r[0]: r[1] for r in openpyxl.load_workbook(bk)["Read me"].iter_rows(values_only=True) if r}   # 4.59.0: Read me
 check("Company Standards workbook", about.get("Format") == F.number("Company Standards workbook") == SB.FORMAT, about)
 TLB.mark_dirty(cfg)
 check("team library state", json.load(open(os.path.join(cfg, TLB.STATE)))["format"] == F.number("team library state"))

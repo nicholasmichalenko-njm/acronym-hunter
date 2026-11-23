@@ -33,9 +33,9 @@ book = T.book_path(cfg, S)
 check("the first tick writes Global Standards.xlsx in Stationkeeper Data\\Team library", os.path.isfile(book)
       and book.endswith(os.path.join("Team library", "Global Standards.xlsx")) and not T.state(cfg).get("dirty"), (book, said))
 wb = openpyxl.load_workbook(book)
-check("its sheets", wb.sheetnames == ["Styles", "Table looks", "Table types", "Heading numbering", "List numbering", "Page setups",
+check("its sheets", wb.sheetnames == ["Read me", "Styles", "Table looks", "Table types", "Heading numbering", "List numbering", "Page setups",
                                       "Captions", "Fonts allowed", "Settings", "Fields", "Theme", "Phrases", "Authors", "Compliance words", "Piece types",
-                                      "Document types", "Suggestion rules", "About", "Columns"], wb.sheetnames)   # 4.7.1: the lists; 4.10.0: Theme
+                                      "Document types", "Suggestion rules", "Columns"], wb.sheetnames)   # 4.7.1: the lists; 4.10.0: Theme
 ws = wb["Styles"]
 hdr = [c.value for c in ws[1]]
 check("organizing columns first, then every agreed column (4.58.0, rule 3 of the column list), Other Word settings last",

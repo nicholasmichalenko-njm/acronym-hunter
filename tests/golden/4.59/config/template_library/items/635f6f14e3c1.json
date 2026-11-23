@@ -1,0 +1,57 @@
+{
+ "header": {
+  "left": "{volume_name}",
+  "right": "{solicitation}",
+  "rule_below": true
+ },
+ "footer": {
+  "marking": false,
+  "table": {
+   "borders": "none",
+   "cells": [
+    {
+     "width_in": 2.17,
+     "lines": [
+      {
+       "text": "{a_number}",
+       "align": "left",
+       "size": null,
+       "bold": false
+      }
+     ],
+     "logo": null
+    },
+    {
+     "width_in": 2.16,
+     "lines": [
+      {
+       "text": "{marking}",
+       "align": "center",
+       "size": null,
+       "bold": true
+      },
+      {
+       "text": "Kestrel standard line",
+       "align": "center",
+       "size": 8,
+       "bold": false
+      }
+     ],
+     "logo": null
+    },
+    {
+     "width_in": 2.17,
+     "lines": [
+      {
+       "text": "{page}",
+       "align": "right",
+       "size": null,
+       "bold": false
+      }
+     ],
+     "logo": null
+    }
+   ]
+  }
+ }
+}

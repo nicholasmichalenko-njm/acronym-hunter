@@ -43,8 +43,8 @@ SETTINGS = "Settings"
 FIELDS = "Fields"
 COLUMNS = "Columns"
 ABOUT = "About"
-FORMAT = 3                                   # formats.py "Global Standards workbook" (2: 4.10.0, Volume, Theme, Suggestion rules;
-#                                              3: 4.58.0, the plain column names and Word's words)
+FORMAT = 4                                   # formats.py "Global Standards workbook" (2: 4.10.0, Volume, Theme, Suggestion rules;
+#                                              3: 4.58.0, the plain column names and Word's words; 4: 4.59.0, Read me, no About)
 FIELD_COLS = (("Field code(s)", "codes"), ("Text between", "between"), ("What it does", "note"), ("Where it goes", "where"),
               ("Use case", "use_case"), ("Bookmark it needs", "bookmark"), ("What the bookmark spans", "spans"),
               ("Style it reads", "style"), ("Depends on", "depends"), ("Sample result", "sample"))
@@ -321,14 +321,13 @@ def disk_format(path):
     except Exception:  # noqa: BLE001
         return None
     try:
-        if ABOUT not in wb.sheetnames:
-            return None
-        for row in wb[ABOUT].iter_rows(values_only=True):
-            if row and str(row[0] or "").strip().casefold() == "format" and len(row) > 1:
-                try:
-                    return int(float(row[1]))
-                except (TypeError, ValueError):
-                    return None
+        for name in [s for s in wb.sheetnames if s.strip().casefold() in ("read me", "about")]:   # 4.59.0: Read me too
+            for row in wb[name].iter_rows(values_only=True):
+                if row and str(row[0] or "").strip().casefold() == "format" and len(row) > 1:
+                    try:
+                        return int(float(row[1]))
+                    except (TypeError, ValueError):
+                        return None
     finally:
         wb.close()
     return None
@@ -341,7 +340,7 @@ def keep_before(path, keep_dir):
     if not keep_dir or not os.path.isfile(path):
         return None
     n = disk_format(path)
-    if n is not None and n >= FORMAT:
+    if n is not None and n >= 3:                                # 4.59.0: only a workbook from before the plain names
         return None
     d = os.path.join(keep_dir, BEFORE)
     base = os.path.splitext(os.path.basename(path))[0]
@@ -356,8 +355,9 @@ def keep_before(path, keep_dir):
     return dst
 
 
-def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None, keep_dir=None):
-    """Write the workbook (to a .tmp, then in place). keep_dir (4.58.0): the config folder, where a workbook written in
+def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None, keep_dir=None, kind=None, owner=None):
+    """Write the workbook (to a .tmp, then in place). kind, owner (4.59.0): what its Read me tab says it is and whose
+    (Global Standards by default; Effort Standards for an effort's). keep_dir (4.58.0): the config folder, where a workbook written in
     an older format is copied once before the plain shape is written over it. own_cols: {sheet: [column names people added]}, kept. volumes
     (an effort's workbook): [(volume name, its own layer)], written as rows with a Volume column. Raises
     PermissionError when Excel has it open; the caller waits and says so."""
@@ -445,13 +445,9 @@ def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None, 
             ws.append([to_cell(_list_cell(sheet, c, r)) for c in cols] + [to_cell((r.get("_own") or {}).get(h)) for h in own])
         _dress(ws, list(cols) + own, head, fill, get_column_letter, freeze="B2")
         BW.dress(ws, sheet, list(cols) + own, len(cols) + len(own) + 1)
-    ws = make(ABOUT)
-    for row in (("What", "Value"), ("Format", FORMAT), ("Made by", "Stationkeeper"),
-                ("How to use it", "Edit values here or in the app; the app reads what changed and writes what it changes. "
-                 "A blank cell in an effort's workbook means the Global Standards value; a blank Volume means "
-                 "every volume, a volume's name means that volume only. Only Approved rows "
-                 "reach templates and the macros. Columns you add are kept and never reach Word.")):
-        ws.append(list(row))
+    import bookreadme as BR                                     # 4.59.0: the Read me tab says what it is; About goes
+    BR.write(wb, kind or (BR.EFFORT if volumes is not None else BR.GLOBAL), owner or "", FORMAT,
+             ("Stationkeeper " + str(getattr(diag, "VERSION", "") or "")).strip())
     ws = make(COLUMNS)
     for row in colsheet:
         ws.append(list(row))
@@ -530,10 +526,19 @@ def read(path):
         wb.close()
     import bookshape as BS                                      # 4.57.0: the plain column names, read as today's
     n = BS.format_of(out)
+    import bookreadme as BR                                     # 4.59.0: what its Read me tab says it is
+    out["kind"], out["owner"] = BR.kind_of(out)
     if n is not None and n > FORMAT:
         out["problems"].append(BS.FORMAT_NEWER)
         return out
     return BS.old_shape(out)
+
+
+def wrong_kind(path, expect):
+    """4.59.0: the reason the workbook at path is not taken as expect ("global" or "effort"), or None. A workbook that
+    says it is the other kind is not read and never written over."""
+    import bookreadme as BR
+    return BR.refused(read(path), expect) if os.path.isfile(path) else None
 
 
 def newer(path):

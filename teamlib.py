@@ -6,8 +6,9 @@ The files are the truth; the app keeps a cache it rebuilds from them:
 - Content\\: the Word files the standards and the library keep (covers, back covers, title pages, Quick Parts sources,
   header and footer designs), one folder each for the standards' parts and the library's kept files. Edit them in Word;
   the app's copies follow. A file the app keeps (Bring in, a new cover) appears there.
-- <effort> Effort Formatting.xlsx, beside the effort's list: the same sheets with only that effort's changes (a blank
-  cell means the Global Standards value).
+- <effort> Effort Standards.xlsx (a program's: <program> Program Standards.xlsx), beside the effort's list: the same
+  sheets with only that effort's changes (a blank cell means the Global Standards value). 4.59.0: named so by UX
+  decision 133; one written under its earlier name, <effort> Effort Formatting.xlsx, is renamed once.
 
 Where: Stationkeeper Data\\Team library unless Settings points it at another folder (a SharePoint library synced to
 each PC, so the team shares one). Updates never touch it.
@@ -200,6 +201,10 @@ def write_book(config_dir, settings=None):
     if seen is not None and SB.newer(p):                    # 4.57.0: a newer format is never written over
         _said.append("The Global Standards workbook: " + __import__("bookshape").FORMAT_NEWER + " Your changes wait.")
         return "unread"
+    why = SB.wrong_kind(p, "global") if seen is not None else None
+    if why:                                                 # 4.59.0: the wrong kind is never written over
+        _said.append("The Global Standards workbook: " + why + " Your changes wait.")
+        return "unread"
     if seen is not None and _moved(p, st.get("book"), st.get("sha")):
         if _merge_book(config_dir, p, st, settings) == "unread":
             return "unread"
@@ -211,7 +216,7 @@ def write_book(config_dir, settings=None):
     try:
         import listsbook as LB                              # 4.7.1: the small lists as sheets
         SB.write(p, data["company"], FR.load(config_dir), st.get("own_cols") or {}, LB.load_all(config_dir),
-                 keep_dir=config_dir)                       # 4.58.0: a copy first, before the plain names
+                 keep_dir=config_dir, kind="Global Standards")   # 4.58.0: a copy first; 4.59.0: its Read me
     except PermissionError:
         st["dirty"], st["waiting"] = True, time.strftime("%Y-%m-%d %H:%M")
         _save_state(config_dir, st)
@@ -250,6 +255,9 @@ def read_book(config_dir, settings=None, removed_answer=None, force=False):
         _save_state(config_dir, st)
         return out
     book = SB.read(p)
+    why = __import__("bookreadme").refused(book, "global")   # 4.59.0: the wrong kind is not read
+    if why:
+        book["problems"] = list(book["problems"]) + [why]
     if book["problems"]:
         out["problems"] = book["problems"]
         st["problems"] = book["problems"]
@@ -566,8 +574,37 @@ def tick(config_dir, settings=None):
 
 
 # ------------------------------------------------------------------ one effort's workbook
-def effort_book_path(effort_path, effort_name):
-    return os.path.join(os.path.dirname(os.path.abspath(effort_path)), f"{effort_name} Effort Formatting.xlsx")
+OLD_EFFORT_BOOK = "{} Effort Formatting.xlsx"   # its name from 4.7.0 to 4.58: renamed once (4.59.0)
+
+
+def effort_kind(effort_path):
+    """4.59.0: what an effort's workbook says it is: Program Standards for a program's (its list is <name>_Program_List),
+    Effort Standards for an effort's."""
+    import bookreadme as BR
+    return BR.PROGRAM if str(effort_path or "").endswith(__import__("programs").LIST_TAIL) else BR.EFFORT
+
+
+def effort_book_path(effort_path, effort_name, config_dir=None):
+    """The effort's (or program's) workbook (4.59.0: "<name> Effort Standards.xlsx", "<name> Program Standards.xlsx").
+    One under its earlier name is renamed once, with the copy the next merge compares with (config_dir); while Excel
+    has it open it is used as it is and renamed the next time. With both there, the new name is used."""
+    d = os.path.dirname(os.path.abspath(effort_path))
+    new = os.path.join(d, f"{effort_name} {effort_kind(effort_path)}.xlsx")
+    old = os.path.join(d, OLD_EFFORT_BOOK.format(effort_name))
+    if not os.path.isfile(new) and os.path.isfile(old):
+        try:
+            os.replace(old, new)
+        except OSError:
+            return old
+        diag.activity("effort_book_renamed")
+        if config_dir:
+            import bookmerge as BM
+            try:
+                if os.path.isfile(BM.base_path(config_dir, old)):
+                    os.replace(BM.base_path(config_dir, old), BM.base_path(config_dir, new))
+            except OSError:
+                diag.swallowed()
+    return new
 
 
 def _volume_names(config_dir=None):
@@ -590,8 +627,9 @@ def _effort_cfg(config_dir=None):
     return config_dir
 
 
-def _effort_write(ws, p, config_dir=None):
-    """Write the effort's layers to the workbook at p (the real one, or a temp one for a merge)."""
+def _effort_write(ws, p, config_dir=None, kind=None, owner=None):
+    """Write the effort's layers to the workbook at p (the real one, or a temp one for a merge). kind, owner (4.59.0):
+    what its Read me tab says."""
     import effortformat as EFM
     import standardsbook as SB
     lay = EFM.layer(ws)
@@ -599,7 +637,8 @@ def _effort_write(ws, p, config_dir=None):
     ov = EFM.eff_of(ws).get("over_vol") or {}
     vols = sorted(((names.get(t, t), EFM.layer(ws, t)) for t in ov), key=lambda x: x[0].casefold())
     return SB.write(p, lay, None, (ws.get("effort_book") or {}).get("own_cols") or {}, volumes=vols,
-                    keep_dir=_effort_cfg(config_dir))      # 4.58.0: a copy first, before the plain names
+                    keep_dir=_effort_cfg(config_dir),      # 4.58.0: a copy first, before the plain names
+                    kind=kind, owner=owner)
 
 
 def write_effort_book(ws, effort_path, effort_name, config_dir=None):
@@ -607,13 +646,18 @@ def write_effort_book(ws, effort_path, effort_name, config_dir=None):
     a blank Volume; a change for one volume kind carries its name (4.10.0). 4.56.2: a workbook that changed since the
     app last read or wrote it is read first and merged (bookmerge); one that cannot be read is not written over."""
     import bookmerge as BM
-    p = effort_book_path(effort_path, effort_name)
     cfg = _effort_cfg(config_dir)
+    p = effort_book_path(effort_path, effort_name, cfg)
+    kind, owner = effort_kind(effort_path), effort_name
     eb = dict(ws.get("effort_book") or {})
     seen = _stamp(p)
     import standardsbook as SB
     if seen is not None and SB.newer(p):                    # 4.57.0: a newer format is never written over
         _said.append("This effort's formatting workbook: " + __import__("bookshape").FORMAT_NEWER + " Your changes wait.")
+        return "unread"
+    why = SB.wrong_kind(p, "effort") if seen is not None else None
+    if why:                                                 # 4.59.0: the wrong kind is never written over
+        _said.append("This effort's formatting workbook: " + why + " Your changes wait.")
         return "unread"
     if seen is not None and _moved(p, eb.get("stamp"), eb.get("sha")):
         theirs = SB.read(p)
@@ -621,7 +665,7 @@ def write_effort_book(ws, effort_path, effort_name, config_dir=None):
             _said.extend("This effort's formatting workbook changed and could not be read, so your changes are not "
                          "written over it yet: " + x for x in theirs["problems"])
             return "unread"
-        merged, rep = BM.merge(_base(cfg, p), _mine(lambda t: _effort_write(ws, t, config_dir)), theirs)
+        merged, rep = BM.merge(_base(cfg, p), _mine(lambda t: _effort_write(ws, t, config_dir, kind, owner)), theirs)
         _changed, _problems, own = _apply_effort(ws, merged, config_dir)
         eb = dict(ws.get("effort_book") or {})
         eb["own_cols"] = own
@@ -631,7 +675,7 @@ def write_effort_book(ws, effort_path, effort_name, config_dir=None):
         if _stamp(p) != seen:
             return "waiting"
     try:
-        _effort_write(ws, p, config_dir)
+        _effort_write(ws, p, config_dir, kind, owner)
     except PermissionError:
         return "waiting"
     eb = dict(ws.get("effort_book") or {})
@@ -676,7 +720,7 @@ def _apply_effort(ws, book, config_dir=None):
 def read_effort_book(ws, effort_path, effort_name, force=False, config_dir=None):
     """The effort's workbook into its layer when it changed. Returns the changes, or None when nothing was read."""
     import standardsbook as SB
-    p = effort_book_path(effort_path, effort_name)
+    p = effort_book_path(effort_path, effort_name, _effort_cfg(config_dir))
     eb = dict(ws.get("effort_book") or {})
     now = _stamp(p)
     if now is None or (not force and now == eb.get("stamp")):
@@ -687,10 +731,11 @@ def read_effort_book(ws, effort_path, effort_name, force=False, config_dir=None)
         ws.set("effort_book", eb)
         return None
     book = SB.read(p)
-    if book["problems"]:
+    why = __import__("bookreadme").refused(book, "effort")   # 4.59.0: the wrong kind is not read
+    if book["problems"] or why:
         eb["stamp"] = now
         ws.set("effort_book", eb)
-        return {"changed": [], "problems": book["problems"]}
+        return {"changed": [], "problems": book["problems"] or [why]}
     changed, problems, own = _apply_effort(ws, book, config_dir)
     eb.update(stamp=now, sha=sha, own_cols=own)
     ws.set("effort_book", eb)
@@ -704,7 +749,7 @@ def effort_tick(ws, effort_path, effort_name):
     if ws is None or not effort_path:
         return None
     try:
-        p = effort_book_path(effort_path, effort_name)
+        p = effort_book_path(effort_path, effort_name, _effort_cfg())
         eb = ws.get("effort_book") or {}
         if not os.path.isfile(p) or eb.get("dirty"):
             return write_effort_book(ws, effort_path, effort_name)
