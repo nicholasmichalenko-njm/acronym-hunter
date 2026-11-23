@@ -41,6 +41,7 @@ w.go("setups"); app.processEvents()
 btn = w.setups_page.bar.commands[0]                    # Bring in a file...
 w.setups_page.bring_in = lambda *a, **k: None          # the click is what is counted, not the file dialog
 btn.clicked.disconnect(); btn.clicked.connect(lambda: None)
+app._sk_tuner.sweep()            # 4.59.4: the counter is put on the buttons and menus on screen (no window takes the focus offscreen)
 QTest.mouseClick(btn, Qt.LeftButton, Qt.NoModifier, QPoint(5, 5)); app.processEvents()
 QTest.mouseClick(btn, Qt.LeftButton, Qt.NoModifier, QPoint(5, 5)); app.processEvents()
 check("a button pressed is counted under its screen", w.usage.d["counts"].get("setups", {}).get("Bring in a file...") == 2, w.usage.d["counts"])

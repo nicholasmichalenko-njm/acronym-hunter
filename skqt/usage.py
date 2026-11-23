@@ -137,5 +137,22 @@ def install(host):
     if scif():
         return None
     c = Counter(host)
-    QApplication.instance().installEventFilter(c)
-    return c
+    QApplication.instance()._sk_usage = c          # 4.59.4: no installEventFilter on the application; within() puts it on
+    return c                                       # each button and menu on screen (adaptive.ViewTuner's sweep)
+
+
+def within(root, c=None):
+    """4.59.4: count clicks on the buttons and menus under root. The counter used to listen to every event of the whole
+    application, so every event ran Python code and the window crawled while a background read was busy. A menu made
+    at the moment of a right-click and gone again may be missed."""
+    c = c or getattr(QApplication.instance(), "_sk_usage", None)
+    if c is None:
+        return 0
+    n = 0
+    for kind in (QAbstractButton, QMenu):
+        for w in ([root] if isinstance(root, kind) else []) + root.findChildren(kind):
+            if not w.property("sk_usage"):
+                w.setProperty("sk_usage", True)
+                w.installEventFilter(c)
+                n += 1
+    return n

@@ -323,10 +323,15 @@ def split(path, out_dir, keep=None):
     for k, (els, sect) in enumerate(groups, 1):
         if keep is not None and k not in keep:
             continue
-        r2 = copy.deepcopy(root)
-        b2 = r2.find(W + "body")
-        for el in list(b2):
-            b2.remove(el)
+        # 4.59.4: a new document element with an empty body, not a copy of the whole document emptied again for every
+        # section (a long document with many sections froze the window for half a minute)
+        r2 = etree.Element(root.tag, attrib=dict(root.attrib), nsmap=root.nsmap)
+        b2 = None
+        for ch in root:
+            if ch is body:
+                b2 = etree.SubElement(r2, body.tag, attrib=dict(body.attrib))
+            else:
+                r2.append(copy.deepcopy(ch))
         for el in els:
             e2 = copy.deepcopy(el)
             sp = e2.find(f"{W}pPr/{W}sectPr") if e2.tag == W + "p" else None
@@ -339,10 +344,13 @@ def split(path, out_dir, keep=None):
         d2["word/document.xml"] = etree.tostring(r2, xml_declaration=True, encoding="UTF-8", standalone=True)
         dest = os.path.join(out_dir, f"{stem} (section {k}).docx")
         with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
-            for n, b in d2.items():
-                z.writestr(n, b)
+            for n, b in d2.items():                      # 4.59.4: a picture already packed small is stored as it is
+                z.writestr(n, b, compress_type=zipfile.ZIP_STORED if n.lower().endswith(_PACKED) else zipfile.ZIP_DEFLATED)
         out.append(dest)
     return out
+
+
+_PACKED = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
 
 # ------------------------------------------------------------------ filling a design

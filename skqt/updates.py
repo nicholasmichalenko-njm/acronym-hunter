@@ -170,18 +170,29 @@ def install_update(win, path=None, answer=None, on_close=None, restart=None):
         answer = "install" if _confirm(win, "Install update pack", text, "Update now") else "later"
     if answer != "install":
         return None
+    closed = False
     try:
         U.stage(plan, path, folder)
+        # 4.59.4 (Nicholas 2026-11-23, the update): the work is saved and closed BEFORE the program's files are changed.
+        # It was done after, by a program whose own files had just been replaced under it; a part it had not loaded yet
+        # was then read from the new files and failed (the error he saw while saving, in pyimod01_archive extract).
+        if on_close:
+            on_close()
+            closed = True
         res = U.apply(plan, folder)
     except U.UpdateError as e:
         diag.activity("update_failed")
-        win.status(str(e))
+        win.status(str(e) + (" Your work was saved and closed first: open the effort again from the Effort box." if closed else ""))
         if restart is None:
-            QMessageBox.warning(win, "Update pack", str(e))
+            QMessageBox.warning(win, "Update pack", str(e) + ("\n\nYour work was saved and closed first. Open the effort again from "
+                                                               "the Effort box." if closed else ""))
         return None
     diag.activity("update_installed", files=res["copied"])
-    win.toast(f"Updated to {res['to']}. Opening the new version...")
-    _finish(win, on_close, restart, res["to"], "update")
+    try:
+        win.toast(f"Updated to {res['to']}. Opening the new version...")
+    except Exception:  # noqa: BLE001  nothing after the change may stop the restart
+        diag.swallowed()
+    _finish(win, None, restart, res["to"], "update")
     return res
 
 
@@ -195,14 +206,21 @@ def undo_update(win, answer=None, on_close=None, restart=None):
         answer = "undo" if rollback_dialog(win, b) else "later"
     if answer != "undo":
         return None
+    closed = False
     try:
+        if on_close:                                   # 4.59.4: saved and closed before the files change, as for an update
+            on_close()
+            closed = True
         res = U.undo(folder, prog)
     except U.UpdateError as e:
-        win.status(str(e))
+        win.status(str(e) + (" Your work was saved and closed first: open the effort again from the Effort box." if closed else ""))
         return None
     diag.activity("update_undone")
-    win.toast(f"Back to {res['to']}. Opening it...")
-    _finish(win, on_close, restart, res["to"], "undo")
+    try:
+        win.toast(f"Back to {res['to']}. Opening it...")
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    _finish(win, None, restart, res["to"], "undo")
     return res
 
 

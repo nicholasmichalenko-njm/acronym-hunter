@@ -146,6 +146,7 @@ class ViewTuner(QObject):
     def __init__(self, app):
         super().__init__(app)
         self.app = app
+        self._whole = set()
         from PySide6.QtCore import QTimer
         self.timer = QTimer(self); self.timer.setSingleShot(True); self.timer.setInterval(0); self.timer.timeout.connect(lambda: self.sweep(True))
         app.focusChanged.connect(lambda *_a: self.timer.start())
@@ -169,8 +170,9 @@ class ViewTuner(QObject):
         """Every table and tree under root that is not hidden and not yet tuned; and the wheel's rule on its boxes."""
         n = 0
         try:
-            from . import nowheel
+            from . import nowheel, usage
             nowheel.within(root)
+            usage.within(root)                             # 4.59.4
         except Exception:
             pass
         for v in ([root] if isinstance(root, QAbstractItemView) else []) + root.findChildren(QAbstractItemView):
@@ -186,6 +188,9 @@ class ViewTuner(QObject):
             if not w.isVisible():
                 continue
             st = getattr(w, "stack", None) if light else None
+            if isinstance(st, PageStack) and id(w) not in self._whole:   # 4.59.4: once, the whole window (its menu, its top bar)
+                self._whole.add(id(w))
+                st = None
             if isinstance(st, PageStack):
                 pg = st.currentWidget()
                 n += self.within(pg) if pg is not None else 0
