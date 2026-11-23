@@ -122,17 +122,8 @@ def _relabel_record(root, mapping):
 class MainWindow(QMainWindow):
     def __init__(self, app, config_dir, version=""):
         super().__init__()
-        # 4.59.4 (Nicholas 2026-11-23 14:24, the open stability items): the window is built with the application's style
-        # sheet set aside, and the sheet is put back once, at the end. With the sheet on, Qt worked the whole sheet out
-        # again for every part each time a part was put inside another (about 3,300 times), which was most of the start.
-        sheet = app.styleSheet()
-        if sheet:
-            app.setStyleSheet("")
-        try:
+        with D.sheet_aside(app):                    # 4.59.4: built first, given its look once at the end (a much faster start)
             self._build(app, config_dir, version)
-        finally:
-            if sheet:
-                app.setStyleSheet(sheet)
 
     def _build(self, app, config_dir, version=""):
         self.app = app

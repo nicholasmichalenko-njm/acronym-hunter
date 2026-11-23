@@ -591,3 +591,23 @@ def legend(segments):
         h.addWidget(l)
     h.addStretch(1)
     return w
+
+
+class sheet_aside:
+    """4.59.4 (Nicholas 2026-11-23 14:24, the open stability items): build a window with the application's style sheet
+    set aside, and put the sheet back once, at the end. With the sheet on, Qt worked the whole sheet out again for every
+    part each time a part was put inside another (about 3,300 times for the main window), which was most of the start."""
+
+    def __init__(self, app):
+        self.app, self.sheet = app, ""
+
+    def __enter__(self):
+        self.sheet = self.app.styleSheet()
+        if self.sheet:
+            self.app.setStyleSheet("")
+        return self
+
+    def __exit__(self, *_a):
+        if self.sheet:
+            self.app.setStyleSheet(self.sheet)
+        return False
