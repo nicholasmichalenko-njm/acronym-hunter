@@ -45,7 +45,8 @@ def _WAU():
 
 RAIL = [("Effort", [("home", "Overview"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
                     ("assign", "Shred"), ("matrix", "Matrix & Outline"),
-                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
+                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit"),
+                    ("redline", "Redlining")]),     # 4.59.2 (decision 189): below the steps, no number
         (FORMATTING, [("templates", "Templates"), ("formatstd", "Page Layout"), ("styles", "Styles"), ("designs", "Quick Parts")]),   # 4.28.0; 4.43.0: the gallery first, then its components (ST31 to ST40)
         ("Team", [("tools", "Quick tools"), ("team", "Team")]),      # 4.27.2: Quick tools at the bottom of the menu
         ("Settings", [("globalstd", "Global Standards"), ("settings", "Settings")])]   # 4.34.0: its own page
@@ -84,7 +85,7 @@ RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups
                 "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
 RAIL_OF.update({**{k: t for t in TEMPLATES for k in [k for k, _t in TABS.get(t, [(t, "")])]}, "prodstd": "team", "qpstd": "designs", "layoutstd": "formatstd"})
-RAIL_OF.update({"redline": "home", "rcheck": "home", "exceptions": "home"})   # 4.25.3: opened from Deliverables (the Dashboard's tab)   # 4.8.0     # 3.98.0: a Quick Part's details open from Parts
+RAIL_OF.update({"redline": "redline", "rcheck": "redline", "exceptions": "redline"})   # 4.59.2 (189): its own menu entry again; the tile and the right-click still open it   # 4.8.0     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 VIEWS = {}                     # 3.90.0 views of Review's maps; 4.3.0: place, crosswalk and prove are the Shred page (placemode)
@@ -92,7 +93,7 @@ BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools
 GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of {len(STEP_KEYS) - 1}")
             for k, e in RAIL_OF.items()
             for n in [STEP_KEYS.index(e) if e in STEP_KEYS else 0]}          # 4.12.0: Redline sits among them, unnumbered
-GROUP_OF.update({k: "Deliverables" for k in ("redline", "rcheck", "exceptions")})   # 4.25.3: opened from a deliverable's tile
+GROUP_OF.update({k: "" for k in ("redline", "rcheck", "exceptions")})   # 4.59.2 (189): not a step, no number
 GROUP_OF.update({"graphics": "Documents", "calendar": "The effort", "tasks": "The effort"}); RAIL_OF.update({k: k for k in ("graphics", "calendar", "tasks")})   # 4.25.5, 4.27.1
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
 GROUP_OF.update({k: FORMATTING for k, e in RAIL_OF.items() if e in TEMPLATES})   # 4.28.0; 4.46.0: the group is Formatting (decision 71)
@@ -1158,6 +1159,8 @@ class MainWindow(QMainWindow):
             from .modes import settings
             aside = MF.hidden(settings()) - {step}
             tabs = [t for t in tabs if t[0] not in aside]
+        if head == "redline" and tabs and not __import__("skqt.redlinechoose", fromlist=["x"]).listed(self):     # 4.59.2 (226): the parts wait for a document
+            tabs = []
         self._tab_sync = True
         try:
             while self.page_tabs.count():

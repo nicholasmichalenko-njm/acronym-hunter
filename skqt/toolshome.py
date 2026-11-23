@@ -52,7 +52,8 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "custqa": ("Customer Q&A", "Questions to the customer", "page"),
          "techedit": ("Technical Edit", "Copy review of a draft", "page"),
          "shredacc": ("Shred accuracy", "How well the reader finds requirements, on answer keys", "page"),     # 4.19.0: off Shred
-         "sort": ("Themes", "Cross-cutting themes on requirements, for filtering and assignments", "page")}
+         "sort": ("Themes", "Cross-cutting themes on requirements, for filtering and assignments", "page"),
+         "redline": ("Redlining", "The effort's documents marked Redlined Deliverable, prepared and checked", "page")}   # 4.59.2
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
              "Proposal Manager": ["home", "assign", "reviews", "mywork", "acrfinder", "qa"],
              "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],

@@ -8,7 +8,7 @@ TOPICS = [
   "You are new to Stationkeeper, or want the big picture.",
   ["The menu on the left is the effort's path: the Overview, then six steps in the order of the work: 1 Documents, "
    "2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts, 6 Submit. Each step says what is left and none is ever locked; "
-   "Prepare for Redline sits under Documents. A step's pages are tabs under its title. Team holds the team's own tools; Settings is last.",
+   "Redlining sits below the steps, with no number: redlining can happen at any point. A step's pages are tabs under its title. Team holds the team's own tools; Settings is last.",
    "The effort's name at the top opens All Efforts and Quick tools: any tool on any file, with no effort needed.",
    "Your role decides which of the team's tools show.",
    "Start an effort on All Efforts, or open one you already have.",
@@ -162,7 +162,7 @@ TOPICS = [
    "folder or a folder you watch shows at the top of Documents: Add to Documents... or Ignore.",
    "Used for says what a document is for: right-click it > Used for, and tick For the shred, Reference, Redlined "
    "Deliverable, or Filled-in Deliverable (several may be ticked). A document that goes back gets a tile on Deliverables; "
-   "Prepare for Redline opens from that tile.",
+   "a document marked Redlined Deliverable is listed in Redlining, which that tile also opens.",
    "The same document, edited: adding it again offers Replace the file. The document and its version stay, it is read "
    "again and its pieces keep their types. Right-click a document for Replace the file..., Read it again and "
    "Delete..., which moves it to the effort's Deleted folder (More > Trash... puts it back or empties it).",

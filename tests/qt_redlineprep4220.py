@@ -53,8 +53,8 @@ w.open_effort("Kestrel"); app.processEvents()
 w.toast = lambda msg, *a, **k: toasts.append(msg)
 w.status = lambda msg, *a, **k: said.append(msg)
 rail = [t for _k, t in MW.RAIL[0][1]]
-check("4.25.3: Prepare for Redline is off the menu, and opens from Deliverables", "Prepare for Redline" not in rail
-      and MW.GROUP_OF["redline"] == "Deliverables")
+check("4.59.2 (189): Redlining is in the menu again", "Redlining" in rail and "Prepare for Redline" not in rail
+      and MW.GROUP_OF["redline"] == "")
 w.go("redline"); app.processEvents()
 pp = w.redline_page; pp.refresh(); app.processEvents()
 names = [pp.table.item(r, 0).text() for r in range(pp.table.rowCount())]

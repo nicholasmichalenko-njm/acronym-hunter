@@ -83,10 +83,9 @@ class PreparePage(QWidget):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(lambda pos: self.row_menu(self.table.rowAt(pos.y()), self.table.viewport().mapToGlobal(pos)))
         v.addWidget(self.table, 1)
-        self.empty = D.EmptyState("Nothing is marked Redlined Deliverable", "In Documents, right-click a PDF or a picture the "
-                                  "customer wants back redlined: Used for > Redlined Deliverable. It gets a tile on "
-                                  "Deliverables and is listed here, ready to become a Word file.", "Go to Documents",
-                                  lambda: self.host.go("library"))
+        # 4.59.2 (decision 226): one line and one button; the how-to is in the Guide
+        self.empty = D.EmptyState("No document is marked Redlined Deliverable.", "", "Choose a document...",
+                                  lambda: __import__("skqt.redlinechoose", fromlist=["x"]).choose(self))
         v.addWidget(self.empty); self.empty.hide()
         self.rows = []
 

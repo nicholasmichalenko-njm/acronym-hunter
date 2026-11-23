@@ -120,8 +120,8 @@ check("an amendment: the tile says the source changed, the old redline is kept, 
 st2 = DL.state(DL.get(rec, did), (), lib, (), rec)
 check("... a form keeps its own words (fill the new one) only when its document changes", not st2["changed"])
 # Drafts > Reviewer markups
-check("Drafts has Reviewer markups; Prepare for Redline is off the menu", ("markups", "Reviewer markups") in MW.TABS["drafts"]
-      and "redline" not in [k for k, _t in MW.RAIL[0][1]] and "redline" not in w.step_btns)
+check("Drafts has Reviewer markups; Redlining is its own menu entry (4.59.2)", ("markups", "Reviewer markups") in MW.TABS["drafts"]
+      and "redline" in [k for k, _t in MW.RAIL[0][1]] and "redline" in w.step_btns)
 w.go("markups"); mp = w.markups_page; app.processEvents()
 mine = os.path.join(tmp, "Our draft.docx"); shutil.copy2(os.path.join(S, "comments", "C01_prose.docx"), mine)
 res = mp.into_word(pdf=P, docx=mine)

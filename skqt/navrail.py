@@ -33,7 +33,7 @@ STEP_TITLES = {"home": ("Overview", "Where the effort is, what is left, and your
                "calendar": ("Calendar", "The month, the day's list and the next dated things"),
                "tasks": ("Tasks", "This effort's tasks by gate, and yours across efforts"),
                "graphics": ("Graphics", "Every graphic, the customer's and ours: its version, its words read, its acronyms swept"),
-               "redline": ("Prepare for Redline", "A Word file of each PDF and picture in Documents, with a reviewer's comments placed as tracked changes; checked word for word; the exceptions table")}
+               "redline": ("Redlining", "The documents marked Redlined Deliverable: a Word file of each, with a reviewer's comments placed as tracked changes; checked word for word; the exceptions table")}
 
 
 class ClickFrame(QFrame):
@@ -62,7 +62,7 @@ def _circle(n, state, t):
     return f"background:transparent;color:{t['rail_text']};border:2px solid {t['rail_ring']};"
 
 
-SUB = {"redline": "Documents", "graphics": "Documents", "calendar": "the Overview", "tasks": "the Overview"}   # 4.25.5: Graphics; 4.27.1           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
+SUB = {"graphics": "Documents", "calendar": "the Overview", "tasks": "the Overview"}   # 4.25.5: Graphics; 4.27.1           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
 
 
 class StepButton(QPushButton):
