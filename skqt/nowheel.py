@@ -22,8 +22,26 @@ class NoWheel(QObject):
         return True                                        # the box itself never sees the wheel
 
 
+KINDS = (QComboBox, QAbstractSpinBox, QAbstractSlider)
+
+
+def within(root, f=None):
+    """4.59.3: put the filter on each drop-down, number box and slider under root that does not have it yet. The filter
+    used to sit on the whole application, so every event of every object ran it (see adaptive.ViewTuner)."""
+    f = f or getattr(QApplication.instance(), "_sk_nowheel", None)
+    if f is None:
+        return 0
+    n = 0
+    for kind in KINDS:
+        for w in ([root] if isinstance(root, kind) else []) + root.findChildren(kind):
+            if not w.property("sk_nowheel"):
+                w.setProperty("sk_nowheel", True)
+                w.installEventFilter(f)
+                n += 1
+    return n
+
+
 def install(app):
-    f = NoWheel(app)
-    app.installEventFilter(f)
+    f = NoWheel(app)                                       # 4.59.3: no installEventFilter on the application
     app._sk_nowheel = f
     return f

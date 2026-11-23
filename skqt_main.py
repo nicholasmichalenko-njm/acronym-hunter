@@ -149,6 +149,8 @@ def main(argv=None):
     UPK.signal_started(UPD.app_dir(), A.APP_VERSION)   # 2.82.0: the old version's "Starting..." closes now
     from PySide6.QtCore import QTimer as _QT
     _QT.singleShot(8000, lambda: SF.started(A.SANDBOX_DIR))
+    w._alive_timer = _QT(w); w._alive_timer.setInterval(60000); w._alive_timer.timeout.connect(lambda: SF.alive(A.SANDBOX_DIR)); w._alive_timer.start()   # 4.59.3
+    app.aboutToQuit.connect(lambda: SF.ended(A.SANDBOX_DIR))      # 4.59.3: closed by the person, not ended by a fault
     from skqt import helpcenter as HC
     from skqt import modes as MO                     # 2.79.0: where is this PC used? (asked once)
 
@@ -156,12 +158,15 @@ def main(argv=None):
         HC.after_update(w)
 
     if safe:
-        w.status("Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
-                 "the Effort box; if it fails again, create a support file (Settings > Help and support).")
+        w.status(("Safe start: Stationkeeper stopped soon after it reopened the last effort, so that effort was not opened this "
+                  "time. Open it from the Effort box" if SF.REASON == "soon" else
+                  "Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
+                  "the Effort box") + "; if it fails again, create a support file (Settings > Help and support).")
         w.go("overview")                             # 4.52.0 (decision 7): the app opens on the Overview
         _QT.singleShot(800, then)
     elif w.efforts.current or len(_real(w)) == 1:
         cur = w.efforts.current or _real(w)[0]   # 2.84.0: the effort last open (or the only one), every start
+        SF.opened(A.SANDBOX_DIR)                  # 4.59.3: a run that ends badly soon after this makes the next start safe
         title = (f"Stationkeeper {A.APP_VERSION} is ready. Reopening your work" if after else "Opening " + __import__("homes").shown_name(w.efforts, cur))
         _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), w.go("overview"), _QT.singleShot(600, then)))   # 4.52.0: its Overview
     else:

@@ -646,33 +646,7 @@ def _words(s):
     return {w[:-1] if len(w) > 4 and w.endswith("s") else w for w in re.findall(r"[a-z][a-z0-9\-]{2,}", s.lower())} - _STOPW
 
 
-def link_items(items):
-    """Link Evaluation (M) and SOW items to the Instruction items they concern: explicit section cross-references,
-    then strong word overlap (Jaccard >= 0.3, best match only)."""
-    instr = [it for it in items if it["type"] in ("Instruction", "Format")]
-    for it in items:
-        links = []
-        refs = [r.strip() for r in it.get("xrefs", "").split(";") if r.strip()]
-        for r in refs:
-            num = re.sub(r"^(?:section|sec\.|paragraph|para\.?|¶)\s+", "", r, flags=re.I)
-            if "." not in num:
-                continue                                # "Section C" names a whole section: too broad to link
-            for o in items:
-                if o is not it and o["section"] and (o["section"] == num or o["section"].startswith(num + ".")):
-                    links.append(o["id"])
-        if it["type"] in ("Evaluation", "SOW") and not links and instr:
-            w = _words(it["text"])
-            best, score = None, 0.0
-            for o in instr:
-                ow = _words(o["text"])
-                if w and ow:
-                    j = len(w & ow) / len(w | ow)
-                    if j > score:
-                        best, score = o, j
-            if best is not None and score >= 0.3:
-                links.append(best["id"])
-        it["links"] = "; ".join(dict.fromkeys(links))[:300]
-    return items
+from complink import link_items  # noqa: E402,F401  4.59.3: in its own file (this one is at its size limit)
 
 
 def merge_items(items, ids):

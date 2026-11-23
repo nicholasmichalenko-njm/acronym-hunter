@@ -34,32 +34,73 @@ def _start_path(folder):
     return os.path.join(folder, START_FILE)
 
 
-def begin(folder):
-    """Count this start. Returns True when this start should be safe (the last two never finished starting)."""
-    p = _start_path(folder)
+SOON = 600                 # seconds: a run that reopened the last effort and ended badly sooner than this makes the next start safe
+REASON = ""                # why the last begin() said safe: "twice" (two starts never finished) or "soon"
+
+
+def _read(folder):
     try:
-        with open(p, encoding="utf-8") as f:
+        with open(_start_path(folder), encoding="utf-8") as f:
             d = json.load(f)
+        return d if isinstance(d, dict) else {}
     except (OSError, ValueError):
-        d = {}
-    pending = int(d.get("pending", 0) or 0)
-    safe = pending >= SAFE_AFTER
+        return {}
+
+
+def _write(folder, d):
     try:
         os.makedirs(folder, exist_ok=True)
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump({"pending": pending + 1, "at": datetime.datetime.now().isoformat(timespec="seconds")}, f)
+        with open(_start_path(folder), "w", encoding="utf-8") as f:
+            json.dump(d, f)
     except OSError:
         pass
+
+
+def begin(folder):
+    """Count this start. Returns True when this start should be safe: the last two never finished starting, or
+    (4.59.3; Nicholas 2026-11-23, the crash loop) the last run reopened the last effort and then ended without being
+    closed, less than ten minutes after it began. A start that reopens the same effort would do the same work again."""
+    global REASON
+    import time
+    d = _read(folder)
+    pending = int(d.get("pending", 0) or 0)
+    try:
+        lived = float(d.get("alive") or d.get("began") or 0) - float(d.get("began") or 0)
+    except (TypeError, ValueError):
+        lived = 0.0
+    soon = bool(d.get("began")) and bool(d.get("opened")) and not d.get("clean") and lived < SOON
+    safe = pending >= SAFE_AFTER or soon
+    REASON = ("twice" if pending >= SAFE_AFTER else "soon") if safe else ""
+    _write(folder, {"pending": pending + 1, "at": datetime.datetime.now().isoformat(timespec="seconds"), "began": time.time(),
+                    "opened": False, "clean": False})
     return safe
+
+
+def _mark(folder, **kw):
+    d = _read(folder)
+    d.update(kw)
+    _write(folder, d)
 
 
 def started(folder):
     """The window has been up for a few seconds: this start counts as good."""
-    try:
-        with open(_start_path(folder), "w", encoding="utf-8") as f:
-            json.dump({"pending": 0, "at": datetime.datetime.now().isoformat(timespec="seconds")}, f)
-    except OSError:
-        pass
+    _mark(folder, pending=0, at=datetime.datetime.now().isoformat(timespec="seconds"))
+
+
+def opened(folder):
+    """4.59.3: this start is reopening the effort last open."""
+    _mark(folder, opened=True)
+
+
+def alive(folder):
+    """4.59.3: still running (once a minute)."""
+    import time
+    _mark(folder, alive=time.time())
+
+
+def ended(folder):
+    """4.59.3: the window was closed by the person."""
+    _mark(folder, clean=True)
 
 
 # ---------------------------------------------------------------- what's new

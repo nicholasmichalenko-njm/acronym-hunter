@@ -132,6 +132,17 @@ def _inside(p, roots):
     return any(k == r or k.startswith(r + os.sep) for r in roots)
 
 
+def _made_here(p):
+    """4.59.3: the file is a redline copy the app made (its name and the note Prepare keeps beside it)."""
+    if " - redline copy - " not in os.path.basename(p):
+        return False
+    try:
+        import redlinecopy as RC
+        return bool(RC.sidecar(p))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def check(lib, data_dir, customer_dir="", sha=None, effort_root="", skip=(), not_in=()):
     """{"new": [(path, category)], "changed": [(path, doc, version)], "missing": [(doc, version, path)], "auto":
     [(path, category)]} for the watched folders. Updates the size and time cache (so the next check fingerprints only
@@ -198,6 +209,9 @@ def check(lib, data_dir, customer_dir="", sha=None, effort_root="", skip=(), not
                     out["changed"].append((p, d, v))
                 continue
             if h in shas or seen[k]["state"] in ("ignored", "before"):
+                continue
+            if _made_here(p):                        # 4.59.3: a Word copy Prepare made is not a document that came in
+                seen[k]["state"] = "ignored"
                 continue
             if is_root:
                 if first_root:

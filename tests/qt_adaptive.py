@@ -34,6 +34,7 @@ check("a button row wraps onto more lines when narrow", one_line == 1 and len({b
 t = QTableWidget(5, 3); t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
 t.setItem(0, 0, QTableWidgetItem("x" * 80))
 t.resize(500, 300); t.show(); app.processEvents()
+app._sk_tuner.sweep()            # 4.59.3: tables are tuned when the place worked in changes (no window takes the focus offscreen)
 hh = t.horizontalHeader()
 check("table columns resize by dragging, and the last fills the rest", hh.sectionResizeMode(0) == QHeaderView.Interactive
       and hh.stretchLastSection())

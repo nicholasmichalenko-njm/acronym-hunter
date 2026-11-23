@@ -1035,7 +1035,7 @@ class LibraryPage(QWidget):
             return None
         return self.add([p for p, _r in found], folders=dict(found), **kw)
 
-    def add(self, paths=None, folders=None, category=None, choices=None, reader=None, edited="replace"):
+    def add(self, paths=None, folders=None, category=None, choices=None, reader=None, edited="replace", by_likeness=True):
         """Read the files in the background (progress, Stop), then the review table, then add them (also in the
         background). choices (tests): {file name: changes} applied instead of the table; returns the worker."""
         if self.lib is None or self.running():
@@ -1051,7 +1051,7 @@ class LibraryPage(QWidget):
         lib, rd = self.lib, reader or DI.read
         self._choices = choices
         # 4.17.0: edited "replace": Add files and a drop (the person edited the file); the watch passes "version"
-        self.worker = JobWorker(lambda prog, stop: DI.plan(lib, list(paths), rd, prog, stop, folders, category, edited))
+        self.worker = JobWorker(lambda prog, stop: DI.plan(lib, list(paths), rd, prog, stop, folders, category, edited, by_likeness))
         self.worker.progress.connect(self.panel.step)
         self.worker.done.connect(self._planned)
         self.panel.start(f"Reading {len(paths)} document(s)", "Getting ready")

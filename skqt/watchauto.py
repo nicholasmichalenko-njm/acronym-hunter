@@ -98,5 +98,5 @@ def came_in(win, found):
     win.status(win.last_came_in)
     diag.activity("qt_watch_came_in", n=len(paths))
     got = page.add(paths, folders=rel, category=WA.CUSTOMER if cust else WA.AUTO,
-                   choices=_Same(role="matrix" if cust else "reference"), edited="version")
+                   choices=_Same(role="matrix" if cust else "reference"), edited="version", by_likeness=False)   # 4.59.3
     return paths if got is not None else []

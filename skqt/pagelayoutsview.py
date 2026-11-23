@@ -55,11 +55,12 @@ class LayoutsDialog(QDialog):
             w = QWidget(); wv = QVBoxLayout(w)
             lw = QListWidget(); lw.setWordWrap(True); lw.currentItemChanged.connect(lambda *_a: self.sync()); wv.addWidget(lw, 1)
             h = QHBoxLayout()
-            b = {"new": D.button("New...", "primary", lambda k=kind: self.new(k), "Take one from the Global Standards or a profile")}
+            # 4.59.3: a click hands the button's own True or False first; it was taken for the kind (KeyError)
+            b = {"new": D.button("New...", "primary", lambda _c=False, k=kind: self.new(k), "Take one from the Global Standards or a profile")}
             if kind == "layout":
                 b["page"] = D.button("Change the page...", None, lambda: self.change_page(), "Paper and the four margins")
-            b["rename"] = D.button("Rename...", None, lambda k=kind: self.rename(k))
-            b["remove"] = D.button("Remove", None, lambda k=kind: self.remove(k), "Only when no template picks it")
+            b["rename"] = D.button("Rename...", None, lambda _c=False, k=kind: self.rename(k))
+            b["remove"] = D.button("Remove", None, lambda _c=False, k=kind: self.remove(k), "Only when no template picks it")
             for x in b.values():
                 h.addWidget(x)
             h.addStretch(1); wv.addLayout(h)

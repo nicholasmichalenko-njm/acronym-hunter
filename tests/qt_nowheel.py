@@ -27,6 +27,7 @@ v.addWidget(combo); v.addWidget(spin); v.addWidget(date)
 for _ in range(40):
     v.addWidget(QComboBox())
 sa.setWidget(inner); sa.show(); app.processEvents()
+app._sk_tuner.sweep()            # 4.59.3: the wheel's rule is put on the boxes of what is on screen (at a focus change, a page shown, and every two seconds)
 
 
 def wheel(w, dy=-120):

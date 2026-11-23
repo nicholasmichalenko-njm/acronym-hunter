@@ -237,15 +237,15 @@ class PicView(QGraphicsView):
             self.zoom(1.25 if d.y() > 0 else 0.8)
         e.accept()                                   # 3.71.0: the panel around the preview never scrolls from here
 
+    def mouseDoubleClickEvent(self, e):                # 4.59.3: it sat on the text preview below, which has no zoom
+        self.zoom(1.6)
+
 
 class PreviewText(QTextBrowser):
     """3.71.0: a passage that scrolls itself and never hands the wheel to the panel around it."""
     def wheelEvent(self, e):
         super().wheelEvent(e)
         e.accept()
-
-    def mouseDoubleClickEvent(self, e):
-        self.zoom(1.6)
 
 
 def _qimage(pil):

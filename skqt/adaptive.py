@@ -121,6 +121,7 @@ class PageStack(QStackedWidget):
 
     def setCurrentWidget(self, page):
         super().setCurrentWidget(self._wrap(page))
+        tune_later(page)                                   # 4.59.3: its tables, now that it is the page shown
 
     def indexOf(self, page):
         return super().indexOf(self._wrap(page))
@@ -134,20 +135,88 @@ ROW_H = 24
 
 
 class ViewTuner(QObject):
-    """Every table and tree, when it first shows: columns resized by dragging (a column that filled the space keeps its
+    """Every table and tree, once it is on screen: columns resized by dragging (a column that filled the space keeps its
     width as a starting point; the last column fills what is left), "..." for text that does not fit with the full text
-    on hover, and smooth scrolling left and right."""
+    on hover, and smooth scrolling left and right.
+    4.59.3: it no longer listens to every event of the whole application. It did, and each of the hundreds of thousands
+    of events sent while the window is built, and every event after, ran this Python code (the start froze for 11 to 13
+    seconds, and the window crawled whenever a background read was busy). Now it looks for tables not yet tuned when a
+    page is shown (PageStack) and when the place being worked in changes (a click into another part or window)."""
+
+    def __init__(self, app):
+        super().__init__(app)
+        self.app = app
+        from PySide6.QtCore import QTimer
+        self.timer = QTimer(self); self.timer.setSingleShot(True); self.timer.setInterval(0); self.timer.timeout.connect(lambda: self.sweep(True))
+        app.focusChanged.connect(lambda *_a: self.timer.start())
+        self.tick = QTimer(self); self.tick.setInterval(2000)          # a box or a table made on a page already shown
+        self.tick.timeout.connect(lambda: self.sweep(True) if app.activeWindow() is not None else 0); self.tick.start()
+
+    def one(self, obj):
+        """Tune one view the first time; True when it was tuned now."""
+        if not isinstance(obj, QAbstractItemView) or obj.property("sk_tuned"):
+            return False
+        obj.setProperty("sk_tuned", True)
+        if _inside_calendar(obj) or isinstance(obj.parentWidget(), QComboBox) or obj.objectName().startswith("qt_"):
+            return False                                    # a calendar's days and a drop-down's list keep Qt's own layout
+        try:
+            tune(obj)
+        except Exception:
+            pass
+        return True
+
+    def within(self, root):
+        """Every table and tree under root that is not hidden and not yet tuned; and the wheel's rule on its boxes."""
+        n = 0
+        try:
+            from . import nowheel
+            nowheel.within(root)
+        except Exception:
+            pass
+        for v in ([root] if isinstance(root, QAbstractItemView) else []) + root.findChildren(QAbstractItemView):
+            if not v.property("sk_tuned") and not v.isHidden():
+                n += bool(self.one(v))
+        return n
+
+    def sweep(self, light=False):
+        """The windows on screen now. light: in a window that holds pages, only the page shown and the part being
+        worked in (looking through every page of the main window takes too long to do every two seconds)."""
+        n = 0
+        for w in self.app.topLevelWidgets():
+            if not w.isVisible():
+                continue
+            st = getattr(w, "stack", None) if light else None
+            if isinstance(st, PageStack):
+                pg = st.currentWidget()
+                n += self.within(pg) if pg is not None else 0
+            else:
+                n += self.within(w)
+        if light:
+            f = self.app.focusWidget()
+            for _k in range(4):                            # a drawer or a panel beside the page
+                if f is None or f.parentWidget() is None or f.parentWidget().isWindow():
+                    break
+                f = f.parentWidget()
+            big = f is not None and any(isinstance(getattr(w, "stack", None), PageStack) and (f is w.stack or f.isAncestorOf(w.stack))
+                                        for w in self.app.topLevelWidgets())
+            if f is not None and not f.isWindow() and not big:   # never the part that holds every page
+                n += self.within(f)
+        return n
 
     def eventFilter(self, obj, ev):
-        if ev.type() == QEvent.Show and isinstance(obj, QAbstractItemView) and not obj.property("sk_tuned"):
-            obj.setProperty("sk_tuned", True)
-            if _inside_calendar(obj) or isinstance(obj.parentWidget(), QComboBox) or obj.objectName().startswith("qt_"):
-                return False                                # a calendar's days and a drop-down's list keep Qt's own layout
-            try:
-                tune(obj)
-            except Exception:
-                pass
+        """Kept for a caller that hands it a Show event; it is not installed on the application any more."""
+        if ev.type() == QEvent.Show:
+            self.one(obj)
         return False
+
+
+def tune_later(root=None):
+    """Look again soon (after the page that was just shown has filled its tables)."""
+    from PySide6.QtWidgets import QApplication
+    t = getattr(QApplication.instance(), "_sk_tuner", None)
+    if t is not None:
+        t.within(root) if root is not None else None
+        t.timer.start()
 
 
 def _inside_calendar(w):
@@ -204,7 +273,6 @@ def _hover_text(view):
 
 
 def install(app):
-    t = ViewTuner(app)
-    app.installEventFilter(t)
+    t = ViewTuner(app)                                     # 4.59.3: no installEventFilter on the application
     app._sk_tuner = t
     return t
