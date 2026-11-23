@@ -1,0 +1,132 @@
+"""What changed in the 2.x versions, in the user's words; whatsnew.py adds them after the later ones (4.59.1). Text only."""
+
+OLDER = {
+    "2.99.0": ["More captures in Assign: evaluation factors with their importance, page limits, deliverables, effort details "
+               "(NAICS, contract type, set-aside...) and hot buttons. Effort Home shows Evaluation and hot buttons.",
+               "Tasks and team questions on a sentence, shown on its card and in the effort record.",
+               "The Compliance pages sit right under Effort in the menu."],
+    "2.98.0": ["Customer Q&A: the questions you submit to the customer, quoting their exact wording and where it is, with "
+               "status and answers; Capture > Question in Assign; export to Word, Excel or the customer's own template.",
+               "Capture > Key date puts questions due, site visits, orals and award on the calendar with their time zone.",
+               "Adding an amendment says at once what it changed; Assign outlines the changed and new sentences, shows what "
+               "each was, and opens the old page at the same spot."],
+    "2.97.0": ["Three work modes: Offline (testing and everyday work, General business to CUI), Connected (SharePoint) and "
+               "SCIF-ready (no logs, no training, no support files, locked once chosen). The chip in the top bar shows it.",
+               "A document marked above CUI (by its sensitivity label or its banners and markings) stops Add documents, the "
+               "Library and Read RFP on a regular install, with nothing copied.",
+               "Training only takes work from efforts whose sensitivity is known and at most CUI; the Trainer refuses files "
+               "marked above CUI and asks the level of an unmarked one."],
+    "2.96.0": ["Every kind of customer file: pictures and scanned pages get their words laid over them so you select "
+               "sentences exactly as on a typed PDF; old .doc, .xls and .ppt files are read; Excel opens in Sheet view (its "
+               "cells as a grid).",
+               "Assign: L (Instructions), M (Evaluation) and SOW (Work); drag across words to pick them; Capture files a "
+               "contact, submission instructions (a due date can become the effort's), formatting rules or an acronym, each "
+               "with where it came from. Effort Home has a Submission instructions card and contact cards.",
+               "The documents as a queue: Document 2 of 5, Mark reviewed, Next document."],
+    "2.95.0": ["Settings > Folders and file names: your effort folder tree as you keep it on SharePoint (fields like "
+               "{Solicitation} in folder names), the folder each thing the app makes goes to, and its name pattern, with a "
+               "sample of the exact path. New efforts get the whole tree; existing folders are never renamed or moved.",
+               "Dates and spaces in names as your team writes them, your company's name for {Company}, and {Version} counting "
+               "up. The effort list and its app data can sit in a folder of your tree. A team pack can carry and lock it all."],
+    "2.94.0": ["Effort Home shows whether the effort is page-limited, front and center (PAGE-LIMITED: 50 pages, or Not "
+               "page-limited when you say so in Edit details), and a Formatting requirements card: each rule required (what and "
+               "where) or not specified.",
+               "Settings > Document types: your own types with their initials; picking a type fills in the initial when "
+               "adding customer documents.",
+               "Watched folders: Customer Documents (and any folder you add, subfolders too) is checked for new, changed and "
+               "missing files. A strip says what was found: Add them..., Not these, or Review missing... (find it, keep the "
+               "record without it, or mark it withdrawn)."],
+    "2.93.0": ["Settings > Stages, gates and roles: your team's default stages, gate choices (rename the built-in ones, add "
+               "your own with what each does and means) and the roles offered for people on an effort. A team pack can carry them.",
+               "Stage tables: pick a stage's start and end from a calendar, with an optional time; the Stage column is readable.",
+               "Gate goals and tasks take a deadline (date and time) and an owner, accepted only inside the stage's dates; "
+               "the app says the stage's dates when one falls outside.",
+               "People and roles: a role drop-down per person (Effort Record, and People and roles... on Effort Home) that "
+               "saves when you pick.",
+               "Split in Assign shows on the page: a red line where it splits, the second part tinted, Split here and Cancel "
+               "beside it, and both parts in the card."],
+    "2.92.0": ["Time zones: yours in Settings, the submission's with the effort. Effort Home shows the deadline in both and the "
+               "countdown is right across zones.",
+               "Calendar: + Due date and + Event, with times, end times, zones, owners and places; your time shows beside theirs.",
+               "The readable copy is kept current again: everything in the effort as Excel, Word, CSV and Outlook files.",
+               "Export overview (Effort Home): your summary first, people's progress, newest documents, what is coming up.",
+               "Export tasks and questions for one person or the full team; a picked person's name shows large. Edit stages "
+               "on Effort Home; the due date in Effort Record needs no hidden switch."],
+    "2.91.0": ["Home (All Efforts) shows every effort as a card: stage, days to due, open tasks and questions, who has it "
+               "open. + Add an Effort is the way to start one.",
+               "Start without an effort: Unfiled works with every tool. A strip reminds you to file the work; Make it an "
+               "effort or Add to an effort files it.",
+               "Post-Submission: a checklist with owners and due dates after submission, your own items, a default for new "
+               "efforts and a formatted Excel export."],
+    "2.90.0": ["The program folder holds Stationkeeper.exe, _internal and About Stationkeeper (the read-me files). No "
+               "empty database or settings ship; Stationkeeper makes them in Stationkeeper Data.",
+               "A new effort gets Customer Documents, Volumes, Response Setup and Exports folders, and saves start there.",
+               "Open effort folder (Effort Home, Settings) shows the effort's folder in File Explorer."],
+    "2.89.0": ["Team defaults (Settings): one file sets up every PC the same way: the author list, matrix design, banned "
+               "words, default gate goals, company logos, Effort Home layouts by role, sensitivity markings and team topics.",
+               "Installing adds what a PC lacks and keeps its own. Parts the team locks replace each PC's own and stay as the "
+               "team set them. Undo puts everything back.",
+               "Customize Home can save your layout as the team's layout for a role. Team topics are one-click tags when "
+               "you take context from a library document."],
+    "2.88.0": ["Effort Home opens with the effort's banner: its picture, name, client, solicitation, proposal manager, "
+               "sensitivity and your own spots, with the due date and a live countdown. They travel with the effort.",
+               "A CUI or proprietary effort shows its marking in a strip across the top of every page.",
+               "Your company logos sit at the top of the menu (Settings > Branding); the Stationkeeper mark is at its foot. "
+               "The menu and page names are in Title Case.",
+               "Customize Home: pick your role (Proposal Manager, Production, Author, Reviewer, Capture) and show, hide and "
+               "order the sections. It is yours alone, on this PC. Authors get My work.",
+               "Calendar: Template... for people to fill in, Import... with a preview (the due date to the minute, stage "
+               "dates, tasks, reviews and meetings), Undo import, and Export... to Excel or Outlook (.ics)."],
+    "2.87.0": ["Deliverables moved up with the effort, right after Effort home, and opens as a board: one card per "
+               "deliverable, the ones that need action first.",
+               "Each card shows its owner, status, pages against the limit, the volume it holds in the response structure, "
+               "its requirements and how many have an author, and what is missing.",
+               "Click a card to see its requirements (double-click one to open it in Assign), what a customer version "
+               "changed, its submission check, its library context and its files.",
+               "A Volume deliverable links to its volume by name; pick another volume on the card to change it.",
+               "Effort home and the dashboard say how the deliverables stand. The table is still there under View: List.",
+               "Author list: Edit which efforts... With All efforts ticked every effort shows ticked; nothing changes until OK."],
+    "2.86.0": ["Response quality: Customer terms (start), Effort list (the glossary), Submission check and Lists to submit "
+               "(end), in one group; each page says which end it serves.",
+               "Customer terms scans the Library's customer documents with one button. Submission volumes are marked once.",
+               "Lists to submit holds only the terms each volume uses: one per volume, a master list, or both. Terms no "
+               "volume uses are left out and listed, and the effort list can show them.",
+               "A term's card shows where it was found, zoomed in. Plurals are marked Plural of ... and stay found.",
+               "Click a gate goal to change, remove or tick it by hand. Button rows wrap and tables resize and scroll."],
+    "2.85.0": ["Changes: Compare, Impact review and the requirements review are one page. A summary says what the new version "
+               "touches; each change shows side by side in its place and gets a decision.",
+               "Submission rules (was Requirements) shows what the customer requires now, with Was and Now in the row for "
+               "anything a version changed.",
+               "A requirement a version changed keeps its old wording and waits for its owner to confirm. Customer versions now "
+               "lives in Library.",
+               "The mouse wheel scrolls the page; it no longer changes a drop-down, number or date it passes over."],
+    "2.84.0": ["Read and assign any document: library documents that do not build the matrix open in Assign beside the "
+               "response structure (File list: Library: ...). Select text, then choose where it goes: context for a "
+               "section (C), for a requirement (F), a note (N), a question (Q), a task (T), or make it a requirement (R).",
+               "Context shows on the structure (Ctx column), on a requirement's card, and in Response Setup under its section.",
+               "Library > Taken from documents lists everything taken, filters it by kind, document and topic, and exports it.",
+               "Every start, after an update too, reopens the effort you last had open. Assign: Not used is now Ignore."],
+    "2.83.0": ["Library: every document of the effort in one place: customer documents, the bidders library, Q&A, our "
+               "documents and categories of your own, with folders, tags and search across the text of every document.",
+               "Add a folder (or drag folders and files onto the Library): every document comes in with a progress bar, its "
+               "category suggested from its folders and its folder names as tags, all checked in one table first.",
+               "Every document has a role: Builds the matrix, Context, Reference only or Not needed, kept with who, when "
+               "and why. Read RFP ticks the documents that build the matrix.",
+               "Save effort package: all documents, or the customer documents and Q&A only; the package still carries "
+               "every document's record and text."],
+    "2.82.0": ["Moving between pages is fast with many documents: version changes and submission requirements are worked "
+               "out once, in the background, and kept until something changes.",
+               "Read shows its progress: the file and page, a running clock, Stop, and a clear message if a file cannot be "
+               "read. Read is locked while it runs, so there is never a second read or a second matrix.",
+               "Read RFP: tick all, tick selected, or tick one type; select several rows with Shift or Ctrl.",
+               "After an update the new version shows each step while it reopens your work, so a pause never looks like lost work.",
+               "Assign: the decision buttons (Requirement, L, M, Support, Customer's, Not used) sit beside the response "
+               "structure, under the section they put sentences into."],
+    "2.81.0": ["Help and support in Settings: create a support file (no document content), the keyboard shortcuts, and this card.", "Ctrl+K searches pages, efforts, sentences and people from anywhere.",
+               "After two starts in a row that did not finish, Stationkeeper opens without the last effort and says why."],
+    "2.80.0": ["Your data lives in 'Stationkeeper Data' beside the program folder; updates never touch it.", "Effort health is checked when an effort opens; a damaged list or matrix is put back from its newest good copy.", "Stationkeeper asks before overwriting a matrix another copy saved, and waits out OneDrive holding a file."],
+    "2.79.0": ["Work modes: Secured (SCIF or closed network) or Connected (OneDrive team folder). Offline in both.", "Packages open where the sender was, with the same names, and say which copy is newer."],
+    "2.78.0": ["Automatic backups, a recovery copy after a crash, Effort record > Restore, and each effort reopens where you were."],
+    "2.77.0": ["One author list in Settings for every name, with the efforts each name shows in."],
+    "2.76.0": ["Update packs: install once, then update with one signed file."],
+}
