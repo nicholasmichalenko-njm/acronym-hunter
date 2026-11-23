@@ -13,7 +13,7 @@ import navsteps as NS
 from . import design as D
 
 RAIL_HEAD = "Effort"           # 4.50.0: the first group, under THE EFFORT'S PATH (THE PROGRAM while a program is open)
-FORMATTING = "Formatting"      # 4.46.0 (decision 71): the menu group that holds Templates, Page Layout, Styles, Quick Parts
+FORMATTING = "Standards and Formatting"      # 4.46.0 (decision 71): the menu group that holds Templates, Page Layout, Styles, Quick Parts
 
 # the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
 VIEWS = (("assign", "On the page", None), ("shredlist", "As a table", None))   # 4.54.0 (decision 62): one Shred, two views   # 4.3.0: placing, L to M and
@@ -25,15 +25,16 @@ CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Ru
 STEP_TITLES = {"home": ("Overview", "Where the effort is, what is left, and your next step"),
                "library": ("Documents", "The solicitation package: complete, current and readable"),
                "assign": ("Shred", "What every piece of the customer's text is, and its acronyms"),
-               "matrix": ("Matrix & Outline", "What we answer, and where in our structure"),
+               "matrix": ("Matrix", "What we answer, and where in our structure"),
+               "outline": ("Outline", "The structure of our response"),
+               "deliverables": ("Deliverables", "Everything that goes back to the customer, and whether it is ready"),
                "setups": ("Setup", "Who writes what, when and how long; the setup in Word"),
                "drafts": ("Drafts", "The team's drafts read back: where each section stands"),
                "finalcheck": ("Submit", "The last checks, then what happens after"),
                "tools": ("Quick tools", "Any tool on any file, with no effort needed; and what is not filed yet"),
                "calendar": ("Calendar", "The month, the day's list and the next dated things"),
                "tasks": ("Tasks", "This effort's tasks by gate, and yours across efforts"),
-               "graphics": ("Graphics", "Every graphic, the customer's and ours: its version, its words read, its acronyms swept"),
-               "redline": ("Redlining", "The documents marked Redlined Deliverable: a Word file of each, with a reviewer's comments placed as tracked changes; checked word for word; the exceptions table")}
+               "graphics": ("Graphics", "Every graphic, the customer's and ours: its version, its words read, its acronyms swept")}
 
 
 class ClickFrame(QFrame):
@@ -62,7 +63,7 @@ def _circle(n, state, t):
     return f"background:transparent;color:{t['rail_text']};border:2px solid {t['rail_ring']};"
 
 
-SUB = {"graphics": "Documents", "calendar": "the Overview", "tasks": "the Overview"}   # 4.25.5: Graphics; 4.27.1           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
+SUB = {}   # 4.25.5: Graphics; 4.27.1           # 4.12.0: a menu entry that sits under another (Redline under Documents), indented
 
 
 class StepButton(QPushButton):
@@ -71,8 +72,8 @@ class StepButton(QPushButton):
         super().__init__(text.replace("&", "&&"))
         self.key, self.n = key, n
         self.setObjectName("rail"); self.setCheckable(True)
-        self.setProperty("path", n is not None or key == "home")
-        if n is not None or key == "home":
+        self.setProperty("path", n is not None)
+        if n is not None:
             self.setStyleSheet("QPushButton#rail { padding-left: 42px; }")
         elif key in SUB:                                       # 4.12.0: under its entry, past the step numbers
             self.setStyleSheet("QPushButton#rail { padding-left: 58px; font-size: 12px; }")
@@ -80,7 +81,7 @@ class StepButton(QPushButton):
         h = QHBoxLayout(self); h.setContentsMargins(8, 0, D.SPACE["m"], 0); h.setSpacing(0)
         self.circle = QLabel("◎" if key == "home" else str(n or "")); self.circle.setFixedSize(24, 24)
         self.circle.setAlignment(Qt.AlignCenter); self.circle.setObjectName("railStepNo")
-        self.circle.setVisible(n is not None or key == "home")
+        self.circle.setVisible(n is not None)
         h.addWidget(self.circle, 0, Qt.AlignVCenter); h.addStretch(1)
         self.badge = QLabel(""); self.badge.setObjectName("railBadge"); self.badge.setVisible(False)
         h.addWidget(self.badge, 0, Qt.AlignVCenter)
@@ -110,24 +111,32 @@ class StepButton(QPushButton):
         self.badge.setStyleSheet(f"QLabel#railBadge{{color:{col};font-size:11px;background:transparent;}}")
 
 
+def _rule(rv):
+    rule = QFrame(); rule.setFixedHeight(1); rule.setStyleSheet(f"background:{D.tokens()['rail_rule']};"); rv.addWidget(rule)
+    return rule
+
+
 def build(w, rv, rail, beta):
-    """The menu's entries into the rail's layout; w.step_btns maps each entry to its button."""
+    """The menu's entries into the rail's layout; w.step_btns maps each entry to its button. 4.60.0: Quick tools, a
+    line, the effort switcher and the effort's pages (no numbers, no heading), a line, Standards and Formatting under
+    its heading, then Settings at the bottom."""
     w.steps_now = []
-    head = QLabel("THE EFFORT'S PATH"); head.setObjectName("railPathHead")
-    head.setStyleSheet(f"QLabel#railPathHead{{color:{D.tokens()['rail_group']};font-size:11px;letter-spacing:1px;padding:10px 6px 2px 6px;background:transparent;}}")
-    rv.addWidget(head)
     w.group_heads, w.group_items = {}, {}
-    for gi, (group, items) in enumerate(rail):
-        if group == FORMATTING:                                    # 4.28.0: the second path, under the effort's
-            th = QLabel(FORMATTING.upper()); th.setObjectName("railPathHead"); th.setStyleSheet(head.styleSheet()); rv.addWidget(th)
-        if group == "Team" or (gi == 1 and group != FORMATTING):
-            rv.addStretch(1)
-            rule = QFrame(); rule.setFixedHeight(1); rule.setStyleSheet(f"background:{D.tokens()['rail_rule']};"); rv.addWidget(rule)
-        w.group_heads[group] = head if gi == 0 else th if group == FORMATTING else None
+    for group, items in rail:
+        th = None
+        if group == RAIL_HEAD:
+            _rule(rv); rv.addWidget(w.rail_effort)
+        elif group == FORMATTING:
+            _rule(rv)
+            th = QLabel(FORMATTING.upper()); th.setObjectName("railPathHead")
+            th.setStyleSheet(f"QLabel#railPathHead{{color:{D.tokens()['rail_group']};font-size:11px;letter-spacing:1px;padding:10px 6px 2px 6px;background:transparent;}}")
+            rv.addWidget(th)
+        elif group == "Settings":
+            rv.addStretch(1); _rule(rv)
+        w.group_heads[group] = th
         w.group_items[group] = []
         for key, text in items:
-            n = NS_NUM.get(key)
-            b = StepButton(key, text, n)
+            b = StepButton(key, text, None)
             if key in beta:
                 b.setToolTip("Beta: still being proven on real documents")
             b.clicked.connect(lambda _=False, k=key: w.rail_go(k))
@@ -192,10 +201,6 @@ def refresh_access(w, rail_of, members):
     prog = PV.is_open(w)
     aside = set(aside) | (set(PV.PG.OUT) if prog else set()) | until_work(w)
     head = getattr(w, "group_heads", {}).get(RAIL_HEAD)
-    if head is not None:
-        head.setText("THE PROGRAM" if prog else "THE EFFORT'S PATH")
-    if "library" in w.step_btns:
-        w.step_btns["library"].circle.setVisible(not prog)
     for key, b in w.step_btns.items():
         ok = any(RA.allowed(prof, k) for k in members(key))
         b.setProperty("offrole", not ok)
@@ -213,15 +218,9 @@ def refresh_access(w, rail_of, members):
 
 
 def until_work(w):
-    """4.52.0 (decisions 10, 63, 81): the menu entries left out until there is work for them. With nothing open, the
-    effort's steps and the entries under them (Overview stays); Calendar and Tasks while no effort exists on this PC."""
-    import programs as PG
-    out = set()
-    if w.ws is None:
-        out |= {b.key for b in getattr(w, "group_items", {}).get(RAIL_HEAD, []) if b.key not in ("home", "calendar", "tasks")}
-    if not PG.effort_names(w.efforts):
-        out |= {"calendar", "tasks"}
-    return out
+    """4.60.0 (Nicholas 2026-11-23: "I don't want them to disappear or appear just because an effort has been created"):
+    no entry waits for work any more. With nothing open an effort's page says so and offers the way in."""
+    return set()
 
 
 def refresh_stage_tools(w, rail_of, prof=None):

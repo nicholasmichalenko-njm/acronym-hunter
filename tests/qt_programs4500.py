@@ -72,8 +72,8 @@ check("the panel: Add documents, and the doors a program has (4.52.0)", op.add_b
 vis = {k for k, b in w.step_btns.items() if not b.isHidden()}
 check("the menu leaves out the steps, the Calendar and Tasks", not (vis & set(PG.OUT)), vis & set(PG.OUT))
 check("and shows Overview, Documents, Formatting, Quick tools, Settings", {"home", "library", "templates", "tools", "settings"} <= vis
-      and not w.group_heads["Formatting"].isHidden(), vis)
-check("the head reads THE PROGRAM; Documents has no number; the switcher says Program", w.group_heads["Effort"].text() == "THE PROGRAM"
+      and not w.group_heads["Standards and Formatting"].isHidden(), vis)
+check("no heading over the pages (4.60.0); Documents has no number; the switcher says Program", w.group_heads["Effort"] is None
       and w.step_btns["library"].circle.isHidden() and w.rail_effort.stage.text() == "Program" and w.rail_effort.cap.text() == "Program"
       and not any(b.stage_dot.isVisibleTo(w) for b in w.step_btns.values()))
 w.go("acronyms"); pump()                                 # 4.52.0: the panel's Acronyms is a door (it asks for a file)
@@ -86,8 +86,8 @@ check("its card in the Programs view", list(hp.cards) == ["Kestrel Fleet"] and h
       and hp.show_prog.text() == "Programs (1)" and hp.cards["Kestrel Fleet"].more is None)
 hp.open("Heron"); pump()
 vis = {k for k, b in w.step_btns.items() if not b.isHidden()}
-check("an effort opened afterwards brings the steps and the effort's words back", {"assign", "matrix", "calendar", "tasks"} <= vis
-      and w.group_heads["Effort"].text() == "THE EFFORT'S PATH" and not w.step_btns["library"].circle.isHidden()
+check("an effort opened afterwards brings the steps and the effort's words back", {"assign", "matrix", "outline", "deliverables"} <= vis
+      and w.group_heads["Effort"] is None
       and w.rail_effort.cap.text() == "Effort" and not PV.is_open(w), vis)
 box = [w.effort_box.itemText(i) for i in range(w.effort_box.count())]
 check("the Working on box: efforts, a line, then programs", box[-2:] == ["", "Kestrel Fleet"] and box.index("Heron") < box.index(""), box)

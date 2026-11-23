@@ -93,7 +93,7 @@ check("Ctrl+Z still undoes the last change", not by("Text shall be no smaller").
 
 # ---- Quick tools
 keys = [k for _g, items in RAIL for k, _t in items]
-check("Quick tools is in the menu, at the bottom, before Team and Settings", keys[-4:] == ["tools", "team", "globalstd", "settings"]
+check("Quick tools is first in the menu (4.60.0)", keys[0] == "tools" and keys[-1] == "settings"
       and w.step_btns["tools"].text() == "Quick tools" and TITLES["tools"][0] == "Quick tools", keys)
 acts = [x.text() for x in FR.effort_menu(w).actions() if x.text()]
 check("... and out of the effort switcher, which holds no Unfiled to switch to either", "Quick tools" not in acts and not any("Unfiled" in x for x in acts), acts)

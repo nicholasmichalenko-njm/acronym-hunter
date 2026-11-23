@@ -33,10 +33,10 @@ app = QApplication([]); D.apply(app)
 from skqt import modes as _modes
 _modes.save(show_set_aside=False, hide_other_roles=False)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1440, 900); w.show(); app.processEvents()
-check("4.27.2: the Overview with Calendar and Tasks, six steps, Graphics under Documents, Redlining (4.59.2), Quick tools, Team, Settings", [b.text() for b in w.step_btns.values()] ==
-      ["Overview", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Redlining", "Templates", "Page Layout", "Styles", "Quick Parts", "Quick tools", "Team", "Global Standards", "Settings"],
+check("4.60.0: Quick tools, the effort's pages, Standards and Formatting, Settings", [b.text() for b in w.step_btns.values()] ==
+      ["Quick tools", "Overview", "Documents", "Graphics", "Deliverables", "Shred", "Matrix", "Outline", "Setup", "Drafts", "Submit", "Global Standards", "Rules", "Team References", "Templates", "Page Layout", "Styles", "Quick Parts", "Check a Draft", "Settings"],
       [b.text() for b in w.step_btns.values()])
-check("the steps are numbered 1 to 6", [b.circle.text() for k, b in w.step_btns.items() if k not in ("redline", "graphics", "calendar", "tasks")][1:7] == ["1", "2", "3", "4", "5", "6"])
+check("4.60.0: no entry is numbered", all(b.n is None and not b.circle.isVisibleTo(w) for b in w.step_btns.values()))
 check("the effort switcher is there with nothing open", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text().startswith("No effort open"))
 check("Ctrl+K is named at the foot of the menu", "Ctrl+K" in w.rail_hint.text())
 w.open_effort("Kestrel"); app.processEvents()
@@ -51,7 +51,7 @@ check("the switcher holds the Overview and All Efforts (4.27.2: Quick tools is a
 # Documents
 w.rail_go("library"); app.processEvents()
 check("Documents: Customer, Ours, Changes (4.2.0: Text check is Shred's Fix text; 4.6.0: Customer and Ours)", w._tab_keys[:2] == ["library", "compare"] and "verify" not in w._tab_keys
-      and w.page_title.text() == "Documents" and w.page_crumb.text() == "Step 1 of 6", (w._tab_keys, w.page_title.text()))
+      and w.page_title.text() == "Documents" and w.page_crumb.text() == "", (w._tab_keys, w.page_title.text()))
 w.go("compare"); app.processEvents()
 check("Changes lights Documents", w.step_btns["library"].isChecked() and w.page_title.text() == "Documents")
 w.go("verify"); app.processEvents()
@@ -60,7 +60,7 @@ check("Text check opens Shred in Fix text (4.2.0)", w.step_btns["assign"].isChec
 # Shred
 w.rail_go("assign"); app.processEvents()
 check("Shred: the stepper, not tabs", w.stepper.isVisibleTo(w) and not w.page_tabs.isVisibleTo(w) and w.page_title.text() == "Shred"
-      and w.page_crumb.text() == "Step 2 of 6")
+      and w.page_crumb.text() == "")
 check("... Requirements, Submission Checklist, Evaluation, Acronyms with counts (4.1.0): no tab repeats the step's name",
       [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"]
       and w.stepper.chips["assign"].ct.text() == "nothing extracted")
@@ -71,8 +71,8 @@ w.stepper.chips["acronyms"].click(); app.processEvents()
 check("a step chip opens its tab: Acronyms is the Acronyms page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked()
       and w.page_title.text() == "Shred")
 w.go("crosswalk"); app.processEvents()
-check("Crosswalk shows beside the page, in Matrix & Outline (4.3.0)", w.stack.currentWidget() is w.assign_page
-      and w.assign_page.views.key == "lm" and w.step_btns["matrix"].isChecked() and w._tab_keys[3] == "crosswalk")
+check("Crosswalk shows beside the page, in Matrix (4.3.0; 4.60.0)", w.stack.currentWidget() is w.assign_page
+      and w.assign_page.views.key == "lm" and w.step_btns["matrix"].isChecked() and w._tab_keys[2] == "crosswalk")
 w.stepper.see("shredlist"); app.processEvents()
 check("As a table is a way to see Shred (4.54.0): the menu stays on Shred",
       w.stack.currentWidget() is w.shredlist_page and w.step_btns["assign"].isChecked()
@@ -81,8 +81,8 @@ check("Shred's views are On the page and As a table; Sort and Accuracy are Quick
       and __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["shredacc"] == "tools")
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()
-check("Matrix & Outline: Outline, Place, Matrix, Crosswalk, Coverage (4.3.0)", w._tab_keys == ["outline", "place", "matrix", "crosswalk", "prove"] and w.page_title.text() == "Matrix & Outline"
-      and w.page_crumb.text() == "Step 3 of 6", (w._tab_keys, w.page_title.text()))
+check("Matrix: Matrix, Place, Crosswalk, Coverage (4.60.0: Outline is its own entry)", w._tab_keys == ["matrix", "place", "crosswalk", "prove"] and w.page_title.text() == "Matrix"
+      and w.page_crumb.text() == "", (w._tab_keys, w.page_title.text()))
 w.rail_go("drafts"); app.processEvents()
 check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth set aside)", w._tab_keys == ["drafts", "draftacr", "techedit", "markups"]
       and w.page_title.text() == "Drafts" and w.stack.currentWidget() is w.drafts_page, w._tab_keys)
@@ -104,19 +104,17 @@ check("the Overview: six step cards", [c.name.text() for c in hp.map.cards.value
       and hp.map.cards["library"].cap.text() == "1  NOW" and hp.map.isVisibleTo(w))
 check("... Your next step with one button", hp.map.next_title.text() == "Add the customer's documents" and "Open Documents" in hp.map.next_btn.text())
 check("... This week", hp.map.week.isVisibleTo(w))
-check("... Overview, All cards, Deliverables, the Effort Record and Meetings are its tabs", w._tab_keys[:5] == ["overview", "home", "deliverables", "record", "meetings"])
+check("... Overview, All cards, Calendar, Tasks, the Effort Record and Meetings are its tabs (4.60.0)", w._tab_keys[:6] == ["overview", "home", "calendar", "tasks", "record", "meetings"])
 check("... no bar at the bottom of the Overview", not w.next_bar.isVisibleTo(w))
 hp.map.cards["assign"].click(); app.processEvents()
 check("a card opens its step", w.step_btns["assign"].isChecked())
 hp.map.go_next(); app.processEvents()
 check("Your next step's button opens it", w.stack.currentWidget() is w.library_page)
 # Team
-w.rail_go("team"); app.processEvents()
-check("Team: one page of tiles", w.stack.currentWidget() is w.team_page and set(w.team_page.shown()[0]) == set(MW.TEAM)
-      and not w.next_bar.isVisibleTo(w))
-w.team_page.tiles["rules"].click(); app.processEvents()
-check("a tile opens its tool; the menu stays on Team", w.stack.currentWidget() is w.pages["rules"] and w.step_btns["team"].isChecked()
-      and w.page_crumb.text() == "Team")
-check("Ctrl+K finds Team", any(r[1] == "Team" for r in __import__("skqt.helpcenter", fromlist=["x"]).open_finder(w, run=False).entries))
+check("4.60.0: no Team entry; what it held is in the menu", "team" not in w.step_btns and {"rules", "refs", "audit"} <= set(w.step_btns))
+w.rail_go("rules"); app.processEvents()
+check("Rules opens from the menu, under Standards and Formatting", w.stack.currentWidget() is w.pages["rules"] and w.step_btns["rules"].isChecked()
+      and w.page_crumb.text() == "Standards and Formatting" and not w.next_bar.isVisibleTo(w), w.page_crumb.text())
+check("Ctrl+K finds Rules", any(r[1] == "Rules" for r in __import__("skqt.helpcenter", fromlist=["x"]).open_finder(w, run=False).entries))
 print(f"QT NAV 400 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

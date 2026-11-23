@@ -67,8 +67,8 @@ DL.add(rec, "Pricing form", kind="Customer file")
 rec.save_contact({"name": "Pat Ray", "title": "Contracting Officer", "org": "OSC"})
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("the Overview's tabs: Overview first, then All cards, Deliverables, Effort Record, Meetings",
-      [k for k, _t in TABS["home"]] == ["overview", "home", "deliverables", "record", "meetings", "activity"] and dict(TABS["home"])["home"] == "All cards")
+check("the Overview's tabs: Overview first, then All cards, Calendar, Tasks (4.60.0), Effort Record, Meetings",
+      [k for k, _t in TABS["home"]] == ["overview", "home", "calendar", "tasks", "record", "meetings", "activity"] and dict(TABS["home"])["home"] == "All cards")
 w.open_effort("Osprey"); app.processEvents()
 w.rail_go("home"); app.processEvents()
 op = w.overview_page

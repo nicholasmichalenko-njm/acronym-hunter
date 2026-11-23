@@ -68,17 +68,17 @@ t_next = rec.add_task("Sign the form", owner="Lee", due=(today + datetime.timede
 gid = GX.add(rec, "Transition timeline")
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-keys = [k for k, _t in RAIL[0][1]]
-check("the menu: Overview, Calendar, Tasks, then the path", keys[:4] == ["home", "calendar", "tasks", "library"]
-      and "calendar" not in STEP_KEYS and "tasks" not in STEP_KEYS and w.step_btns["tasks"].n is None and w.step_btns["calendar"].n is None, keys)
-check("... the six steps keep their numbers", [w.step_btns[k].n for k in ("library", "assign", "matrix", "setups", "drafts", "finalcheck")] == [1, 2, 3, 4, 5, 6])
+keys = [k for k, _t in RAIL[1][1]]
+check("4.60.0: Calendar and Tasks are tabs of Overview, not menu entries", keys[:2] == ["home", "library"] and "calendar" not in w.step_btns
+      and "tasks" not in w.step_btns and [k for k, _t in TABS["home"]][2:4] == ["calendar", "tasks"], keys)
+check("... no step carries a number", all(w.step_btns[k].n is None for k in ("library", "assign", "matrix", "setups", "drafts", "finalcheck")))
 check("Activity is a tab of the Overview", [k for k, _t in TABS["home"]][-1] == "activity")
 w.open_effort("Osprey"); app.processEvents()
 
 # Tasks
 w.rail_go("tasks"); app.processEvents()
 tp = w.tasks_page
-check("Tasks opens on this effort's tasks", w.stack.currentWidget() is tp and tp.view == "effort" and w.step_btns["tasks"].isChecked())
+check("Tasks opens on this effort's tasks", w.stack.currentWidget() is tp and tp.view == "effort" and w.step_btns["home"].isChecked())
 col0 = [tp.table.item(r, 0).text() for r in range(tp.table.rowCount())]
 check("... under their gate, the late one first", len(col0) == 3 and "·   2" in col0[0] and col0[1] == "Send the data call" and col0[2] == "Sign the form", col0)
 check("... the late one says so, and the count line counts it", "LATE" in tp.table.item(1, 2).text() and tp.count.text() == "2 open, 1 late", tp.count.text())
@@ -100,7 +100,7 @@ check("... with no name it says to pick one, and Add a task still works from her
 w.rail_go("calendar"); app.processEvents()
 cp = w.calendar_page
 check("Calendar opens with the month, today's list and what is coming up", w.stack.currentWidget() is cp and cp.day == today
-      and cp.day_card.title.text() == "Today" and w.step_btns["calendar"].isChecked())
+      and cp.day_card.title.text() == "Today" and w.step_btns["home"].isChecked())
 check("... the due date and the task ahead are coming up", any(x[2] == "Due" for x in cp.ahead) and any("Sign the form" in x[3] for x in cp.ahead), cp.ahead)
 check("... and their days are marked on the month", cp.paint() >= 1)
 due_day = today + datetime.timedelta(days=12)

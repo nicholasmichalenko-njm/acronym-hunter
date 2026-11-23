@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as theme
 
+__import__("skqt.noeffort", fromlist=["x"]).ON = False   # 4.60.0: this test looks at the pages themselves with nothing open
 checks = []
 
 
@@ -34,7 +35,7 @@ w.refresh_access(); app.processEvents()
 gone = ["truth", "reviews"]                              # 4.0.0: Drafts' tabs; My Work leaves the effort switcher
 w.go("drafts"); app.processEvents()
 check("the pages set aside leave the menu", not set(gone) & set(w._tab_keys) and "mywork" not in w.step_btns, w._tab_keys)
-check("... production's pages stay; Draft Status is back (4.0.0); Acronyms beside it (4.4.0); Reviewer markups (4.25.3)", w.step_btns["team"].isVisible()
+check("... production's pages stay; Draft Status is back (4.0.0); Acronyms beside it (4.4.0); Reviewer markups (4.25.3)", w.step_btns["audit"].isVisible()
       and not {"library", "assign", "matrix", "setups", "drafts", "finalcheck"} & MF.hidden(modes.settings())   # 4.52.0: not set aside; with nothing open the steps wait for an effort
       and w._tab_keys == ["drafts", "draftacr", "techedit", "markups"], w._tab_keys)
 from skqt import frame as _FR

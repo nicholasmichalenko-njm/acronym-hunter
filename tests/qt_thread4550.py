@@ -154,7 +154,7 @@ card_words = " ".join(x.text() for x in bp.start_card.findChildren(QLabel) if x.
 check("... no how-to on the page; We build it stays beside it", "type it Structure" not in card_words and "select the piece" not in card_words
       and bp.door2.isVisibleTo(w) and bp.door2.text() == "Draft headings from...", card_words)
 import skqt.guidetopics as GT
-gt = " ".join(str(x) for t in GT.TOPICS if t[0] == "structure" for x in t)
+gt = " ".join(str(x) for t in GT.TOPICS if t[0] == "outline" for x in t)
 check("... the how-to is in the Guide", "type it Structure" in gt and "No piece sets the structure yet" in gt)
 bp.go_shred.click(); pump()
 check("Go to Shred opens Shred", w.stack.currentWidget() is w.assign_page)

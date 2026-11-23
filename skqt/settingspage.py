@@ -196,9 +196,9 @@ class SettingsPage(QWidget):
                 ("People", ("authors",)),
                 ("Document types", ("doctypes_card",)),
                 ("Shred and responses", ("ri_card", "re_card", "un_card", "sg_card")),
-                ("Team data and training", ("gsl_card", "tl_card", "ourdata", "tr")),
+                ("Team data and training", ("team_card", "gsl_card", "tl_card", "ourdata", "tr")),   # 4.60.0: Team defaults is here again (the Team entry is gone)
                 ("Updates and help", ("up", "sec", "help")))
-    MOVED = ("team_card",)                       # 4.28.2 (answer 12): Team defaults is on the Team page
+    MOVED = ()                                   # 4.60.0: Team defaults came back from the Team page
     SET_ASIDE = ("process_card", "roles_card")   # 4.24.0: not shown for now; the code, the saved values and the tests stay
 
     def _sections(self, outer, old):

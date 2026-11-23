@@ -13,6 +13,7 @@ import app_gui as A
 from PySide6.QtWidgets import QApplication
 from skqt import design as D
 
+__import__("skqt.noeffort", fromlist=["x"]).ON = False   # 4.60.0: this test looks at the pages themselves with nothing open
 checks = []
 
 
@@ -50,9 +51,9 @@ w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 
 rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the effort's path, Redlining (4.59.2), then Team and Settings (4.0.0: six steps)", rail[:len(steps)] == steps
-      and steps == ["Overview", "Calendar", "Tasks", "Documents", "Graphics", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Redlining", "Templates", "Page Layout", "Styles", "Quick Parts", "Quick tools", "Team", "Global Standards", "Settings"], rail)
+      and steps == ["Quick tools", "Overview", "Documents", "Graphics", "Deliverables", "Shred", "Matrix", "Outline", "Setup", "Drafts", "Submit", "Global Standards", "Rules", "Team References", "Templates", "Page Layout", "Styles", "Quick Parts", "Check a Draft", "Settings"], rail)
 w.go("prove"); app.processEvents()
-check("the top bar names the page: Coverage is a tab of Matrix & Outline (4.3.0)", w.page_title.text() == "Matrix & Outline"
+check("the top bar names the page: Coverage is a tab of Matrix (4.3.0; 4.60.0)", w.page_title.text() == "Matrix"
       and w.stack.currentWidget() is w.assign_page and not w.stepper.isVisibleTo(w) and w.page_tabs.isVisibleTo(w)
       and w._tab_keys[w.page_tabs.currentIndex()] == "prove" and w.step_btns["matrix"].isChecked())
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
@@ -63,7 +64,7 @@ check("... a card's title sits in its own header row; a key card is marked", c.h
       and k.property("key") is True and D.Card().head is None)
 check("... status pills are as tall as their text", w.saved.sizePolicy().verticalPolicy() == w.saved.sizePolicy().Policy.Fixed
       and w.saved.height() < 30, w.saved.height())
-check("... the page's step shows above its title (3.96.0)", w.page_crumb.text() == "Step 3 of 6")
+check("... the page's step shows above its title (3.96.0)", w.page_crumb.text() == "")       # 4.60.0: no step numbers
 check("... menu entries in regular weight", "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])
 w.toast("Saved"); app.processEvents()
 check("a toast shows and names what happened", w.toaster.isVisible() and w.toaster.text() == "Saved")

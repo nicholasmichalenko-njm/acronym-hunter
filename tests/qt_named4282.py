@@ -39,7 +39,7 @@ w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.p
 check("Template's tabs: Templates, From profiles, Effort Profiles (4.29.1: Template Studio is Setup's)", MW.TABS["templates"] == [("templates", "Templates"), ("tplprofiles", "From profiles"),
                                                                                                            ("profiles", "Effort Profiles")])
 check("the page's title and the role that has it", TITLES["templates"][0] == "Templates" and "tplprofiles" in TITLES and RA.allowed("Production", "tplprofiles")
-      and MW.GROUP_OF.get("tplprofiles") == "Formatting" and "tplprofiles" in MW.MainWindow.NO_EFFORT)
+      and MW.GROUP_OF.get("tplprofiles") == "Standards and Formatting" and "tplprofiles" in MW.MainWindow.NO_EFFORT)
 w.rail_go("templates"); app.processEvents()
 pg = w.named_page
 check("the Template entry opens the templates you name, with no effort open", w.stack.currentWidget() is pg and w.ws is None)
@@ -148,7 +148,7 @@ check("Team defaults is on the Team page", getattr(w.team_page, "team_card", Non
 w.go("settings"); app.processEvents()
 st = w.settings_page
 names = [n for n, _c in st.SECTIONS]
-check("... and not in Settings", "team_card" not in [c for _n, cs in st.SECTIONS for c in cs] and not st.team_card.isVisibleTo(w), names)
+check("... 4.60.0: Team defaults is in Settings again (the Team entry is gone)", "team_card" in [c for _n, cs in st.SECTIONS for c in cs], names)
 # 4.43.0: the gallery
 w.close_effort() if w.ws is not None else None
 w.go("templates"); app.processEvents(); pg.fill(); pg.select(t["id"]); app.processEvents()

@@ -75,10 +75,11 @@ check("... a place to drop a document and Choose a file...", ov.landing.drop.isV
 check("... All tools shows; All Efforts waits until an effort or program exists", ov.landing.tools_btn.isVisibleTo(w)
       and not ov.landing.efforts_btn.isVisibleTo(w))
 check("... no path, no step, no counts", not ov.next_card.isVisibleTo(w) and not ov.door_row.isVisibleTo(w))
-check("the menu: no step, no Calendar, no Tasks", not any(shown(k) for k in STEPS + ("calendar", "tasks")))
-check("... it shows Overview, Quick tools, the Formatting entries, Global Standards, Team and Settings",
-      all(shown(k) for k in ("home", "tools", "templates", "formatstd", "styles", "designs", "globalstd", "team", "settings")))
-check("... THE EFFORT'S PATH heading is hidden while only Overview shows under it", w.group_heads["Effort"].isHidden())
+check("the menu (4.60.0): every step shows with nothing open; Calendar and Tasks are not entries", all(shown(k) for k in STEPS)
+      and not {"calendar", "tasks"} & set(w.step_btns))
+check("... it shows Overview, Quick tools, the Standards and Formatting entries and Settings",
+      all(shown(k) for k in ("home", "tools", "templates", "formatstd", "styles", "designs", "globalstd", "rules", "refs", "audit", "settings")))
+check("... there is no EFFORT'S PATH heading", w.group_heads["Effort"] is None)
 chosen = []
 _choose = DVW.choose
 DVW.choose = lambda host, door=None, paths=None, answer=None: chosen.append(door)
@@ -98,8 +99,7 @@ got = DVW.ask(w, [docx], answer=("acronyms", ("new_effort", "Kestrel bid")))
 pump()
 check("Acronyms with a new effort: made, opened, and it lands on Acronyms scanning the file", got == "Kestrel bid" and w.effort_name == "Kestrel bid"
       and w.stack.currentWidget() is w.acronym_page and scans and docx in scans[-1], (got, w.effort_name, scans))
-check("the menu now shows the steps, Calendar and Tasks", all(shown(k) for k in STEPS + ("calendar", "tasks"))
-      and not w.group_heads["Effort"].isHidden())
+check("the menu shows the steps, as it did before (4.60.0)", all(shown(k) for k in STEPS))
 w.go("overview"); pump()
 check("the Overview: the next step, and the doors' row with three doors under it", ov.body.isVisibleTo(w) and ov.next_card.isVisibleTo(w)
       and not ov.landing.isVisibleTo(w) and ov.door_row.isVisibleTo(w) and list(ov.door_row.btns) == ["acronyms", "shred", "check"]
@@ -172,8 +172,7 @@ f.close()
 # ---- 5. close everything
 w.close_effort(); w.go("overview"); pump()
 check("closing brings the landing back", ov.landing.isVisibleTo(w) and not ov.body.isVisibleTo(w) and not ov.program.isVisibleTo(w))
-check("... and the short menu, while Calendar and Tasks stay (an effort exists)", not any(shown(k) for k in STEPS)
-      and shown("calendar") and shown("tasks") and not w.group_heads["Effort"].isHidden())
+check("... and the menu stays as it was (4.60.0: no entry comes or goes)", all(shown(k) for k in STEPS))
 check("... All Efforts now shows on the landing", ov.landing.efforts_btn.isVisibleTo(w))
 
 # ---- 6. Calendar and Tasks with nothing open

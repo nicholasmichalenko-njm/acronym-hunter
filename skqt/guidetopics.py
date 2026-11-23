@@ -6,10 +6,14 @@ TOPICS = [
   "customer's documents, helps the team decide every requirement, and makes the matrix, the setup documents, the "
   "acronym lists and the submission checks. Everything stays on this PC.",
   "You are new to Stationkeeper, or want the big picture.",
-  ["The menu on the left is the effort's path: the Overview, then six steps in the order of the work: 1 Documents, "
-   "2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts, 6 Submit. Each step says what is left and none is ever locked; "
-   "Redlining sits below the steps, with no number: redlining can happen at any point. A step's pages are tabs under its title. Team holds the team's own tools; Settings is last.",
-   "The effort's name at the top opens All Efforts and Quick tools: any tool on any file, with no effort needed.",
+  ["The menu on the left is the same with or without an effort open. Quick tools is first: any tool on any file, with no "
+   "effort needed. Then the effort's pages, in the usual order of the work and with no numbers: Overview, Documents, "
+   "Graphics, Deliverables, Shred, Matrix, Outline, Setup, Drafts, Submit. Any of them can be used at any point. With "
+   "no effort open, such a page says what it is for and offers Open or create an effort.",
+   "Standards and Formatting holds what every effort is built from: Global Standards, Rules, Team References, Templates, "
+   "Page Layout, Styles, Quick Parts and Check a Draft. Settings is last. A page's parts are tabs under its title: "
+   "Calendar and Tasks are tabs of Overview, and Redlining opens from Deliverables.",
+   "The effort's name at the top opens All Efforts and My Work.",
    "Your role decides which of the team's tools show.",
    "Start an effort on All Efforts, or open one you already have.",
    "Add the customer's documents in Documents: each is extracted as it arrives. In Shred, say what every piece is, on "
@@ -274,7 +278,7 @@ TOPICS = [
   ["These are the same topics as the matrix's Topic column.",
    "A topic can name its response sections: a requirement kept with no section goes to its "
    "topic's first section."]),
- ("matrix", "Matrix & Outline", "Matrix",
+ ("matrix", "Matrix", "Matrix",
   "The compliance matrix as the customer will see it, built from what was shredded and placed.",
   "You deliver the matrix, or share it with the team.",
   ["Design... opens the columns, rows and Save as a view... beside the matrix. Add a column... adds your own.",
@@ -313,7 +317,7 @@ TOPICS = [
    "itself (formatting kept) when Word is on this PC; other files as their text.",
    "Final Checks' Open in What changed, and dropping two files on Quick tools, open Any two files with both picked."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
- ("structure", "Matrix & Outline", "Outline",
+ ("outline", "Outline", "Outline",
   "Our response structure: volumes and sections at H1 to H9. Start our structure offers two doors to the one outline: "
   "the customer prescribes it, or we build it.",
   "When the shred has reached the pieces that say how the response is organized, or as soon as you have headings.",
@@ -783,10 +787,11 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
         if _t[0] == _k and isinstance(_t[5], list):
             _t[5].append(_line)
 # 3.75.0, 4.20.1: the Guide reads in the menu's order (the six steps; a tab's page after its menu item)
-_ORDER = ("path home calendar tasks deliverables record meetings exportall library read compare datacalls graphics assign verify requirements evalcrit "
-          "custqa acronyms acrlist lists structure matrix crosswalk prove impact setups effortfmt storyboards drafts techedit reviews truth "
-          "finalcheck qa checks postsub keywords redline templates profiles formatstd layoutstd styles designs qpstd studio tools team "
-          "rules audit applyword fixcopy refs globalstd settings efforts mywork shredacc sort acrtool firstuse fulltext prodstd safe keys").split()     # 3.96.0: the effort's path
+_ORDER = ("path tools shredacc sort acrtool firstuse fulltext home calendar tasks record meetings exportall library read compare datacalls graphics "
+          "deliverables redline assign verify requirements evalcrit "
+          "custqa acronyms acrlist lists matrix crosswalk prove impact outline setups effortfmt storyboards drafts techedit reviews truth "
+          "finalcheck qa checks postsub keywords globalstd prodstd rules refs templates profiles formatstd layoutstd styles designs qpstd studio "
+          "audit applyword fixcopy team settings efforts mywork safe keys").split()     # 4.60.0: the menu's order
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):
     _last = float(_ORDER.index(_t[0])) if _t[0] in _ORDER else _last + 0.001

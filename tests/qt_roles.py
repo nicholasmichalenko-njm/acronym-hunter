@@ -40,7 +40,7 @@ w.open_effort("Kestrel"); app.processEvents()
 
 # ---------------------------------------------------------------- the menu
 heads = [g for g, _i in RAIL]
-check("the menu is the effort's path, then Team and Settings (3.96.0)", heads == ["Effort", "Formatting", "Team", "Settings"], heads)
+check("the menu is the effort's path, then Team and Settings (3.96.0)", heads == ["Tools", "Effort", "Standards and Formatting", "Settings"], heads)
 r = RR.Record(w.ws.root)
 # 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color
 cur_stage = r.stages[r.index()]["name"]
@@ -87,7 +87,7 @@ w.home_page.customize({"role": "Author", "order": __import__("branding").preset(
 w.refresh_access(); app.processEvents()
 check("an author's own choice: Team shows only the author's tools (3.96.0: tiles by role)", w.profile() == ("Author", "own")
       and "audit" not in w.team_page.refresh()[0:6] and "refs" in w.team_page.shown()[0]
-      and not w.step_btns["assign"].property("offrole") and not w.step_btns["team"].property("offrole"))
+      and not w.step_btns["assign"].property("offrole") and not w.step_btns["refs"].property("offrole"))
 w.go("fixcopy"); app.processEvents()
 check("opening one explains instead of opening it", w.stack.currentWidget() is np and np.card.title.text() == "Fix a Copy is for Proposal Manager, Production"
       and "Your role here is Author" in np.text.text() and np.act.text() == "Change my role..." and np.act.isVisibleTo(w), np.card.title.text())
@@ -114,7 +114,7 @@ check("... and only the proposal manager changes it: no button to change it here
       and not np.act.isVisibleTo(w) and "People in this effort" in np.text.text())
 MO.save(hide_other_roles=True); w.refresh_access(); app.processEvents()
 # 3.57.0: Wall of Truth is set aside (menufocus), so the fold and the role checks use Acronyms
-check("Hide the tools that are not for my role", w.step_btns["assign"].isVisibleTo(w) and w.step_btns["team"].isVisibleTo(w)
+check("Hide the tools that are not for my role", w.step_btns["assign"].isVisibleTo(w) and w.step_btns["refs"].isVisibleTo(w)
       and "formatstd" not in w.team_page.shown()[0])
 MO.save(hide_other_roles=False); w.refresh_access()
 w.go("settings"); app.processEvents()

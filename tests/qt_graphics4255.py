@@ -106,8 +106,8 @@ check("the count line's numbers", GL.counts(allr) == (3, 3, 3, 1), GL.counts(all
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Osprey"); app.processEvents()
-check("Graphics is in the menu under Documents, with no step number", ("graphics", "Graphics") in RAIL[0][1]
-      and RAIL[0][1].index(("graphics", "Graphics")) == RAIL[0][1].index(("library", "Documents")) + 1 and "graphics" not in STEP_KEYS
+check("Graphics is in the menu after Documents, with no step number", ("graphics", "Graphics") in RAIL[1][1]
+      and RAIL[1][1].index(("graphics", "Graphics")) == RAIL[1][1].index(("library", "Documents")) + 1 and "graphics" not in STEP_KEYS
       and w.step_btns["graphics"].n is None)
 steps = [k for k in STEP_KEYS]
 check("... the six steps keep their numbers", steps == ["home", "library", "assign", "matrix", "setups", "drafts", "finalcheck"], steps)

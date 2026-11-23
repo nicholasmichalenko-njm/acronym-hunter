@@ -43,17 +43,18 @@ def _WAU():
     return __import__("skqt.watchauto", fromlist=["x"])     # 4.25.1: the effort's own folder, watched
 
 
-RAIL = [("Effort", [("home", "Overview"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("library", "Documents"), ("graphics", "Graphics"),   # 4.25.5, 4.27.1
-                    ("assign", "Shred"), ("matrix", "Matrix & Outline"),
-                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit"),
-                    ("redline", "Redlining")]),     # 4.59.2 (decision 189): below the steps, no number
-        (FORMATTING, [("templates", "Templates"), ("formatstd", "Page Layout"), ("styles", "Styles"), ("designs", "Quick Parts")]),   # 4.28.0; 4.43.0: the gallery first, then its components (ST31 to ST40)
-        ("Team", [("tools", "Quick tools"), ("team", "Team")]),      # 4.27.2: Quick tools at the bottom of the menu
-        ("Settings", [("globalstd", "Global Standards"), ("settings", "Settings")])]   # 4.34.0: its own page
-STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k not in ("redline", "graphics", "calendar", "tasks"))
+# 4.60.0 (Nicholas 2026-11-23, Layout 1; DECISIONS.md): the same menu with or without an effort open; no numbers
+RAIL = [("Tools", [("tools", "Quick tools")]),
+        ("Effort", [("home", "Overview"), ("library", "Documents"), ("graphics", "Graphics"), ("deliverables", "Deliverables"),
+                    ("assign", "Shred"), ("matrix", "Matrix"), ("outline", "Outline"),
+                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
+        (FORMATTING, [("globalstd", "Global Standards"), ("rules", "Rules"), ("refs", "Team References"), ("templates", "Templates"),
+                      ("formatstd", "Page Layout"), ("styles", "Styles"), ("designs", "Quick Parts"), ("audit", "Check a Draft")]),
+        ("Settings", [("settings", "Settings")])]
+STEP_KEYS = tuple(k for k, _t in RAIL[1][1] if k not in ("graphics", "deliverables", "outline"))   # the six steps navsteps counts, after Overview
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Quick tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.27.0, 4.27.1
+TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.60.0: Calendar and Tasks are tabs here; Deliverables is its own entry   # 4.27.0, 4.27.1
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "List"), ("compare", "What changed"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
@@ -62,14 +63,13 @@ TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("deliverab
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
         "assign": [("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"),
                    ("acronyms", "Acronyms")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
-        "matrix": [("outline", "Outline"), ("place", "Place"), ("matrix", "Matrix"), ("crosswalk", "Crosswalk"),
-                   ("prove", "Coverage")],                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
+        "matrix": [("matrix", "Matrix"), ("place", "Place"), ("crosswalk", "Crosswalk"), ("prove", "Coverage")],   # 4.60.0: Outline is its own entry
+        "deliverables": [("deliverables", "List"), ("redline", "Prepare a redline"), ("rcheck", "Check a redline"), ("exceptions", "Exceptions")],   # 4.60.0: Redlining opens from a deliverable                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting"), ("studio", "Template Studio")],   # 4.29.1: it works on the open effort's volume
         "drafts": [("drafts", "Status"), ("draftacr", "Acronyms"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
                    ("truth", "Wall of Truth"), ("markups", "Reviewer markups")],   # 4.25.3: a reviewer's commented PDF of a draft                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
-        "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.8.0
         "templates": [("templates", "Templates"), ("tplprofiles", "From profiles"), ("profiles", "Effort Profiles")],   # 4.28.0, 4.28.2; 4.29.1: Template Studio is Setup's
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
@@ -78,32 +78,25 @@ REVIEW_VIEWS = ("shredlist",)          # 4.54.0: On the page and As a table; Acc
 TOOL_PAGES = ("shredacc", "sort")
 TEAM, TEMPLATES = ("rules", "audit", "refs"), ("styles", "designs", "formatstd", "templates")   # 4.28.0: the standards have their own group
 # the menu entry each page lights up
-RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
+ENTRIES = tuple(k for _g, items in RAIL for k, _t in items)
+RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in ENTRIES}
+RAIL_OF.update({k: k for k in ENTRIES})
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
 RAIL_OF.update({k: "tools" for k in TOOL_PAGES})                 # 4.19.0
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
                 "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
-RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
-RAIL_OF.update({**{k: t for t in TEMPLATES for k in [k for k, _t in TABS.get(t, [(t, "")])]}, "prodstd": "team", "qpstd": "designs", "layoutstd": "formatstd"})
-RAIL_OF.update({"redline": "redline", "rcheck": "redline", "exceptions": "redline"})   # 4.59.2 (189): its own menu entry again; the tile and the right-click still open it   # 4.8.0     # 3.98.0: a Quick Part's details open from Parts
+RAIL_OF.update({"prodstd": "globalstd", "qpstd": "designs", "layoutstd": "formatstd", "team": "settings"})   # 4.60.0: Team defaults opens from Settings
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 VIEWS = {}                     # 3.90.0 views of Review's maps; 4.3.0: place, crosswalk and prove are the Shred page (placemode)
 BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
-GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of {len(STEP_KEYS) - 1}")
-            for k, e in RAIL_OF.items()
-            for n in [STEP_KEYS.index(e) if e in STEP_KEYS else 0]}          # 4.12.0: Redline sits among them, unnumbered
-GROUP_OF.update({k: "" for k in ("redline", "rcheck", "exceptions")})   # 4.59.2 (189): not a step, no number
-GROUP_OF.update({"graphics": "Documents", "calendar": "The effort", "tasks": "The effort"}); RAIL_OF.update({k: k for k in ("graphics", "calendar", "tasks")})   # 4.25.5, 4.27.1
-GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
-GROUP_OF.update({k: FORMATTING for k, e in RAIL_OF.items() if e in TEMPLATES})   # 4.28.0; 4.46.0: the group is Formatting (decision 71)
-GROUP_OF.update({k: "" for k in TOOL_PAGES})                     # 4.19.0: Quick tools' own
+STANDARDS = tuple(k for k, _t in RAIL[2][1])
+GROUP_OF = {k: (FORMATTING if e in STANDARDS else "") for k, e in RAIL_OF.items()}   # 4.60.0: no step numbers; the group only for the standards
+GROUP_OF.update({"settings": "", "efforts": "", "mywork": "", "tools": "", "team": ""})
 
 
 def members(key):
     """The page keys a menu item holds: itself, or its tabs (Team: every team tool; Review: its views too)."""
-    if key == "team":
-        return [k for t in TEAM for k in members(t)]
     return [k for k, _t in TABS.get(key, [(key, "")])] + (list(REVIEW_VIEWS) if key == "assign" else [])
 
 
@@ -158,7 +151,7 @@ class MainWindow(QMainWindow):
         self.step_btns = {}
         # 3.96.0: the effort switcher at the top, then the effort's path, then Team and Settings (navrail)
         from .brandview import RailEffort
-        self.rail_effort = RailEffort(self); rv.addWidget(self.rail_effort)
+        self.rail_effort = RailEffort(self)                                 # 4.60.0: navrail.build places it under Quick tools
         self.stage_tools_now = []
         from . import navrail
         navrail.build(self, rv, RAIL, BETA)
@@ -348,6 +341,7 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
         self.notice_page = NoticePage(self); self.stack.addWidget(self.notice_page)
+        self.noeffort_page = __import__("skqt.noeffort", fromlist=["x"]).NoEffortPage(self); self.stack.addWidget(self.noeffort_page)   # 4.60.0
         __import__("skqt.acrtabs", fromlist=["x"]).fold_list(self)       # 4.6.0: the Acro List is Acros & Abs > Every term
         cv.addWidget(self.stack, 1)
         self.next_bar = NextBar(self); cv.addWidget(self.next_bar)       # 3.96.0: every page in a step ends with its next step
@@ -1108,9 +1102,13 @@ class MainWindow(QMainWindow):
                                    f"For {', '.join(why['roles'])}") + (f"  ·  {self.effort_name}" if self.effort_name else ""))
             diag.activity("qt_page_blocked")
             return False
-        pg = self.pages[step]
-        if hasattr(pg, "refresh"):
-            pg.refresh()
+        from . import noeffort as NE                 # 4.60.0: an effort's page with nothing open says so, with one way in
+        if NE.wanted(self, step):                    # the entry itself; a page reached another way keeps its own say
+            pg = self.noeffort_page.show_for(step)
+        else:
+            pg = self.pages[step]
+            if hasattr(pg, "refresh"):
+                pg.refresh()
         self.stack.setCurrentWidget(pg)
         head = HEAD_OF.get(step, step)               # 3.16.0: a tab's page marks its menu item
         btn = self.step_btns.get(step) or self.step_btns.get(RAIL_OF.get(step, head))
@@ -1149,7 +1147,7 @@ class MainWindow(QMainWindow):
         """3.16.0: the tabs of the menu item the page belongs to (none for a page that is its own item). 3.96.0:
         Review's are a stepper with counts, beside the ways to see it."""
         head = HEAD_OF.get(step, step)
-        on_review = RAIL_OF.get(step, head) == "assign" and not __import__("skqt.programsview", fromlist=["x"]).is_open(self)   # 4.50.0
+        on_review = RAIL_OF.get(step, head) == "assign" and not (self.ws is None and step == "assign") and not __import__("skqt.programsview", fromlist=["x"]).is_open(self)   # 4.50.0
         self.stepper.setVisible(on_review)
         self.page_tabs.setVisible(not on_review)
         if on_review:
@@ -1158,13 +1156,15 @@ class MainWindow(QMainWindow):
             self.page_tabs_box.setVisible(True)
             return [k for k, _t in TABS["assign"]]
         tabs = __import__("skqt.programsview", fromlist=["x"]).tabs_for(self, head, step, TABS.get(head) if step in dict(TABS.get(head, [])) else None)
+        if __import__("skqt.noeffort", fromlist=["x"]).wanted(self, step):   # 4.60.0: no parts until an effort is open
+            tabs = []
         if tabs:                                                          # 3.57.0: set-aside tabs leave the bar
             import menufocus as MF
             from .modes import settings
             aside = MF.hidden(settings()) - {step}
             tabs = [t for t in tabs if t[0] not in aside]
-        if head == "redline" and tabs and not __import__("skqt.redlinechoose", fromlist=["x"]).listed(self):     # 4.59.2 (226): the parts wait for a document
-            tabs = []
+        if head == "deliverables" and tabs and not __import__("skqt.redlinechoose", fromlist=["x"]).listed(self):     # 4.59.2 (226): Check and Exceptions wait for a document
+            tabs = [x for x in tabs if x[0] in ("deliverables", "redline", step)]
         self._tab_sync = True
         try:
             while self.page_tabs.count():

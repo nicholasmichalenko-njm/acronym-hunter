@@ -53,12 +53,15 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "techedit": ("Technical Edit", "Copy review of a draft", "page"),
          "shredacc": ("Shred accuracy", "How well the reader finds requirements, on answer keys", "page"),     # 4.19.0: off Shred
          "sort": ("Themes", "Cross-cutting themes on requirements, for filtering and assignments", "page"),
-         "redline": ("Redlining", "The effort's documents marked Redlined Deliverable, prepared and checked", "page")}   # 4.59.2
+         # 4.60.0 (Nicholas 2026-11-23 11:39: "I want it on the page for quick tools"): a tool on a file, no effort needed
+         "redline": ("Redline a document", "A Word file of a PDF or a picture, to mark up and return. No effort needed", "file")}
+FILE_USE = {"redline": "redline"}            # a "file" tool: choose files, then this use
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
              "Proposal Manager": ["home", "assign", "reviews", "mywork", "acrfinder", "qa"],
              "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],
              "Reviewer": ["reviews", "assign", "checks", "acrfinder"],
              "Capture": ["library", "assign", "structure", "custqa"]}
+ROLE_PINS = {r: p + ["redline"] for r, p in ROLE_PINS.items()}      # 4.60.0: Redline a document, for every role
 PINS_FILE = "home_pins.json"
 OLD = {"shredreq": "assign"}                 # 4.54.0: a pin saved before Quick shred became Shred's table
 
@@ -82,7 +85,10 @@ def load_pins(config_dir, role=""):
     aside = MF.hidden(settings())                   # 3.57.0: a set-aside page is not pinned
     try:
         with open(os.path.join(config_dir, PINS_FILE), encoding="utf-8") as f:
-            got = [OLD.get(k, k) for k in (json.load(f) or {}).get("pins", [])]       # 4.54.0: Quick shred's pin is Shred
+            saved = json.load(f) or {}
+            got = [OLD.get(k, k) for k in saved.get("pins", [])]       # 4.54.0: Quick shred's pin is Shred
+            if not saved.get("v460") and "redline" not in got:        # 4.60.0: offered once to pins saved before it; unpinning it stays
+                got.append("redline")
         return [k for n, k in enumerate(got) if k in TOOLS and k not in aside and k not in got[:n]]
     except (OSError, ValueError, AttributeError):
         return [k for k in (ROLE_PINS.get(role) or ROLE_PINS["Production"]) if k not in aside]
@@ -93,7 +99,7 @@ def save_pins(config_dir, pins):
     os.makedirs(config_dir, exist_ok=True)
     p = os.path.join(config_dir, PINS_FILE)
     with open(p + ".tmp", "w", encoding="utf-8") as f:
-        json.dump({"pins": [k for k in pins if k in TOOLS]}, f, indent=1)
+        json.dump({"pins": [k for k in pins if k in TOOLS], "v460": True}, f, indent=1)
     os.replace(p + ".tmp", p)
 
 
@@ -329,9 +335,16 @@ class ToolsHome(QWidget):
         return self.host.effort_name if self.host.ws is not None else ""
 
     # ---- actions
-    def open(self, key):
+    def open(self, key, paths=None):
+        """paths (tests): the files chosen for a tool that works on a file."""
         t, _what, kind = TOOLS[key]
         diag.activity("home_tool_opened")
+        if kind == "file":                               # 4.60.0: choose the file, then the tool; beside the file, no effort needed
+            use = FILE_USE[key]
+            if paths is None:
+                exts = " ".join("*" + e for e in next(ok for k, _t, ok in USES if k == use))
+                paths, _ = QFileDialog.getOpenFileNames(self, t, "", f"{t} ({exts})")
+            return self.files_in(paths, use=use) if paths else None
         if kind == "window":
             return self.host.open_tool({"acrfinder": "acronyms"}.get(key, key))
         return self.host.go(key)

@@ -56,7 +56,7 @@ g.show_topic("prove")
 g._go(); app.processEvents()
 check("Go to this page goes there (3.90.0: Coverage is a view of Review)", w.stack.currentWidget() is w.assign_page and w.assign_page.views.current() == "coverage")
 g._step(1)
-check("Next walks to the next topic", g.key == "setups", g.key)     # 4.20.1: the menu's order: Coverage ends Matrix & Outline, Setup follows
+check("Next walks to the next topic", g.key == "outline", g.key)     # 4.60.0: the menu's order: Coverage ends Matrix, Outline follows
 g._step(-1); g._step(-1)
 check("... and Previous back", g.key == "crosswalk", g.key)
 g.show_topic("start")

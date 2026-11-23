@@ -37,7 +37,7 @@ cfg = os.path.join(tmp, "cfg"); os.makedirs(cfg)
 F = os.path.join(tmp, "Shared", "Global Standards"); os.makedirs(F)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
-check("Global Standards is a page of its own in the menu, beside Settings", ("globalstd", "Global Standards") in dict(RAIL)["Settings"])
+check("Global Standards is a page of its own in the menu, first under Standards and Formatting (4.60.0)", dict(RAIL)["Standards and Formatting"][0] == ("globalstd", "Global Standards"))
 w.go("globalstd"); app.processEvents()
 gp = w.globalstd_page
 vis = lambda b: not b.isHidden()

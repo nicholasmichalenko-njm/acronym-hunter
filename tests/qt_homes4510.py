@@ -66,7 +66,7 @@ for key in [k for k, _t in MW.RAIL[0][1]]:
         failed.append((key, type(e).__name__ + ": " + str(e)[:120]))
 check("every menu entry for an effort page opens with nothing open, and no Unfiled is made or opened", not failed, failed)
 w.rail_go("library"); pump()
-check("... it goes to the page itself", w.stack.currentWidget() is w.library_page and w.ws is None)
+check("... it goes to the page that says no effort is open (4.60.0), and none is opened", w.stack.currentWidget() is w.noeffort_page and w.ws is None)
 w.fill_efforts()
 check("the Working on box has no Unfiled", w.effort_box.findText(UF.NAME) < 0)
 w.go("efforts"); pump()

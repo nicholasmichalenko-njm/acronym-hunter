@@ -31,7 +31,7 @@ def check(name, ok, info=""):
 cfg = A.CONFIG_DIR
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Home is first in the menu", list(w.step_btns)[0] == "home" and ("efforts", "All Efforts") in __import__("skqt.mainwin", fromlist=["x"]).SWITCHER)   # 3.53.0: Quick tools first
+check("Home is first in the menu", list(w.step_btns)[:2] == ["tools", "home"] and ("efforts", "All Efforts") in __import__("skqt.mainwin", fromlist=["x"]).SWITCHER)   # 3.53.0: Quick tools first
 w.go("efforts"); app.processEvents()
 hp = w.efforts_page
 check("no efforts yet: Add an Effort (4.27.2: starting without one is Quick tools, in the menu)", hp.empty.isVisibleTo(w)
