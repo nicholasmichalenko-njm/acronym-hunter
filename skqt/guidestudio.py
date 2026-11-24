@@ -80,13 +80,13 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
     ("formatstd", "Allowed styles...: the styles a finished document may use and the styles the rules read."),
     ("profiles", "Content map, fields and font rules...: every font rule, the content map and the fields, for the picked "
                  "profile in its effort type."),
-    ("setups", "Bring in a file... (3.73.0): drop or pick the team's outline Excel. What's in your workbook lists each "
+    ("setups", "Bring in an outline... (3.73.0): drop or pick the team's outline Excel. What's in your workbook lists each "
                "kind of text found in each column, as it looks (red text, black italic); say what each one is. Cells, piece "
                "by piece shows a column's cells marked; click a piece to change it. The preview shows the setup as it will "
                "be. Use this structure makes the sections and keeps the picks for the next workbook laid out the same way."),
     ("setups", "Setup styles... (in More): each kind of setup text's style name, font, size, color, bold, italic and hidden. Save for "
                "this effort, Use for every effort, or Put them in this effort's template."),
-    ("setups", "Use a template file... (3.72.0): the setup on a Word template your team already made. It starts blank in the "
+    ("setups", "Choose the Word template... (3.72.0): the setup on a Word template your team already made. It starts blank in the "
                "template's look; tick its cover, title page or front matter, any Quick Part, and which parts keep their header "
                "and footer. Headings follow the template's own numbering. The made file is checked before you get it."),
     ("settings", "Our data > Button use on this PC... (3.74.0): which buttons and menu items you press on each screen, "

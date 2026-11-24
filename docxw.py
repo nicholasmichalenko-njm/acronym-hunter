@@ -53,6 +53,7 @@ class Doc:
         self.landscape = False   # 2.98.0: wide pages (the customer Q&A table)
         self.styles = {}         # 3.24.0: {kind: style id}: written on a template, a kind takes its style, not colors
         self.skip = set()        # 3.33.0: kinds the content map leaves out of the file
+        self.kind_at = {}        # 4.63.0: {index in body: kind} of the paragraphs written with one (setuporder)
         self.final_sect = None   # 4.13.0: the last section's own sectPr (Redline's copy: the PDF's page size and margins)
         self.font, self.half_points = "Calibri", 22   # 4.13.0: the body text's font and size (Redline's copy: the PDF's)
         self.ppr_default = ""    # 4.15.0: the paragraph defaults (Redline's copy: single lines, no space after, as Word's own PDF had)
@@ -76,6 +77,7 @@ class Doc:
     def para(self, text, bold=False, color=None, kind=None):
         if self.left_out(kind):
             return
+        self.kind_at[len(self.body)] = kind or ""
         sid = self.styles.get(self._kind(kind)) if kind else None
         if sid:                                    # 3.24.0: the kind's style carries the look (and hides it when it is hidden)
             self.body.append(f'<w:p><w:pPr><w:pStyle w:val="{_x(sid)}"/></w:pPr>{_run(text, bold, None)}</w:p>')
@@ -94,6 +96,7 @@ class Doc:
         format rule for the section), with or without a setup style."""
         if self.left_out(kind):
             return
+        self.kind_at[len(self.body)] = kind or ""
         sid = self.styles.get(self._kind(kind)) if kind else None
         if sid:                                    # 3.24.0: the style holds color, indent and border
             parts = [(t, {k: v for k, v in (f or {}).items() if k != "color"}) for t, f in parts]

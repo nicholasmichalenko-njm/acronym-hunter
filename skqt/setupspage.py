@@ -19,7 +19,7 @@ from .adaptive import FlowLayout
 
 class SetupsPage(QWidget):
     """3.74.0 (decision 12, and the eight rules of claude/stationkeeper-simplify-decisions-2026-11-06.md): one page. The
-    command bar (Make the setup, Bring in a file..., Use a template file..., Add elements..., + Volume; More; Export), a
+    command bar (Make the setup, Bring in an outline..., Choose the Word template..., Add elements..., + Volume; More; Export), a
     line saying the template and what fills each section, then the sections: the Structure Builder's tree, its
     right-click menu and keys, its placing, and the selected section's lead, contributors, due date, pages and PM
     direction. With no sections yet, one card: drop a file, bring one in, or type them."""
@@ -35,13 +35,15 @@ class SetupsPage(QWidget):
         v.setSpacing(D.SPACE["s"])
         from .commandbar import CommandBar
         bar = self.bar = CommandBar()
-        bar.add("Bring in a file...", lambda: self.bring_in(),
-                "Excel: its columns are read (What's in your workbook). Word: its headings, or the template. PDF: the RFP's sections.")
-        bar.add("Use a template file...", lambda: self.template_file(),
-                "Your team's Word template: pick it before or after the sections")
-        self.b_elements = bar.add("Add elements...", lambda: self.builder.add_elements(),
-                                  "Table of Contents, the lists, Acronyms and Abbreviations, the Appendices section and the rest")
-        self.b_volume = bar.add("+ Volume", lambda: self.builder.add_volume(), "A new volume at the end, numbered the volumes' way")
+        bar.add("Bring in an outline...", lambda: self.bring_in(),         # 4.63.0: each named for what it brings
+                "The sections, from a file. Excel: its columns are read (What's in your workbook). Word: its headings. PDF: the RFP's sections.")
+        bar.add("Choose the Word template...", lambda: self.template_file(),
+                "The look: your team's Word template, picked before or after the sections")
+        bar.add("Order under each heading...", lambda: __import__("skqt.setuporderview", fromlist=["x"]).open_order(self),   # 4.63.0
+                "Which kind of text comes first under a heading: the RFP text, management guidance, notes and the rest")
+        # 4.63.0: Add elements... and + Volume are Outline's (4.3.0 hid them here); kept as buttons off the bar for the code that names them
+        self.b_elements = D.button("Add elements...", None, lambda: self.builder.add_elements()); self.b_elements.setParent(self); self.b_elements.hide()
+        self.b_volume = D.button("+ Volume", None, lambda: self.builder.add_volume()); self.b_volume.setParent(self); self.b_volume.hide()
         self.b_make = bar.primary("Make the setup", lambda: self.make(),
                                   "Each volume's template with the setup written on it: the customer's words and your notes in "
                                   "hidden reference styles")
@@ -228,7 +230,7 @@ class SetupsPage(QWidget):
         its headings or the template (asked when there are no sections yet and it has headings); a PDF is the RFP's
         sections. as_ (tests): "sections" or "template". Returns what it did, or None."""
         if path is None:
-            path, _ = QFileDialog.getOpenFileName(self, "Bring in a file", "", "Excel, Word or PDF (*.xlsx *.xlsm *.docx *.dotx *.dotm *.pdf)")
+            path, _ = QFileDialog.getOpenFileName(self, "Bring in an outline", "", "Excel, Word or PDF (*.xlsx *.xlsm *.docx *.dotx *.dotm *.pdf)")
             if not path:
                 return None
         ext = os.path.splitext(path)[1].lower()
@@ -275,7 +277,7 @@ class SetupsPage(QWidget):
         if os.environ.get("AH_TEST"):
             return "sections"
         from PySide6.QtWidgets import QMessageBox
-        box = QMessageBox(self); box.setWindowTitle("Bring in a file")
+        box = QMessageBox(self); box.setWindowTitle("Bring in an outline")
         box.setText(f"{os.path.basename(path)} has headings. Use it as:")
         b_sec = box.addButton("The sections (its headings)", QMessageBox.AcceptRole)
         box.addButton("The template", QMessageBox.ActionRole)
@@ -386,7 +388,7 @@ class SetupsPage(QWidget):
         if tf:
             own = {k: os.path.basename(v["file"]) for k, v in tf.items()}
             return "Made on your template: " + "; ".join(("every volume" if k == "*" else k) + f": {n}" for k, n in own.items()) \
-                + ". Use a template file... to change it or go back to the app's own."
+                + ". Choose the Word template... to change it or go back to the app's own."
         try:
             import setuptemplate as ST
             info = self.host.efforts.get(self.host.effort_name) or {}
@@ -633,7 +635,7 @@ class SetupsPage(QWidget):
             return None
         except (ValueError, OSError):
             diag.swallowed()
-            self.host.status("The template file could not be read: pick it again in Use a template file...")
+            self.host.status("The template file could not be read: pick it again in Choose the Word template...")
             return None
         others = [v for v in self.volume_names() if not TS.for_volume(M, v, self.host.effort_path or "")]
         if others:

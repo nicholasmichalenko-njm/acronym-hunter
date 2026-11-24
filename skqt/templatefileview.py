@@ -1,4 +1,4 @@
-"""Setup > Use a template file... (3.72.0, claude/stationkeeper-template-setup-decisions-2026-11-06.md): a Word template
+"""Setup > Choose the Word template... (3.72.0, claude/stationkeeper-template-setup-decisions-2026-11-06.md): a Word template
 the team already made and trusts, for every volume or one volume. It shows what the template holds (its parts in
 order with their page numbers and headers, the heading numbering, its Quick Parts, the setup styles it has or gets,
 its theme fonts) and what the setup takes from it: blank by default, the body only in the template's look; tick the
@@ -21,7 +21,7 @@ class TemplateFileDialog(QDialog):
     def __init__(self, page, volume=EVERY):
         super().__init__(page)
         self.page, self.host = page, page.host
-        self.setWindowTitle("Use a template file")
+        self.setWindowTitle("Choose the Word template")
         self.resize(1180, 760)
         self.info, self.path = None, ""
         v = QVBoxLayout(self)

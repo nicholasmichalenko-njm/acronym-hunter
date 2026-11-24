@@ -41,7 +41,7 @@ sp = w.setups_page
 check("the Structure Builder's links open Setup", w.stack.currentWidget() is sp and w.page_title.text() == "Setup")
 bar = sp.bar
 check("one command bar: Make the setup is the one main button, four more commands",
-      [b.text() for b in bar.commands] == ["Bring in a file...", "Use a template file...", "Add elements...", "+ Volume", "Make the setup"]
+      [b.text() for b in bar.commands] == ["Bring in an outline...", "Choose the Word template...", "Order under each heading...", "Make the setup"]
       and bar.main.text() == "Make the setup" and len(bar.commands) <= MAX, [b.text() for b in bar.commands])
 check("More holds the rest, Export every file", all(bar.action(t) for t in ("Edit as text / Start from", "Sort in document order",
       "Show what is placed", "What fills each section...", "Setup styles...", "Outline versions...", "Outline layouts..."))

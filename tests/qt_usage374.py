@@ -44,30 +44,30 @@ btn.clicked.disconnect(); btn.clicked.connect(lambda: None)
 app._sk_tuner.sweep()            # 4.59.4: the counter is put on the buttons and menus on screen (no window takes the focus offscreen)
 QTest.mouseClick(btn, Qt.LeftButton, Qt.NoModifier, QPoint(5, 5)); app.processEvents()
 QTest.mouseClick(btn, Qt.LeftButton, Qt.NoModifier, QPoint(5, 5)); app.processEvents()
-check("a button pressed is counted under its screen", w.usage.d["counts"].get("setups", {}).get("Bring in a file...") == 2, w.usage.d["counts"])
+check("a button pressed is counted under its screen", w.usage.d["counts"].get("setups", {}).get("Bring in an outline...") == 2, w.usage.d["counts"])
 dis = w.setups_page.b_make
 QTest.mouseClick(dis, Qt.LeftButton, Qt.NoModifier, QPoint(5, 5)); app.processEvents()
 check("a button that is off is not counted", "Make the setup" not in w.usage.d["counts"].get("setups", {}), w.usage.d["counts"])
 w.usage.count(w.usage.screen(w.undo_btn) if hasattr(w, "undo_btn") else "The frame", "Undo")
 w.usage.flush()
 d = json.load(open(os.path.join(cfg, U.FILE), encoding="utf-8"))
-check("kept in button_use.json, format 1, with the day it started", d["format"] == 1 and d["since"] and d["counts"]["setups"]["Bring in a file..."] == 2)
+check("kept in button_use.json, format 1, with the day it started", d["format"] == 1 and d["since"] and d["counts"]["setups"]["Bring in an outline..."] == 2)
 real = U.scif
 U.scif = lambda: True
-check("nothing is counted in a SCIF-ready install", w.usage.count("setups", "Bring in a file...") is False and U.install(w) is None)
+check("nothing is counted in a SCIF-ready install", w.usage.count("setups", "Bring in an outline...") is False and U.install(w) is None)
 U.scif = real
 dlg = w.settings_page.button_use(modal=False); app.processEvents()
 check("Settings > Our data > Button use on this PC...: most pressed first", dlg.table.rowCount() >= 2
-      and dlg.table.item(0, 1).text() == "Bring in a file..." and dlg.table.item(0, 2).text() == "2" and dlg.table.item(0, 0).text() == "Setup",
+      and dlg.table.item(0, 1).text() == "Bring in an outline..." and dlg.table.item(0, 2).text() == "2" and dlg.table.item(0, 0).text() == "Setup",
       [dlg.table.item(r, 1).text() for r in range(dlg.table.rowCount())])
 dlg.pick.setCurrentIndex(dlg.pick.findData("setups")); app.processEvents()
 check("... by screen", all(dlg.table.item(r, 0).text() == "Setup" for r in range(dlg.table.rowCount())))
 out = dlg.export(os.path.join(tmp, "use.xlsx"))
 from openpyxl import load_workbook
 ws = load_workbook(out).active
-check("... exported to Excel", ws.cell(1, 1).value == "Screen" and ws.cell(2, 2).value == "Bring in a file..." and ws.cell(2, 3).value == 2)
+check("... exported to Excel", ws.cell(1, 1).value == "Screen" and ws.cell(2, 2).value == "Bring in an outline..." and ws.cell(2, 3).value == 2)
 dlg.on.setChecked(False); app.processEvents()
-check("... turned off, nothing more is counted", w.usage.count("setups", "Bring in a file...") is False and U.load(cfg)["on"] is False)
+check("... turned off, nothing more is counted", w.usage.count("setups", "Bring in an outline...") is False and U.load(cfg)["on"] is False)
 dlg.on.setChecked(True); dlg.clear(); app.processEvents()
 check("... cleared", dlg.table.rowCount() == 0 and U.load(cfg)["counts"] == {} and U.load(cfg)["on"] is True)
 dlg.close()

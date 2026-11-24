@@ -881,6 +881,7 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
         for x in o.get("lib") or []:                             # 3.30.0: library items placed before the requirements
             if x.get("where") != "after":
                 d.body.append(EB.lib_xml(x))
+        c0 = len(d.body)                                          # 4.63.0: what is under the heading starts here (setuporder)
         pp = S["owners"].get(lab) or {}
         due = (S.get("due") or {}).get(lab, "")                   # 3.56.0: the section's due date (Setup page)
         if (pp.get("lead") or pp.get("with") or due) and "author" not in d.skip:   # 2.38.0: who writes this section
@@ -970,6 +971,7 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
         for text, docname, where in (context or {}).get(lab, []):    # 2.84.0: context taken from library documents
             d.rich([("From " + docname + (f" ({where})" if where else "") + ": ", {"color": LIBRARY_TEAL, "bold": True}),
                     (text, {"color": LIBRARY_TEAL})], indent=720, border=LIBRARY_TEAL, kind="library")
+        __import__("setuporder").arrange(d.body, d.kind_at, c0, len(d.body), __import__("setuporder").order_for(S, lab))   # 4.63.0
         for x in o.get("lib") or []:                             # library items placed after the requirements
             if x.get("where") == "after":
                 d.body.append(EB.lib_xml(x))

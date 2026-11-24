@@ -340,8 +340,8 @@ TOPICS = [
   "customer's words, how it is scored, the PM's direction, its pages, its lead and due date, in hidden reference styles.",
   "As soon as you have headings, even before the customer's documents are read; and again after the shred, a new "
   "template or new direction.",
-  ["No sections yet: drop a file on the page or Bring in a file... (Excel, Word or PDF), or type the sections, then Use "
-   "these sections. Use a template file... works before or after the sections.",
+  ["No sections yet: drop a file on the page or Bring in an outline... (Excel, Word or PDF), or type the sections, then Use "
+   "these sections. Choose the Word template... works before or after the sections.",
    "The sections: right-click one to rename it, make it a heading level, unnumbered, a divider or a placeholder, start a "
    "Word section, add one below or under it, move it or delete it. Enter adds one below, Tab and Shift+Tab change its "
    "level, F2 renames, Delete takes it out, and a drag moves it.",
