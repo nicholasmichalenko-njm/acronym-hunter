@@ -46,7 +46,14 @@ AL.assign(M0, ["K-2"], "1.2 Risk"); AL.assign(M0, ["K-3"], "2 Management")
 g = AL.gaps(M0)
 check("a section with a piece of its own is not empty though the one under it is", g["empty"] == ["2.1 Team"] and not g["requirements"] and not g["criteria"], g)
 AL.also(M0, ["K-3"], "2.1 Team")
+check("4.68.0: all assigned, none Addressed: the three are still open", AL.gap_count(M0) == 3 and [r["id"] for r in AL.gaps(M0)["open"]] == ["K-1", "K-2", "K-3"])
+check("Drafted is not Addressed", AL.set_mark(M0, ["K-1"], "Drafted") == 1 and len(AL.gaps(M0)["open"]) == 3 and AL.rows(M0, "all")[0]["mark"] == "Drafted")
+check("Addressed leaves the list; setting it twice changes nothing", AL.set_mark(M0, ["K-1", "K-2", "K-3"], "Addressed") == 3 and AL.set_mark(M0, ["K-1"], "Addressed") == 0)
+check("the mark is the piece's Compliance status", M0.items[0]["status"] == "Addressed")
 check("nothing left", AL.gap_count(M0) == 0)
+check("back to Not started", AL.set_mark(M0, ["K-2"], "") == 1 and M0.items[1]["status"] == "" and [r["id"] for r in AL.gaps(M0)["open"]] == ["K-2"])
+M0.items[2]["status"] = "Compliant"
+check("a status typed before that is not one of the three shows as it is and is not Addressed", AL.rows(M0, "all")[2]["mark"] == "Compliant" and len(AL.gaps(M0)["open"]) == 2)
 
 # on the screen
 tmp = tempfile.mkdtemp()
@@ -77,7 +84,7 @@ labs = SD.labels(M)
 AL.assign(M, [kept[0]["id"]], labs[1])
 w.go("linkcheck"); app.processEvents()
 n = {k: pg.lists[k].count() for k in pg.lists}
-check("the three lists", pg.body.isVisibleTo(w) and n == {"requirements": 6, "criteria": 1, "empty": 1} and pg.lists["empty"].item(0).text() == labs[2], n)
+check("the lists", pg.body.isVisibleTo(w) and n == {"requirements": 6, "criteria": 1, "empty": 1, "open": 1} and pg.lists["empty"].item(0).text() == labs[2], n)
 check("each card's title has its count", pg.cards["requirements"].title.text() == "Requirements not assigned: 6"
       and pg.cards["empty"].title.text() == "Sections with nothing assigned: 1", pg.cards["requirements"].title.text())
 check("Open in Assign waits for a row", not pg.b_open.isEnabled())
@@ -93,6 +100,21 @@ pg.lists["criteria"].setCurrentRow(0); app.processEvents()
 pg.open_row(); app.processEvents()
 check("a piece opens in Assign, picked in the list", w.stack.currentWidget() is ap and ap.picked() == [kept[3]["id"]], ap.picked())
 AL.assign(M, [it["id"] for it in kept], labs[1]); AL.also(M, [kept[0]["id"]], labs[2])
+w.go("linkcheck"); app.processEvents()
+check("4.68.0: all assigned: the fourth list holds them, with the mark and the section", pg.lists["open"].count() == 8 and not pg.done.isVisibleTo(w)
+      and "(Not started; " in pg.lists["open"].item(0).text() and not pg.b_done.isEnabled(), pg.lists["open"].item(0).text())
+pg.lists["open"].setCurrentRow(0); app.processEvents()
+check("Mark Addressed marks the row picked; it leaves the list", pg.b_done.isEnabled() and pg.mark_addressed() == 1 and pg.lists["open"].count() == 7
+      and kept[0]["status"] == "Addressed" and M.pending)
+pg.lists["open"].setCurrentRow(0); app.processEvents()
+pg.open_row(); app.processEvents()
+check("a row of the fourth list opens in Assign with All showing, the piece picked, its mark in the Status column", w.stack.currentWidget() is ap
+      and ap.show_box.currentData() == "all" and ap.picked() == [kept[1]["id"]] and ap.table.horizontalHeaderItem(4).text() == "Status"
+      and ap.table.item(ap.table.currentRow(), 4).text() == "Not started", ap.picked())
+check("Assign marks the rows picked: More and the right-click", ap.mark("Drafted") == 1 and kept[1]["status"] == "Drafted"
+      and [a.text() for a in ap.row_menu().actions()] == ["Mark Not started", "Mark Drafted", "Mark Addressed"]
+      and ap.bar.action("Mark Addressed") is not None)
+AL.set_mark(M, [it["id"] for it in kept], "Addressed")
 w.go("linkcheck"); app.processEvents()
 check("nothing left: it says so, and offers the matrix", pg.done.isVisibleTo(w) and not pg.body.isVisibleTo(w) and not pg.bar.isVisibleTo(w)
       and [b.text() for b in pg.findChildren(QPushButton) if b.isVisibleTo(w)] == ["Open the matrix"])

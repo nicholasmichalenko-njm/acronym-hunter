@@ -2,6 +2,8 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.68.0": ["Each assigned requirement and criterion has a mark you set: Not started, Drafted or Addressed. Set it on Assign (right-click the rows, or More), or press Mark Addressed on Check. The app never sets it.",
+               "Check has a fourth list: Assigned, not yet addressed. The mark is the matrix's Compliance status column, so it is in the export when that column is."],
     "4.67.0": ["Matrix has Check: the requirements not assigned, the evaluation criteria not assigned, and the sections with nothing in them. Double-click a row to open it in Assign, already picked.",
                "Coverage (how much of the customer's files was shredded) is under More on Check."],
     "4.66.0": ["Matrix opens on Assign: the requirements and criteria you kept in Shred on the left, the outline on the right. Pick pieces, pick a section, Assign to section. Take the suggestions places every piece that has a suggested section.",

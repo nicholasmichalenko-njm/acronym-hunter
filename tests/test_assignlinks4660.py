@@ -36,7 +36,7 @@ check("the pieces are the kept requirements and criteria: no context, nothing dr
 check("nothing assigned yet", AL.counts(M) == ({}, 3, 3), AL.counts(M))
 r = AL.rows(M)
 check("a row: where it is from, its words, its kind, no section, a suggestion when the section number matches",
-      r[0] == {"id": "K-1", "ref": "L.4.1", "text": "The Offeror shall describe the thermal design.", "kind": "Requirement", "sections": [], "suggested": A}, r[0])
+      r[0] == {"id": "K-1", "ref": "L.4.1", "text": "The Offeror shall describe the thermal design.", "kind": "Requirement", "sections": [], "suggested": A, "mark": "Not started"}, r[0])   # 4.68.0: and its mark
 check("only one kind when asked", [x["id"] for x in AL.rows(M, kind="Evaluation")] == ["K-4"])
 check("Find looks in the words and the reference", [x["id"] for x in AL.rows(M, find="risk owner")] == ["K-3"] and [x["id"] for x in AL.rows(M, find="m.2")] == ["K-4"])
 check("Take the suggestions places the ones that have one", AL.take_suggestions(M) == 1 and M.items[0]["map"] == A and AL.counts(M) == ({A: 1}, 2, 3), AL.counts(M))

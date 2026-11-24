@@ -30,6 +30,9 @@ class AssignView(QWidget):
                                   "Every piece not assigned that has a suggested section goes to it (the pieces picked, when some are)")
         self.b_also = self.bar.add("Also in this section", lambda: self.also(), "The pieces picked stay where they are and are in the section picked too")
         self.b_out = self.bar.add("Take out", lambda: self.take_out(), "The pieces picked leave the section picked, or every section when none is picked")
+        for _mk, _nm in AL.MARKS:                                            # 4.68.0: where the pieces picked stand in the draft
+            self.bar.more(f"Mark {_nm}", lambda m=_mk: self.mark(m), "Set by a person; the app never sets it")
+        self.bar.more_sep()
         self.bar.more("Place on the customer's page...", lambda: self.host.go("place"), "The customer's page with the outline beside it")
         v.addWidget(self.bar)
         self.none = D.EmptyState("Nothing to assign yet", "Assign links each requirement kept in Shred to a section of the outline. Keep some in "
@@ -52,8 +55,8 @@ class AssignView(QWidget):
         self.find = QLineEdit(); self.find.setPlaceholderText("Find"); self.find.setClearButtonEnabled(True)
         self.find.textChanged.connect(lambda _t: self.fill())
         row.addWidget(self.find, 1)
-        self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["From", "The customer's words", "Section", "Suggested"])
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(["From", "The customer's words", "Section", "Suggested", "Status"])
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows); self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers); self.table.verticalHeader().setVisible(False)
         self.table.setWordWrap(False)
@@ -61,6 +64,9 @@ class AssignView(QWidget):
         h.setSectionResizeMode(0, QHeaderView.ResizeToContents); h.setSectionResizeMode(1, QHeaderView.Stretch)
         h.setSectionResizeMode(2, QHeaderView.Interactive); h.setSectionResizeMode(3, QHeaderView.Interactive)
         self.table.setColumnWidth(2, 170); self.table.setColumnWidth(3, 170)
+        h.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)                # 4.68.0: the mark, on the row
+        self.table.customContextMenuRequested.connect(lambda pos: self.row_menu().exec(self.table.viewport().mapToGlobal(pos)))
         self.table.itemSelectionChanged.connect(self.enable)
         lv.addWidget(self.table, 1)
         self.said = D.label("", "muted"); lv.addWidget(self.said)
@@ -124,7 +130,7 @@ class AssignView(QWidget):
         t.blockSignals(True)
         t.setRowCount(len(self.data))
         for r, d in enumerate(self.data):
-            for c, text in enumerate((d["ref"], " ".join(d["text"].split()), "; ".join(d["sections"]), d["suggested"])):
+            for c, text in enumerate((d["ref"], " ".join(d["text"].split()), "; ".join(d["sections"]), d["suggested"], d["mark"])):
                 it = QTableWidgetItem(text); it.setToolTip(d["text"] if c == 1 else text)
                 t.setItem(r, c, it)
         t.blockSignals(False)
@@ -154,9 +160,9 @@ class AssignView(QWidget):
                 return True
         return False
 
-    def pick_piece(self, iid):
+    def pick_piece(self, iid, all_rows=False):
         """4.67.0 (from Check): the piece picked in the list of Not assigned, and its suggested section in the outline."""
-        self.find.setText(""); self.kind_box.setCurrentIndex(0); self.show_box.setCurrentIndex(0)
+        self.find.setText(""); self.kind_box.setCurrentIndex(0); self.show_box.setCurrentIndex(1 if all_rows else 0)
         self.fill()
         for r, d in enumerate(self.data):
             if d["id"] == iid:
@@ -200,6 +206,22 @@ class AssignView(QWidget):
         sec = self.section() if self.show_box.currentData() == "section" else ""
         n = AL.take_out(self._M(), ids, sec)
         return self._done(n, (f"{n} taken out of {sec}." if sec else f"{len(ids)} piece(s) taken out of their sections.") if n else "Not in a section.")
+
+    def mark(self, mark):
+        """4.68.0: the pieces picked are Not started (''), Drafted or Addressed."""
+        ids = self.picked()
+        if not ids:
+            self.host.status("Pick the pieces on the left first.")
+            return 0
+        n = AL.set_mark(self._M(), ids, mark)
+        return self._done(n, f"{n} marked {mark or 'Not started'}." if n else f"Already {mark or 'Not started'}.")
+
+    def row_menu(self):
+        from PySide6.QtWidgets import QMenu
+        m = QMenu(self)
+        for mk, nm in AL.MARKS:
+            m.addAction(f"Mark {nm}", lambda k=mk: self.mark(k))
+        return m
 
     def take_suggestions(self):
         ids = self.picked() or None

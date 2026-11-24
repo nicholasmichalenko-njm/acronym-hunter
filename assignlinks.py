@@ -9,6 +9,33 @@ import setupdoc as SD
 
 KINDS = ("Requirement", "Evaluation")
 NAMES = {"Requirement": "Requirement", "Evaluation": "Evaluation criterion"}
+# 4.68.0: where a piece stands in the draft, set by a person and never by the app. Kept in the piece's own Compliance
+# status (the matrix's column of that name), so nothing new is saved: "" is Not started.
+MARKS = (("", "Not started"), ("Drafted", "Drafted"), ("Addressed", "Addressed"))
+DONE = "Addressed"
+
+
+def mark_of(it):
+    return (it.get("status") or "").strip()
+
+
+def mark_name(it):
+    return mark_of(it) or "Not started"
+
+
+def set_mark(M, ids, mark):
+    """Each piece's mark becomes mark ('' for Not started). Returns how many changed."""
+    by = SD.by_id(M)
+    mark = (mark or "").strip()
+    n = 0
+    for i in ids:
+        it = by.get(i)
+        if it is not None and mark_of(it) != mark:
+            it["status"] = mark
+            if hasattr(M, "log"):
+                M.log(i, f"status: {mark or 'Not started'}")
+            n += 1
+    return n
 
 
 def pieces(M):
@@ -48,7 +75,7 @@ def rows(M, show="unplaced", kind="", find=""):
                 sug = C.suggest_map(it, M.outline)[0] or ""
             except Exception:  # noqa: BLE001
                 sug = ""
-        out.append({"id": it["id"], "ref": ref_of(it), "text": text, "kind": k, "sections": secs, "suggested": sug})
+        out.append({"id": it["id"], "ref": ref_of(it), "text": text, "kind": k, "sections": secs, "suggested": sug, "mark": mark_name(it)})
     return out
 
 
@@ -145,9 +172,9 @@ def gaps(M):
         if not n:
             out.append(lab)
     return {"requirements": [r for r in un if r["kind"] == "Requirement"], "criteria": [r for r in un if r["kind"] == "Evaluation"],
-            "empty": out}
+            "empty": out, "open": [r for r in rows(M, "all") if r["sections"] and r["mark"] != DONE]}   # 4.68.0: assigned, not yet Addressed
 
 
 def gap_count(M):
     g = gaps(M)
-    return len(g["requirements"]) + len(g["criteria"]) + len(g["empty"])
+    return len(g["requirements"]) + len(g["criteria"]) + len(g["empty"]) + len(g["open"])
