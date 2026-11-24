@@ -65,6 +65,7 @@ check("changes for authors need a setup first", SM.changes_by_person(M) is None)
 
 # ---------------------------------------------------------------- the page
 from skqt import mainwin as MW
+__import__("skqt.setuppreviewview", fromlist=["x"]).START = "sections"   # 4.64.0: this is a test of the sections view
 check("Setup sits in Plan, the Structure Builder part of it (3.74.0)", [k for k, _t in MW.TABS["setups"]] == ["setups", "effortfmt", "studio"] and MW.RAIL_OF["storyboards"] == "setups")
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import QApplication, QCheckBox, QLabel, QLineEdit, QMessa
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as theme
 from skqt.mainwin import MainWindow
+__import__("skqt.setuppreviewview", fromlist=["x"]).START = "sections"   # 4.64.0: this is a test of the sections view
 from skqt import structdoors as SDR, reftext as RT
 from skqt.matrixpage import MatrixPage
 from skqt.setuppage import MakeDialog

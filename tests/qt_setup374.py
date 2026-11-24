@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as D
 from skqt import mainwin as MW
+__import__("skqt.setuppreviewview", fromlist=["x"]).START = "sections"   # 4.64.0: this is a test of the sections view
 from skqt.commandbar import MAX
 from skqt.mainwin import MainWindow
 

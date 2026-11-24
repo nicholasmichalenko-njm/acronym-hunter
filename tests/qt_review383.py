@@ -19,6 +19,7 @@ QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as D
 from skqt import quicknote as QNV
 from skqt.mainwin import MainWindow
+__import__("skqt.setuppreviewview", fromlist=["x"]).START = "sections"   # 4.64.0: this is a test of the sections view
 
 checks = []
 

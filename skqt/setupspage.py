@@ -47,6 +47,8 @@ class SetupsPage(QWidget):
         self.b_make = bar.primary("Make the setup", lambda: self.make(),
                                   "Each volume's template with the setup written on it: the customer's words and your notes in "
                                   "hidden reference styles")
+        bar.more("Exact preview in Word", lambda: self.exact_in_word(),          # 4.64.0
+                 "Word on this PC lays the volume out: its own pages, from a dated copy of the template and the setup")
         bar.more("Templates for the volumes...", lambda: __import__("skqt.namedtplpage", fromlist=["x"]).volume_templates(self),
                  "Each volume takes a template you named in Formatting > Templates, or the effort's own formatting")
         bar.more("Edit as text / Start from", lambda: self.builder.show_text(not self.builder.text_panel.isVisible()),
@@ -140,6 +142,7 @@ class SetupsPage(QWidget):
         self.builder = host.structure_page.embed(section_card=self.section_card, on_text=self.on_text, on_change=self.counts)
         self.main = self.builder
         v.addWidget(self.builder, 1)
+        __import__("skqt.setuppreviewview", fromlist=["x"]).install(self, v, v.indexOf(self.builder))   # 4.64.0: Setup opens on the preview
         for x in (self.b_volume, self.b_elements):      # 4.3.0: the outline is built on Matrix & Outline > Outline
             x.setVisible(False)
 
@@ -178,6 +181,19 @@ class SetupsPage(QWidget):
     def section_card(self, label):
         self.pick(label)
         return self.who
+
+    def show_view(self, view):
+        """4.64.0: Preview (the volume as it will be written) or Sections (who writes each and when)."""
+        self.view = view if view in ("preview", "sections") else "preview"
+        self.refresh()
+        return self.view
+
+    def exact_in_word(self):
+        """4.64.0: Word's own pages, shown on the Sections view's Preview tab."""
+        self.show_view("sections")
+        b = self.builder
+        b.mid_tabs.setCurrentIndex(next((i for i in range(b.mid_tabs.count()) if b.mid_tabs.tabText(i) == "Preview"), 0))
+        return b.exact_preview()
 
     def show_layers(self, on=True):
         self.layers.setVisible(on)
@@ -336,7 +352,7 @@ class SetupsPage(QWidget):
                 M.pending = True
         texting = not self.builder.text_panel.isHidden()
         self.start_card.setVisible(not has and not texting)
-        self.builder.setVisible(has or texting)                      # 3.74.0: one Sections area at a time
+        __import__("skqt.setuppreviewview", fromlist=["x"]).apply(self, has, texting)   # 4.64.0: the preview or the sections (3.74.0: one area at a time)
         for b in (self.b_elements, self.b_volume, self.b_make):
             b.setEnabled(has)
         for cb in self.layer_boxes.values():
