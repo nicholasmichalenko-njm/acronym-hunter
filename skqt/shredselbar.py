@@ -42,7 +42,7 @@ def gutter(page, on):
     """Keep (on) or give back the right margin the bar opens in. A page that was at Fit width is fitted again to the
     narrower (or wider) viewport. Returns the margin."""
     v = page.view
-    want = GUTTER if on else 0
+    want = getattr(page, "gutter_w", GUTTER) if on else 0      # 4.72.0: the Compliance pass's bar is wider
     try:
         if v.viewportMargins().right() == want:
             return want
@@ -73,7 +73,7 @@ def close(page):
 
 def wanted(page):
     """The pieces the bar is for: the selection, on Shred, in a document being shredded."""
-    if getattr(page, "focus", None) not in ("shred", "struct") or page.R is None or page.cx is not None or not page.file:
+    if getattr(page, "focus", None) not in ("shred", "struct", "comp") or page.R is None or page.cx is not None or not page.file:
         return []
     if getattr(page.view, "capturing", False) or page.view.panning():
         return []
@@ -123,6 +123,8 @@ def build(page, rows):
     col = f.col = QVBoxLayout(f); col.setContentsMargins(6, 6, 6, 6); col.setSpacing(4)
     if getattr(page, "focus", None) == "struct":                        # 4.70.0: the Response Structure pass has its own buttons
         return __import__("skqt.structpass", fromlist=["x"]).fill_bar(page, f, rows)
+    if getattr(page, "focus", None) == "comp":                          # 4.72.0: the Compliance pass
+        return __import__("skqt.comppass", fromlist=["x"]).fill_bar(page, f, rows)
     types = ST.load(page.host.config_dir)
     sug = TC.suggested(page, rows[-1]) if len(rows) == 1 else ""
     f.chips, f.lead = {}, None
@@ -195,7 +197,7 @@ def place(page):
             return close(page)
         v = page.view
         vp = v.viewport().geometry()
-        w = max(GUTTER - 2 * GAP, b.sizeHint().width())
+        w = max(getattr(page, "gutter_w", GUTTER) - 2 * GAP, b.sizeHint().width())
         h = b.sizeHint().height()
         b.resize(w, h)
         x = vp.right() + 1 + GAP

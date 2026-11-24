@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.72.0": ["Shred has a second tab, Compliance. Select a piece and press 1, 2 or 3: Work Requirement (SOW), Response Instruction (L), Evaluation Criterion (M). It is a row of the matrix at once.",
+               "The bar says In Matrix under, with the section the app suggests: Enter takes it and goes on, or pick another, or decide later. X is Not needed, A asks a question, S is For the setup.",
+               "The Requirements tab is as it was, until the other passes are built."],
     "4.71.0": ["Shred > Response Structure: the tab's count is right as you mark. For the setup (S) sends a piece into a section as text for the author; A asks a question.",
                "Not required by the customer closes the pass in one click. Drag a heading on the outline tree to fix its level or place."],
     "4.70.0": ["Shred has a first tab, Response Structure. Select a piece of the customer's text and press 1 to 4 (Volume, Heading 1, Heading 2, Heading 3): the outline beside the page fills at once, under the volume or heading marked above it.",

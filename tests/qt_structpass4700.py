@@ -54,7 +54,7 @@ def labels():
 
 
 check("Shred's tabs: Response Structure first, the others as they were", [k for k, _t in MW.TABS["assign"]] ==
-      ["structpass", "assign", "requirements", "evalcrit", "acronyms"] and list(k for k in w.stepper.chips if ":" not in k)[0] == "structpass")
+      ["structpass", "comppass", "assign", "requirements", "evalcrit", "acronyms"] and list(k for k in w.stepper.chips if ":" not in k)[0] == "structpass")
 check("on Requirements the pass's pane is not there", not getattr(pg, "struct_panel", None) or not pg.struct_panel.isVisibleTo(pg))
 before_outline = labels()
 w.go("structpass"); app.processEvents()

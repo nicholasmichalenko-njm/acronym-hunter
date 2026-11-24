@@ -109,6 +109,7 @@ def apply(w, step):
             sizes(430, 0)
     except Exception:  # noqa: BLE001
         diag.swallowed()
+    __import__("skqt.comppass", fromlist=["x"]).apply(w, step)       # 4.72.0: the Compliance pass, after this one
     return want
 
 
@@ -197,6 +198,8 @@ def setup_menu(page, parent=None):
 
 def for_setup(page):
     """S: the list of headings opens beside the piece; a pick sends the piece there as text for the author."""
+    if getattr(page, "focus", None) == "comp":
+        return __import__("skqt.comppass", fromlist=["x"]).for_setup(page)
     if not on(page) or not page.selected():
         if on(page):
             page.host.status("Select a piece of the customer's text first.")
@@ -223,7 +226,7 @@ def send_to_setup(page, label):
 
 def ask(page):
     """A: Ask a question, in the pass (the button does the same)."""
-    if not on(page) or not page.selected():
+    if getattr(page, "focus", None) not in (MODE, "comp") or not page.selected():
         return None
     from . import typechips as TC
     return TC.ask(page)
@@ -369,6 +372,8 @@ def not_needed(page):
 
 def key(page, n):
     """1 to 4 on the page."""
+    if getattr(page, "focus", None) == "comp":                       # 4.72.0: 1 to 3 in the Compliance pass
+        return __import__("skqt.comppass", fromlist=["x"]).key(page, n)
     if not on(page) or not 0 <= n < len(SM.LEVELS):
         return None
     return press(page, SM.LEVELS[n][0])

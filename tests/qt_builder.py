@@ -51,7 +51,7 @@ def wait(cond, secs=60):
 
 
 check("the menu: the Structure Builder is part of Setup (3.74.0); 4.1.0: Shred starts with Requirements, Text check is Documents'",
-      ("setups", "Setup") in dict(RAIL)["Effort"] and "structure" not in dict(dict(RAIL)["Effort"]) and [k for k, _t in TABS["assign"]][:2] == ["structpass", "assign"]
+      ("setups", "Setup") in dict(RAIL)["Effort"] and "structure" not in dict(dict(RAIL)["Effort"]) and [k for k, _t in TABS["assign"]][:3] == ["structpass", "comppass", "assign"]
       and "verify" not in dict(TABS["library"]))     # 4.2.0: Text check is Shred's Fix text     # 3.84.0: Verify first; 3.90.0: Read and Compare, Coverage a view
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))

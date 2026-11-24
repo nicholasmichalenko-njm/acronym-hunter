@@ -150,6 +150,8 @@ def enter(page):
         return PP.place_it(page)
     if getattr(page, "focus", "") == "struct":                       # 4.70.0: the pass's own Enter
         return __import__("skqt.structpass", fromlist=["x"]).enter(page)
+    if getattr(page, "focus", "") == "comp":                         # 4.72.0
+        return __import__("skqt.comppass", fromlist=["x"]).enter(page)
     rows = page.selected()
     before = (getattr(page.R, "undo", None) or [None])[-1] if page.R is not None else None
     n = page.accept_suggestions(rows=rows)
@@ -212,6 +214,8 @@ def next_open(page):
         return None
     if getattr(page, "focus", "") == "struct":                       # 4.70.0: the pass's next suggestion, across documents
         return __import__("skqt.structpass", fromlist=["x"]).next_open(page)
+    if getattr(page, "focus", "") == "comp":                         # 4.72.0
+        return __import__("skqt.comppass", fromlist=["x"]).go_next(page)
     rows = [it for it in page.R.rows_of(page.file) if it.get("type") != "Heading"]
     if getattr(page, "focus", "") == "place":
         import homesuggest as HS

@@ -187,7 +187,7 @@ check("3.16.0: where the shred stands: the matrix's document says how many sente
       and "/" in col[dL["id"]], col)
 check("... a context document needs reviewing too", col[d["id"]] == "In progress" or col[d["id"]].endswith("decided"), col[d["id"]])
 check("... 4.1.0: Requirements is Shred's first tab; the documents are Documents' first tab", w._tab_keys[:1] == ["library"]
-      and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]][:2] == ["structpass", "assign"])   # 4.70.0: Response Structure first
+      and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]][:3] == ["structpass", "comppass", "assign"])   # 4.70.0: Response Structure first
 lp.select(dL["id"]); lp.show_doc()
 __import__("skqt.docclean", fromlist=["x"]).toggle_details(lp, True); app.processEvents()   # 4.62.0: the panel is closed until Details opens it
 check("... 4.0.0: the status panel leads the side: Continue the shred", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue the shred"

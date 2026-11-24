@@ -864,7 +864,7 @@ class AssignPage(QWidget):
         self.bottom_split.setSizes([760, 170])
         v.addWidget(self.bottom_split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
-        for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", lambda: __import__("skqt.structpass", fromlist=["x"]).for_setup(self) if getattr(self, "focus", None) == "struct" else self.do_split()),
+        for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", lambda: __import__("skqt.structpass", fromlist=["x"]).for_setup(self) if getattr(self, "focus", None) in ("struct", "comp") else self.do_split()),
                         ("A", lambda: __import__("skqt.structpass", fromlist=["x"]).ask(self)),      # 4.71.0: Ask a question, in the pass
                         ("Shift+S", lambda: self.do_extract()),
                         ("B", lambda: self.more_btn.showMenu() if self.cx is None else None),

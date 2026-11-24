@@ -62,7 +62,7 @@ w.rail_go("assign"); app.processEvents()
 check("Shred: the stepper, not tabs", w.stepper.isVisibleTo(w) and not w.page_tabs.isVisibleTo(w) and w.page_title.text() == "Shred"
       and w.page_crumb.text() == "")
 check("... Requirements, Submission Checklist, Evaluation, Acronyms with counts (4.1.0): no tab repeats the step's name",
-      [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Response Structure", "Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"]
+      [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Response Structure", "Compliance", "Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"]
       and w.stepper.chips["assign"].ct.text() == "nothing extracted")
 check("... and no chip carries a number (4.46.0, decision 16: ways to see the shred, not steps)", all(w.stepper.chips[k].no.text() == "" for k, _l in NR.CHIPS))
 check("... See it as: On the page, As a table (4.54.0; 4.3.0: placing, Crosswalk and Coverage are Matrix & Outline's)",
