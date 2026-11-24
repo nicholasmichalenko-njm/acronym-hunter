@@ -32,7 +32,7 @@ PDFS = [os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", n) for n in ("Secti
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.processEvents()
 w.open_effort("Kestrel"); app.processEvents()
-check("Matrix's tabs: Assign first; Place is off the tabs", [k for k, _t in MW.TABS["matrix"]] == ["assignto", "matrix", "crosswalk", "prove"])
+check("Matrix's tabs: Assign first; Place is off the tabs", [k for k, _t in MW.TABS["matrix"]] == ["assignto", "linkcheck", "matrix", "crosswalk"])
 w.read_page.read(PDFS, os.path.join(ED, "Kestrel_Compliance_Matrix.xlsx"))
 t0 = time.time()
 while not (w.review is not None and w.stack.currentWidget() is w.assign_page) and time.time() - t0 < 120:

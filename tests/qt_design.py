@@ -53,9 +53,9 @@ steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the effort's path, Redlining (4.59.2), then Team and Settings (4.0.0: six steps)", rail[:len(steps)] == steps
       and steps == ["Quick tools", "Overview", "Documents", "Graphics", "Deliverables", "Redlining", "Shred", "Matrix", "Outline", "Setup", "Drafts", "Submission Check", "Global Standards", "Rules", "Team References", "Templates", "Page Layout", "Styles", "Quick Parts", "Check a Draft", "Effort Activity", "Effort Backup", "Settings"], rail)
 w.go("prove"); app.processEvents()
-check("the top bar names the page: Coverage is a tab of Matrix (4.3.0; 4.60.0)", w.page_title.text() == "Matrix"
-      and w.stack.currentWidget() is w.assign_page and not w.stepper.isVisibleTo(w) and w.page_tabs.isVisibleTo(w)
-      and w._tab_keys[w.page_tabs.currentIndex()] == "prove" and w.step_btns["matrix"].isChecked())
+check("the top bar names the page: Coverage opens under Matrix, off its tabs (4.67.0)", w.page_title.text() == "Coverage"
+      and w.stack.currentWidget() is w.assign_page and not w.stepper.isVisibleTo(w)
+      and w._tab_keys == [] and w.step_btns["matrix"].isChecked())
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
 # 3.15.0: visual hierarchy: three type sizes, card headers, status pills that never stretch, the page's group above it
 check("3.15.0: three sizes: page title > card title > body", D.TYPE["display"] > D.TYPE["title"] > D.TYPE["body"] and D.TYPE["display"] - D.TYPE["title"] >= 6)

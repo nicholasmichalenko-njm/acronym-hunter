@@ -14,6 +14,8 @@ def install(w):
     w.backup_page = BackupPage(w); w.pages["backup"] = w.backup_page
     from .assignview import AssignView                     # 4.66.0: Matrix > Assign
     w.assignto_page = AssignView(w); w.pages["assignto"] = w.assignto_page
+    from .checkview import CheckView                       # 4.67.0: Matrix > Check
+    w.linkcheck_page = CheckView(w); w.pages["linkcheck"] = w.linkcheck_page
     from .namedtplpage import NamedTemplatesPage           # 4.28.2: the templates you name are the Template entry's first tab;
     w.named_page = NamedTemplatesPage(w)                   # the ones the Effort Profiles make are the next ("From profiles")
     w.pages.update({"tplprofiles": w.templates_page, "templates": w.named_page})

@@ -145,6 +145,27 @@ class AssignView(QWidget):
         self.b_assign.setEnabled(got and sec); self.b_also.setEnabled(got and sec); self.b_out.setEnabled(got)
         self.b_sug.setEnabled(any(d["suggested"] for d in self.data))
 
+    def pick_section(self, label):
+        """4.67.0 (from Check): the section picked in the outline, the list on Not assigned."""
+        self.show_box.setCurrentIndex(0)
+        for i in range(self.tree.topLevelItemCount()):
+            if self.tree.topLevelItem(i).data(0, Qt.UserRole) == label:
+                self.tree.setCurrentItem(self.tree.topLevelItem(i)); self.tree.scrollToItem(self.tree.topLevelItem(i))
+                return True
+        return False
+
+    def pick_piece(self, iid):
+        """4.67.0 (from Check): the piece picked in the list of Not assigned, and its suggested section in the outline."""
+        self.find.setText(""); self.kind_box.setCurrentIndex(0); self.show_box.setCurrentIndex(0)
+        self.fill()
+        for r, d in enumerate(self.data):
+            if d["id"] == iid:
+                self.table.selectRow(r); self.table.scrollToItem(self.table.item(r, 1))
+                if d["suggested"]:
+                    self.pick_section(d["suggested"])
+                return True
+        return False
+
     # ------------------------------------------------------------------ the four things
     def _done(self, n, text):
         M = self._M()

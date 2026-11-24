@@ -117,3 +117,37 @@ def take_suggestions(M, ids=None):
         if r["suggested"] and (want is None or r["id"] in want):
             SD.place(M, r["id"], r["suggested"]); n += 1
     return n
+
+
+# ---------------------------------------------------------------- 4.67.0: Check, what is left to link
+def gaps(M):
+    """What Assign has left: {"requirements": rows not assigned, "criteria": rows not assigned, "empty": [labels of
+    sections that hold nothing, in themselves or in any section under them]}. A volume's own heading, and the parts
+    Word builds (a table of contents, a divider), are not sections to fill."""
+    un = rows(M, "unplaced")
+    per, _un, _n = counts(M)
+    try:
+        _mode, _name, heads = SD.volumes_of(M)
+    except Exception:  # noqa: BLE001
+        heads = []
+    heads = set(heads or [])
+    out, o = [], list(M.outline)
+    for i, e in enumerate(o):
+        lab = C.outline_label(e)
+        if lab in heads or e.get("kind") in ("element", "divider", "reserve") or str(e.get("num", "")).lower().startswith("volume"):
+            continue
+        n = per.get(lab, 0)
+        lv = e.get("level", 1)
+        for f in o[i + 1:]:
+            if f.get("level", 1) <= lv:
+                break
+            n += per.get(C.outline_label(f), 0)
+        if not n:
+            out.append(lab)
+    return {"requirements": [r for r in un if r["kind"] == "Requirement"], "criteria": [r for r in un if r["kind"] == "Evaluation"],
+            "empty": out}
+
+
+def gap_count(M):
+    g = gaps(M)
+    return len(g["requirements"]) + len(g["criteria"]) + len(g["empty"])

@@ -68,6 +68,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "sort": ("Themes", "Cross-cutting themes (cybersecurity, transition, staffing) on requirements, for filtering and assignments; they never make headings"),
           "verify": ("Text check", "Every block on every customer page in its role (heading, text, table, header, footer), before the shred"),
           "assignto": ("Assign", "Each kept requirement and criterion linked to the section of the outline that answers it"),
+          "linkcheck": ("Check", "What Assign has left: pieces not assigned, and sections that hold nothing"),
           "place": ("Place", "Each requirement in its section of our outline: the customer's page beside the outline"),
           "outline": ("Outline", "Our response structure: volumes and sections, prescribed by the solicitation or ours"),
           "prove": ("Coverage", "Every piece of every file read and shredded, and the word-for-word text check"),
