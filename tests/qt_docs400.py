@@ -51,6 +51,7 @@ check("the status panel: text check, shred, feeds the matrix (4.6.0: the version
       list(rows)[:2] == ["Text check", "Shred"] and "Used for" in rows and "Versions" not in rows, list(rows))
 check("... not extracted yet; it feeds the matrix", rows["Shred"][1] == "Not extracted yet"
       and rows["Used for"][1] == "For the shred", rows)
+__import__("skqt.docclean", fromlist=["x"]).toggle_details(lp, True); app.processEvents()   # 4.62.0: the panel is closed until Details opens it
 check("... one button: its next thing (4.1.0: Shred it)", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Shred it", lp.b_read.text())
 check("... no question: the button extracts it at once and opens Shred (4.1.0)",
       bool(lp.review_selected()) and w.stack.currentWidget() is w.assign_page and w.step_btns["assign"].isChecked())
@@ -66,7 +67,7 @@ m = DS.row_menu(lp, run=False)
 acts = [a.text() for a in m.actions() if a.text()]
 check("the right-click menu: the things about the file, then what left the panel (4.6.0), then Delete... (4.17.0)", acts[:6] == ["Open", "Used for", "Source",
       "Add a newer version...", "Replace the file...", "Show in folder"] and [a for a in acts[6:] if a != "Prepare for redline"]
-      == ["Initial and type...", "More about this document...", "Delete..."], acts)   # 4.8.0: Prepare a redline copy for a PDF
+      == ["Initial and type...", "More about this document...", "Details", "Delete..."], acts)   # 4.8.0: Prepare a redline copy for a PDF
 check("4.25.2: Used for holds the four marks; Source holds Customer and Internal", [a.text() for a in m.actions()[1].menu().actions() if a.text()]
       == ["For the shred", "Reference", "Redlined Deliverable", "Filled-in Deliverable"]
       and [a.text() for a in m.actions()[2].menu().actions()] == ["Customer", "Internal"]

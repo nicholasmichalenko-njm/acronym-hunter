@@ -488,7 +488,7 @@ class Safety:
             diag.swallowed()
         self.presence()
         if not self.backup_dir():
-            h.status("Backups are off: choose a folder in Settings > Backups so your work is copied there automatically.")
+            h.status("Backups are off: choose a folder on Effort Backup so your work is copied there automatically.")
 
     def closing(self):
         """The effort is closing (its work just saved): back it up if anything changed, and remember where you were."""

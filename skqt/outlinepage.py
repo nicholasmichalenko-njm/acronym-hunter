@@ -67,6 +67,10 @@ class OutlinePage(QWidget):
         v.addWidget(self.started)
         self.slot = QVBoxLayout(); v.addLayout(self.slot, 1)
         self.said = D.label("", "muted"); v.addWidget(self.said)
+        # 4.62.0: nothing shredded yet: one sentence and one way in, in one place (no bar of buttons that cannot be used)
+        self.none = D.EmptyState("No outline yet", "The outline starts from the customer's documents. Shred one first.",
+                                 "Open Shred", lambda: self.host.go("assign"))
+        v.insertWidget(1, self.none, 1); self.none.setVisible(False)
 
     # ------------------------------------------------------------------ the builder, borrowed from Setup
     def builder(self):
@@ -100,6 +104,7 @@ class OutlinePage(QWidget):
         b.setVisible(has or texting or asked)
         for x in (self.b_volume, self.b_elements, self.b_place):
             x.setEnabled(has)
+        self.none.setVisible(M is None); self.bar.setVisible(M is not None and (has or texting or asked))   # 4.62.0
         src = self._setup().get("outline_from", "") if M is not None else ""
         extra = ""
         if src == "prescribed" and has:                  # 4.5.0: the customer's sections and the volumes' page limits
@@ -114,8 +119,7 @@ class OutlinePage(QWidget):
             pg = St.get("prescribed_pages") or {}
             extra = (" Its sections are marked as the customer's" + (": page limits from the solicitation, "
                      + ", ".join(f"{k} {v:g}" for k, v in pg.items()) if pg else "") + ".")
-        self.said.setText((f"Started: {FROM.get(src, '')}." + extra) if src else ("Extract a customer document in Shred first."
-                                                                                  if M is None else ""))
+        self.said.setText((f"Started: {FROM.get(src, '')}." + extra) if src else "")
         try:
             b.refresh()
         except Exception:  # noqa: BLE001

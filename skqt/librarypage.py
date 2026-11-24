@@ -534,7 +534,7 @@ class LibraryPage(QWidget):
             hits = self.found.get(d["id"]) or []
             self.table.setItem(r, 6, _item(hits[0][1][:160] if hits else ("name or tags" if self.search.text().strip() else "")))
         here = [d for d in self.lib.all if DF.in_side(self, d)] if focused else self.lib.all
-        self.empty.setVisible(not here); self.table.setVisible(bool(here))
+        self.empty.setVisible(not here); self.table.setVisible(bool(here)); __import__("skqt.docclean", fromlist=["x"]).apply(self, bool(self.lib.all))   # 4.62.0
         if keep:
             self.select(keep)
         self.show_doc()

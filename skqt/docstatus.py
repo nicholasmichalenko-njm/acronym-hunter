@@ -207,6 +207,7 @@ def row_menu(page, at=None, run=True):
     if __import__("redlineprep").kind(path_of(page, d)):          # 4.22.0: a PDF or a picture (4.8.0: a PDF)
         m.addAction("Prepare for redline", lambda: prepare_redline(page, d))
     __import__("skqt.docfocus", fromlist=["x"]).more_items(page, m, d)     # 4.6.0: what left the panel
+    __import__("skqt.docclean", fromlist=["x"]).menu_item(page, m)      # 4.62.0: the panel on the right, when wanted
     m.addSeparator()
     m.addAction("Delete...", lambda: DM.delete(page, d))                 # 4.17.0: into the effort's Trash
     page._menu = m

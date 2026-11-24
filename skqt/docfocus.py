@@ -118,8 +118,8 @@ def install(page, side="all"):
     lay = page.empty.parentWidget().layout()
     i = lay.indexOf(page.empty)
     new = D.EmptyState("No documents yet",
-                       "Add the solicitation package and your own documents (past proposals, resumes, graphics): each "
-                       "one is extracted as it arrives.", "Add documents...", lambda: page.add())
+                       "Add the customer's files and your own, or drop files or a folder on this page.",
+                       "Add documents...", lambda: page.add())
     lay.insertWidget(i, new)
     page.empty.hide(); page.empty.setParent(None)
     page.empty = new

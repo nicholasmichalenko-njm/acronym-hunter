@@ -77,7 +77,7 @@ check("the readable copy is no longer rewritten on a timer", "readable_tick" not
 
 # Redlining
 w.go("redline"); app.processEvents()
-check("Redlining: its own entry and title", w.step_btns["redline"].isChecked() and w.page_title.text() == "Redlining" and w._tab_keys == ["redline"], w._tab_keys)
+check("Redlining: its own entry and title", w.step_btns["redline"].isChecked() and w.page_title.text() == "Redlining" and w._tab_keys == [], w._tab_keys)
 w.go("deliverables"); app.processEvents()
 check("Deliverables is the list alone", w.step_btns["deliverables"].isChecked() and w._tab_keys == [])
 

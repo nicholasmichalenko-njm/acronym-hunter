@@ -1169,6 +1169,7 @@ class DeliverablesPage(QWidget):
                 w.setParent(None); w.deleteLater()
         sg = DL.suggestions(rec, rows)
         self.sugg.setVisible(bool(sg))
+        __import__("skqt.emptyview", fromlist=["x"]).deliverables(self, not self.cards and not sg)   # 4.62.0
         for r in sg:
             line = QWidget(); hl = QHBoxLayout(line); hl.setContentsMargins(0, 0, 0, 0)
             hl.addWidget(D.label(f"{r['subject']}: {r['value']}  ({r['doc']}, {r['version']})"), 1)

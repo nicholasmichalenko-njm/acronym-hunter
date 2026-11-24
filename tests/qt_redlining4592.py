@@ -49,7 +49,7 @@ pg = w.redline_page
 check("with nothing marked: one line and one button, Choose a document...", pg.empty.isVisibleTo(w) and not pg.table.isVisibleTo(w)
       and "No document is marked Redlined Deliverable." in [l.text() for l in pg.empty.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QLabel)]
       and any(b.text() == "Choose a document..." for b in pg.empty.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QPushButton)))
-check("... and not its other parts: only the list and the way in", w._tab_keys == ["redline"], w._tab_keys)
+check("... and not its other parts: only the list and the way in", w._tab_keys == [], w._tab_keys)
 check("the page is Redlining, its menu entry lit (4.61.0)", w.page_title.text() == "Redlining" and w.step_btns["redline"].isChecked(),
       w.page_title.text())
 

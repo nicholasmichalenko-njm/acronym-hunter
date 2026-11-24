@@ -2,6 +2,8 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.62.0": ["A page with nothing on it yet is one sentence and one button, in the middle of the page: Documents, Graphics, Deliverables, Redlining, Matrix and Outline. The bar, Find and the filters come back when there is something to list.",
+               "Documents no longer shows the panel on the right. Right-click a document and choose Details to open it; everything it offered is on that same menu."],
     "4.61.0": ["Redlining is in the menu with the effort's other work, after Deliverables: Prepare, Check and Exceptions.",
                "Overview is one page with Calendar, Tasks and Meetings beside it. Effort settings opens from a link on Overview. Effort Activity and Effort Backup are at the foot of the menu, by Settings.",
                "Effort Backup shows where the backups go, backs up now, changes the folder and puts an earlier copy back.",

@@ -1164,7 +1164,7 @@ class MainWindow(QMainWindow):
             aside = MF.hidden(settings()) - {step}
             tabs = [t for t in tabs if t[0] not in aside]
         if head == "redline" and tabs and not __import__("skqt.redlinechoose", fromlist=["x"]).listed(self):     # 4.59.2 (226): Check and Exceptions wait for a document
-            tabs = [x for x in tabs if x[0] in ("redline", step)]
+            tabs = [x for x in tabs if x[0] == step and step != "redline"]   # 4.62.0: no bar for one tab
         self._tab_sync = True
         try:
             while self.page_tabs.count():

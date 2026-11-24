@@ -85,7 +85,7 @@ check("Outline is a page of its own", w.step_btns["outline"].isChecked() and w._
 w.go("deliverables"); app.processEvents()
 check("Deliverables is the list alone (4.61.0)", w.step_btns["deliverables"].isChecked() and w._tab_keys == [], w._tab_keys)
 w.go("redline"); app.processEvents()
-check("Redlining is its own entry (4.61.0)", w.step_btns["redline"].isChecked() and w.stack.currentWidget() is w.redline_page and w._tab_keys == ["redline"], w._tab_keys)
+check("Redlining is its own entry (4.61.0)", w.step_btns["redline"].isChecked() and w.stack.currentWidget() is w.redline_page and w._tab_keys == [], w._tab_keys)
 for d in DV.Library(ws.p("documents")).load().all:
     DV.Library(ws.p("documents")).load().set_returns(d["id"], ["redline"])
 w.go("redline"); app.processEvents()

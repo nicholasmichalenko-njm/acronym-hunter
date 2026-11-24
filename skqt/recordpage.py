@@ -587,7 +587,7 @@ class RecordPage(StageTableMixin, QWidget):
         if h.ws is not None:
             pass                                                # 4.61.0: no readable copy beside the effort
         if h.ws is None or not bd:
-            h.status("Backups are off. Choose the backup folder in Settings.")
+            h.status("Backups are off. Choose the backup folder on Effort Backup.")
             return None
         a = self._package_args()
         try:

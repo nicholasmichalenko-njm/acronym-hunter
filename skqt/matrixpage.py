@@ -127,7 +127,7 @@ class MatrixPage(QWidget):
     # ------------------------------------------------------------ the design
     def refresh(self):
         R = self.host.review
-        self.setEnabled(R is not None)
+        self.setEnabled(True); __import__("skqt.emptyview", fromlist=["x"]).matrix(self, R is None)   # 4.62.0
         if R is None:                                # 3.34.1: nothing of the effort open before
             self.model.clear()
             self.info.setText("No matrix yet: read the customer's documents first.")

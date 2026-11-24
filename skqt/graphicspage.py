@@ -116,6 +116,7 @@ class GraphicsPage(QWidget):
         self.count.setText(f"{n} graphic" + ("" if n == 1 else "s") + f": {words} with words to confirm, {sweep} to sweep for acronyms "
                            f"and abs. {needs} graphic need" + ("" if needs == 1 else "s") + " open." if every else "")
         self.empty.setVisible(not every); self.table.setVisible(bool(every))
+        __import__("skqt.emptyview", fromlist=["x"]).graphics(self, every)       # 4.62.0: an empty page is one sentence, one button
         self.every = every
         return len(self.rows)
 

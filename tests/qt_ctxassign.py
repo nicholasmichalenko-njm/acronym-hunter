@@ -189,6 +189,7 @@ check("... a context document needs reviewing too", col[d["id"]] == "In progress
 check("... 4.1.0: Requirements is Shred's first tab; the documents are Documents' first tab", w._tab_keys[:1] == ["library"]
       and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]][:1] == ["assign"])
 lp.select(dL["id"]); lp.show_doc()
+__import__("skqt.docclean", fromlist=["x"]).toggle_details(lp, True); app.processEvents()   # 4.62.0: the panel is closed until Details opens it
 check("... 4.0.0: the status panel leads the side: Continue the shred", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue the shred"
       and lp.rv_state.text().startswith("Shred in progress"), lp.b_read.text())
 ws.set("assign_reviewed", {"Section_L_print.pdf": "2026-11-02 10:00"}); lp.refresh(); lp.select(dL["id"]); lp.show_doc()

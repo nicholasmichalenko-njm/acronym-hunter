@@ -50,7 +50,7 @@ LIST = os.path.join(tmp, "Efforts", "Heron", "Heron_Effort_List.xlsx")
 w.settings_page.new_effort({"name": "Heron", "path": LIST, "first_use": "volume"}); app.processEvents()
 root = EF.root(w.effort_path)
 w.go("library"); lp = w.library_page; lp.refresh(); app.processEvents()
-check("Documents names the effort's folder, and the path opens it", root in lp.folder_lbl.text() and lp.folder_lbl.isVisibleTo(w)
+check("Documents names the effort's folder, and the path opens it", root in lp.folder_lbl.text() and (lp.folder_lbl.isVisibleTo(w) or lp.empty_folder.isVisibleTo(w))   # 4.62.0: under the button while empty
       and "<a href" in lp.folder_lbl.text() and w.open_effort_folder() == root, lp.folder_lbl.text())
 wh = WAU.where(w)
 check("what is left out of the effort's folder: our volumes, Response Setup, Exports, Redlines, Deleted, the files beside the list",
