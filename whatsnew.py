@@ -2,6 +2,8 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.66.0": ["Matrix opens on Assign: the requirements and criteria you kept in Shred on the left, the outline on the right. Pick pieces, pick a section, Assign to section. Take the suggestions places every piece that has a suggested section.",
+               "Place on the customer's page is under More on Assign. The links are the same ones the matrix and the setup read."],
     "4.65.0": ["Drafts opens on Acronyms: each volume's draft against the acronym list. Status, Edit and the rest are the tabs after it."],
     "4.64.0": ["Setup opens on a preview: the volume as Make the setup will write it, each piece of text in its style's look with the style's name after it, and a slim list of headings beside it to move around. The order you set under each heading shows there at once.",
                "The sections, with who writes each and when, are one click away: Sections, beside Preview."],

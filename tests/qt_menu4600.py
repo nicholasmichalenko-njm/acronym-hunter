@@ -79,7 +79,7 @@ check("Calendar and Tasks are tabs of Overview", w._tab_keys == ["overview", "ca
 w.go("calendar"); app.processEvents()
 check("... and Calendar lights Overview", w.step_btns["home"].isChecked() and w.page_title.text() == "Overview", w.page_title.text())
 w.go("matrix"); app.processEvents()
-check("Matrix: its own tabs, no Outline", w._tab_keys == ["matrix", "place", "crosswalk", "prove"] and w.page_title.text() == "Matrix", w._tab_keys)
+check("Matrix: its own tabs, no Outline", w._tab_keys == ["assignto", "matrix", "crosswalk", "prove"] and w.page_title.text() == "Matrix", w._tab_keys)   # 4.66.0: Assign first, Place under its More
 w.go("outline"); app.processEvents()
 check("Outline is a page of its own", w.step_btns["outline"].isChecked() and w._tab_keys == [] and w.page_title.text() == "Outline", (w._tab_keys, w.page_title.text()))
 w.go("deliverables"); app.processEvents()

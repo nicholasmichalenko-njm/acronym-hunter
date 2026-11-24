@@ -61,14 +61,14 @@ check("extracted", wait(lambda: w.review is not None and not w.read_page.running
 from skqt.mainwin import TABS
 import homesuggest as HS, matrixdesign as MD, openpyxl
 from skqt import leaveoutview as LOV
-check("Matrix's tabs (4.60.0: Outline is its own entry)", [k for k, _t in TABS["matrix"]] == ["matrix", "place", "crosswalk", "prove"], TABS["matrix"])
+check("Matrix's tabs (4.60.0: Outline is its own entry)", [k for k, _t in TABS["matrix"]] == ["assignto", "matrix", "crosswalk", "prove"], TABS["matrix"])   # 4.66.0: Place opens from Assign > More
 pg = w.assign_page
 M = w.review.M
 w.go("assign"); app.processEvents()
 check("Shred types: no outline beside its page", not pg.place_mode and not pg.views.isVisibleTo(w))
 w.go("place"); app.processEvents()
 check("Place places: the Shred page with our outline, in Matrix & Outline", w.stack.currentWidget() is pg and pg.place_mode
-      and pg.views.isVisibleTo(w) and w.step_btns["matrix"].isChecked() and w.page_title.text() == "Matrix")
+      and pg.views.isVisibleTo(w) and w.step_btns["matrix"].isChecked() and w.page_title.text() == "Place")   # 4.66.0: off the tabs, opened from Assign > More
 by = lambda s: next(it for it in M.items if s in it["text"])          # noqa: E731
 ims, rep, ev = by("(IMS)"), by("monthly status"), by("realism")
 w.review.req([ims, rep, ev], "")

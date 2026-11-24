@@ -63,7 +63,7 @@ TABS = {"home": [("overview", "Overview"), ("calendar", "Calendar"), ("tasks", "
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
         "assign": [("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"),
                    ("acronyms", "Acronyms")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
-        "matrix": [("matrix", "Matrix"), ("place", "Place"), ("crosswalk", "Crosswalk"), ("prove", "Coverage")],   # 4.60.0: Outline is its own entry
+        "matrix": [("assignto", "Assign"), ("matrix", "Matrix"), ("crosswalk", "Crosswalk"), ("prove", "Coverage")],   # 4.66.0: Assign first; Place on the page opens from it
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.61.0: Redlining is an entry of its own again, with the effort's other work
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting"), ("studio", "Template Studio")],   # 4.29.1: it works on the open effort's volume
         "drafts": [("draftacr", "Acronyms"), ("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"),   # 4.65.0: Acronyms first
@@ -73,7 +73,7 @@ TABS = {"home": [("overview", "Overview"), ("calendar", "Calendar"), ("tasks", "
         "templates": [("templates", "Templates"), ("tplprofiles", "From profiles"), ("profiles", "Effort Profiles")],   # 4.28.0, 4.28.2; 4.29.1: Template Studio is Setup's
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
-HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
+HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home", "place": "matrix"})   # pages opened from inside another
 REVIEW_VIEWS = ("shredlist",)          # 4.54.0: On the page and As a table; Accuracy and Theme tags are Quick tools
 TOOL_PAGES = ("shredacc", "sort")
 TEAM, TEMPLATES = ("rules", "audit", "refs"), ("styles", "designs", "formatstd", "templates")   # 4.28.0: the standards have their own group
@@ -84,7 +84,7 @@ RAIL_OF.update({k: k for k in ENTRIES})
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
 RAIL_OF.update({k: "tools" for k in TOOL_PAGES})                 # 4.19.0
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
-                "acrlist": "assign", "verify": "assign", "record": "home", "home": "home"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
+                "acrlist": "assign", "verify": "assign", "record": "home", "home": "home", "place": "matrix"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({"prodstd": "globalstd", "qpstd": "designs", "layoutstd": "formatstd", "team": "settings"})   # 4.60.0: Team defaults opens from Settings
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
@@ -428,7 +428,7 @@ class MainWindow(QMainWindow):
     def rail_go(self, key):
         """4.51.0: with nothing open, a space that works on an effort goes to its page, which says no effort is open (from
         3.53.0 to 4.50.0 it opened Unfiled; Unfiled takes no new work). NO_EFFORT: the pages that need none."""
-        return self.go({"home": "overview", "drafts": "draftacr"}.get(key, key))      # 4.27.0: the Overview; 4.65.0: Drafts opens on Acronyms
+        return self.go({"home": "overview", "drafts": "draftacr", "matrix": "assignto"}.get(key, key))      # 4.27.0: the Overview; 4.65.0: Drafts opens on Acronyms
 
     def work_on(self, name):
         """3.53.0: the Working on box: an effort, or Unfiled (made when first used). The page you are on stays."""

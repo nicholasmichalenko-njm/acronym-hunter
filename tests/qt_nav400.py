@@ -81,7 +81,7 @@ check("Shred's views are On the page and As a table; Sort and Accuracy are Quick
       and __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["shredacc"] == "tools")
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()
-check("Matrix: Matrix, Place, Crosswalk, Coverage (4.60.0: Outline is its own entry)", w._tab_keys == ["matrix", "place", "crosswalk", "prove"] and w.page_title.text() == "Matrix"
+check("Matrix: Matrix, Place, Crosswalk, Coverage (4.60.0: Outline is its own entry)", w._tab_keys == ["assignto", "matrix", "crosswalk", "prove"] and w.page_title.text() == "Matrix"
       and w.page_crumb.text() == "", (w._tab_keys, w.page_title.text()))
 w.rail_go("drafts"); app.processEvents()
 check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth set aside)", w._tab_keys == ["draftacr", "drafts", "techedit", "markups"]
