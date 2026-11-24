@@ -63,7 +63,7 @@ TABS = {"home": [("overview", "Overview"), ("calendar", "Calendar"), ("tasks", "
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
         "assign": [("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"),
                    ("acronyms", "Acronyms")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
-        "matrix": [("assignto", "Assign"), ("linkcheck", "Check"), ("matrix", "Matrix"), ("crosswalk", "Crosswalk")],   # 4.66.0 Assign; 4.67.0 Check (Coverage under its More)
+        "matrix": [("assignto", "Assign"), ("linkcheck", "Check"), ("matrix", "Matrix")],   # 4.66.0 Assign; 4.67.0 Check (Coverage under its More); 4.69.0 the crosswalk under Matrix > More
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.61.0: Redlining is an entry of its own again, with the effort's other work
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting"), ("studio", "Template Studio")],   # 4.29.1: it works on the open effort's volume
         "drafts": [("draftacr", "Acronyms"), ("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"),   # 4.65.0: Acronyms first
@@ -73,7 +73,7 @@ TABS = {"home": [("overview", "Overview"), ("calendar", "Calendar"), ("tasks", "
         "templates": [("templates", "Templates"), ("tplprofiles", "From profiles"), ("profiles", "Effort Profiles")],   # 4.28.0, 4.28.2; 4.29.1: Template Studio is Setup's
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
-HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home", "place": "matrix", "prove": "matrix"})   # pages opened from inside another
+HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home", "place": "matrix", "prove": "matrix", "crosswalk": "matrix"})   # pages opened from inside another
 REVIEW_VIEWS = ("shredlist",)          # 4.54.0: On the page and As a table; Accuracy and Theme tags are Quick tools
 TOOL_PAGES = ("shredacc", "sort")
 TEAM, TEMPLATES = ("rules", "audit", "refs"), ("styles", "designs", "formatstd", "templates")   # 4.28.0: the standards have their own group

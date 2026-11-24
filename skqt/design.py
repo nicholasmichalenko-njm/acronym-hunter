@@ -186,6 +186,7 @@ QPushButton#rail:hover {{ background: rgba(255,255,255,0.06); color: {t['rail_ac
 QPushButton#rail:checked {{ background: {t['rail_sel_bg']}; color: {t['rail_active_text']}; font-weight: 600;
                             border-left: 3px solid {t['rail_sel_bar']}; padding-left: 17px; }}
 QPushButton#rail:disabled {{ color: #5E6E84; }}
+QPushButton[sk_switch="true"]:checked {{ background: {t['accent']}; color: {t['accent_fg']}; border: 1px solid {t['accent']}; font-weight: 600; }}
 QPushButton#rail[offrole="true"] {{ color: #66768C; }}
 QPushButton#railgroup {{ background: transparent; color: {t['rail_group']}; border: none; border-top: 1px solid {t['rail_rule']};
     text-align: left; font-size: {TYPE['label']}pt; font-weight: 700; padding: 14px 12px 6px 12px; margin-top: 8px; }}

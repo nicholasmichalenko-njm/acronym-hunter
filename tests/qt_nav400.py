@@ -72,7 +72,7 @@ check("a step chip opens its tab: Acronyms is the Acronyms page", w.stack.curren
       and w.page_title.text() == "Shred")
 w.go("crosswalk"); app.processEvents()
 check("Crosswalk shows beside the page, in Matrix (4.3.0; 4.60.0)", w.stack.currentWidget() is w.assign_page
-      and w.assign_page.views.key == "lm" and w.step_btns["matrix"].isChecked() and w._tab_keys[3] == "crosswalk")   # 4.67.0: after Assign, Check, Matrix
+      and w.assign_page.views.key == "lm" and w.step_btns["matrix"].isChecked() and "crosswalk" not in w._tab_keys)   # 4.69.0: under Matrix > More   # 4.67.0: after Assign, Check, Matrix
 w.stepper.see("shredlist"); app.processEvents()
 check("As a table is a way to see Shred (4.54.0): the menu stays on Shred",
       w.stack.currentWidget() is w.shredlist_page and w.step_btns["assign"].isChecked()
@@ -81,7 +81,7 @@ check("Shred's views are On the page and As a table; Sort and Accuracy are Quick
       and __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["shredacc"] == "tools")
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()
-check("Matrix: Matrix, Place, Crosswalk, Coverage (4.60.0: Outline is its own entry)", w._tab_keys == ["assignto", "linkcheck", "matrix", "crosswalk"] and w.page_title.text() == "Matrix"
+check("Matrix: Matrix, Place, Crosswalk, Coverage (4.60.0: Outline is its own entry)", w._tab_keys == ["assignto", "linkcheck", "matrix"] and w.page_title.text() == "Matrix"
       and w.page_crumb.text() == "", (w._tab_keys, w.page_title.text()))
 w.rail_go("drafts"); app.processEvents()
 check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth set aside)", w._tab_keys == ["draftacr", "drafts", "techedit", "markups"]

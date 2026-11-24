@@ -2,6 +2,8 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.69.0": ["Matrix has a switch on the page: By section or By requirement. It is the same choice as Design > Rows; the other layout starts from its own columns.",
+               "The L/M crosswalk is under Matrix > More. Nothing in it changed. Matrix's tabs are Assign, Check, Matrix."],
     "4.68.0": ["Each assigned requirement and criterion has a mark you set: Not started, Drafted or Addressed. Set it on Assign (right-click the rows, or More), or press Mark Addressed on Check. The app never sets it.",
                "Check has a fourth list: Assigned, not yet addressed. The mark is the matrix's Compliance status column, so it is in the export when that column is."],
     "4.67.0": ["Matrix has Check: the requirements not assigned, the evaluation criteria not assigned, and the sections with nothing in them. Double-click a row to open it in Assign, already picked.",

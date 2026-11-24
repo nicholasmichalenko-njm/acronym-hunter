@@ -61,7 +61,7 @@ check("extracted", wait(lambda: w.review is not None and not w.read_page.running
 from skqt.mainwin import TABS
 import homesuggest as HS, matrixdesign as MD, openpyxl
 from skqt import leaveoutview as LOV
-check("Matrix's tabs (4.60.0: Outline is its own entry)", [k for k, _t in TABS["matrix"]] == ["assignto", "linkcheck", "matrix", "crosswalk"], TABS["matrix"])   # 4.66.0: Place opens from Assign > More
+check("Matrix's tabs (4.60.0: Outline is its own entry)", [k for k, _t in TABS["matrix"]] == ["assignto", "linkcheck", "matrix"], TABS["matrix"])   # 4.66.0: Place opens from Assign > More
 pg = w.assign_page
 M = w.review.M
 w.go("assign"); app.processEvents()

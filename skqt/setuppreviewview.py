@@ -115,7 +115,7 @@ def install(page, v, at):
     page.view_btns = {}
     for key, text, tip in (("preview", "Preview", "The volume as it will be written, each piece in its style"),
                            ("sections", "Sections", "The sections: who writes each and when, and what is placed in it")):
-        b = D.button(text, None, None, tip); b.setCheckable(True)
+        b = D.button(text, None, None, tip); b.setCheckable(True); b.setProperty("sk_switch", True)   # 4.69.0: the one showing is filled
         b.clicked.connect(lambda _c=False, k=key: page.show_view(k))
         row.addWidget(b); page.view_btns[key] = b
     row.addStretch(1)

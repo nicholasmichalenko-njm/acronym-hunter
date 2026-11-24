@@ -302,7 +302,7 @@ TOPICS = [
   ["The set stays on this PC. The build scores it each release and logs the numbers only, never a file's name or text.",
    "The build stops when recall drops below the floor: the first run's score, raised as the shred gets better."]),
  ("crosswalk", "Matrix & Outline", "Crosswalk",
-  "The Matrix's second tab. Section L says how to write the proposal, Section M says how the customer scores it, and "
+  "Matrix > More > The L/M crosswalk... Section L says how to write the proposal, Section M says how the customer scores it, and "
   "Section C, the SOW or the PWS says the work. Each row is one instruction beside the factor that scores it and the work "
   "it describes; the gaps show instructions nobody scores and factors with no instruction.",
   "Right after the first read, while you build the structure: it shows which sections carry the score.",

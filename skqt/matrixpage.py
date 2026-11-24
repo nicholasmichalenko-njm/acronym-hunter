@@ -80,6 +80,15 @@ class MatrixPage(QWidget):
         split.addWidget(lsc)
         self.design_w = lsc
         prev = D.Card("As it will be", actions=())
+        sw = QHBoxLayout(); sw.setSpacing(D.SPACE["xs"])                  # 4.69.0: the two layouts, on the page itself
+        self.layout_btns = {}
+        for (key, _lab), (text, tip) in zip(MD.LAYOUTS, (("By section", "One row per item of your outline, Section L and M side by side"),
+                                                         ("By requirement", "One row per piece of the RFP"))):
+            b = D.button(text, None, None, tip); b.setCheckable(True); b.setProperty("sk_switch", True)
+            b.clicked.connect(lambda _c=False, k=key: self.show_layout(k))
+            sw.addWidget(b); self.layout_btns[key] = b
+        sw.addStretch(1)
+        prev.body.addLayout(sw)
         self.info = D.label("", "muted")
         prev.add(self.info)
         self.model = QStandardItemModel(self)
@@ -104,6 +113,8 @@ class MatrixPage(QWidget):
                                     "A new version of the view in use, with this design; the old version stays")
         self.type_btn = self.bar.more("Start this effort type with it", lambda: self.type_start(),
                                      "New efforts of this effort type start with the view in use")
+        self.bar.more("The L/M crosswalk...", lambda: self.host.go("crosswalk"),             # 4.69.0: off the tabs
+                      "Each Section L instruction beside the Section M factor that scores it and the work it describes; the gaps; your own links")
         self.bar.more_sep()
         self.bar.more("Merge another copy's matrix...", lambda: self.bring_back(merge=True),
                       "Another copy of this effort's matrix: its values listed beside ours, ours kept unless you take theirs")
@@ -123,6 +134,19 @@ class MatrixPage(QWidget):
         if self.b_design.isChecked() != bool(on):
             self.b_design.blockSignals(True); self.b_design.setChecked(bool(on)); self.b_design.blockSignals(False)
         return bool(on)
+
+    def show_layout(self, key):
+        """By section or By requirement (4.69.0): the same choice as Design > Rows. The other layout starts from its
+        own columns, as it always has."""
+        i = self.layout_box.findData(key)
+        if i >= 0 and i != self.layout_box.currentIndex():
+            self.layout_box.setCurrentIndex(i)
+        self.mark_layout()
+        return self.d.get("layout")
+
+    def mark_layout(self):
+        for k, b in self.layout_btns.items():
+            b.setChecked(k == self.d.get("layout", "outline"))
 
     # ------------------------------------------------------------ the design
     def refresh(self):
@@ -158,6 +182,7 @@ class MatrixPage(QWidget):
         self.order.setEnabled(not outline); self.context.setEnabled(not outline)   # the outline sets both
         self.empty.setText("Outline items with nothing in them yet" if outline else "Sections with nothing assigned yet")
         self.fill_views()
+        self.mark_layout()
         self._loading = False
 
     def read_design(self):
