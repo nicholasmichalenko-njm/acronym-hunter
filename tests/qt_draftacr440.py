@@ -70,7 +70,7 @@ DV.set_folder(w.ws, vols[0], F1); DV.set_folder(w.ws, vols[1], F2)
 
 ap.b_drafts.trigger(); app.processEvents()
 pg = w.draftacr_page
-check("In our drafts on Acronyms opens Drafts > Acronyms", w.stack.currentWidget() is pg and w._tab_keys[:3] == ["drafts", "draftacr", "techedit"],
+check("In our drafts on Acronyms opens Drafts > Acronyms", w.stack.currentWidget() is pg and w._tab_keys[:3] == ["draftacr", "drafts", "techedit"],
       w._tab_keys)
 check("one main button, Check the drafts", pg.bar.main is pg.b_check and pg.table.rowCount() == 2)
 rows = pg.check(); app.processEvents()

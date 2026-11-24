@@ -66,7 +66,7 @@ TABS = {"home": [("overview", "Overview"), ("calendar", "Calendar"), ("tasks", "
         "matrix": [("matrix", "Matrix"), ("place", "Place"), ("crosswalk", "Crosswalk"), ("prove", "Coverage")],   # 4.60.0: Outline is its own entry
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.61.0: Redlining is an entry of its own again, with the effort's other work
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting"), ("studio", "Template Studio")],   # 4.29.1: it works on the open effort's volume
-        "drafts": [("drafts", "Status"), ("draftacr", "Acronyms"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
+        "drafts": [("draftacr", "Acronyms"), ("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"),   # 4.65.0: Acronyms first
                    ("truth", "Wall of Truth"), ("markups", "Reviewer markups")],   # 4.25.3: a reviewer's commented PDF of a draft                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
@@ -428,7 +428,7 @@ class MainWindow(QMainWindow):
     def rail_go(self, key):
         """4.51.0: with nothing open, a space that works on an effort goes to its page, which says no effort is open (from
         3.53.0 to 4.50.0 it opened Unfiled; Unfiled takes no new work). NO_EFFORT: the pages that need none."""
-        return self.go("overview" if key == "home" else key)      # 4.27.0: the Dashboard entry opens the Overview
+        return self.go({"home": "overview", "drafts": "draftacr"}.get(key, key))      # 4.27.0: the Overview; 4.65.0: Drafts opens on Acronyms
 
     def work_on(self, name):
         """3.53.0: the Working on box: an effort, or Unfiled (made when first used). The page you are on stays."""

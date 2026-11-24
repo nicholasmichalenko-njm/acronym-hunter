@@ -47,7 +47,7 @@ def wait(cond, secs=60):
 
 
 check("Drafts' tabs: Status, Acronyms, Edit (Color Reviews and Wall of Truth set aside)",
-      [k for k, _t in TABS["drafts"]][:3] == ["drafts", "draftacr", "techedit"], TABS["drafts"])
+      [k for k, _t in TABS["drafts"]][:3] == ["draftacr", "drafts", "techedit"], TABS["drafts"])   # 4.65.0: Acronyms first
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page)

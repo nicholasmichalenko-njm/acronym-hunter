@@ -37,7 +37,7 @@ w.go("drafts"); app.processEvents()
 check("the pages set aside leave the menu", not set(gone) & set(w._tab_keys) and "mywork" not in w.step_btns, w._tab_keys)
 check("... production's pages stay; Draft Status is back (4.0.0); Acronyms beside it (4.4.0); Reviewer markups (4.25.3)", w.step_btns["audit"].isVisible()
       and not {"library", "assign", "matrix", "setups", "drafts", "finalcheck"} & MF.hidden(modes.settings())   # 4.52.0: not set aside; with nothing open the steps wait for an effort
-      and w._tab_keys == ["drafts", "draftacr", "techedit", "markups"], w._tab_keys)
+      and w._tab_keys == ["draftacr", "drafts", "techedit", "markups"], w._tab_keys)   # 4.65.0: Acronyms first
 from skqt import frame as _FR
 check("... My Work is out of the effort switcher", "My Work" not in [a.text() for a in _FR.effort_menu(w).actions()])
 w.go("library"); app.processEvents()

@@ -84,8 +84,8 @@ w.rail_go("matrix"); app.processEvents()
 check("Matrix: Matrix, Place, Crosswalk, Coverage (4.60.0: Outline is its own entry)", w._tab_keys == ["matrix", "place", "crosswalk", "prove"] and w.page_title.text() == "Matrix"
       and w.page_crumb.text() == "", (w._tab_keys, w.page_title.text()))
 w.rail_go("drafts"); app.processEvents()
-check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth set aside)", w._tab_keys == ["drafts", "draftacr", "techedit", "markups"]
-      and w.page_title.text() == "Drafts" and w.stack.currentWidget() is w.drafts_page, w._tab_keys)
+check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth set aside)", w._tab_keys == ["draftacr", "drafts", "techedit", "markups"]
+      and w.page_title.text() == "Drafts" and w.stack.currentWidget() is w.draftacr_page, w._tab_keys)   # 4.65.0: Drafts opens on Acronyms
 # the bar
 w.rail_go("assign"); app.processEvents()
 check("4.26.0: Shred has no bar at the bottom (Next: Matrix & Outline is gone)", not w.next_bar.isVisibleTo(w))
