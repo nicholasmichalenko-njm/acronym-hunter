@@ -162,7 +162,7 @@ PATH = ("path", "Getting started", "The effort's path",
    "Shred: what every piece of the customer's text is (Requirements, Submission Checklist, Evaluation, Acronyms; adding a document "
    "extracts it). See it as shows Page or List; Fix text checks that every page was read right. The Q&A button opens the Q&A log beside the page.",
    "Matrix & Outline: what we answer and where (Outline, Place, the Matrix, Crosswalk, Coverage). Setup: who writes what, when and how long, and the "
-   "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acronyms). Submit: the last checks.",
+   "setup in Word. Drafts: the team writes in Word; the app reads each volume's draft back (Status) and checks it against the acronym list (Acronyms). Submission Check: the last checks.",
    "The Overview is the map: one card per step, Your next step with one button, and this week's dates.",
    "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",
    "The effort switcher at the top of the menu holds another effort, All Efforts and Quick tools. Ctrl+K goes to any page or "

@@ -103,7 +103,7 @@ def import_package(win, path=None, dest=None, mode=None):
     except Exception:
         diag.swallowed()
     merge_authors(win, man, new_name)
-    win.go("home")
+    win.go("overview")
     win.safety.restore_view()                            # 2.79.0: where the sender was
     win.toast(f"{new_name}: package imported")
     got["name"] = new_name

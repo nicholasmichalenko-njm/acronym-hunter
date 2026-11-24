@@ -34,7 +34,7 @@ from skqt import modes as _modes
 _modes.save(show_set_aside=False, hide_other_roles=False)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1440, 900); w.show(); app.processEvents()
 check("4.60.0: Quick tools, the effort's pages, Standards and Formatting, Settings", [b.text() for b in w.step_btns.values()] ==
-      ["Quick tools", "Overview", "Documents", "Graphics", "Deliverables", "Shred", "Matrix", "Outline", "Setup", "Drafts", "Submit", "Global Standards", "Rules", "Team References", "Templates", "Page Layout", "Styles", "Quick Parts", "Check a Draft", "Settings"],
+      ["Quick tools", "Overview", "Documents", "Graphics", "Deliverables", "Redlining", "Shred", "Matrix", "Outline", "Setup", "Drafts", "Submission Check", "Global Standards", "Rules", "Team References", "Templates", "Page Layout", "Styles", "Quick Parts", "Check a Draft", "Effort Activity", "Effort Backup", "Settings"],
       [b.text() for b in w.step_btns.values()])
 check("4.60.0: no entry is numbered", all(b.n is None and not b.circle.isVisibleTo(w) for b in w.step_btns.values()))
 check("the effort switcher is there with nothing open", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text().startswith("No effort open"))
@@ -104,7 +104,7 @@ check("the Overview: six step cards", [c.name.text() for c in hp.map.cards.value
       and hp.map.cards["library"].cap.text() == "1  NOW" and hp.map.isVisibleTo(w))
 check("... Your next step with one button", hp.map.next_title.text() == "Add the customer's documents" and "Open Documents" in hp.map.next_btn.text())
 check("... This week", hp.map.week.isVisibleTo(w))
-check("... Overview, All cards, Calendar, Tasks, the Effort Record and Meetings are its tabs (4.60.0)", w._tab_keys[:6] == ["overview", "home", "calendar", "tasks", "record", "meetings"])
+check("... Overview, All cards, Calendar, Tasks, the Effort Record and Meetings are its tabs (4.60.0)", w._tab_keys == [])   # 4.61.0: All cards is no tab; the Overview's are Overview, Calendar, Tasks, Meetings
 check("... no bar at the bottom of the Overview", not w.next_bar.isVisibleTo(w))
 hp.map.cards["assign"].click(); app.processEvents()
 check("a card opens its step", w.step_btns["assign"].isChecked())

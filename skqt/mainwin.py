@@ -45,16 +45,16 @@ def _WAU():
 
 # 4.60.0 (Nicholas 2026-11-23, Layout 1; DECISIONS.md): the same menu with or without an effort open; no numbers
 RAIL = [("Tools", [("tools", "Quick tools")]),
-        ("Effort", [("home", "Overview"), ("library", "Documents"), ("graphics", "Graphics"), ("deliverables", "Deliverables"),
+        ("Effort", [("home", "Overview"), ("library", "Documents"), ("graphics", "Graphics"), ("deliverables", "Deliverables"), ("redline", "Redlining"),
                     ("assign", "Shred"), ("matrix", "Matrix"), ("outline", "Outline"),
-                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
+                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submission Check")]),
         (FORMATTING, [("globalstd", "Global Standards"), ("rules", "Rules"), ("refs", "Team References"), ("templates", "Templates"),
                       ("formatstd", "Page Layout"), ("styles", "Styles"), ("designs", "Quick Parts"), ("audit", "Check a Draft")]),
-        ("Settings", [("settings", "Settings")])]
-STEP_KEYS = tuple(k for k, _t in RAIL[1][1] if k not in ("graphics", "deliverables", "outline"))   # the six steps navsteps counts, after Overview
+        ("Settings", [("activity", "Effort Activity"), ("backup", "Effort Backup"), ("settings", "Settings")])]
+STEP_KEYS = tuple(k for k, _t in RAIL[1][1] if k not in ("graphics", "deliverables", "redline", "outline"))   # the six steps navsteps counts, after Overview
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Quick tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("record", "Effort Record"), ("meetings", "Meetings"), ("activity", "Activity")],   # 4.60.0: Calendar and Tasks are tabs here; Deliverables is its own entry   # 4.27.0, 4.27.1
+TABS = {"home": [("overview", "Overview"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("meetings", "Meetings")],   # 4.61.0: the Overview is the at-a-glance page; Effort settings opens from it; Effort Activity is at the foot of the menu
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "List"), ("compare", "What changed"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
@@ -64,7 +64,7 @@ TABS = {"home": [("overview", "At a glance"), ("home", "All cards"), ("calendar"
         "assign": [("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"),
                    ("acronyms", "Acronyms")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
         "matrix": [("matrix", "Matrix"), ("place", "Place"), ("crosswalk", "Crosswalk"), ("prove", "Coverage")],   # 4.60.0: Outline is its own entry
-        "deliverables": [("deliverables", "List"), ("redline", "Prepare a redline"), ("rcheck", "Check a redline"), ("exceptions", "Exceptions")],   # 4.60.0: Redlining opens from a deliverable                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
+        "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.61.0: Redlining is an entry of its own again, with the effort's other work
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting"), ("studio", "Template Studio")],   # 4.29.1: it works on the open effort's volume
         "drafts": [("drafts", "Status"), ("draftacr", "Acronyms"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
                    ("truth", "Wall of Truth"), ("markups", "Reviewer markups")],   # 4.25.3: a reviewer's commented PDF of a draft                # 4.4.0: Acronyms, each volume's draft against the list
@@ -84,7 +84,7 @@ RAIL_OF.update({k: k for k in ENTRIES})
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
 RAIL_OF.update({k: "tools" for k in TOOL_PAGES})                 # 4.19.0
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
-                "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
+                "acrlist": "assign", "verify": "assign", "record": "home", "home": "home"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({"prodstd": "globalstd", "qpstd": "designs", "layoutstd": "formatstd", "team": "settings"})   # 4.60.0: Team defaults opens from Settings
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
@@ -366,7 +366,7 @@ class MainWindow(QMainWindow):
         self._rd_seen = self._rd_done = None                   # 2.92.0: the readable copy, kept current
         self._rd_thread = None
         self.rd_written = ""
-        self.rd_timer = QTimer(self, interval=3000, timeout=lambda: (self.readable_tick(), self.watch_tick(),
+        self.rd_timer = QTimer(self, interval=3000, timeout=lambda: (self.watch_tick(),
                                                                   __import__("skqt.shredpick", fromlist=["x"]).auto_tick(self),
                                                                   __import__("skqt.shredpick", fromlist=["x"]).auto_scan(self),
                                                                   __import__("effortdata").tick(self)))     # 4.9.0: the macros' data
@@ -1163,8 +1163,8 @@ class MainWindow(QMainWindow):
             from .modes import settings
             aside = MF.hidden(settings()) - {step}
             tabs = [t for t in tabs if t[0] not in aside]
-        if head == "deliverables" and tabs and not __import__("skqt.redlinechoose", fromlist=["x"]).listed(self):     # 4.59.2 (226): Check and Exceptions wait for a document
-            tabs = [x for x in tabs if x[0] in ("deliverables", "redline", step)]
+        if head == "redline" and tabs and not __import__("skqt.redlinechoose", fromlist=["x"]).listed(self):     # 4.59.2 (226): Check and Exceptions wait for a document
+            tabs = [x for x in tabs if x[0] in ("redline", step)]
         self._tab_sync = True
         try:
             while self.page_tabs.count():

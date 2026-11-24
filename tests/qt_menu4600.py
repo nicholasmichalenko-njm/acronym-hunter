@@ -24,8 +24,8 @@ def check(name, ok, info=""):
     checks.append(bool(ok)); print("PASS" if ok else "FAIL", name, "" if ok else info)
 
 
-MENU = ["Quick tools", "Overview", "Documents", "Graphics", "Deliverables", "Shred", "Matrix", "Outline", "Setup", "Drafts", "Submit",
-        "Global Standards", "Rules", "Team References", "Templates", "Page Layout", "Styles", "Quick Parts", "Check a Draft", "Settings"]
+MENU = ["Quick tools", "Overview", "Documents", "Graphics", "Deliverables", "Redlining", "Shred", "Matrix", "Outline", "Setup", "Drafts", "Submission Check",
+        "Global Standards", "Rules", "Team References", "Templates", "Page Layout", "Styles", "Quick Parts", "Check a Draft", "Effort Activity", "Effort Backup", "Settings"]   # 4.61.0
 tmp = tempfile.mkdtemp()
 cfg = os.path.join(tmp, "cfg"); os.makedirs(cfg)
 ED = os.path.join(tmp, "Kestrel"); CD = os.path.join(ED, "Customer documents"); os.makedirs(CD)
@@ -54,7 +54,7 @@ check("nothing is hidden with no effort open", w.ws is None and hidden() == [], 
 check("no entry carries a number", all(b.n is None and not b.circle.isVisibleTo(w) for b in w.step_btns.values()))
 check("no heading says the effort's path", not any("PATH" in (h.text() if h is not None else "") for h in w.group_heads.values()))
 check("Standards and Formatting is the one heading", [h.text() for h in w.group_heads.values() if h is not None] == ["STANDARDS AND FORMATTING"])
-check("no Team, Redlining, Calendar or Tasks entry", not {"team", "redline", "calendar", "tasks"} & set(w.step_btns))
+check("no Team, Calendar or Tasks entry", not {"team", "calendar", "tasks"} & set(w.step_btns))
 
 w.go("assign"); app.processEvents()
 pg = w.noeffort_page
@@ -64,7 +64,7 @@ check("... the entry stays lit and the page is named", w.step_btns["assign"].isC
 for k in NE.SAY:
     w.go(k); app.processEvents()
 check("every effort page but Overview says so with nothing open", all(NE.wanted(w, k) for k in NE.SAY) and not NE.wanted(w, "home")
-      and set(NE.SAY) == {k for k, _t in MW.RAIL[1][1]} - {"home"})
+      and set(NE.SAY) == ({k for k, _t in MW.RAIL[1][1]} - {"home"}) | {"activity"})
 pg.btn.click(); app.processEvents()
 check("the button goes to the efforts", w.stack.currentWidget() is w.efforts_page)
 w.go("globalstd"); app.processEvents()
@@ -74,8 +74,8 @@ w.open_effort("Kestrel"); app.processEvents()
 check("with an effort open: the same menu, nothing hidden", menu() == MENU and hidden() == [], hidden())
 w.go("assign"); app.processEvents()
 check("Shred opens with an effort", w.stack.currentWidget() is not w.noeffort_page)
-w.go("home"); app.processEvents()
-check("Calendar and Tasks are tabs of Overview", "calendar" in w._tab_keys and "tasks" in w._tab_keys and "deliverables" not in w._tab_keys, w._tab_keys)
+w.rail_go("home"); app.processEvents()
+check("Calendar and Tasks are tabs of Overview", w._tab_keys == ["overview", "calendar", "tasks", "meetings"], w._tab_keys)
 w.go("calendar"); app.processEvents()
 check("... and Calendar lights Overview", w.step_btns["home"].isChecked() and w.page_title.text() == "Overview", w.page_title.text())
 w.go("matrix"); app.processEvents()
@@ -83,23 +83,23 @@ check("Matrix: its own tabs, no Outline", w._tab_keys == ["matrix", "place", "cr
 w.go("outline"); app.processEvents()
 check("Outline is a page of its own", w.step_btns["outline"].isChecked() and w._tab_keys == [] and w.page_title.text() == "Outline", (w._tab_keys, w.page_title.text()))
 w.go("deliverables"); app.processEvents()
-check("Deliverables: the list, and a redline's way in", w.step_btns["deliverables"].isChecked() and w._tab_keys == ["deliverables", "redline"], w._tab_keys)
+check("Deliverables is the list alone (4.61.0)", w.step_btns["deliverables"].isChecked() and w._tab_keys == [], w._tab_keys)
 w.go("redline"); app.processEvents()
-check("Redlining lights Deliverables", w.step_btns["deliverables"].isChecked() and w.stack.currentWidget() is w.redline_page)
+check("Redlining is its own entry (4.61.0)", w.step_btns["redline"].isChecked() and w.stack.currentWidget() is w.redline_page and w._tab_keys == ["redline"], w._tab_keys)
 for d in DV.Library(ws.p("documents")).load().all:
     DV.Library(ws.p("documents")).load().set_returns(d["id"], ["redline"])
 w.go("redline"); app.processEvents()
-check("a document marked: Check a redline and Exceptions show", w._tab_keys == ["deliverables", "redline", "rcheck", "exceptions"], w._tab_keys)
+check("a document marked: Check and Exceptions show", w._tab_keys == ["redline", "rcheck", "exceptions"], w._tab_keys)
 w.go("settings"); app.processEvents()
 sp = w.settings_page
 check("Team defaults is on Settings", "team_card" in dict(sp.SECTIONS)["Team data and training"] and sp.MOVED == ())
 
 # Quick tools
 check("Quick tools pins Redline a document for every role", all("redline" in p for p in TH.ROLE_PINS.values())
-      and TH.TOOLS["redline"][0] == "Redline a document" and TH.TOOLS["redline"][2] == "file")
+      and TH.TOOLS["redline"][0] == "Make a Word file from a PDF" and TH.TOOLS["redline"][2] == "file")
 pf = os.path.join(cfg, TH.PINS_FILE)
 json.dump({"pins": ["acrfinder"]}, open(pf, "w"))
-check("pins saved before 4.60.0 gain it once", TH.load_pins(cfg) == ["acrfinder", "redline"], TH.load_pins(cfg))
+check("pins saved before 4.60.0 gain it once", TH.load_pins(cfg) == ["acrfinder", "redline", "markups"], TH.load_pins(cfg))
 TH.save_pins(cfg, ["acrfinder"])
 check("... and unpinning it stays", TH.load_pins(cfg) == ["acrfinder"], TH.load_pins(cfg))
 made = []

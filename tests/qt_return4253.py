@@ -121,7 +121,7 @@ st2 = DL.state(DL.get(rec, did), (), lib, (), rec)
 check("... a form keeps its own words (fill the new one) only when its document changes", not st2["changed"])
 # Drafts > Reviewer markups
 check("Drafts has Reviewer markups; Redlining opens from Deliverables (4.60.0)", ("markups", "Reviewer markups") in MW.TABS["drafts"]
-      and "redline" not in w.step_btns and "deliverables" in w.step_btns)
+      and "redline" in w.step_btns and "deliverables" in w.step_btns)   # 4.61.0: Redlining is an entry again
 w.go("markups"); mp = w.markups_page; app.processEvents()
 mine = os.path.join(tmp, "Our draft.docx"); shutil.copy2(os.path.join(S, "comments", "C01_prose.docx"), mine)
 res = mp.into_word(pdf=P, docx=mine)

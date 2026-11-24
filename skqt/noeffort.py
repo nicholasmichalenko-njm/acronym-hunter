@@ -18,7 +18,10 @@ SAY = {"library": "Documents holds an effort's files, each marked with what it i
        "outline": "Outline is the structure of an effort's response.",
        "setups": "Setup makes each author's starting draft for an effort.",
        "drafts": "Drafts reads an effort's drafts back and says where each section stands.",
-       "finalcheck": "Submit runs the last checks on an effort's volumes."}
+       "redline": "Redlining makes a Word file of a customer's PDF for an effort, to mark up and return. To redline one file "
+                  "without an effort, use Quick tools.",
+       "finalcheck": "Submission Check checks an effort's volumes before they go.",
+       "activity": "Effort Activity lists everything that happened in an effort, by day."}
 BUTTON = "Open or create an effort"
 ON = True        # a test of a page itself, with nothing open, turns this off
 

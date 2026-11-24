@@ -42,13 +42,7 @@ class RecordPage(StageTableMixin, QWidget):
         self.bar.add("+ Stage", lambda: self.add_stage())
         self.bar.add("Save stages", lambda: self.save_stages(), "Keep the stages and gates as set below")
         self.bar.primary("Save details", lambda: self.save_details())
-        self.bar.more("Open the readable copy", lambda: self.host.open_readable(), "Everything in the effort as plain files in its folder")
-        self.bar.more("Check the effort's health now", lambda: self.check_health())
-        self.bar.more_sep()
-        self.bar.more("Back up now", lambda: self.backup_now())
-        self.bar.more("Restore...", lambda: self.restore_dialog(), "Put back an earlier copy of this effort")
-        self.bar.more("Open the backups folder", lambda: self.open_backups(),      # 4.30.1: the app data folder is hidden
-                      "The copies kept in this effort's own data, opened in File Explorer (that folder is hidden there)")
+        # 4.61.0: backing up and putting back are the Effort Backup page (the menu's foot); the readable copy and the health card are gone
         self.bar.export("Effort status (Word)...", lambda: self.status_export(), "Where the effort stands, for leadership")
         self.bar.export("Effort summary (Word)...", lambda: self.status_export(final=True), "The effort with its complete history")
         self.bar.export("Save effort package...", lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off")
@@ -117,16 +111,16 @@ class RecordPage(StageTableMixin, QWidget):
                                "rewritten a few seconds after every change, so the effort can carry on without Stationkeeper "
                                "(More > Open the readable copy).")
         self.readable_text = self.readable.add(D.label("", "muted"))
-        v.addWidget(self.readable)
+        self.readable.setVisible(False)                # 4.61.0: no longer shown or rewritten on its own
         self.health = D.Card("Effort health", "Checked each time the effort opens. A damaged list or matrix is put back from its "
                              "newest good copy automatically.")
         self.health_box = QVBoxLayout(); self.health.body.addLayout(self.health_box)
-        v.addWidget(self.health)
+        self.health.setVisible(False)                  # 4.61.0: still checked when the effort opens; a problem found is said then
         # reports, package, backup: under Export and More (3.75.0)
         self.out = D.Card("Backups")
         self.team_btn = self.a_team
         self.backup_text = self.out.add(D.label("", "muted"))
-        v.addWidget(self.out)
+        self.out.setVisible(False)                     # 4.61.0: the Effort Backup page
         v.addStretch(1)
 
     def stage_menu(self):
@@ -591,7 +585,7 @@ class RecordPage(StageTableMixin, QWidget):
         h = self.host
         bd = folder or self.backup_dir()
         if h.ws is not None:
-            h.readable_now(overview=True, wait=False)           # 2.92.0: the readable copy, with the overview, too
+            pass                                                # 4.61.0: no readable copy beside the effort
         if h.ws is None or not bd:
             h.status("Backups are off. Choose the backup folder in Settings.")
             return None

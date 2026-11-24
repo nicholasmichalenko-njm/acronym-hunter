@@ -107,7 +107,7 @@ hp.add_effort({"name": "Osprey", "path": os.path.join(base, "Osprey", "Osprey_Ef
 check("an effort started with the type Program deliverables is a candidate", w.effort_name == "Osprey" and PG.candidates(w.efforts) == ["Osprey"])
 toasts.clear()
 w.open_effort("Heron"); w.open_effort("Osprey"); pump()
-check("opening it says once where the offer is", toasts.count(PV.OFFER) == 1 and w.stack.currentWidget() is not w.overview_page, toasts)
+check("opening it says once where the offer is", toasts.count(PV.OFFER) == 1, toasts)
 r = RR.Record(w.ws.root); r.add_task("Send the Osprey plan", owner="A. Lee", due="2020-01-01")
 lib = DV.Library(w.ws.p("documents")).load()
 doc = os.path.join(os.path.dirname(w.effort_path), "Plan.txt"); open(doc, "w").write("Osprey plan")

@@ -38,11 +38,11 @@ for _d in lib0.all:                                   # 4.25.3: Prepare for Redl
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
-check("4.60.0: Redlining has no menu entry; it opens from Deliverables", "redline" not in w.step_btns
-      and "redline" not in MW.STEP_KEYS and MW.RAIL_OF["redline"] == "deliverables" and MW.GROUP_OF["redline"] == "")
+check("4.61.0: Redlining is an entry of the effort's list, not one of the counted steps", "redline" in w.step_btns
+      and "redline" not in MW.STEP_KEYS and MW.RAIL_OF["redline"] == "redline" and MW.GROUP_OF["redline"] == "")
 w.go("redline"); app.processEvents()
-check("its tabs, beside the Deliverables list: Prepare, Check, Exceptions", w._tab_keys == ["deliverables", "redline", "rcheck", "exceptions"] and w.page_title.text() == "Deliverables"
-      and w.step_btns["deliverables"].isChecked(),
+check("its tabs, beside the Deliverables list: Prepare, Check, Exceptions", w._tab_keys == ["redline", "rcheck", "exceptions"] and w.page_title.text() == "Redlining"
+      and w.step_btns["redline"].isChecked(),
       (w._tab_keys, w.page_title.text()))
 check("every role sees it", all(RA.allowed(r, k) for r in ("Production", "Author", "Reviewer", "Capture") for k in ("redline", "rcheck", "exceptions")))
 pp = w.redline_page

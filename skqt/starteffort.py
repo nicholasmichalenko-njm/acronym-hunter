@@ -310,7 +310,7 @@ def start_effort(host, v):
         diag.activity("qt_effort_started", n=sum(1 for k in ("picture", "pm", "due", "client", "solicitation") if v.get(k)))
     except Exception:
         diag.swallowed()
-    host.go("home")
+    host.go("overview")
     try:
         host.toast(f"{name} is ready. Next: add the customer's documents in Documents.")
     except Exception:

@@ -34,7 +34,7 @@ b = HF.backups_folder(data)
 check("the backups folder is reached by its path, hidden or not, and made if missing", os.path.isdir(b) and b == os.path.join(data, "backups"))
 src = open(os.path.join(os.path.dirname(HERE), "skqt_main.py"), encoding="utf-8").read()
 saf = open(os.path.join(os.path.dirname(HERE), "skqt", "safety.py"), encoding="utf-8").read()
-rec = open(os.path.join(os.path.dirname(HERE), "skqt", "recordpage.py"), encoding="utf-8").read()
+rec = open(os.path.join(os.path.dirname(HERE), "skqt", "backuppage.py"), encoding="utf-8").read()   # 4.61.0: Effort Backup
 check("the program hides its folders at start, an effort's when it opens, and Effort Record has Open the backups folder",
       "_HF.program(A.BASE_DIR)" in src and '"--selftest" not in args and getattr(sys, "frozen", False)' in src and "HF.effort(h.ws.root)" in saf and '"Open the backups folder"' in rec)
 n = sum(checks)

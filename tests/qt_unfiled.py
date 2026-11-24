@@ -39,7 +39,7 @@ check("no efforts yet: Add an Effort (4.27.2: starting without one is Quick tool
 base = os.path.join(A.DATA_DIR, "Efforts")
 hp.add_effort({"name": "Heron", "path": os.path.join(base, "Heron", "Heron_Effort_List.xlsx")})
 check("+ Add an Effort makes the effort with its folders and opens it", w.effort_name == "Heron"
-      and os.path.isdir(os.path.join(base, "Heron", "10_proposal management", "Exports")) and w.stack.currentWidget() is w.home_page)
+      and os.path.isdir(os.path.join(base, "Heron", "10_proposal management", "Exports")) and w.stack.currentWidget() is w.overview_page)   # 4.61.0
 RR.Record(w.ws.root).set_due((datetime.datetime.now() + datetime.timedelta(days=30)).strftime("%Y-%m-%dT14:00"))
 hp.add_effort({"name": "Osprey", "path": os.path.join(base, "Osprey", "Osprey_Effort_List.xlsx")})
 r = RR.Record(w.ws.root); r.set_due((datetime.datetime.now() + datetime.timedelta(days=5)).strftime("%Y-%m-%dT14:00"))

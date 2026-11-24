@@ -185,7 +185,7 @@ class GraphicsPage(QWidget):
         if g is None:
             return False
         if g["kind"] == "need":
-            h.go("home")
+            h.go("overview")
             return True
         if not g["page"]:
             h.status("The scan found no terms in it, so there is no page to show. Open the file to look at it.")

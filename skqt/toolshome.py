@@ -54,14 +54,15 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "shredacc": ("Shred accuracy", "How well the reader finds requirements, on answer keys", "page"),     # 4.19.0: off Shred
          "sort": ("Themes", "Cross-cutting themes on requirements, for filtering and assignments", "page"),
          # 4.60.0 (Nicholas 2026-11-23 11:39: "I want it on the page for quick tools"): a tool on a file, no effort needed
-         "redline": ("Redline a document", "A Word file of a PDF or a picture, to mark up and return. No effort needed", "file")}
+         "redline": ("Make a Word file from a PDF", "A Word file of a PDF or a picture, to mark up and return. No effort needed", "file"),
+         "markups": ("Reviewer markups", "A reviewer's commented PDF, into your Word file as tracked changes and comments", "page")}   # 4.61.0
 FILE_USE = {"redline": "redline"}            # a "file" tool: choose files, then this use
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
              "Proposal Manager": ["home", "assign", "reviews", "mywork", "acrfinder", "qa"],
              "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],
              "Reviewer": ["reviews", "assign", "checks", "acrfinder"],
              "Capture": ["library", "assign", "structure", "custqa"]}
-ROLE_PINS = {r: p + ["redline"] for r, p in ROLE_PINS.items()}      # 4.60.0: Redline a document, for every role
+ROLE_PINS = {r: p + ["redline", "markups"] for r, p in ROLE_PINS.items()}      # 4.60.0: Redline a document, for every role
 PINS_FILE = "home_pins.json"
 OLD = {"shredreq": "assign"}                 # 4.54.0: a pin saved before Quick shred became Shred's table
 
@@ -89,6 +90,8 @@ def load_pins(config_dir, role=""):
             got = [OLD.get(k, k) for k in saved.get("pins", [])]       # 4.54.0: Quick shred's pin is Shred
             if not saved.get("v460") and "redline" not in got:        # 4.60.0: offered once to pins saved before it; unpinning it stays
                 got.append("redline")
+            if not saved.get("v461") and "markups" not in got:        # 4.61.0: the same for Reviewer markups
+                got.append("markups")
         return [k for n, k in enumerate(got) if k in TOOLS and k not in aside and k not in got[:n]]
     except (OSError, ValueError, AttributeError):
         return [k for k in (ROLE_PINS.get(role) or ROLE_PINS["Production"]) if k not in aside]
@@ -99,7 +102,7 @@ def save_pins(config_dir, pins):
     os.makedirs(config_dir, exist_ok=True)
     p = os.path.join(config_dir, PINS_FILE)
     with open(p + ".tmp", "w", encoding="utf-8") as f:
-        json.dump({"pins": [k for k in pins if k in TOOLS], "v460": True}, f, indent=1)
+        json.dump({"pins": [k for k in pins if k in TOOLS], "v460": True, "v461": True}, f, indent=1)
     os.replace(p + ".tmp", p)
 
 

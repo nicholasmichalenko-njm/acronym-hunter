@@ -250,7 +250,7 @@ check("... nor a Ctrl+K line", not any(e[3] == ("page", "shredreq") or "Quick sh
 f.close()
 with open(os.path.join(cfg, TH.PINS_FILE), "w", encoding="utf-8") as fh:
     json.dump({"pins": ["shredreq", "library", "assign"]}, fh)
-check("an old pin to Quick shred reads as Shred, once (4.60.0: and Redline a document is offered once)", TH.load_pins(cfg) == ["assign", "library", "redline"], TH.load_pins(cfg))
+check("an old pin to Quick shred reads as Shred, once (4.60.0: and Redline a document is offered once)", TH.load_pins(cfg) == ["assign", "library", "redline", "markups"], TH.load_pins(cfg))   # 4.61.0: and Reviewer markups
 w.go("tools"); pump()
 ok = w.go("shredreq"); pump()
 check("... and an old key opens Shred without an error", ok is not False and w.stack.currentWidget() is pg)

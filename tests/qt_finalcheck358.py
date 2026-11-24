@@ -26,7 +26,7 @@ def check(name, ok, info=""):
 app = QApplication([]); theme.apply(app)
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 from skqt import mainwin as MW
-check("Submit holds Final Check (3.75.0: nine groups)", ("finalcheck", "Submit") in dict(MW.RAIL)["Effort"])
+check("Submit holds Final Check (3.75.0: nine groups)", ("finalcheck", "Submission Check") in dict(MW.RAIL)["Effort"])   # 4.61.0
 check("... with Submission Check and Final Checks as its tabs", [k for k, _t in MW.TABS["finalcheck"]][:3] == ["finalcheck", "qa", "checks"])
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF

@@ -74,7 +74,7 @@ check("what's new once after an update, with each version since the last one", d
 check("a first start shows nothing", SF.whats_new("", A.APP_VERSION) == [])
 # Ctrl+K
 f = HC.open_finder(w, run=False)
-f.box.setText("record"); app.processEvents()
+f.box.setText("effort settings"); app.processEvents()   # 4.61.0: the Effort Record is Effort Settings
 f.go()
 check("Ctrl+K: a page", w.stack.currentWidget() is w.record_page)
 f = HC.open_finder(w, run=False); f.box.setText("thermal"); app.processEvents()

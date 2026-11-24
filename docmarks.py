@@ -8,6 +8,7 @@ ROLE_NAMES = dict(ROLES)
 USES = (("matrix", "For the shred"), ("reference", "Reference"), ("not_needed", "No mark"))        # the choices offered
 RETURNS = (("redline", "Redlined Deliverable"), ("fill", "Filled-in Deliverable"))    # a document may carry these as well
 RETURN_NAMES = dict(RETURNS)
+ADD_USES = USES[:2] + RETURNS + USES[2:]     # 4.61.0: one list when a document is added, the marks of the right-click menu
 SOURCE_NAMES = {"customer": "Customer", "bidders": "Customer (bidders library)", "qa": "Customer (Q&A)", "ours": "Internal",
                 "graphics": "Internal (graphics)"}
 

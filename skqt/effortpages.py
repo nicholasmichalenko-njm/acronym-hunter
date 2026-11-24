@@ -10,6 +10,8 @@ def install(w):
     from .taskspage import TasksPage
     w.tasks_page, w.calendar_page, w.activity_page = TasksPage(w), CalendarPage(w), ActivityPage(w)
     w.pages.update({"tasks": w.tasks_page, "calendar": w.calendar_page, "activity": w.activity_page})
+    from .backuppage import BackupPage                     # 4.61.0: Effort Backup, at the foot of the menu
+    w.backup_page = BackupPage(w); w.pages["backup"] = w.backup_page
     from .namedtplpage import NamedTemplatesPage           # 4.28.2: the templates you name are the Template entry's first tab;
     w.named_page = NamedTemplatesPage(w)                   # the ones the Effort Profiles make are the next ("From profiles")
     w.pages.update({"tplprofiles": w.templates_page, "templates": w.named_page})

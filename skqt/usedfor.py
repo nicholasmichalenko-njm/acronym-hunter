@@ -71,6 +71,36 @@ def toggle(page, key, ids=None, answer=None):
     return n
 
 
+def split_uses(plan):
+    """4.61.0: a document added as a Redlined or Filled-in Deliverable is kept as Reference and carries the mark."""
+    for e in plan:
+        if e.get("role") in ("redline", "fill"):
+            e["returns"], e["role"] = [e["role"]], "reference"
+    return plan
+
+
+def after_added(page, plan, made):
+    """4.61.0: the marks chosen when the documents were added, and each one's tile on Deliverables. Returns how many."""
+    n = 0
+    if isinstance(made, Exception) or page.host.ws is None or not any(e.get("returns") for e in plan):
+        return n
+    try:
+        import os
+        lib = DV.Library(page.lib.folder).load()
+        for e in plan:
+            d = lib.doc_of_file(os.path.basename(e.get("path", ""))) if e.get("returns") and e.get("choice") != "skip" else None
+            if d is None:
+                continue
+            new = [k for k in dict.fromkeys(lib.returns_of(d) + e["returns"])]
+            lib.set_returns(d["id"], new)
+            for k in e["returns"]:
+                _tile(page, lib, lib.doc(d["id"]), k)
+            n += 1
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return n
+
+
 def _rec(page):
     import effortrec as RR
     return RR.Record(page.host.ws.root)

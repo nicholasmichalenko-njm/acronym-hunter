@@ -40,8 +40,8 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
 
 rail = [t for _k, t in MW.RAIL[0][1]]
-check("4.60.0: Redlining opens from Deliverables; it has no entry of its own", "redline" not in w.step_btns and "deliverables" in w.step_btns
-      and MW.RAIL_OF["redline"] == "deliverables")
+check("4.61.0: Redlining is an entry of its own, beside Deliverables", "redline" in w.step_btns and "deliverables" in w.step_btns
+      and MW.RAIL_OF["redline"] == "redline")
 check("... not indented under Documents any more", "redline" not in __import__("skqt.navrail", fromlist=["x"]).SUB)
 
 w.go("redline"); app.processEvents()
@@ -49,8 +49,8 @@ pg = w.redline_page
 check("with nothing marked: one line and one button, Choose a document...", pg.empty.isVisibleTo(w) and not pg.table.isVisibleTo(w)
       and "No document is marked Redlined Deliverable." in [l.text() for l in pg.empty.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QLabel)]
       and any(b.text() == "Choose a document..." for b in pg.empty.findChildren(__import__("PySide6.QtWidgets", fromlist=["x"]).QPushButton)))
-check("... and not its other parts: only the list and the way in", w._tab_keys == ["deliverables", "redline"], w._tab_keys)
-check("the page sits under Deliverables, its menu entry lit", w.page_title.text() == "Deliverables" and w.step_btns["deliverables"].isChecked(),
+check("... and not its other parts: only the list and the way in", w._tab_keys == ["redline"], w._tab_keys)
+check("the page is Redlining, its menu entry lit (4.61.0)", w.page_title.text() == "Redlining" and w.step_btns["redline"].isChecked(),
       w.page_title.text())
 
 rows = RC.candidates(w)
@@ -63,11 +63,11 @@ lib = DV.Library(ws.p("documents")).load()
 check("picking it marks it Redlined Deliverable", got == dL and "redline" in lib.returns_of(lib.doc(dL)))
 check("... gives it its tile on Deliverables", DR.tile_of(RR.Record(ws.root), dL) is not None)
 check("... lists it in Redlining, with the parts shown", len(pg.rows) == 1 and pg.table.isVisibleTo(w) and not pg.empty.isVisibleTo(w)
-      and w._tab_keys == ["deliverables", "redline", "rcheck", "exceptions"], w._tab_keys)
+      and w._tab_keys == ["redline", "rcheck", "exceptions"], w._tab_keys)
 check("a marked document is not offered again", RC.candidates(w) == [])
 check("picking something not offered does nothing", RC.choose(pg, pick="nope") is None)
 
-check("Quick tools has Redline a document (4.60.0)", "redline" in TH.TOOLS and TH.TOOLS["redline"][0] == "Redline a document" and TH.TOOLS["redline"][2] == "file")
+check("Quick tools has Redline a document (4.60.0)", "redline" in TH.TOOLS and TH.TOOLS["redline"][0] == "Make a Word file from a PDF" and TH.TOOLS["redline"][2] == "file")
 check("a file outside any effort is still prepared from Quick tools", any(k == "redline" for k, _t, _x in TH.USES))
 
 print(f"REDLINING 4592 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

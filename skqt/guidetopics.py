@@ -8,7 +8,7 @@ TOPICS = [
   "You are new to Stationkeeper, or want the big picture.",
   ["The menu on the left is the same with or without an effort open. Quick tools is first: any tool on any file, with no "
    "effort needed. Then the effort's pages, in the usual order of the work and with no numbers: Overview, Documents, "
-   "Graphics, Deliverables, Shred, Matrix, Outline, Setup, Drafts, Submit. Any of them can be used at any point. With "
+   "Graphics, Deliverables, Redlining, Shred, Matrix, Outline, Setup, Drafts, Submission Check. Any of them can be used at any point. With "
    "no effort open, such a page says what it is for and offers Open or create an effort.",
    "Standards and Formatting holds what every effort is built from: Global Standards, Rules, Team References, Templates, "
    "Page Layout, Styles, Quick Parts and Check a Draft. Settings is last. A page's parts are tabs under its title: "
@@ -19,7 +19,7 @@ TOPICS = [
    "Add the customer's documents in Documents: each is extracted as it arrives. In Shred, say what every piece is, on "
    "the customer's own page.",
    "On Matrix & Outline, build our outline, place what we answer and export the matrix. Setup makes each author's "
-   "starting draft; Submit checks the volumes."],
+   "starting draft; Submission Check checks the volumes."],
   ["Press F1 on any page to open this Guide at that page.",
    "Press Ctrl+K to find a page, an effort, a piece or a person from anywhere.",
    "Every decision saves as you make it. Closing the app never loses work."]),
@@ -133,16 +133,21 @@ TOPICS = [
    "each header and footer box, puts a field (page number, A number, volume values, your fields) where the cursor is."],
   ["Library parts this effort uses lists each part's source: the Global Standards version, a version this effort chose, or its own copy.",
    "Production Standards itself edits only the Global Standards."]),
- ("record", "Overview", "Effort Record",
+ ("record", "Overview", "Effort Settings",
   "The effort's details, team and roles, stages and gates, status reports, the effort package and backups.",
   "You set up the effort, change its team or stages, hand it to someone, or report status.",
   ["Fill in the details and press Save details. Choose people... adds the team from the author list.",
    "Edit the stages and press Save stages. + Stage adds one; Up and Down reorder them.",
    "Effort status (Word)... and Effort summary (Word)... make reports for a meeting.",
    "Save effort package... makes one .skpkg file with everything, for a teammate or a backup."],
-  ["Back up now makes a backup at once. Restore... brings one back.",
-   "Open the readable copy shows every captured item as plain files you can open without the app. Settings > Efforts > "
+  ["Backing up and putting an earlier copy back are on Effort Backup, at the foot of the menu. Settings > Efforts > "
    "Export the full effort... copies it into a dated folder named for the effort and its stage."]),
+ ("activity", "The effort", "Effort Activity", "Everything that happened in the effort, by day: who did what and when.",
+  "You want to see what was done, or when something changed.", ["Open Effort Activity at the foot of the menu. The newest day is first."], ["It only reads; nothing here changes the effort."]),
+ ("backup", "The effort", "Effort Backup", "Where the backups go, when the last one was made, and putting an earlier copy back.",
+  "You want to check the backup, move it, or recover something.",
+  ["Open Effort Backup at the foot of the menu. Back up now makes a backup at once. Change the folder... picks where every effort's backup is kept.",
+   "Put back an earlier copy... lists the copies; what you have now is kept as a copy first."], ["Backups also run on their own after each change."]),
  ("meetings", "Overview", "Meetings",
   "Meetings for this effort: who was there, the notes, and the topics to follow up, each open until someone marks it "
   "considered.",
@@ -155,7 +160,7 @@ TOPICS = [
    "Export to Word... saves the meeting, its notes and topics."],
   ["Open topics show on Overview, in My Work for their owner, and on the card of the piece or section they "
    "point at in Shred.",
-   "A stage gate can hold until every topic is considered: add the goal Every meeting topic considered in Effort Record."]),
+   "A stage gate can hold until every topic is considered: add the goal Every meeting topic considered in Effort Settings."]),
  ("library", "Documents", "Documents",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
@@ -502,7 +507,7 @@ TOPICS = [
    "When it comes back, press Read back a packet... Verdicts and Word comments land on each requirement.",
    "See the score by section, and open a requirement to read its comments."],
   ["Reviewers only need Word. The packet holds no app data beyond the requirements and sections."]),
- ("finalcheck", "Submit", "Final Check",
+ ("finalcheck", "Submission Check", "Final Check",
   "One ready-to-send report per submission volume, on its Word file and the PDF you will upload, with Pass, Fail or "
   "Needs a person on every line: compliance, page limits, format rules, structure, acronyms, leftovers, markings and "
   "files. Submission Check and Final Checks are its tabs.",
@@ -518,7 +523,7 @@ TOPICS = [
    "effort's own marking text when Effort Formatting sets one.",
    "Nothing is changed. The tabs hold each check in full: Submission Check for acronyms and banned words, Final Checks "
    "for the PDF package, leftovers, cross-references and Compare."]),
- ("qa", "Submit", "Submission Check",
+ ("qa", "Submission Check", "Submission Check",
   "The volumes you will submit, checked against the effort list, first use, banned words and page limits.",
   "Before each gate and before submission.",
   ["Press Add volumes... and choose the Word files, then Check the submission volumes.",
@@ -527,7 +532,7 @@ TOPICS = [
    "you pick (not a heading or figure, say); entries in a table of contents never count.",
    "Export report (Excel)... records the check."],
   ["First use of an acronym belongs in running text, not in a figure or table."]),
- ("checks", "Submit", "Final Checks",
+ ("checks", "Submission Check", "Final Checks",
   "The last checks before the proposal goes out: the final PDF package, cross-references and numbering in the drafts, "
   "and what changed between two versions of a draft.",
   "At gold team and in the last hours before upload; Compare two drafts whenever a reviewer asks what changed.",
@@ -658,14 +663,14 @@ TOPICS = [
    "This PC's acronym database: Load a database... brings in a provided one; Open in Excel opens the file.",
    "Custom dictionaries: the words Word should know, built here and exported for Word."],
   ["The lists stay where they are kept; this page only gathers them."]),
- ("postsub", "Submit", "Checklist",
+ ("postsub", "Submission Check", "Checklist",
   "What the team does after the proposal goes in: owners, due dates and done.",
   "The proposal is submitted.",
   ["Press Mark submitted... The checklist appears.",
    "Give each item an owner and a due date. + Item adds one.",
    "Save as default... keeps this checklist for new efforts."],
   ["Export to Excel... shares the checklist."]),
- ("keywords", "Submit", "Keywords",
+ ("keywords", "Submission Check", "Keywords",
   "The effort's keywords for SharePoint: what the customer asked for and what you proposed, with reasons, to file the "
   "submitted proposal.",
   "After submission, when the proposal is filed.",
@@ -765,16 +770,12 @@ TOPICS = [
    "This effort: choose its volume, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and page size "
    "over it for this effort only. Press Save."],
   ["Blank means not set: a rule nobody sets is not checked and not written."]),
- ("safe", "Keeping work safe", "Backups, packages and the readable copy",
-  "Three ways your work is kept: automatic backups, effort packages, and a readable copy of everything.",
+ ("safe", "Keeping work safe", "Backups and packages", "Two ways your work is kept: automatic backups and effort packages.",
   "Always on. Use them when you hand off an effort or need to recover.",
-  ["Backups run on their own. Set where they go in Settings > Backups (Keep safe).",
-   "Save effort package... (Effort Record) makes one file with the whole effort.",
-   "The readable copy beside the effort list holds every captured item as plain CSV, Word and Excel files."],
-  ["After a crash, Stationkeeper reopens where you were.",
-   "Restore... (Effort Record) brings back a backup."]),
- ("keys", "Keeping work safe", "Keyboard shortcuts",
-  "The keys that save the most time.",
+  ["Backups run on their own. Effort Backup, at the foot of the menu, shows where they go and changes the folder.",
+   "Save effort package... (Effort Settings) makes one file with the whole effort."],
+  ["After a crash, Stationkeeper reopens where you were.", "Put back an earlier copy... (Effort Backup) brings back a backup."]),
+ ("keys", "Keeping work safe", "Keyboard shortcuts", "The keys that save the most time.",
   "Any time.",
   [], []),
 ]
@@ -788,10 +789,10 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
             _t[5].append(_line)
 # 3.75.0, 4.20.1: the Guide reads in the menu's order (the six steps; a tab's page after its menu item)
 _ORDER = ("path tools shredacc sort acrtool firstuse fulltext home calendar tasks record meetings exportall library read compare datacalls graphics "
-          "deliverables redline assign verify requirements evalcrit "
+          "deliverables redline rcheck exceptions assign verify requirements evalcrit "
           "custqa acronyms acrlist lists matrix crosswalk prove impact outline setups effortfmt storyboards drafts techedit reviews truth "
           "finalcheck qa checks postsub keywords globalstd prodstd rules refs templates profiles formatstd layoutstd styles designs qpstd studio "
-          "audit applyword fixcopy team settings efforts mywork safe keys").split()     # 4.60.0: the menu's order
+          "audit applyword fixcopy team activity backup settings efforts mywork safe keys").split()     # 4.60.0: the menu's order; 4.61.0: the foot
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):
     _last = float(_ORDER.index(_t[0])) if _t[0] in _ORDER else _last + 0.001

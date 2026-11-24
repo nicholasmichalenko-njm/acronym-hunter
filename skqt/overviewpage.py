@@ -71,6 +71,9 @@ class OverviewPage(QWidget):
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
         self.next_btn = D.button("", "primary", lambda: self.open_next())
         row.addWidget(self.next_btn); row.addStretch(1)
+        self.settings_link = QPushButton("Effort settings"); self.settings_link.setObjectName("link"); self.settings_link.setFlat(True)   # 4.61.0
+        self.settings_link.setCursor(Qt.PointingHandCursor); self.settings_link.setToolTip("The effort's details, its people, and its stages and gates")
+        self.settings_link.clicked.connect(lambda: host.go("record")); row.addWidget(self.settings_link)
         self.next_card.body.addLayout(row)
         self.path_row = QHBoxLayout(); self.path_row.setSpacing(D.SPACE["xs"])
         self.next_card.body.addLayout(self.path_row)

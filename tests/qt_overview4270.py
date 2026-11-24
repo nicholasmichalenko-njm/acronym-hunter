@@ -68,12 +68,12 @@ rec.save_contact({"name": "Pat Ray", "title": "Contracting Officer", "org": "OSC
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 check("the Overview's tabs: Overview first, then All cards, Calendar, Tasks (4.60.0), Effort Record, Meetings",
-      [k for k, _t in TABS["home"]] == ["overview", "home", "calendar", "tasks", "record", "meetings", "activity"] and dict(TABS["home"])["home"] == "All cards")
+      [k for k, _t in TABS["home"]] == ["overview", "calendar", "tasks", "meetings"])   # 4.61.0: no All cards, no At a glance
 w.open_effort("Osprey"); app.processEvents()
 w.rail_go("home"); app.processEvents()
 op = w.overview_page
 check("the Overview entry opens the Overview, and the entry stays lit", w.stack.currentWidget() is op and w.step_btns["home"].isChecked()
-      and w._tab_keys[:2] == ["overview", "home"], w._tab_keys)
+      and w._tab_keys[:2] == ["overview", "calendar"], w._tab_keys)
 d = op.data
 check("the head: the effort, its customer and solicitation, how long is left", op.name.text() == "Osprey" and "Osprey Systems Command" in op.sub.text()
       and "OSC-26-R-0042" in op.sub.text() and op.due.text().startswith("Due in 12 days"), (op.sub.text(), op.due.text()))
@@ -100,7 +100,7 @@ check("click the due date: set here", got and op.due.text().startswith("Due in 3
 op.next_btn.click(); app.processEvents()
 check("the next step's button opens its page", w.stack.currentWidget() is w.pages[d["next"]["go"]])
 w.go("home"); app.processEvents()
-check("All cards is the Overview as it was", w.stack.currentWidget() is w.home_page and w._tab_keys[:2] == ["overview", "home"])
+check("All cards is still a page, off the tabs (4.61.0)", w.stack.currentWidget() is w.home_page and w._tab_keys == [])
 w.close()
 print(f"QT OVERVIEW 4270 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

@@ -53,8 +53,8 @@ w.open_effort("Kestrel"); app.processEvents()
 w.toast = lambda msg, *a, **k: toasts.append(msg)
 w.status = lambda msg, *a, **k: said.append(msg)
 rail = [t for _k, t in MW.RAIL[0][1]]
-check("4.60.0: Redlining opens from Deliverables; no entry of its own", "Redlining" not in rail and "Prepare for Redline" not in rail
-      and MW.RAIL_OF["redline"] == "deliverables")
+check("4.61.0: Redlining is an entry of the effort's list", "Prepare for Redline" not in rail
+      and MW.RAIL_OF["redline"] == "redline")
 w.go("redline"); app.processEvents()
 pp = w.redline_page; pp.refresh(); app.processEvents()
 names = [pp.table.item(r, 0).text() for r in range(pp.table.rowCount())]

@@ -63,7 +63,7 @@ class IntakeDialog(QDialog):
         self.b_cat.activated.connect(lambda _i: self.set_rows(category=self.b_cat.currentData()))
         bulk.addWidget(self.b_cat)
         self.b_role = QComboBox(); self.b_role.addItem("Used for...", "")
-        for k, n in DV.USES:
+        for k, n in DV.ADD_USES:
             self.b_role.addItem(n, k)
         self.b_role.activated.connect(lambda _i: self.set_rows(role=self.b_role.currentData()))
         bulk.addWidget(self.b_role)
@@ -105,7 +105,7 @@ class IntakeDialog(QDialog):
                 cat.addItem(DV.source_name(lib, k), k)
             cat.setCurrentIndex(max(0, cat.findData(e.get("category", "customer"))))
             role = QComboBox()
-            for k, n in DV.USES:
+            for k, n in DV.ADD_USES:
                 role.addItem(n, k)
             role.setCurrentIndex(max(0, role.findData(DV.use_key(e.get("role") or "matrix"))))
             ini = QLineEdit(e.get("initial", "")); ini.setMaxLength(6)
@@ -1103,7 +1103,7 @@ class LibraryPage(QWidget):
                 WA.set_aside(self.host.ws.root, dups)
             except Exception:
                 diag.swallowed()
-        folder, cd = self.lib.folder, self._customer_dir()
+        folder, cd = self.lib.folder, self._customer_dir(); __import__("skqt.usedfor", fromlist=["x"]).split_uses(plan)   # 4.61.0
         lines = []
 
         def job(prog, stop):
@@ -1111,7 +1111,7 @@ class LibraryPage(QWidget):
             return DI.apply(lib, plan, cd, lambda k, t, ref=None: lines.append((k, t, ref)), prog)
         self.worker = JobWorker(job)
         self.worker.progress.connect(self.panel.step)
-        self.worker.done.connect(lambda made, lines=lines: self._added(made, lines))
+        self.worker.done.connect(lambda made, lines=lines: (__import__("skqt.usedfor", fromlist=["x"]).after_added(self, plan, made), self._added(made, lines)))
         self.panel.start(f"Adding {sum(1 for e in plan if not (e.get('dup') or e['choice'] == 'skip'))} document(s)", "Copying into the effort")
         self.worker.start()
 

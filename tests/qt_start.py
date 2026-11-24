@@ -57,7 +57,9 @@ f.pm.setCurrentText("A. Rivera")
 name = f.create()
 app.processEvents()
 check("Create effort makes it and opens it on Effort Home", name == "Kestrel Thermal" and w.effort_name == "Kestrel Thermal"
-      and w.stack.currentWidget() is hp and hp.scroll.isVisibleTo(w) and not hp.start_wrap.isVisibleTo(w))
+      and w.stack.currentWidget() is w.overview_page)       # 4.61.0: a new effort opens on the Overview
+w.go("home"); app.processEvents()
+check("... and the cards page shows the effort, not the form", hp.scroll.isVisibleTo(w) and not hp.start_wrap.isVisibleTo(w))
 root = w.ws.root
 rec = RR.Record(root)
 import datum as DT

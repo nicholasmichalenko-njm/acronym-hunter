@@ -20,7 +20,7 @@ class NoticePage(QWidget):
         self.does = self.card.add(D.label("", "muted"))
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); self.card.body.addLayout(row)
         self.act = D.button("", "primary", lambda: self.do_action())
-        self.back = D.button("Back to Overview", None, lambda: self.host.go("home"))
+        self.back = D.button("Back to Overview", None, lambda: self.host.go("overview"))
         row.addWidget(self.act); row.addWidget(self.back); row.addStretch(1)
         v.addStretch(1)
 
