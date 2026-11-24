@@ -850,7 +850,7 @@ class AssignPage(QWidget):
         self.sort_on = False
         self.rfi = False
         self.topic_labels = []
-        split = QSplitter(Qt.Horizontal); split.addWidget(pagew); split.addWidget(right); split.setSizes([1100, 470])
+        split = self.page_split = QSplitter(Qt.Horizontal); split.addWidget(pagew); split.addWidget(right); self.page_side = right; split.setSizes([1100, 470])
         from .reviewplace import Placer                     # 3.85.0: their text and our structure, joined by lines
         self._offer_off = False
         self.placer = Placer(self, split, self._dv)
@@ -879,7 +879,7 @@ class AssignPage(QWidget):
             QShortcut(QKeySequence(key), self.view, activated=fn)
         for i in range(9):                                       # 3.21.0: the effort's own bins, in order
             QShortcut(QKeySequence(f"Alt+{i + 1}"), self.view, activated=lambda n=i: self.do_custom_bin(n))
-            QShortcut(QKeySequence(str(i + 1)), self.view, activated=lambda n=i: self.tag_topic(n) if self.sort_on else None)
+            QShortcut(QKeySequence(str(i + 1)), self.view, activated=lambda n=i: self.tag_topic(n) if self.sort_on else __import__("skqt.structpass", fromlist=["x"]).key(self, n))   # 4.70.0: 1 to 4 in the pass
         QShortcut(QKeySequence("Ctrl+T"), self.view, activated=lambda: self.toggle_sort() if getattr(self, "focus", None) is None else None)   # 4.26.0
         self.apply_items()                                       # 3.29.0: decisions and captures from Settings
         SF.install(self)                                         # 4.5.0: Shred and Place, as designed

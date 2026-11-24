@@ -53,6 +53,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "compare": ("What changed", "Each change a new version made, as a card with its old and new wording: decide each one there"),
           "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
+          "structpass": ("Response Structure", "What the customer says our response must hold: mark the volumes and headings, and the outline fills"),
           "evalcrit": ("Evaluation Criteria", "How the customer will judge the proposal: the factors, their importance and the deliverables they judge"),
           "acronyms": ("Acronyms", "The customer's acronyms, abbreviations, units and symbols, page by page; or check your own drafts"),
           "acrlist": ("Acronym List", "The effort's acronym list: every term with its definition"),

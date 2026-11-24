@@ -61,7 +61,7 @@ check("extracted", wait(lambda: w.review is not None and not w.read_page.running
 from skqt.mainwin import TABS, HEAD_OF
 from skqt import navrail as NR
 check("Shred's four tabs: Requirements, Submission Checklist, Evaluation, Acronyms",
-      [t for _k, t in TABS["assign"]] == ["Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"], TABS["assign"])
+      [t for _k, t in TABS["assign"]] == ["Response Structure", "Requirements", "Submission Checklist", "Evaluation Criteria", "Acronyms"], TABS["assign"])
 check("... the Overview has no Submission Rules; Matrix & Outline no Evaluation", "requirements" not in [k for k, _t in TABS["home"]]
       and "evalcrit" not in [k for k, _t in TABS["matrix"]] and HEAD_OF["requirements"] == "assign" and HEAD_OF["evalcrit"] == "assign")
 M = w.review.M

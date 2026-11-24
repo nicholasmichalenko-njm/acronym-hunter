@@ -19,7 +19,7 @@ FORMATTING = "Standards and Formatting"      # 4.46.0 (decision 71): the menu gr
 VIEWS = (("assign", "On the page", None), ("shredlist", "As a table", None))   # 4.54.0 (decision 62): one Shred, two views   # 4.3.0: placing, L to M and
 VIEW_OF = {"assign": "assign", "shredlist": "shredlist"}  # Coverage: Matrix & Outline
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
-CHIPS = (("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
+CHIPS = (("structpass", "Response Structure"), ("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
 CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Rules & Dates and Evaluation moved in; the Acro List
                                                           # opens from Acros & Abs
 STEP_TITLES = {"home": ("Overview", "Where the effort is, what is left, and your next step"),
@@ -323,7 +323,9 @@ class Stepper(QWidget):
             import shredtypes as ST
             by = ST.counts(rv.M.items)[1]
         nr, ne = by.get("rule", 0) + by.get("date", 0), by.get("evaluation", 0)
-        return {"assign": (SW.left(r["undecided"]) if r else SW.NONE,
+        ns = sum(1 for m in (rv.M.setup.get("struct_marks") or {}).values() if m.get("level") not in ("", "x")) if rv is not None and isinstance(getattr(rv.M, "setup", None), dict) else 0
+        return {"structpass": (f"{ns} marked" if ns else "none marked", "done" if ns else "todo"),   # 4.70.0
+                "assign": (SW.left(r["undecided"]) if r else SW.NONE,
                            "warn" if r and r["undecided"] else "done" if r else "todo"),
                 "requirements": (f"{nr} from the shred" if nr else "none from the shred", "done" if nr else "todo"),
                 "evalcrit": (f"{ne} from the shred" if ne else "none from the shred", "done" if ne else "todo"),

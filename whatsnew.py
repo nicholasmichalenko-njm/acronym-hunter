@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.70.0": ["Shred has a first tab, Response Structure. Select a piece of the customer's text and press 1 to 4 (Volume, Heading 1, Heading 2, Heading 3): the outline beside the page fills at once, under the volume or heading marked above it.",
+               "A heading already in the outline is attached to, never replaced; a near match asks once: Same as ...? Enter takes a suggestion and goes to the next; N goes on; X is Not needed.",
+               "Each document shows its state in the pass: Not looked at, Has finds, or Nothing of this kind here. The other Shred tabs are as they were."],
     "4.69.0": ["Matrix has a switch on the page: By section or By requirement. It is the same choice as Design > Rows; the other layout starts from its own columns.",
                "The L/M crosswalk is under Matrix > More. Nothing in it changed. Matrix's tabs are Assign, Check, Matrix."],
     "4.68.0": ["Each assigned requirement and criterion has a mark you set: Not started, Drafted or Addressed. Set it on Assign (right-click the rows, or More), or press Mark Addressed on Check. The app never sets it.",

@@ -112,6 +112,8 @@ def toggle_piece(page, key, rows=None):
     if page.cx is not None:
         page.host.status("The types are for the documents being shredded.")
         return None
+    if getattr(page, "focus", None) == "struct":                       # 4.70.0: in the Response Structure pass X is Not needed
+        return __import__("skqt.structpass", fromlist=["x"]).typed(page, key)
     rows = rows if rows is not None else page.selected()
     if not rows or page.R is None:
         return None

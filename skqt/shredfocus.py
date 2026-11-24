@@ -148,6 +148,8 @@ def enter(page):
     if getattr(page, "focus", "") == "place":
         from . import placepane as PP
         return PP.place_it(page)
+    if getattr(page, "focus", "") == "struct":                       # 4.70.0: the pass's own Enter
+        return __import__("skqt.structpass", fromlist=["x"]).enter(page)
     rows = page.selected()
     before = (getattr(page.R, "undo", None) or [None])[-1] if page.R is not None else None
     n = page.accept_suggestions(rows=rows)
@@ -208,6 +210,8 @@ def next_open(page):
     """N: the next piece not sorted (Shred) or not placed (Place) in this document, after the one selected."""
     if page.R is None or not page.file:
         return None
+    if getattr(page, "focus", "") == "struct":                       # 4.70.0: the pass's next suggestion, across documents
+        return __import__("skqt.structpass", fromlist=["x"]).next_open(page)
     rows = [it for it in page.R.rows_of(page.file) if it.get("type") != "Heading"]
     if getattr(page, "focus", "") == "place":
         import homesuggest as HS
