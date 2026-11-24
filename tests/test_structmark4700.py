@@ -1,4 +1,4 @@
-"""4.70.0: the Response Structure pass under the screen (structmark). A mark fills the outline at once, under the volume
+"""4.70.0 and 4.71.0: the Response Structure pass under the screen (structmark). A mark fills the outline at once, under the volume
 or heading marked above it, in the customer's order; the same title attaches, a near one is asked, anything else is
 added; taking a mark off takes its own empty heading away. Fictional (Kestrel)."""
 import os, sys, tempfile
@@ -132,5 +132,28 @@ M3.save()
 M4 = C.Matrix(M3.path if hasattr(M3, "path") else os.path.join(d, "Kestrel3_Matrix.xlsx"), "Kestrel"); M4.load()
 check("saved and opened again: the marks, the headings' pieces and the levels are there", SM.marks(M4) == SM.marks(M3)
       and [o.get("req") for o in M4.outline] == [o.get("req") for o in M3.outline] and SM.level_of(M4, M4.items[1]) == "h1", SM.marks(M4))
+# 4.71.0: for the setup, not required by the customer, a heading moved
+M5 = C.Matrix(os.path.join(d, "Kestrel5_Matrix.xlsx"), "Kestrel")
+M5.items = [item("N-1", "Volume I Technical"), item("N-2", "Approach"), item("N-3", "Risk"), item("N-4", "Proposals are due at 2 p.m. local time."),
+            item("N-5", "The Offeror shall describe its approach.", decision="Keep")]
+SM.mark(M5, M5.items[0], "volume"); SM.mark(M5, M5.items[1], "h1"); SM.mark(M5, M5.items[2], "h1")
+check("For the setup: a piece nobody decided on becomes the customer's own, in the section picked", SM.for_setup(M5, M5.items[3], "1 Approach")
+      and M5.items[3]["decision"] == "Customer" and M5.items[3]["map"] == "1 Approach" and SM.level_of(M5, M5.items[3]) == "s")
+check("... a decided piece keeps its decision and is in the section too; a heading that is not there is refused",
+      SM.for_setup(M5, M5.items[4], "2 Risk") and M5.items[4]["decision"] == "Keep" and "2 Risk" in SD.item_sections(M5, M5.items[4])
+      and not SM.for_setup(M5, M5.items[4], "9 Nowhere"))
+check("... it is no find of the pass, and no heading", [x["finds"] for x in SM.docs(M5)] == [3] and len(M5.outline) == 3)
+check("Not required by the customer: closed, and opened again", not SM.closed(M5) and SM.set_closed(M5) and SM.closed(M5) and not SM.set_closed(M5, False) and not SM.closed(M5))
+SM.set_closed(M5); SM.mark(M5, item("N-6", "Schedule"), "h1") if False else None
+M5.items.append(item("N-6", "Schedule")); SM.mark(M5, M5.items[-1], "h1")
+check("... a mark opens a closed pass again", not SM.closed(M5) and labels(M5)[-1] == "  3 Schedule", labels(M5))
+new = SM.move(M5, "3 Schedule", "1 Approach", "into")
+check("a heading moved into another goes a level down and is renumbered", new == "1.1 Schedule" and labels(M5) == ["Volume I Technical", "  1 Approach", "    1.1 Schedule", "  2 Risk"], labels(M5))
+check("... its piece still finds it", [C.outline_label(M5.outline[i]) for i in SM.entries_of(M5, "N-6")] == ["1.1 Schedule"])
+new = SM.move(M5, "2 Risk", "1 Approach", "before")
+check("moved before another, with what the other holds following it; the piece placed there follows its section", new == "1 Risk"
+      and labels(M5) == ["Volume I Technical", "  1 Risk", "  2 Approach", "    2.1 Schedule"] and M5.items[3]["map"] == "2 Approach"
+      and "1 Risk" in SD.item_sections(M5, M5.items[4]), (labels(M5), M5.items[3]["map"]))
+check("a heading cannot go into itself", SM.move(M5, "2 Approach", "2.1 Schedule", "into") is None and SM.move(M5, "1 Risk", "1 Risk", "after") is None)
 print(f"STRUCTMARK 4700 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

@@ -2,6 +2,8 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.71.0": ["Shred > Response Structure: the tab's count is right as you mark. For the setup (S) sends a piece into a section as text for the author; A asks a question.",
+               "Not required by the customer closes the pass in one click. Drag a heading on the outline tree to fix its level or place."],
     "4.70.0": ["Shred has a first tab, Response Structure. Select a piece of the customer's text and press 1 to 4 (Volume, Heading 1, Heading 2, Heading 3): the outline beside the page fills at once, under the volume or heading marked above it.",
                "A heading already in the outline is attached to, never replaced; a near match asks once: Same as ...? Enter takes a suggestion and goes to the next; N goes on; X is Not needed.",
                "Each document shows its state in the pass: Not looked at, Has finds, or Nothing of this kind here. The other Shred tabs are as they were."],

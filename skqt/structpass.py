@@ -7,7 +7,7 @@ goes on without marking. The outline sits beside the page as a tree and fills as
 piece that required it. Above the tree, this document's state in the pass, and Nothing of this kind here.
 Rules only (No AI); nothing leaves the PC."""
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QTreeWidget, QTreeWidgetItem, QVBoxLayout
+from PySide6.QtWidgets import QAbstractItemView, QCheckBox, QFrame, QLabel, QMenu, QTreeWidget, QTreeWidgetItem, QVBoxLayout
 
 import diag
 import structmark as SM
@@ -25,6 +25,26 @@ def M_of(page):
     return page.R.M if page.R is not None else None
 
 
+class OutlineTree(QTreeWidget):
+    """The outline beside the page. 4.71.0 (209): a heading can be dragged to fix its level or place; the drop is
+    carried out on the outline itself (with everything under the heading) and the tree is drawn again from it."""
+    def __init__(self, page):
+        super().__init__()
+        self.page = page
+        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDefaultDropAction(Qt.MoveAction)
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
+
+    def dropEvent(self, e):
+        src = self.currentItem()
+        tgt = self.itemAt(e.position().toPoint() if hasattr(e, "position") else e.pos())
+        where = {QAbstractItemView.OnItem: "into", QAbstractItemView.AboveItem: "before",
+                 QAbstractItemView.BelowItem: "after"}.get(self.dropIndicatorPosition())
+        e.setDropAction(Qt.IgnoreAction); e.accept()
+        if src is not None and tgt is not None and where:
+            moved(self.page, src.text(0), tgt.text(0), where)
+
+
 # ------------------------------------------------------------------ the mode
 def install(page):
     """Once: the outline tree and the document's state, as a third pane of the page's splitter."""
@@ -39,7 +59,11 @@ def install(page):
     page.struct_none.setToolTip("You looked: this document says nothing about how the response is organized. It can be unticked.")
     page.struct_none.clicked.connect(lambda c=False: set_none(page, bool(c)))
     v.addWidget(page.struct_none)
-    t = page.struct_tree = QTreeWidget()
+    page.struct_closed = QCheckBox("Not required by the customer")
+    page.struct_closed.setToolTip("The customer does not say how the response is to be organized: this pass is closed. Untick it, or mark a piece, to open it again.")
+    page.struct_closed.clicked.connect(lambda c=False: set_closed(page, bool(c)))
+    v.addWidget(page.struct_closed)
+    t = page.struct_tree = OutlineTree(page)
     t.setHeaderLabels(["Heading", "Required by"])
     t.setRootIsDecorated(False); t.setIndentation(14)
     t.setColumnWidth(0, 250)
@@ -94,7 +118,7 @@ def fill(page):
     t = page.struct_tree
     t.clear()
     if M is None:
-        page.struct_state.setText(""); page.struct_none.setVisible(False); page.struct_hint.setText("")
+        page.struct_state.setText(""); page.struct_none.setVisible(False); page.struct_hint.setText(""); page.struct_closed.setVisible(False)
         return 0
     stack = []
     for r in SM.tree(M):
@@ -110,9 +134,13 @@ def fill(page):
     page.struct_state.setText(f"This document: {cur['state']}" if cur else "No document is open.")
     page.struct_none.setVisible(cur is not None and not cur["finds"])
     page.struct_none.blockSignals(True); page.struct_none.setChecked(bool(cur and cur["none"])); page.struct_none.blockSignals(False)
+    shut = SM.closed(M)
+    page.struct_closed.blockSignals(True); page.struct_closed.setChecked(shut); page.struct_closed.blockSignals(False)
+    page.struct_closed.setVisible(True)
     left = len(SM.suggestions(M))
-    page.struct_hint.setText(f"{left} piece{'s' if left != 1 else ''} the app reads as setting the structure. Enter takes one and goes to the next."
-                             if left else "Nothing more is suggested. Select any piece to mark it.")
+    page.struct_hint.setText("Closed: the customer does not require a structure. Drag a heading to fix its level or place." if shut else
+                             (f"{left} piece{'s' if left != 1 else ''} the app reads as setting the structure. Enter takes one and goes to the next. "
+                              "Drag a heading to fix its level or place.") if left else "Nothing more is suggested. Select any piece to mark it. Drag a heading to fix its level or place.")
     return t.topLevelItemCount()
 
 
@@ -125,6 +153,80 @@ def set_none(page, on_=True):
         SM.set_none(M, page.file, on_)
     done(page, f"{page.file}: nothing of this kind here." if on_ else f"{page.file}: not looked at.")
     return on_
+
+
+def set_closed(page, on_=True):
+    """Not required by the customer: the pass is closed in one click, and opened again the same way."""
+    M = M_of(page)
+    if M is None:
+        return None
+    with page.R.group():
+        page.R.snap("Not required by the customer" if on_ else "Response Structure, open again")
+        SM.set_closed(M, on_)
+    done(page, "Response Structure: not required by the customer. The pass is closed." if on_ else "Response Structure is open again.")
+    return on_
+
+
+def moved(page, label, target, where):
+    """A heading dragged on the tree: before, after or into another. One Undo step."""
+    M = M_of(page)
+    if M is None or label == target:
+        return None
+    with page.R.group():
+        page.R.snap(f"Move {label}")
+        new = SM.move(M, label, target, where)
+    if new is None:
+        page.host.status(f"{label} cannot go there.")
+        fill(page)
+        return None
+    done(page, f"{label} moved: now {new}.")
+    return new
+
+
+def setup_menu(page, parent=None):
+    """For the setup: the outline's headings to pick from (indented by level)."""
+    M = M_of(page)
+    m = QMenu(parent or page.view)
+    rows = SM.tree(M) if M is not None else []
+    if not rows:
+        a = m.addAction("The outline has no heading yet: mark one first"); a.setEnabled(False)
+    for r in rows:
+        m.addAction(("    " * (r["level"] - 1)) + r["label"], lambda lab=r["label"]: send_to_setup(page, lab))
+    return m
+
+
+def for_setup(page):
+    """S: the list of headings opens beside the piece; a pick sends the piece there as text for the author."""
+    if not on(page) or not page.selected():
+        if on(page):
+            page.host.status("Select a piece of the customer's text first.")
+        return None
+    m = setup_menu(page)
+    b = getattr(getattr(page, "sel_bar", None), "setup", None)
+    from PySide6.QtGui import QCursor
+    m.popup(b.mapToGlobal(b.rect().bottomLeft()) if b is not None else QCursor.pos())
+    page._struct_menu = m
+    return m
+
+
+def send_to_setup(page, label):
+    M = M_of(page)
+    rows = page.selected() if M is not None and page.cx is None else []
+    if not rows:
+        return 0
+    with page.R.group():
+        page.R.snap("For the setup")
+        n = sum(1 for it in rows if SM.for_setup(M, it, label))
+    done(page, f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' pieces'}: for the setup, under {label}.")
+    return n
+
+
+def ask(page):
+    """A: Ask a question, in the pass (the button does the same)."""
+    if not on(page) or not page.selected():
+        return None
+    from . import typechips as TC
+    return TC.ask(page)
 
 
 def show_piece(page, iid):
@@ -176,8 +278,12 @@ def fill_bar(page, f, rows):
     f.x = D.button("Not needed  X", "ghost", lambda: not_needed(page), "Looked at: nothing here for this pass. It leaves the pass's next and can be reopened")
     f.x.setCheckable(True); f.x.setChecked(one and cur == SM.NOT_NEEDED)
     col.addWidget(f.x)
-    f.ask = D.button("Ask a question", "ghost", lambda: TC.ask(page), TC.ASK_TIP)
+    f.ask = D.button("Ask a question  A", "ghost", lambda: TC.ask(page), TC.ASK_TIP)
     col.addWidget(f.ask)
+    f.setup = D.button("For the setup  S", "ghost", None, "Into a section of the outline as text for the author. Pick the heading")
+    f.setup_menu = setup_menu(page, f.setup); f.setup.setMenu(f.setup_menu)
+    f.setup.setCheckable(True); f.setup.setChecked(one and cur == SM.FOR_SETUP)
+    col.addWidget(f.setup)
     if cur in SM.DEPTH and one and it["id"] in SM.marks(M):
         f.off = D.button("Take the mark off", "ghost", lambda: unmark(page), "The piece is no heading; a heading the mark made, with nothing in it, goes too")
         col.addWidget(f.off)
@@ -194,6 +300,10 @@ def done(page, msg):
     page._struct_ask = None
     page.after(msg)
     fill(page)
+    try:
+        page.host.stepper.show_for(KEY)              # 4.71.0: the tab's own count, at once
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
     __import__("skqt.shredselbar", fromlist=["x"]).later(page)
     return msg
 
@@ -274,6 +384,9 @@ def typed(page, type_key):
 
 def go_next(page, after_id=None):
     M = M_of(page)
+    if M is not None and SM.closed(M):
+        page.host.status("This pass is closed: not required by the customer. Untick it to go on.")
+        return None
     nxt = SM.next_suggestion(M, after_id) if M is not None else None
     if nxt is None:
         page.host.status("Nothing more is suggested in this pass.")

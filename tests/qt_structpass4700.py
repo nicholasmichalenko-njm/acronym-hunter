@@ -1,4 +1,4 @@
-"""4.70.0: the Response Structure pass on the screen. Shred's first tab; the bar beside a piece has Volume and Heading
+"""4.70.0 and 4.71.0: the Response Structure pass on the screen. Shred's first tab; the bar beside a piece has Volume and Heading
 1 to 3 (keys 1 to 4), Not needed (X) and Ask a question; a mark fills the outline tree beside the page at once; a near
 match asks once; Enter takes a suggestion and goes on; the other Shred tabs are as they were. Fictional (Kestrel)."""
 import os, sys, tempfile, time
@@ -73,7 +73,7 @@ pg.select(a["id"]); app.processEvents()
 f = bar()
 check("a piece selected: the bar has the four levels with their numbers, Not needed and Ask a question, and no type chips",
       f is not None and [b.text() for b in f.levels.values()] == ["1   Volume", "2   Heading 1", "3   Heading 2", "4   Heading 3"]
-      and f.x.text() == "Not needed  X" and f.ask.text() == "Ask a question" and not hasattr(f, "chips"), f and [b.text() for b in f.levels.values()])
+      and f.x.text() == "Not needed  X" and f.ask.text() == "Ask a question  A" and f.setup.text() == "For the setup  S" and not hasattr(f, "chips"), f and [b.text() for b in f.levels.values()])
 QTest.keyClick(pg.view, Qt.Key_1); app.processEvents()
 check("1: Volume. The outline has it at once, and the tree shows it", labels() == ["Volume I Technical"] and pg.struct_tree.topLevelItemCount() == 1
       and pg.struct_tree.topLevelItem(0).text(0) == "Volume I Technical" and SM.level_of(M, a) == "volume", labels())
@@ -145,6 +145,45 @@ if other:
     pg.struct_none.click(); app.processEvents()
     check("the other document: one click says Nothing of this kind here", [d["state"] for d in SM.docs(M) if d["file"] == other[0]] == ["Nothing of this kind here"]
           and pg.struct_none.isChecked(), SM.docs(M))
+# 4.71.0: the count, For the setup, A, Not required by the customer, a heading dragged
+pg.open_file([fn for fn in pg.R.files() if "Section_L" in fn][0]); app.processEvents(); SP.fill(pg)
+nmark = sum(1 for m in SM.marks(M).values() if m.get("level") in SM.DEPTH)
+check("4.71.0: the tab's own count is right as he marks", w.stepper.chips["structpass"].ct.text() == f"{nmark} marked", w.stepper.chips["structpass"].ct.text())
+pg.select(rows[10]["id"]); app.processEvents(); f = bar()
+names = [x.text().strip() for x in f.setup_menu.actions()]
+check("For the setup lists the outline's headings", names == [C.outline_label(o) for o in M.outline] and len(names) >= 2, names)
+QTest.keyClick(pg.view, Qt.Key_S); app.processEvents()
+check("S opens that list beside the piece (and splits nothing)", getattr(pg, "_struct_menu", None) is not None and len(pg._struct_menu.actions()) == len(names))
+pg._struct_menu.close()
+target = C.outline_label(M.outline[1])
+[x for x in pg._struct_menu.actions() if x.text().strip() == target][0].trigger(); app.processEvents()
+check("a pick sends the piece there as text for the author: the customer's own, in that section", rows[10]["map"] == target and rows[10]["decision"] == "Customer"
+      and SM.level_of(M, rows[10]) == "s" and bar().setup.isChecked(), (rows[10].get("map"), rows[10].get("decision")))
+asked = []
+import skqt.typechips as TCZ
+keep_ask = TCZ.ask; TCZ.ask = lambda page: asked.append(page.selected()[0]["id"])
+QTest.keyClick(pg.view, Qt.Key_A); app.processEvents()
+TCZ.ask = keep_ask
+check("A asks a question about the selected piece", asked == [rows[10]["id"]], asked)
+check("Not required by the customer shows, unticked", pg.struct_closed.isVisibleTo(pg) and not pg.struct_closed.isChecked())
+pg.struct_closed.click(); app.processEvents()
+check("one click closes the pass: the tree stays, the hint and the tab say so", SM.closed(M) and pg.struct_closed.isChecked() and pg.struct_hint.text().startswith("Closed")
+      and pg.struct_tree.topLevelItemCount() >= 1, pg.struct_hint.text())
+QTest.keyClick(pg.view, Qt.Key_N); app.processEvents()
+check("... N goes nowhere while it is closed", [x["id"] for x in pg.selected()] == [rows[10]["id"]])
+pg.struct_closed.click(); app.processEvents()
+check("... and one click opens it again", not SM.closed(M) and not pg.struct_closed.isChecked())
+lab_before = [C.outline_label(o) for o in M.outline]
+kids = [C.outline_label(o) for o in M.outline if o["level"] == 2]
+if len(kids) >= 2:
+    new = SP.moved(pg, kids[-1], kids[0], "into"); app.processEvents()
+    o = M.outline[[C.outline_label(x) for x in M.outline].index(new)]
+    check("a heading dragged into another goes under it; the tree is drawn again", new is not None and o["level"] == 3
+          and pg.struct_tree.topLevelItem(0).child(0).childCount() >= 1, [C.outline_label(x) for x in M.outline])
+    pg.do_undo(); app.processEvents(); M = pg.R.M
+    check("Undo puts it back", [C.outline_label(o) for o in M.outline] == lab_before, [C.outline_label(o) for o in M.outline])
+    byid = {x["id"]: x for x in M.items}; rows = [byid[x["id"]] for x in rows]
+check("the tree takes a drag", pg.struct_tree.dragDropMode() == pg.struct_tree.DragDropMode.InternalMove)
 w.go("assign"); app.processEvents()
 check("back on Requirements: the piece pane, the type chips and no outline pane", pg.focus == "shred" and not pg.struct_panel.isVisibleTo(pg)
       and pg.page_side.isVisibleTo(pg))

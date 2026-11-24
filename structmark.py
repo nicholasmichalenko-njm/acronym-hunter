@@ -25,6 +25,7 @@ LEVELS = (("volume", "Volume"), ("h1", "Heading 1"), ("h2", "Heading 2"), ("h3",
 NAME = dict(LEVELS)
 DEPTH = {"volume": 0, "h1": 1, "h2": 2, "h3": 3}
 NOT_NEEDED = "x"
+FOR_SETUP = "s"                 # 4.71.0: sent to a section as text for the author
 NEAR = 0.8                      # how alike two titles are before the app asks "Same as ...?" (to be shown to him)
 _FRONT = re.compile(r"^\s*(?:volume\s+(?:[ivx]{1,4}|\d{1,2})\b[\s:,\-–—]*|(?:\d+(?:\.\d+)*|[a-z])[.)]?\s+)", re.I)
 _VOLHEAD = re.compile(r"^\s*(Volume\s+(?:[IVX]{1,4}|\d{1,2}))\b[\s:,\-–—]*(.*)$", re.I)
@@ -274,6 +275,7 @@ def mark(M, it, level, titles=None, attach=None):
                                       made=[x.get("req_title") or x.get("title") for x in made], **({"same": same} if same else {}))
     S = SD.setup_of(M)
     S.pop("outline_auto", None)
+    S.pop("struct_closed", None)                    # 4.71.0: a mark opens a closed pass again
     req = S.setdefault("required", [])
     for o in made:
         req.append({"title": o["title"], "num": o.get("num", ""), "level": o["level"], "req": it.get("id", ""), "ref": o.get("ref", "")})
@@ -327,6 +329,49 @@ def not_needed(M, it, on=True):
     marks(M)[iid] = {"level": NOT_NEEDED}
     M.pending = True
     return True
+
+
+def for_setup(M, it, label):
+    """For the setup (4.71.0; decision 167): the piece goes into a section of the outline as text for the author. A
+    piece nobody has decided on becomes the customer's own (identified, not answered), which the setup writes in its own
+    style; a piece already decided keeps its decision and is put in the section too. It leaves the pass's next."""
+    if OO.index_of(M, label) < 0:
+        return False
+    iid = it.get("id")
+    if (marks(M).get(iid) or {}).get("level") in DEPTH:
+        unmark(M, it)
+    if not it.get("decision"):
+        C.assign_customer(M.items, [it])
+        SD.clear_sections(M, it)
+    if label not in SD.item_sections(M, it):
+        SD.place(M, iid, label, copy=bool(it.get("map")))
+    marks(M)[iid] = {"level": FOR_SETUP}
+    M.log(iid, f"Response Structure: for the setup, under {label}")
+    M.pending = True
+    return True
+
+
+def closed(M):
+    """Not required by the customer (4.71.0): the customer prescribes no structure; the pass is closed."""
+    return bool(SD.setup_of(M).get("struct_closed"))
+
+
+def set_closed(M, on=True):
+    S = SD.setup_of(M)
+    if on:
+        S["struct_closed"] = True
+    else:
+        S.pop("struct_closed", None)
+    M.pending = True
+    return bool(on)
+
+
+def move(M, label, target, where):
+    """A heading dragged on the tree (4.71.0; 209): before, after or into another, with everything under it. Returns
+    its new label, or None when it cannot go there."""
+    if where not in ("before", "after", "into"):
+        return None
+    return OO.move_to(M, label, target, where)
 
 
 # ------------------------------------------------------------------ each document's state in this pass
