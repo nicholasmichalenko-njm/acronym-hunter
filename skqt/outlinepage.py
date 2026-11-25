@@ -14,7 +14,9 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 import diag
 from . import design as D
 
-FROM = {"prescribed": "The solicitation prescribes it", "ours": "We build our own"}
+FROM = {"prescribed": "The customer tells us", "ours": "We build it"}
+QUESTION = "Does the customer tell us how to structure our response?"          # 4.73.0 (his direction, 2026-11-24)
+REASONS = ("No structure given", "A content list only", "A page limit only", "Other")
 
 
 class OutlinePage(QWidget):
@@ -35,37 +37,59 @@ class OutlinePage(QWidget):
                  "The sections as text, one per line, and Start from the RFP or a Word outline")
         bar.more("Sort in document order", lambda: self.builder().sort_order(),
                  "The items in every section in the order they appear in the customer documents")
-        bar.more("Start again...", lambda: self.ask(force=True), "Prescribed by the solicitation, or ours: start the outline again")
+        bar.more("Change how the outline starts...", lambda: self.ask(force=True), "The customer tells us, or we build it: ask again. Nothing is deleted")
         v.addWidget(bar)
-        # the start question: once per effort
-        self.start = D.Card("How does this outline start?", "Some solicitations prescribe the response outline; for others "
-                            "we build our own from the solicitation, our approach and what we offer. You can add our own "
-                            "subsections under the customer's either way.", key=True)
+        # the start question: once per effort. 4.73.0: his three answers; the marking is the page's second tab
+        self.start = D.Card(QUESTION, "If Section L (or its like) says how the response is organized, mark it from the "
+                            "customer's document and the outline fills. If not, the structure is ours to build. "
+                            "You can change the answer later; changing it deletes nothing.", key=True)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); self.start.body.addLayout(row)
         self.b_pres = D.button(FROM["prescribed"], "primary", lambda: self.prescribed(),
-                               "The sections it names, in its order, with their page limits: edit, then Apply")
+                               "The customer's document opens beside the outline: mark its volumes and headings (1 to 4)")
         row.addWidget(self.b_pres)
-        self.b_ours = D.button(FROM["ours"], None, None, "Start from Section M's factors, the customer's headings, a Word "
-                               "outline, or blank")
-        from PySide6.QtWidgets import QMenu
-        m = QMenu(self.b_ours); self.b_ours.setMenu(m)
-        m.addAction("From the evaluation factors (Section M)", lambda: self.ours("factors"))
-        m.addAction("From the customer's headings", lambda: self.ours("headings"))
-        m.addAction("From a Word outline...", lambda: self.ours("word"))
-        m.addAction("Blank: type it", lambda: self.ours("blank"))
-        row.addWidget(self.b_ours); row.addStretch(1)
+        self.b_ours = D.button(FROM["ours"], None, lambda: self.we_build(), "White papers, RFIs and many others give no structure: it is ours")
+        row.addWidget(self.b_ours)
+        self.b_file = D.button("Start from a saved outline...", None, lambda: self.from_file(),
+                               "An outline workbook, a Word outline or a PDF: brought in, then adjusted")
+        row.addWidget(self.b_file); row.addStretch(1)
         v.addWidget(self.start)
+        # 4.73.0: We build it: why, and where to start from
+        from PySide6.QtWidgets import QComboBox
+        self.build = D.Card("We build it", "Pick a start, or type the sections. Authors see in the setup that the structure is ours.", key=True)
+        why = QHBoxLayout(); why.setSpacing(D.SPACE["s"]); self.build.body.addLayout(why)
+        why.addWidget(D.label("Why:", "label", wrap=False))
+        self.reason = QComboBox(); self.reason.addItems(list(REASONS))
+        self.reason.setToolTip("Why the structure is ours: kept with the outline, with the date")
+        self.reason.activated.connect(lambda _i: (self.set_reason(self.reason.currentText()), self.refresh()))
+        why.addWidget(self.reason); why.addStretch(1)
+        row3 = QHBoxLayout(); row3.setSpacing(D.SPACE["s"]); self.build.body.addLayout(row3)
+        self.b_factors = D.button("Mirror the evaluation factors", "primary", lambda: self.ours("factors"), "A section for each factor and subfactor")
+        self.b_heads = D.button("Mirror the customer's headings", None, lambda: self.ours("headings"), "The SOW, PWS or other headings as a start")
+        self.b_blank = D.button("Type it", None, lambda: self.ours("blank"), "A blank outline: one section per line")
+        for x in (self.b_factors, self.b_heads, self.b_blank):
+            row3.addWidget(x)
+        row3.addStretch(1)
+        v.addWidget(self.build)
         # 4.6.0: an outline the effort type started by itself (from Section L's headings) still asks, once
-        self.started = D.Card("Does the solicitation prescribe this outline?", "It started from the customer's headings. If the "
-                              "solicitation prescribes the response outline, its sections are marked as the customer's, with "
-                              "their page limits. If not, the headings stay as a start for our own.", key=True)
+        self.started = D.Card(QUESTION, "This outline started from the customer's headings. If the customer tells us the "
+                              "structure, its sections are marked as the customer's, with their page limits. If not, the "
+                              "headings stay as a start for ours.", key=True)
         row2 = QHBoxLayout(); row2.setSpacing(D.SPACE["s"]); self.started.body.addLayout(row2)
-        self.b_yes = D.button("Yes, it prescribes it", "primary", lambda: self.answer("prescribed"),
+        self.b_yes = D.button("Yes, the customer tells us", "primary", lambda: self.answer("prescribed"),
                               "The sections are marked as the customer's, with the solicitation's page limits")
-        self.b_no = D.button("No, we build our own", None, lambda: self.answer("ours"), "The headings stay as a start; change them freely")
+        self.b_no = D.button("No, we build it", None, lambda: self.answer("ours"), "The headings stay as a start; change them freely")
         row2.addWidget(self.b_yes); row2.addWidget(self.b_no); row2.addStretch(1)
         v.addWidget(self.started)
         self.slot = QVBoxLayout(); v.addLayout(self.slot, 1)
+        from PySide6.QtWidgets import QSizePolicy                  # 4.73.0: a question is as tall as its words, at the top
+        for c in (self.start, self.build, self.started):
+            c.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.rest = QWidget(); v.addWidget(self.rest, 1)
+        self.wait = D.EmptyState("Nothing marked yet", "Mark the volumes and headings in the customer's document, and they appear here.",
+                                 "Open the customer's document", lambda: self.host.go("structpass"))
+        v.addWidget(self.wait, 1); self.wait.setVisible(False)
+        self.back = D.button("Change the answer", "ghost", lambda: self.ask(force=True), "Ask the question again. Nothing is deleted")
+        back_row = QHBoxLayout(); back_row.addWidget(self.back); back_row.addStretch(1); v.addLayout(back_row)
         self.said = D.label("", "muted"); v.addWidget(self.said)
         # 4.62.0: nothing shredded yet: one sentence and one way in, in one place (no bar of buttons that cannot be used)
         self.none = D.EmptyState("No outline yet", "The outline starts from the customer's documents. Shred one first.",
@@ -100,11 +124,20 @@ class OutlinePage(QWidget):
         texting = not b.text_panel.isHidden()
         asked = bool(self._setup().get("outline_from")) if M is not None else False
         self.start.setVisible(M is not None and not has and not texting and not asked)
+        ours = asked and self._setup().get("outline_from") == "ours"
+        self.build.setVisible(M is not None and not has and not texting and ours)          # 4.73.0
+        if ours:
+            self.reason.setCurrentIndex(max(0, self.reason.findText(self._setup().get("outline_reason", REASONS[0]))))
         self.started.setVisible(M is not None and has and not asked)          # 4.6.0
-        b.setVisible(has or texting or asked)
+        wait = asked and not ours and not has and not texting          # the customer tells us; nothing marked yet
+        self.wait.setVisible(M is not None and wait)
+        b.setVisible(has or texting)
+        self.rest.setVisible(not (has or texting) and M is not None and not wait)
+        self.back.setVisible(M is not None and not has and not texting and asked)
+        self.said.setVisible(has)
         for x in (self.b_volume, self.b_elements, self.b_place):
             x.setEnabled(has)
-        self.none.setVisible(M is None); self.bar.setVisible(M is not None and (has or texting or asked))   # 4.62.0
+        self.none.setVisible(M is None); self.bar.setVisible(M is not None and (has or texting))   # 4.62.0
         src = self._setup().get("outline_from", "") if M is not None else ""
         extra = ""
         if src == "prescribed" and has:                  # 4.5.0: the customer's sections and the volumes' page limits
@@ -119,7 +152,8 @@ class OutlinePage(QWidget):
             pg = St.get("prescribed_pages") or {}
             extra = (" Its sections are marked as the customer's" + (": page limits from the solicitation, "
                      + ", ".join(f"{k} {v:g}" for k, v in pg.items()) if pg else "") + ".")
-        self.said.setText((f"Started: {FROM.get(src, '')}." + extra) if src else "")
+        why = self._setup().get("outline_reason", "") if src == "ours" else ""
+        self.said.setText((f"{FROM.get(src, '')}" + (f" ({why.lower()}, {self._setup().get('outline_reason_on', '')})" if why else "") + "." + extra) if src else "")
         try:
             b.refresh()
         except Exception:  # noqa: BLE001
@@ -142,18 +176,41 @@ class OutlinePage(QWidget):
         return self.refresh()
 
     def prescribed(self):
+        """The customer tells us (4.73.0): the customer's document opens beside the outline, to mark its volumes and
+        headings. The marks carry Required by, so nothing is marked the customer's wholesale."""
         if self.M() is None:
             return False
         self._keep("prescribed")
-        b = self.builder()
-        ok = b.from_prescribed()
-        if not ok:
-            b.from_headings()
-            self.host.status("The solicitation names no outline that the rules can find: its headings are shown instead. "
-                             "Edit them, then Apply.")
-        self.refresh()
+        self._setup()["prescribed_marked"] = True
         diag.activity("outline_start_prescribed")
-        return ok
+        self.host.go("structpass")
+        self.host.status("Select a piece that names a volume or a section and press 1 to 4. Also add sections for any evaluation factor the instructions do not cover.")
+        return True
+
+    def we_build(self):
+        """We build it (4.73.0): the answer, a reason and the date; then where to start from."""
+        if self.M() is None:
+            return False
+        self._keep("ours")
+        self.set_reason(self._setup().get("outline_reason") or REASONS[0])
+        self.refresh()
+        diag.activity("outline_start_ours")
+        return True
+
+    def set_reason(self, reason):
+        import datetime
+        St = self._setup()
+        St["outline_reason"] = reason if reason in REASONS else REASONS[0]
+        St["outline_reason_on"] = datetime.date.today().isoformat()
+        self.M().pending = True
+        self.host.changed()
+        return St["outline_reason"]
+
+    def from_file(self):
+        """Start from a saved outline: Setup's own Bring in an outline (a workbook, Word or PDF)."""
+        if self.M() is None:
+            return False
+        return self.host.setups_page.bring_in()
 
     def ours(self, how):
         if self.M() is None:

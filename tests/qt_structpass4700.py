@@ -53,13 +53,14 @@ def labels():
     return [C.outline_label(o) for o in M.outline]
 
 
-check("Shred's tabs: Response Structure first, the others as they were", [k for k, _t in MW.TABS["assign"]] ==
-      ["structpass", "comppass", "assign", "requirements", "evalcrit", "acronyms"] and list(k for k in w.stepper.chips if ":" not in k)[0] == "structpass")
+check("4.73.0: the marking is Outline's second tab; Shred's tabs no longer hold it", [k for k, _t in MW.TABS["outline"]] == ["outline", "structpass"]
+      and "structpass" not in [k for k, _t in MW.TABS["assign"]] and "structpass" not in w.stepper.chips)
 check("on Requirements the pass's pane is not there", not getattr(pg, "struct_panel", None) or not pg.struct_panel.isVisibleTo(pg))
 before_outline = labels()
 w.go("structpass"); app.processEvents()
-check("the tab opens the Shred page in the pass, titled Shred", w.stack.currentWidget() is pg and pg.focus == "struct" and w.page_title.text() == "Shred"
-      and w.step_btns["assign"].isChecked(), (pg.focus, w.page_title.text()))
+check("the tab opens the customer's document in the marking, titled Outline, with Outline lit and its two tabs", w.stack.currentWidget() is pg
+      and pg.focus == "struct" and w.page_title.text() == "Outline" and w.step_btns["outline"].isChecked() and w._tab_keys == ["outline", "structpass"]
+      and not w.stepper.isVisibleTo(w), (pg.focus, w.page_title.text(), w._tab_keys))
 check("the outline is beside the page as a tree; the piece pane and This document is shredded are not", pg.struct_panel.isVisibleTo(pg)
       and not pg.page_side.isVisibleTo(pg) and not pg.shred_check.isVisibleTo(pg))
 check("this document's state: Not looked at, with Nothing of this kind in this document", "Not looked at" in pg.struct_state.text()
@@ -147,8 +148,6 @@ if other:
           and pg.struct_none.isChecked(), SM.docs(M))
 # 4.71.0: the count, For the setup, A, Not required by the customer, a heading dragged
 pg.open_file([fn for fn in pg.R.files() if "Section_L" in fn][0]); app.processEvents(); SP.fill(pg)
-nmark = sum(1 for m in SM.marks(M).values() if m.get("level") in SM.DEPTH)
-check("4.71.0: the tab's own count is right as he marks", w.stepper.chips["structpass"].ct.text() == f"{nmark} marked", w.stepper.chips["structpass"].ct.text())
 pg.select(rows[10]["id"]); app.processEvents(); f = bar()
 names = [x.text().strip() for x in f.setup_menu.actions()]
 check("For the setup lists the outline's headings", names == [C.outline_label(o) for o in M.outline] and len(names) >= 2, names)
@@ -165,14 +164,11 @@ keep_ask = TCZ.ask; TCZ.ask = lambda page: asked.append(page.selected()[0]["id"]
 QTest.keyClick(pg.view, Qt.Key_A); app.processEvents()
 TCZ.ask = keep_ask
 check("A asks a question about the selected piece", asked == [rows[10]["id"]], asked)
-check("Not required by the customer shows, unticked", pg.struct_closed.isVisibleTo(pg) and not pg.struct_closed.isChecked())
-pg.struct_closed.click(); app.processEvents()
-check("one click closes the pass: the tree stays, the hint and the tab say so", SM.closed(M) and pg.struct_closed.isChecked() and pg.struct_hint.text().startswith("Closed")
-      and pg.struct_tree.topLevelItemCount() >= 1, pg.struct_hint.text())
-QTest.keyClick(pg.view, Qt.Key_N); app.processEvents()
-check("... N goes nowhere while it is closed", [x["id"] for x in pg.selected()] == [rows[10]["id"]])
-pg.struct_closed.click(); app.processEvents()
-check("... and one click opens it again", not SM.closed(M) and not pg.struct_closed.isChecked())
+check("4.73.0: Not required by the customer is gone from here (it is Outline's We build it)", not hasattr(pg, "struct_closed"))
+SM.set_closed(M, True); SP.fill(pg)
+import setupdoc as SDZ
+check("... an effort that had it ticked reads as We build it, no structure given", not SM.closed(M) and SDZ.setup_of(M).get("outline_from") == "ours"
+      and SDZ.setup_of(M).get("outline_reason") == "No structure given")
 lab_before = [C.outline_label(o) for o in M.outline]
 kids = [C.outline_label(o) for o in M.outline if o["level"] == 2]
 if len(kids) >= 2:
@@ -185,7 +181,7 @@ if len(kids) >= 2:
     byid = {x["id"]: x for x in M.items}; rows = [byid[x["id"]] for x in rows]
 check("the tree takes a drag", pg.struct_tree.dragDropMode() == pg.struct_tree.DragDropMode.InternalMove)
 w.go("assign"); app.processEvents()
-check("back on Requirements: the piece pane, the type chips and no outline pane", pg.focus == "shred" and not pg.struct_panel.isVisibleTo(pg)
+check("on Shred > Requirements: the piece pane, the type chips and no outline pane", pg.focus == "shred" and w.page_title.text() == "Shred" and not pg.struct_panel.isVisibleTo(pg)
       and pg.page_side.isVisibleTo(pg))
 pg.select(rows[9]["id"]); app.processEvents(); f = bar()
 check("... the bar there has the types, as before", f is not None and hasattr(f, "chips") and "requirement" in f.chips)

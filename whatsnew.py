@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.73.0": ["Our response structure is decided on the Outline page. It asks one question, Does the customer tell us how to structure our response?, with three answers: The customer tells us, We build it, Start from a saved outline.",
+               "The customer tells us opens the customer's document beside the outline (Outline's second tab): mark the volumes and headings as before. This marking left Shred.",
+               "We build it keeps why, and offers a start: the evaluation factors, the customer's headings, or type it. Change how the outline starts is under More; it deletes nothing."],
     "4.72.0": ["Shred has a second tab, Compliance. Select a piece and press 1, 2 or 3: Work Requirement (SOW), Response Instruction (L), Evaluation Criterion (M). It is a row of the matrix at once.",
                "The bar says In Matrix under, with the section the app suggests: Enter takes it and goes on, or pick another, or decide later. X is Not needed, A asks a question, S is For the setup.",
                "The Requirements tab is as it was, until the other passes are built."],

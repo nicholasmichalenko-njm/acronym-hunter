@@ -106,8 +106,8 @@ check("Outline: an empty outline asks how it starts", w.stack.currentWidget() is
       and w.step_btns["outline"].isChecked())
 op.prescribed(); app.processEvents()
 import setupdoc as SD
-check("... prescribed: the text panel with the solicitation's sections; the answer kept", SD.setup_of(M).get("outline_from") == "prescribed"
-      and op.builder().text_panel.isVisibleTo(w) and not op.start.isVisibleTo(w))
+check("... 4.73.0: the customer tells us opens the customer's document to mark; the answer kept", SD.setup_of(M).get("outline_from") == "prescribed"
+      and w.stack.currentWidget() is w.assign_page and w.assign_page.focus == "struct" and w.step_btns["outline"].isChecked())
 w.go("setups"); app.processEvents()
 check("Setup shows the same builder", w.setups_page.builder.parent() is w.setups_page)
 w.close()

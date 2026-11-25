@@ -81,7 +81,7 @@ check("... and Calendar lights Overview", w.step_btns["home"].isChecked() and w.
 w.go("matrix"); app.processEvents()
 check("Matrix: its own tabs, no Outline", w._tab_keys == ["assignto", "linkcheck", "matrix"] and w.page_title.text() == "Matrix", w._tab_keys)   # 4.66.0: Assign first, Place under its More
 w.go("outline"); app.processEvents()
-check("Outline is a page of its own", w.step_btns["outline"].isChecked() and w._tab_keys == [] and w.page_title.text() == "Outline", (w._tab_keys, w.page_title.text()))
+check("Outline is an entry of its own (4.73.0: with the marking as its second tab)", w.step_btns["outline"].isChecked() and w._tab_keys == ["outline", "structpass"] and w.page_title.text() == "Outline", (w._tab_keys, w.page_title.text()))
 w.go("deliverables"); app.processEvents()
 check("Deliverables is the list alone (4.61.0)", w.step_btns["deliverables"].isChecked() and w._tab_keys == [], w._tab_keys)
 w.go("redline"); app.processEvents()

@@ -19,7 +19,7 @@ FORMATTING = "Standards and Formatting"      # 4.46.0 (decision 71): the menu gr
 VIEWS = (("assign", "On the page", None), ("shredlist", "As a table", None))   # 4.54.0 (decision 62): one Shred, two views   # 4.3.0: placing, L to M and
 VIEW_OF = {"assign": "assign", "shredlist": "shredlist"}  # Coverage: Matrix & Outline
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
-CHIPS = (("structpass", "Response Structure"), ("comppass", "Compliance"), ("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
+CHIPS = (("comppass", "Compliance"), ("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
 CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Rules & Dates and Evaluation moved in; the Acro List
                                                           # opens from Acros & Abs
 STEP_TITLES = {"home": ("Overview", "Where the effort is, what is left, and your next step"),

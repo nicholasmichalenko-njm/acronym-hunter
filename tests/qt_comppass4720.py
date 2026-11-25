@@ -56,8 +56,8 @@ def fresh():
     rows = [it for it in pg.R.rows_of(pg.file) if it.get("type") != "Heading"]
 
 
-check("Shred's tabs: Response Structure, Compliance, then the others as they were", [k for k, _t in MW.TABS["assign"]] ==
-      ["structpass", "comppass", "assign", "requirements", "evalcrit", "acronyms"])
+check("Shred's tabs: Compliance, then the others as they were (4.73.0: Response Structure is Outline's)", [k for k, _t in MW.TABS["assign"]] ==
+      ["comppass", "assign", "requirements", "evalcrit", "acronyms"])
 M.outline[:] = C.parse_outline("Volume I Technical\n1 Technical Approach\n1.1 Thermal Design\n2 Management")
 w.go("comppass"); app.processEvents()
 check("the tab opens the Shred page in the pass, titled Shred", w.stack.currentWidget() is pg and pg.focus == "comp" and w.page_title.text() == "Shred")
@@ -128,7 +128,7 @@ check("the pass keeps a wider margin for its bar, and the bar is inside it", pg.
       and (bar() is None or pg.sel_bar.geometry().right() <= pg.view.width()), pg.view.viewportMargins().right())
 w.go("structpass"); app.processEvents()
 check("... the other tabs keep the margin they had", pg.view.viewportMargins().right() == SSB.GUTTER, pg.view.viewportMargins().right())
-check("Response Structure is as it was: its tree, its own bar", pg.focus == "struct" and pg.struct_panel.isVisibleTo(pg) and not pg.comp_state.isVisibleTo(pg))
+check("the marking on Outline is as it was: its tree, its own bar", pg.focus == "struct" and pg.struct_panel.isVisibleTo(pg) and not pg.comp_state.isVisibleTo(pg))
 w.go("assign"); app.processEvents()
 check("Requirements is as it was: the piece pane, the type chips", pg.focus == "shred" and pg.page_side.isVisibleTo(pg) and not pg.comp_state.isVisibleTo(pg)
       and not pg.struct_panel.isVisibleTo(pg))

@@ -59,10 +59,6 @@ def install(page):
     page.struct_none.setToolTip("You looked: this document says nothing about how the response is organized. It can be unticked.")
     page.struct_none.clicked.connect(lambda c=False: set_none(page, bool(c)))
     v.addWidget(page.struct_none)
-    page.struct_closed = QCheckBox("Not required by the customer")
-    page.struct_closed.setToolTip("The customer does not say how the response is to be organized: this pass is closed. Untick it, or mark a piece, to open it again.")
-    page.struct_closed.clicked.connect(lambda c=False: set_closed(page, bool(c)))
-    v.addWidget(page.struct_closed)
     t = page.struct_tree = OutlineTree(page)
     t.setHeaderLabels(["Heading", "Required by"])
     t.setRootIsDecorated(False); t.setIndentation(14)
@@ -119,7 +115,7 @@ def fill(page):
     t = page.struct_tree
     t.clear()
     if M is None:
-        page.struct_state.setText(""); page.struct_none.setVisible(False); page.struct_hint.setText(""); page.struct_closed.setVisible(False)
+        page.struct_state.setText(""); page.struct_none.setVisible(False); page.struct_hint.setText("")
         return 0
     stack = []
     for r in SM.tree(M):
@@ -135,9 +131,11 @@ def fill(page):
     page.struct_state.setText(f"This document: {cur['state']}" if cur else "No document is open.")
     page.struct_none.setVisible(cur is not None and not cur["finds"])
     page.struct_none.blockSignals(True); page.struct_none.setChecked(bool(cur and cur["none"])); page.struct_none.blockSignals(False)
-    shut = SM.closed(M)
-    page.struct_closed.blockSignals(True); page.struct_closed.setChecked(shut); page.struct_closed.blockSignals(False)
-    page.struct_closed.setVisible(True)
+    shut = False
+    if SM.closed(M):                                 # 4.73.0: 4.71.0's "Not required by the customer" is Outline's "We build it"
+        import setupdoc as SD
+        SD.setup_of(M).setdefault("outline_from", "ours"); SD.setup_of(M).setdefault("outline_reason", "No structure given")
+        SM.set_closed(M, False)
     left = len(SM.suggestions(M))
     page.struct_hint.setText("Closed: the customer does not require a structure. Drag a heading to fix its level or place." if shut else
                              (f"{left} piece{'s' if left != 1 else ''} the app reads as setting the structure. Enter takes one and goes to the next. "
@@ -303,10 +301,6 @@ def done(page, msg):
     page._struct_ask = None
     page.after(msg)
     fill(page)
-    try:
-        page.host.stepper.show_for(KEY)              # 4.71.0: the tab's own count, at once
-    except Exception:  # noqa: BLE001
-        diag.swallowed()
     __import__("skqt.shredselbar", fromlist=["x"]).later(page)
     return msg
 
@@ -383,7 +377,7 @@ def typed(page, type_key):
     """A type's own key pressed in this pass: Not applicable's key (X) is Not needed; the others say where they are."""
     if type_key == "not_applicable":
         return not_needed(page)
-    page.host.status("This pass marks Volume and Heading 1 to 3 (keys 1 to 4). The other types are on the Requirements tab.")
+    page.host.status("Here you mark Volume and Heading 1 to 3 (keys 1 to 4). The other types are in Shred.")
     return None
 
 
