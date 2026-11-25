@@ -1,4 +1,4 @@
-"""4.76.0: the Deliverables pass on the screen. Shred's second tab: Document We Write, Form We Fill In, File We Submit,
+"""4.76.0, 4.77.0: the Deliverables pass on the screen. Shred's second tab: Document We Write, Form We Fill In, File We Submit,
 Redline We Return on 1 to 4, each a row of the Deliverables list at once; Key date (D) onto the calendar; Customer
 heading, Send to Outline, More, Not needed, Ask a question, For the setup as on Compliance. Fictional (Kestrel)."""
 import os, sys, tempfile, time
@@ -72,9 +72,14 @@ check("a piece selected: four kinds with their numbers, Key date, then the bar C
       and [b.text() for b in f.kinds.values()] == ["1   Document We Write", "2   Form We Fill In", "3   File We Submit", "4   Redline We Return"]
       and f.keydate.text() == "Key date  D" and f.head.text() == "Customer heading  H" and f.send.text() == "Send to Outline" and f.more.text() == "More  M"
       and f.x.text() == "Not needed  X" and f.ask.text() == "Ask a question  A" and f.setup.text() == "For the setup  S" and f.on_list is None)
-QTest.keyClick(pg.view, Qt.Key_2); app.processEvents(); fresh()
+QTest.keyClick(pg.view, Qt.Key_2); app.processEvents(); f = bar()
+check("2 asks the name on the bar, suggested from the words; nothing is on the list yet", f.name_edit is not None and f.name_edit.text() == DM.suggest_name(a["text"])
+      and f.name_ok.text() == "Add to Deliverables  Enter" and not f.kinds and DL.items(rec()) == [], f.name_edit and f.name_edit.text())
+f.name_edit.setText("Cost Volume Form")
+QTest.keyClick(f.name_edit, Qt.Key_Return); app.processEvents(); fresh()
 a = next(x for x in rows if x["id"] == a["id"])
 d = DL.of_piece(rec(), a["id"])
+check("Enter takes the name as changed", d is not None and d["name"] == "Cost Volume Form", d)
 check("2: Form We Fill In. A row of the Deliverables list at once, holding the customer's words", d is not None and d["kind"] == "Form" and d["shred_kind"] == "form"
       and d["name"] and [p["sid"] for p in d["pieces"]] == [a["id"]] and d["pieces"][0]["doc"] == pg.file, d)
 check("... the piece is not made a requirement by it", not a.get("decision") and CM.kinds_of(a) == [])
@@ -82,16 +87,59 @@ check("... the tab's count and the document's state follow at once", w.stepper.c
       and "Has finds (1)" in pg.comp_state.text() and not pg.comp_none.isVisibleTo(pg), (w.stepper.chips["delivpass"].ct.text(), pg.comp_state.text()))
 f = bar()
 check("... the bar shows the kind and the deliverable's name, with a way to the list", f.kinds["form"].isChecked() and f.on_list is not None
-      and f.on_list.text() == "On the Deliverables list: " + d["name"] and f.open_list is not None)
-w.go("deliverables"); app.processEvents()
-check("the Deliverables page lists it", any(x["id"] == d["id"] for x in DL.items(rec())) and w.stack.currentWidget() is not pg)
+      and f.on_list.text() == "On Deliverables: " + d["name"])
+f.on_list.click(); app.processEvents()
+check("the tag opens that deliverable's row on the Deliverables page", w.stack.currentWidget() is w.deliverables_page and w.deliverables_page.stack.currentWidget() is w.deliverables_page.one
+      and w.deliverables_page.one.did == d["id"], getattr(w.deliverables_page.one, "did", None))
+check("... its Due shows the date format with no proposal due date; the proposal's when there is one", w.deliverables_page.one.e_due.placeholderText() == "YYYY-MM-DD")
+_r = rec(); _r.set_due("2027-04-02T17:00"); w.deliverables_page.ctx.rec.data["due"] = _r.data["due"]
+w.deliverables_page.open_deliverable(d["id"]); app.processEvents()
+check("... the proposal's due date", w.deliverables_page.one.e_due.placeholderText().startswith("2027-04-02 (the proposal's due date") and w.deliverables_page.one.e_due.text() == "",
+      w.deliverables_page.one.e_due.placeholderText())
+import custstruct as CSX
+c_ = rows[9]; e_ = rows[10]; g_ = rows[11]
+w.go("delivpass"); app.processEvents(); fresh()
+CSX.mark(pg.R.M, rows[7], "L.9", "Hand-ins", 1)
+pg.select(c_["id"]); app.processEvents(); bar()
+QTest.keyClick(pg.view, Qt.Key_3); app.processEvents(); f = bar()
+f.name_edit.setText("cost volume form.")
+QTest.keyClick(f.name_edit, Qt.Key_Return); app.processEvents()
+dd = DL.get(rec(), d["id"])
+check("a name already on the list attaches: no second row; the customer's reference goes with the words", len(DL.items(rec())) == 1 and [p["sid"] for p in dd["pieces"]] == [a["id"], c_["id"]]
+      and dd["pieces"][1]["loc"] == "L.9", dd["pieces"])
+pg.select(e_["id"]); app.processEvents(); bar()
+QTest.keyClick(pg.view, Qt.Key_3); app.processEvents(); f = bar()
+f.name_edit.setText("The Cost Volume Form File")
+QTest.keyClick(f.name_edit, Qt.Key_Return); app.processEvents(); f = bar()
+check("a near name asks once: Attach to it (Enter) or Add as new", f.attach is not None and f.add_new is not None and f.name_edit is None and len(DL.items(rec())) == 1)
+f.add_new.click(); app.processEvents()
+check("Add as new makes its own row", len(DL.items(rec())) == 2 and DL.of_piece(rec(), e_["id"])["name"] == "The Cost Volume Form File")
+QTest.keyClick(pg.view, Qt.Key_3); app.processEvents()
+check("3 again on it takes it off (nothing done to it)", len(DL.items(rec())) == 1 and DL.of_piece(rec(), e_["id"]) is None)
+import skqt.delivpass as DPX
+DPX.DM.mark_many(rec(), [e_, g_], "write", "Staffing Plan"); app.processEvents()
+check("pieces marked together are one deliverable", [p["sid"] for p in DL.of_piece(rec(), g_["id"])["pieces"]] == [e_["id"], g_["id"]])
+pg.select(g_["id"]); app.processEvents(); bar()
+check("taking a mark off a deliverable with work on it: keep leaves the deliverable", DPX.mark(pg, "write", remove=False) == "off" and DL.of_piece(rec(), g_["id"]) is None and len(DL.items(rec())) == 2)
+DL.remove(rec(), [x for x in DL.items(rec()) if x["name"] == "Staffing Plan"][0]["id"])
+RR.Record(w.ws.root)  # reread
+for x in list(DL.of_piece(rec(), c_["id"])["pieces"])[1:]:
+    DL.detach(rec(), x["sid"])
+app.processEvents()
 w.go("delivpass"); app.processEvents(); fresh()
 pg.select(a["id"]); app.processEvents(); bar()
 QTest.keyClick(pg.view, Qt.Key_4); app.processEvents()
 d = DL.of_piece(rec(), a["id"])
 check("4 changes it to Redline We Return: still one row", d["shred_kind"] == "redline" and d["kind"] == "Customer file" and len(DL.items(rec())) == 1 and bar().kinds["redline"].isChecked())
 QTest.keyClick(pg.view, Qt.Key_4); app.processEvents()
-check("4 again takes it off the list", DL.of_piece(rec(), a["id"]) is None and DL.items(rec()) == [] and w.stepper.chips["delivpass"].ct.text() == "none marked")
+check("4 again takes it off the list", DL.of_piece(rec(), a["id"]) is None and DL.items(rec()) == [] and w.stepper.chips["delivpass"].ct.text() == "none marked",
+      (DL.items(rec()), w.stepper.chips["delivpass"].ct.text()))
+import shredtypes as STX
+o_ = rows[12]
+__import__("skqt.shredbar", fromlist=["x"]).capture_types(pg, "deliverable", [o_["id"]]); app.processEvents(); fresh()
+pg.select(o_["id"]); app.processEvents(); f = bar()
+check("an older Deliverable mark says so and is not given a kind", f.before is not None and "kind not said" in f.before.text() and not any(b.isChecked() for b in f.kinds.values()),
+      STX.types_of(next(x for x in rows if x["id"] == o_["id"])))
 b_ = rows[8]
 pg.select(b_["id"]); app.processEvents(); bar()
 QTest.keyClick(pg.view, Qt.Key_X); app.processEvents()
@@ -121,4 +169,4 @@ check("Requirements is the Shred as it was", pg.focus in (None, "shred") and pg.
 print(f"{sum(checks)}/{len(checks)}")
 if not all(checks):
     sys.exit(1)
-print("ok qt_delivpass4760")
+print("ok qt_delivpass4770")

@@ -1,4 +1,4 @@
-"""Shred in passes, the Deliverables pass (4.76.0; UX decisions 164, 175, 176; the hand-off "a deliverable marked in the
+"""Shred in passes, the Deliverables pass (4.76.0, finished further in 4.77.0; UX decisions 164, 175, 176; the hand-off "a deliverable marked in the
 Shred reaching the Deliverables list" of the Screen Map). Four kinds of thing the customer asks us to hand in: Document
 We Write, Form We Fill In, File We Submit, Redline We Return. A mark adds a row to the effort's deliverables list at
 once (the same list the Deliverables page shows), with the customer's words attached and a name suggested from them;
@@ -52,7 +52,86 @@ def piece_of(it, file="", page="", loc=""):
             "loc": loc or " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x), "text": it.get("text", "")}
 
 
-def mark(rec, it, key, name="", who=None):
+def match(rec, name):
+    """("same", deliverable), ("near", deliverable) or ("", None) for a name against the deliverables on the list
+    (4.77.0). The same: alike but for capitals, spacing, punctuation and a number in front. Near: the rule the outline's
+    marking uses (0.8 alike, or one name's words all inside the other's, two words or more)."""
+    import difflib
+    import structmark as SM
+    n = SM.norm(name)
+    if not n:
+        return "", None
+    best = (0.0, None)
+    for d in DL.items(rec):
+        c = SM.norm(d.get("name"))
+        if not c:
+            continue
+        if c == n:
+            return "same", d
+        r = difflib.SequenceMatcher(None, n, c).ratio()
+        a, b = set(n.split()), set(c.split())
+        if min(len(a), len(b)) >= 2 and (a <= b or b <= a):
+            r = max(r, SM.NEAR)
+        if r > best[0]:
+            best = (r, d)
+    return ("near", best[1]) if best[0] >= SM.NEAR else ("", None)
+
+
+def older(rec, it):
+    """A piece marked Deliverable the older way (typed Deliverable on Requirements, or put on a deliverable there) with
+    none of the four kinds said. The app never picks one for it."""
+    import shredtypes as ST
+    d = of_piece(rec, it)
+    if d is not None:
+        return not d.get("shred_kind")
+    return ST.has(it, "deliverable")
+
+
+def attach(rec, it, did, key="", who=None, ref=""):
+    """Put a piece on a deliverable already on the list (4.77.0): no second row. The deliverable takes the kind only
+    when it has none of the four yet. Returns "attached" or "same"."""
+    d = DL.get(rec, did)
+    if d is None:
+        return ""
+    cur = of_piece(rec, it)
+    if cur is not None and cur["id"] == did:
+        return "same"
+    DL.attach_piece(rec, did, piece_of(it, loc=ref), who=who)
+    if key in NAME and not d.get("shred_kind"):
+        d["shred_kind"] = key
+    if ref and not d.get("cust_ref"):
+        d["cust_ref"] = ref
+    rec.save()
+    return "attached"
+
+
+def mark_many(rec, rows, key, name="", who=None, to=None, refs=None):
+    """Pieces marked together are one deliverable (4.77.0): the first makes it (or `to` names one already on the
+    list), the rest are put on it. Returns (deliverable id, "added" or "attached")."""
+    refs = refs or {}
+    did, how = to, "attached"
+    for it in rows:
+        ref = refs.get(it.get("id"), "")
+        if did is None:
+            did, how = mark(rec, it, key, name, who=who, ref=ref)
+        else:
+            attach(rec, it, did, key, who=who, ref=ref)
+    return did, how
+
+
+def unmark_would_ask(rec, it):
+    d = of_piece(rec, it)
+    return bool(d is not None and d.get("from_shred") == it.get("id") and touched(d, it.get("id")))
+
+
+def touched(d, sid=""):
+    """Has anything been done to a deliverable beyond the mark that made it: an owner, a file, a note, a status, a
+    part, or another piece."""
+    return bool(d.get("owner") or d.get("file") or d.get("doc_id") or d.get("notes") or d.get("about") or d.get("parts")
+                or (d.get("status") or "Not started") != "Not started" or any(p.get("sid") != sid for p in d.get("pieces", [])))
+
+
+def mark(rec, it, key, name="", who=None, ref=""):
     """Mark a piece. Returns (deliverable id, "added" or "changed" or "same")."""
     if key not in NAME:
         raise ValueError(key)
@@ -73,19 +152,26 @@ def mark(rec, it, key, name="", who=None):
     d = DL.get(rec, did)
     d["shred_kind"] = key
     d["from_shred"] = it.get("id", "")
-    DL.attach_piece(rec, did, piece_of(it), who=who)
+    if ref:
+        d["cust_ref"] = ref                           # the customer's reference: the Customer heading above the piece
+    DL.attach_piece(rec, did, piece_of(it, loc=ref), who=who)
     rec.save()
     return did, "added"
 
 
-def unmark(rec, it, who=None):
-    """Take the mark off: the piece leaves its deliverable; a deliverable this mark made, with nothing else on it, goes
-    (it can be brought back on the Deliverables page). Returns "removed", "detached" or ""."""
+def unmark(rec, it, who=None, remove=None):
+    """Take the mark off. The deliverable goes with it only when this mark made it and nothing has been done to it
+    since (it can be brought back on the Deliverables page). When work has been done to one this mark made, the answer
+    is "ask" and nothing changes until `remove` says: True removes it, False keeps it without this piece. A deliverable
+    made elsewhere only loses the piece. Returns "removed", "detached", "ask" or ""."""
     d = of_piece(rec, it)
     if d is None:
         return ""
+    mine = d.get("from_shred") == it.get("id")
+    if mine and touched(d, it.get("id")) and remove is None:
+        return "ask"
     DL.detach(rec, it.get("id", ""), who=who)
-    if d.get("from_shred") == it.get("id") and not d.get("pieces") and not d.get("doc_id") and not d.get("file"):
+    if mine and (remove or (remove is None and not d.get("pieces"))):
         DL.remove(rec, d["id"], who=who)
         return "removed"
     return "detached"
@@ -105,8 +191,10 @@ def open_rows(M, rec, file):
     set aside here; headings out."""
     got = marks(M)
     on = {p.get("sid") for d in DL.items(rec) for p in d.get("pieces", [])}
+    import shredtypes as ST
+    kinded = {p.get("sid") for d in DL.items(rec) if d.get("shred_kind") for p in d.get("pieces", [])}
     return [it for it in M.items if it.get("file") == file and it.get("type") != "Heading" and it.get("id") not in got
-            and it.get("id") not in on and reads_like(it)]
+            and it.get("id") not in kinded and ((it.get("id") not in on and reads_like(it)) or it.get("id") in on or ST.has(it, "deliverable"))]
 
 
 def count(rec):

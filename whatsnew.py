@@ -2,6 +2,11 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.77.0": ["Shred > Deliverables: a kind's key shows the name the app suggests on the bar. Change it, then Enter puts the row on the Deliverables list.",
+               "A name already on the list attaches the piece to that row. A near name asks once: Attach to it, or Add as new. Pieces marked together are one deliverable.",
+               "The bar names the deliverable a piece is on; a click opens its row. The row keeps the customer's reference from the Customer heading above the piece.",
+               "A piece marked Deliverable the older way says \"kind not said\" and waits for you to pick one. Taking a mark off a deliverable that has work on it asks whether the deliverable stays.",
+               "A deliverable with no due date of its own shows the proposal's due date."],
     "4.76.0": ["Shred has a tab, Deliverables: mark what the customer asks us to hand in as Document We Write, Form We Fill In, File We Submit or Redline We Return (1 to 4). Each mark is a row of the Deliverables list at once, named from the customer's words, with those words attached. The same button again takes it off.",
                "Key date (D) on that tab sends a date the customer sets to the effort's calendar at once.",
                "Customer heading, Send to Outline, More, Not needed, Ask a question and For the setup are on that tab as they are on Compliance."],

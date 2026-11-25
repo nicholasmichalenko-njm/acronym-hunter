@@ -112,7 +112,7 @@ class DeliverableView(QWidget):
         f.addRow("Status", self.e_status)
         from .people import name_combo
         self.e_owner = name_combo(self.host, d.get("owner", "")); f.addRow("Owner", self.e_owner)
-        self.e_due = QLineEdit((d.get("due") or "")[:10]); self.e_due.setPlaceholderText("YYYY-MM-DD"); f.addRow("Due", self.e_due)
+        self.e_due = QLineEdit((d.get("due") or "")[:10]); self.e_due.setPlaceholderText(((self.rec.data.get("due") or "")[:10] + " (the proposal's due date, until another is said)") if self.rec.data.get("due") else "YYYY-MM-DD"); f.addRow("Due", self.e_due)
         self.e_source = QComboBox(); self.e_source.addItems(["", "Named by the customer", "Ours"])
         self.e_source.setCurrentText(d.get("source") or ("Named by the customer" if d.get("req_key") else "")); f.addRow("Where it comes from", self.e_source)
         self.e_about = QPlainTextEdit(d.get("about", "")); self.e_about.setPlaceholderText("What it is and what it must do"); self.e_about.setMaximumHeight(90)

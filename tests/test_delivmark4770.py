@@ -1,4 +1,4 @@
-"""4.76.0: the Deliverables pass, the logic. Four kinds; a mark is a row of the deliverables list at once with the
+"""4.76.0, 4.77.0: the Deliverables pass, the logic. Four kinds; a mark is a row of the deliverables list at once with the
 customer's words attached; a piece on a deliverable only changes its kind; off detaches and removes what the mark made.
 Fictional (Kestrel)."""
 import os, sys, tempfile
@@ -60,6 +60,30 @@ check("Not needed here is the pass's own, apart from Compliance's", CM.state(M, 
 CM.set_none(M, "SOW.pdf", True, DM.NONE)
 check("Nothing of this kind here, per pass", [x["state"] for x in DM.docs(M, rec) if x["file"] == "SOW.pdf"] == ["Nothing of this kind here"]
       and [x["state"] for x in CM.docs(M) if x["file"] == "SOW.pdf"] != ["Nothing of this kind here"])
+# 4.77.0
+rec2 = R.Record(tempfile.mkdtemp())
+it = lambda i, t, **k: dict({"id": i, "file": "L.pdf", "text": t}, **k)
+p1, p2, p3, p4 = it("P1", "The Offeror shall submit a Pricing Workbook."), it("P2", "The pricing workbook shall use Attachment 7."), it("P3", "Offerors shall complete the Past Performance Form."), it("P4", "Sign the form.")
+d1, how = DM.mark(rec2, p1, "file", "Pricing Workbook", ref="L.5.2")
+check("the customer's reference is kept on the row and with the words", how == "added" and DL.get(rec2, d1)["cust_ref"] == "L.5.2" and DL.get(rec2, d1)["pieces"][0]["loc"] == "L.5.2", DL.get(rec2, d1))
+check("a name already on the list is the same but for capitals and punctuation", DM.match(rec2, "pricing workbook.")[0] == "same" and DM.match(rec2, "pricing workbook.")[1]["id"] == d1)
+check("a near name is told apart from a new one", DM.match(rec2, "The Pricing Workbook File")[0] == "near" and DM.match(rec2, "Small Business Plan") == ("", None), DM.match(rec2, "The Pricing Workbook File"))
+check("attach puts the piece on that row: no second row", DM.attach(rec2, p2, d1, "file") == "attached" and len(DL.items(rec2)) == 1
+      and [p["sid"] for p in DL.get(rec2, d1)["pieces"]] == ["P1", "P2"] and DM.kind_of(rec2, p2) == "file")
+d3, how3 = DM.mark_many(rec2, [p3, p4], "form", "Past Performance Form", refs={"P3": "L.6", "P4": "L.6"})
+check("pieces marked together are one deliverable", how3 == "added" and len(DL.items(rec2)) == 2 and [p["sid"] for p in DL.get(rec2, d3)["pieces"]] == ["P3", "P4"])
+check("taking the mark off a deliverable with another piece on it asks; nothing changes", DM.unmark(rec2, p3) == "ask" and DL.get(rec2, d3) is not None and DM.of_piece(rec2, p3) is not None)
+check("... keep: the deliverable stays without the piece", DM.unmark(rec2, p3, remove=False) == "detached" and DL.get(rec2, d3) is not None and DM.of_piece(rec2, p3) is None)
+d5, _h = DM.mark(rec2, p3, "form", "Representations Form")
+DL.update(rec2, d5, owner="Avery")
+check("... an owner counts as work done; remove takes it away", DM.unmark(rec2, p3) == "ask" and DM.unmark(rec2, p3, remove=True) == "removed" and DL.get(rec2, d5) is None)
+old = it("O1", "A plan is required.", piece="deliverable")
+old2 = it("O2", "Another older mark.")
+dold = DL.add(rec2, "Older deliverable"); DL.attach_piece(rec2, dold, DM.piece_of(old2))
+check("an older Deliverable mark is known as one with no kind said", DM.older(rec2, old) and DM.older(rec2, old2) and not DM.older(rec2, p1) and DM.kind_of(rec2, old2) == "")
+M2 = Mx([p1, p2, old, old2])
+check("... and the pass goes to it", [x["id"] for x in DM.open_rows(M2, rec2, "L.pdf")] == ["O1", "O2"], [x["id"] for x in DM.open_rows(M2, rec2, "L.pdf")])
+check("... a kind said on it keeps its row", DM.mark(rec2, old2, "write") == (dold, "changed") and not DM.older(rec2, old2))
 try:
     DM.mark(rec, items[0], "nope"); bad = False
 except ValueError:
@@ -68,4 +92,4 @@ check("an unknown kind is refused", bad)
 print(f"{sum(checks)}/{len(checks)}")
 if not all(checks):
     sys.exit(1)
-print("ok test_delivmark4760")
+print("ok test_delivmark4770")

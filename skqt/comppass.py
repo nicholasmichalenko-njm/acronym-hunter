@@ -66,7 +66,7 @@ def apply(w, step):
         install(pg)
         if want:
             pg.focus = STEP_OF[step]
-            pg._cust_ask = None
+            pg._cust_ask = pg._deliv_ask = None
             for name in ("shred_check", "queue_lbl", "reshred_btn"):
                 x = getattr(pg, name, None)
                 if x is not None:
@@ -209,7 +209,8 @@ def fill_bar(page, f, rows):
         col.addWidget(f.head_off)
         return f
     if deliv(page):
-        __import__("skqt.delivpass", fromlist=["x"]).buttons(page, f, rows, M, it, one, col)
+        if __import__("skqt.delivpass", fromlist=["x"]).buttons(page, f, rows, M, it, one, col) == "ask":
+            return f                                                   # 4.77.0: the name, or Attach or Add as new
     else:
         _comp_buttons(page, f, rows, M, it, one, col)
     if one:
@@ -499,6 +500,9 @@ def enter(page):
     rows = page.selected() if M is not None else []
     if getattr(page, "_cust_ask", None):
         return head_take(page)
+    if deliv(page) and getattr(page, "_deliv_ask", None):              # 4.77.0: Enter takes the name, or Attach
+        DP = __import__("skqt.delivpass", fromlist=["x"])
+        return DP.take(page, "attach" if page._deliv_ask.get("near") else "")
     if len(rows) != 1 or deliv(page):                    # the Deliverables pass suggests no kind: Enter goes on
         return go_next(page)
     it = rows[0]

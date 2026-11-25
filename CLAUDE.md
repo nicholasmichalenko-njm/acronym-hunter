@@ -53,8 +53,9 @@ templates, and checks. One person builds it, with Claude. Keep this file under t
    `mkscripts.ps1 -N NNNN -D X.Y.Z`, then `buildNNNN.cmd` (stops on any failure), `verifyNNNN.cmd`, `pubNNNN.cmd`.
    The code map gate (2026-11-14): after the PC checkout, `_local_sandbox\codemap.cmd X.Y.Z --check` and write the words it
    lists until `CODE_MAP_READY`; a stale map stops the publish (`claude/stationkeeper-code-map-gate-read-before-publishing.md`).
-4. After publishing: check the release's SHA-256 values against the committed checksum files, write the project's
-   release notes (`claude/release-notes-X.Y.Z-<slug>.md`), revise the architecture map, update `claude/stationkeeper-now.md`.
+4. After publishing: check the release's SHA-256 values against the committed checksum files, add one line for the
+   release to `claude/stationkeeper-changelog.md` (no release notes page; 2026-11-25), revise the architecture map,
+   update `claude/stationkeeper-now.md`.
 5. Once per minor version: `python tools/make_golden.py X.Y` saves that version's golden set. A saved file's format
    changes only with a new number in `formats.py`, the step that reads the old one, and a golden set.
 
