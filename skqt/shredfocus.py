@@ -103,12 +103,12 @@ def place_row(page):
     documents not shredded, Mark shredded, This document is shredded, re-shred, and More (Fix text, Fit width). The
     document picker stays, and Fit width is a button of its own beside it (Ctrl+0 too). Shred's own row is unchanged.
     show_queue calls it after it sets the row, so a document picked on Place keeps the row hidden."""
-    if getattr(page, "focus", None) in ("struct", "comp"):            # 4.74.0: a pass keeps Shred's whole-document row away
+    if getattr(page, "focus", None) in ("struct", "comp", "deliv"):            # 4.74.0: a pass keeps Shred's whole-document row away
         for name in ("queue_lbl", "done_btn", "next_btn", "shred_check", "reshred_btn"):   # (a document picked in the pass drew it again)
             x = getattr(page, name, None)
             if x is not None:
                 x.setVisible(False)
-        if page.focus == "comp" and getattr(page, "comp_state", None) is not None:
+        if page.focus in ("comp", "deliv") and getattr(page, "comp_state", None) is not None:
             __import__("skqt.comppass", fromlist=["x"]).fill(page)
         return False
     if getattr(page, "focus", None) != "place":
@@ -158,7 +158,7 @@ def enter(page):
         return PP.place_it(page)
     if getattr(page, "focus", "") == "struct":                       # 4.70.0: the pass's own Enter
         return __import__("skqt.structpass", fromlist=["x"]).enter(page)
-    if getattr(page, "focus", "") == "comp":                         # 4.72.0
+    if getattr(page, "focus", "") in ("comp", "deliv"):                         # 4.72.0
         return __import__("skqt.comppass", fromlist=["x"]).enter(page)
     rows = page.selected()
     before = (getattr(page.R, "undo", None) or [None])[-1] if page.R is not None else None
@@ -222,7 +222,7 @@ def next_open(page):
         return None
     if getattr(page, "focus", "") == "struct":                       # 4.70.0: the pass's next suggestion, across documents
         return __import__("skqt.structpass", fromlist=["x"]).next_open(page)
-    if getattr(page, "focus", "") == "comp":                         # 4.72.0
+    if getattr(page, "focus", "") in ("comp", "deliv"):                         # 4.72.0
         return __import__("skqt.comppass", fromlist=["x"]).go_next(page)
     rows = [it for it in page.R.rows_of(page.file) if it.get("type") != "Heading"]
     if getattr(page, "focus", "") == "place":

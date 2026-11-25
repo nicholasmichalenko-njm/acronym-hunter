@@ -17,8 +17,9 @@ NAME = dict(KINDS)
 NOT_NEEDED, FOR_SETUP = "x", "s"
 
 
-def marks(M):
-    return SD.setup_of(M).setdefault("comp_marks", {})
+def marks(M, key="comp_marks"):
+    """The pass's own marks. 4.76.0: the Deliverables pass keeps its own the same way, under its own key."""
+    return SD.setup_of(M).setdefault(key, {})
 
 
 def kinds_of(it):
@@ -27,9 +28,9 @@ def kinds_of(it):
     return [k for k in KEYS if k in got]
 
 
-def state(M, it):
-    """"x" (Not needed), "s" (For the setup) or "" for a piece in this pass."""
-    return "" if kinds_of(it) else marks(M).get(it.get("id"), "")
+def state(M, it, key="comp_marks"):
+    """"x" (Not needed), "s" (For the setup), "h" (a customer heading) or "" for a piece in this pass."""
+    return "" if (key == "comp_marks" and kinds_of(it)) else marks(M, key).get(it.get("id"), "")
 
 
 def sections_of(M, it):
@@ -46,18 +47,18 @@ def suggested_section(M, it):
         return ""
 
 
-def not_needed(M, it, on=True):
+def not_needed(M, it, on=True, key="comp_marks"):
     """Looked at; nothing for this pass. It leaves the pass's next and can be reopened (on=False)."""
     iid = it.get("id")
     if on:
-        marks(M)[iid] = NOT_NEEDED
-    elif marks(M).get(iid) == NOT_NEEDED:
-        marks(M).pop(iid)
+        marks(M, key)[iid] = NOT_NEEDED
+    elif marks(M, key).get(iid) == NOT_NEEDED:
+        marks(M, key).pop(iid)
     M.pending = True
     return bool(on)
 
 
-def for_setup(M, it, label):
+def for_setup(M, it, label, key="comp_marks"):
     """For the setup: the piece goes into a section as text for the author. A piece nobody decided on becomes the
     customer's own (identified, not answered); a decided piece keeps its decision and is put there too."""
     if OO.index_of(M, label) < 0:
@@ -67,9 +68,9 @@ def for_setup(M, it, label):
         SD.clear_sections(M, it)
     if label not in SD.item_sections(M, it):
         SD.place(M, it.get("id"), label, copy=bool(it.get("map")))
-    if not kinds_of(it):
-        marks(M)[it.get("id")] = FOR_SETUP
-    M.log(it.get("id", ""), f"Compliance: for the setup, under {label}")
+    if key != "comp_marks" or not kinds_of(it):
+        marks(M, key)[it.get("id")] = FOR_SETUP
+    M.log(it.get("id", ""), f"For the setup, under {label}")
     M.pending = True
     return True
 
@@ -104,11 +105,11 @@ def docs(M):
     return out
 
 
-def set_none(M, file, on=True):
+def set_none(M, file, on=True, key="comp_none"):
     S = SD.setup_of(M)
-    cur = [f for f in (S.get("comp_none") or []) if f != file]
+    cur = [f for f in (S.get(key) or []) if f != file]
     if on:
         cur.append(file)
-    S["comp_none"] = cur
+    S[key] = cur
     M.pending = True
     return bool(on)

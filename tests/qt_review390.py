@@ -50,7 +50,7 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("4.1.0: Shred's tabs start Requirements (no Extract); Text check and Changes are Documents'", [k for k, _t in TABS["assign"]][:2] == ["comppass", "assign"]
+check("4.1.0: Shred's tabs start Requirements (no Extract); Text check and Changes are Documents'", [k for k, _t in TABS["assign"]][:3] == ["comppass", "delivpass", "assign"]
       and "compare" in [k for k, _t in TABS["library"]][1:3])   # 4.6.0: Customer, Ours, Changes
 w.open_effort("Kestrel")
 w.go("docs"); app.processEvents()

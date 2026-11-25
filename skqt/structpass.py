@@ -204,7 +204,7 @@ def setup_menu(page, parent=None):
 
 def for_setup(page):
     """S: the list of headings opens beside the piece; a pick sends the piece there as text for the author."""
-    if getattr(page, "focus", None) == "comp":
+    if getattr(page, "focus", None) in ("comp", "deliv"):
         return __import__("skqt.comppass", fromlist=["x"]).for_setup(page)
     if not on(page) or not page.selected():
         if on(page):
@@ -232,7 +232,7 @@ def send_to_setup(page, label):
 
 def ask(page):
     """A: Ask a question, in the pass (the button does the same)."""
-    if getattr(page, "focus", None) not in (MODE, "comp") or not page.selected():
+    if getattr(page, "focus", None) not in (MODE, "comp", "deliv") or not page.selected():
         return None
     from . import typechips as TC
     return TC.ask(page)
@@ -374,7 +374,7 @@ def not_needed(page):
 
 def key(page, n):
     """1 to 4 on the page."""
-    if getattr(page, "focus", None) == "comp":                       # 4.72.0: 1 to 3 in the Compliance pass
+    if getattr(page, "focus", None) in ("comp", "deliv"):                       # 4.72.0: 1 to 3 in the Compliance pass
         return __import__("skqt.comppass", fromlist=["x"]).key(page, n)
     if not on(page) or not 0 <= n < len(SM.LEVELS):
         return None

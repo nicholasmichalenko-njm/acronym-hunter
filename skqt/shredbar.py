@@ -114,8 +114,10 @@ def toggle_piece(page, key, rows=None):
         return None
     if getattr(page, "focus", None) == "struct":                       # 4.70.0: in the Response Structure pass X is Not needed
         return __import__("skqt.structpass", fromlist=["x"]).typed(page, key)
-    if getattr(page, "focus", None) == "comp" and key == "not_applicable" and rows is None:   # 4.72.0: X is Not needed in the pass
+    if getattr(page, "focus", None) in ("comp", "deliv") and key == "not_applicable" and rows is None:   # 4.72.0: X is Not needed in the pass
         return __import__("skqt.comppass", fromlist=["x"]).not_needed(page)
+    if getattr(page, "focus", None) == "deliv" and key == "date" and rows is None:   # 4.76.0: D is Key date in the Deliverables pass
+        return __import__("skqt.delivpass", fromlist=["x"]).key_date(page)
     rows = rows if rows is not None else page.selected()
     if not rows or page.R is None:
         return None

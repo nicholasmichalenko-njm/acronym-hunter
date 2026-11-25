@@ -864,7 +864,7 @@ class AssignPage(QWidget):
         self.bottom_split.setSizes([760, 170])
         v.addWidget(self.bottom_split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
-        for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", lambda: __import__("skqt.structpass", fromlist=["x"]).for_setup(self) if getattr(self, "focus", None) in ("struct", "comp") else self.do_split()),
+        for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", lambda: __import__("skqt.structpass", fromlist=["x"]).for_setup(self) if getattr(self, "focus", None) in ("struct", "comp", "deliv") else self.do_split()),
                         ("A", lambda: __import__("skqt.structpass", fromlist=["x"]).ask(self)),      # 4.71.0: Ask a question, in the pass
                         ("M", lambda: __import__("skqt.comppass", fromlist=["x"]).more(self)),       # 4.75.0: More, in the Compliance pass
                         ("Shift+S", lambda: self.do_extract()),
@@ -874,7 +874,7 @@ class AssignPage(QWidget):
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("O", lambda: __import__("skqt.shredbar", fromlist=["x"]).toggle_piece(self, "structure")
                          if self.cx is None else None),                         # 4.19.0: Structure sets our structure
-                        ("Ctrl+A", lambda: self.select_all()), ("H", lambda: __import__("skqt.comppass", fromlist=["x"]).head_ask(self) if getattr(self, "focus", None) == "comp" else self.toggle_pan()),
+                        ("Ctrl+A", lambda: self.select_all()), ("H", lambda: __import__("skqt.comppass", fromlist=["x"]).head_ask(self) if getattr(self, "focus", None) in ("comp", "deliv") else self.toggle_pan()),
                         ("Return", lambda: SF.enter(self)),                 # 4.5.0: Place it on Place
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):

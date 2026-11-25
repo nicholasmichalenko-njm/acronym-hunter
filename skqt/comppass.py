@@ -19,8 +19,27 @@ MODE = "comp"
 WIDE = 256                       # the right margin in this pass: the kinds' names are long
 
 
+DELIV = "deliv"                  # 4.76.0: the Deliverables pass is this page too, with its own buttons
+PASSES = (MODE, DELIV)
+STEP_OF = {KEY: MODE, "delivpass": DELIV}
+
+
 def on(page):
-    return getattr(page, "focus", None) == MODE
+    return getattr(page, "focus", None) in PASSES
+
+
+def deliv(page):
+    return getattr(page, "focus", None) == DELIV
+
+
+def mk(page):
+    """The key the open pass keeps its own marks under."""
+    return "deliv_marks" if deliv(page) else "comp_marks"
+
+
+def rec_of(page):
+    import effortrec as RR
+    return RR.Record(page.host.ws.root)
 
 
 def M_of(page):
@@ -42,11 +61,12 @@ def install(page):
 def apply(w, step):
     """Called at the end of structpass.apply: the pass's mode for its tab, and its row put away for any other."""
     pg = w.assign_page
-    want = step == KEY and pg.cx is None
+    want = step in STEP_OF and pg.cx is None
     try:
         install(pg)
         if want:
-            pg.focus = MODE
+            pg.focus = STEP_OF[step]
+            pg._cust_ask = None
             for name in ("shred_check", "queue_lbl", "reshred_btn"):
                 x = getattr(pg, name, None)
                 if x is not None:
@@ -74,9 +94,12 @@ def apply(w, step):
 def fill(page):
     """The document's state on the row above the page."""
     M = M_of(page)
-    cur = next((d for d in CM.docs(M) if d["file"] == page.file), None) if M is not None else None
+    docs = [] if M is None else (__import__("delivmark").docs(M, rec_of(page)) if deliv(page) else CM.docs(M))
+    cur = next((d for d in docs if d["file"] == page.file), None)
     page.comp_state.setVisible(on(page))
     page.comp_state.setText(f"This document: {cur['state']}" if cur else "")
+    page.comp_none.setToolTip("You looked: this document asks for nothing to be handed in. It can be unticked." if deliv(page) else
+                              "You looked: this document holds no requirement, instruction or criterion. It can be unticked.")
     page.comp_none.setVisible(on(page) and cur is not None and not cur["finds"])
     page.comp_none.blockSignals(True); page.comp_none.setChecked(bool(cur and cur["none"])); page.comp_none.blockSignals(False)
     return cur
@@ -87,7 +110,7 @@ def done(page, msg=""):
         page.after(msg)
     fill(page)
     try:
-        page.host.stepper.show_for(KEY)
+        page.host.stepper.show_for("delivpass" if deliv(page) else KEY)
     except Exception:  # noqa: BLE001
         diag.swallowed()
     __import__("skqt.shredselbar", fromlist=["x"]).later(page)
@@ -100,7 +123,7 @@ def set_none(page, on_=True):
         return None
     with page.R.group():
         page.R.snap("Nothing of this kind here" if on_ else "Nothing of this kind here, taken back")
-        CM.set_none(M, page.file, on_)
+        CM.set_none(M, page.file, on_, "deliv_none" if deliv(page) else "comp_none")
     done(page, f"{page.file}: nothing of this kind here." if on_ else f"{page.file}: not looked at.")
     return on_
 
@@ -123,6 +146,35 @@ def heads_menu(page, parent, fn):
         lab = C.outline_label(o)
         m.addAction(("    " * (o.get("level", 1) - 1)) + lab, lambda x=lab: fn(page, x))
     return m
+
+
+def _comp_buttons(page, f, rows, M, it, one, col):
+    """The Compliance pass's own buttons: the three kinds, then In Matrix under."""
+    if True:
+        sug = _suggested_kind(page, it) if one and not CM.kinds_of(it) else ""
+        for n, (key, name) in enumerate(CM.KINDS, 1):
+            b = D.button(f"{n}   {name}", "primary" if key == sug else None, lambda _c=False, k=key: kind(page, k),
+                         f"{name} ({n}): a row of the matrix at once" + (". Suggested: Enter takes it and goes on" if key == sug else ""))
+            b.setCheckable(True); b.setChecked(all(key in CM.kinds_of(x) for x in rows)); b.setProperty("sk_switch", True)
+            b.setStyleSheet("text-align:left;")
+            col.addWidget(b); f.kinds[key] = b
+            if key == sug:
+                f.lead = b
+        if one and M.outline and (CM.kinds_of(it) or sug):
+            secs = CM.sections_of(M, it)
+            want = "" if secs else CM.suggested_section(M, it)
+            f.where = QLabel("In Matrix under: " + (", ".join(secs) if secs else "" if want else "not yet in a section")); f.where.setWordWrap(True)
+            col.addWidget(f.where)
+            if want:
+                f.take = D.button(f"{want}  Enter", None, lambda _c=False, x=want: place(page, x), "The section the app suggests. Enter takes it and goes on")
+                f.take.setStyleSheet("text-align:left;")
+                col.addWidget(f.take)
+            f.pick = D.button("Pick another section", "ghost", None, "Any heading of the outline")
+            f.pick_menu = heads_menu(page, f.pick, place); f.pick.setMenu(f.pick_menu)
+            col.addWidget(f.pick)
+            if not secs:
+                f.later = D.button("Decide later", "ghost", lambda: go_next(page), "It stays in the matrix, not yet in a section; Matrix > Check lists it")
+                col.addWidget(f.later)
 
 
 def fill_bar(page, f, rows):
@@ -156,30 +208,10 @@ def fill_bar(page, f, rows):
         f.head_off = D.button("Take the heading off", "ghost", lambda: head_off(page), "It is no section or heading of the customer's document")
         col.addWidget(f.head_off)
         return f
-    sug = _suggested_kind(page, it) if one and not CM.kinds_of(it) else ""
-    for n, (key, name) in enumerate(CM.KINDS, 1):
-        b = D.button(f"{n}   {name}", "primary" if key == sug else None, lambda _c=False, k=key: kind(page, k),
-                     f"{name} ({n}): a row of the matrix at once" + (". Suggested: Enter takes it and goes on" if key == sug else ""))
-        b.setCheckable(True); b.setChecked(all(key in CM.kinds_of(x) for x in rows)); b.setProperty("sk_switch", True)
-        b.setStyleSheet("text-align:left;")
-        col.addWidget(b); f.kinds[key] = b
-        if key == sug:
-            f.lead = b
-    if one and M.outline and (CM.kinds_of(it) or sug):
-        secs = CM.sections_of(M, it)
-        want = "" if secs else CM.suggested_section(M, it)
-        f.where = QLabel("In Matrix under: " + (", ".join(secs) if secs else "" if want else "not yet in a section")); f.where.setWordWrap(True)
-        col.addWidget(f.where)
-        if want:
-            f.take = D.button(f"{want}  Enter", None, lambda _c=False, x=want: place(page, x), "The section the app suggests. Enter takes it and goes on")
-            f.take.setStyleSheet("text-align:left;")
-            col.addWidget(f.take)
-        f.pick = D.button("Pick another section", "ghost", None, "Any heading of the outline")
-        f.pick_menu = heads_menu(page, f.pick, place); f.pick.setMenu(f.pick_menu)
-        col.addWidget(f.pick)
-        if not secs:
-            f.later = D.button("Decide later", "ghost", lambda: go_next(page), "It stays in the matrix, not yet in a section; Matrix > Check lists it")
-            col.addWidget(f.later)
+    if deliv(page):
+        __import__("skqt.delivpass", fromlist=["x"]).buttons(page, f, rows, M, it, one, col)
+    else:
+        _comp_buttons(page, f, rows, M, it, one, col)
     if one:
         h = CS.above(M, it)
         f.under = QLabel("Under: " + (CS.label(h) if h else (it.get("section") or "no customer heading marked above"))); f.under.setWordWrap(True)
@@ -194,13 +226,13 @@ def fill_bar(page, f, rows):
     f.more_menu = more_menu(page, f.more); f.more.setMenu(f.more_menu)
     col.addWidget(f.more)
     f.x = D.button("Not needed  X", "ghost", lambda: not_needed(page), "Looked at: nothing here for this pass. It leaves the pass's next and can be reopened")
-    f.x.setCheckable(True); f.x.setChecked(one and CM.state(M, it) == CM.NOT_NEEDED)
+    f.x.setCheckable(True); f.x.setChecked(one and CM.state(M, it, mk(page)) == CM.NOT_NEEDED)
     col.addWidget(f.x)
     f.ask = D.button("Ask a question  A", "ghost", lambda: TC.ask(page), TC.ASK_TIP)
     col.addWidget(f.ask)
     f.setup = D.button("For the setup  S", "ghost", None, "Into a section of the outline as text for the author. Pick the heading")
     f.setup_menu = heads_menu(page, f.setup, send_to_setup); f.setup.setMenu(f.setup_menu)
-    f.setup.setCheckable(True); f.setup.setChecked(one and CM.state(M, it) == CM.FOR_SETUP)
+    f.setup.setCheckable(True); f.setup.setChecked(one and CM.state(M, it, mk(page)) == CM.FOR_SETUP)
     col.addWidget(f.setup)
     return f
 
@@ -233,8 +265,8 @@ def head_take(page):
     with page.R.group():
         page.R.snap("Customer heading")
         lab = CS.mark(M, rows[0], num, title, level)
-        if lab and not CM.kinds_of(rows[0]):
-            CM.marks(M)[rows[0]["id"]] = "h"                 # a heading is dealt with in this pass
+        if lab and (deliv(page) or not CM.kinds_of(rows[0])):
+            CM.marks(M, mk(page))[rows[0]["id"]] = "h"                 # a heading is dealt with in this pass
     page._cust_ask = None
     if not lab:
         page.host.status("A heading needs a number or a title.")
@@ -259,8 +291,8 @@ def head_off(page):
         page.R.snap("Take the heading off")
         for it in rows:
             CS.unmark(M, it)
-            if CM.marks(M).get(it["id"]) == "h":
-                CM.marks(M).pop(it["id"])
+            if CM.marks(M, mk(page)).get(it["id"]) == "h":
+                CM.marks(M, mk(page)).pop(it["id"])
     done(page, f"{rows[0]['id']}: no longer a customer heading.")
     return len(rows)
 
@@ -363,6 +395,8 @@ def fact(page, label, replace=None):
 
 def kind(page, key):
     """A kind's button or key: on for the selected pieces, off when they all have it (the type chips' own way)."""
+    if deliv(page):
+        return __import__("skqt.delivpass", fromlist=["x"]).mark(page, key)
     from . import shredbar as SB
     M = M_of(page)
     rows = page.selected() if M is not None and page.cx is None else []
@@ -395,14 +429,17 @@ def not_needed(page):
     rows = page.selected() if M is not None and page.cx is None else []
     if not rows:
         return None
-    if any(CM.kinds_of(it) for it in rows):
+    if deliv(page) and any(__import__("delivmark").of_piece(rec_of(page), it) for it in rows):
+        page.host.status("This piece is on a deliverable. Take it off the list first.")
+        return None
+    if not deliv(page) and any(CM.kinds_of(it) for it in rows):
         page.host.status("This piece is in the matrix. Take its kind off first (press its number again).")
         return None
-    to = not all(CM.state(M, it) == CM.NOT_NEEDED for it in rows)
+    to = not all(CM.state(M, it, mk(page)) == CM.NOT_NEEDED for it in rows)
     with page.R.group():
         page.R.snap("Not needed" if to else "Not needed, taken back")
         for it in rows:
-            CM.not_needed(M, it, to)
+            CM.not_needed(M, it, to, mk(page))
     done(page, f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' pieces'}: " + ("not needed in this pass." if to else "open again in this pass."))
     return to
 
@@ -426,16 +463,17 @@ def send_to_setup(page, label):
         return 0
     with page.R.group():
         page.R.snap("For the setup")
-        n = sum(1 for it in rows if CM.for_setup(M, it, label))
+        n = sum(1 for it in rows if CM.for_setup(M, it, label, mk(page)))
     done(page, f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' pieces'}: for the setup, under {label}.")
     return n
 
 
 def key(page, n):
     """1 to 3 on the page."""
-    if not on(page) or not 0 <= n < len(CM.KINDS):
+    kinds = __import__("delivmark").KINDS if deliv(page) else CM.KINDS
+    if not on(page) or not 0 <= n < len(kinds):
         return None
-    return kind(page, CM.KINDS[n][0])
+    return kind(page, kinds[n][0])
 
 
 def go_next(page):
@@ -443,7 +481,7 @@ def go_next(page):
     M = M_of(page)
     if M is None or not page.file:
         return None
-    rows = CM.open_rows(M, page.file)
+    rows = __import__("delivmark").open_rows(M, rec_of(page), page.file) if deliv(page) else CM.open_rows(M, page.file)
     if not rows:
         page.host.status("Nothing left in this document for this pass.")
         return None
@@ -461,7 +499,7 @@ def enter(page):
     rows = page.selected() if M is not None else []
     if getattr(page, "_cust_ask", None):
         return head_take(page)
-    if len(rows) != 1:
+    if len(rows) != 1 or deliv(page):                    # the Deliverables pass suggests no kind: Enter goes on
         return go_next(page)
     it = rows[0]
     took = 0

@@ -19,7 +19,7 @@ FORMATTING = "Standards and Formatting"      # 4.46.0 (decision 71): the menu gr
 VIEWS = (("assign", "On the page", None), ("shredlist", "As a table", None))   # 4.54.0 (decision 62): one Shred, two views   # 4.3.0: placing, L to M and
 VIEW_OF = {"assign": "assign", "shredlist": "shredlist"}  # Coverage: Matrix & Outline
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
-CHIPS = (("comppass", "Compliance"), ("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
+CHIPS = (("comppass", "Compliance"), ("delivpass", "Deliverables"), ("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms"))
 CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Rules & Dates and Evaluation moved in; the Acro List
                                                           # opens from Acros & Abs
 STEP_TITLES = {"home": ("Overview", "Where the effort is, what is left, and your next step"),
@@ -312,6 +312,15 @@ class Stepper(QWidget):
     def view_now(self, step):
         return VIEW_OF.get(step)
 
+    def _deliv(self):
+        """The Deliverables pass: how many deliverables came from marks in the Shred."""
+        try:
+            import delivmark as DM, effortrec as RR
+            n = DM.count(RR.Record(self.w.ws.root)) if getattr(self.w, "ws", None) is not None else 0
+        except Exception:  # noqa: BLE001
+            n = 0
+        return (f"{n} on the list" if n else "none marked", "done" if n else "todo")
+
     def counts(self):
         f = getattr(self.w, "path_facts", None) or {}
         r = f.get("reqs")
@@ -327,6 +336,7 @@ class Stepper(QWidget):
         nreq = rv is not None and isinstance(getattr(rv.M, "setup", None), dict) and rv.M.setup.get("struct_closed")
         return {"structpass": (f"{ns} marked" if ns else "not required" if nreq else "none marked", "done" if ns or nreq else "todo"),   # 4.70.0; 4.71.0
                 "comppass": ((lambda k: (f"{k} in the matrix" if k else "none marked", "done" if k else "todo"))(by.get("requirement", 0) + by.get("instruction", 0) + by.get("evaluation", 0))),   # 4.72.0
+                "delivpass": self._deliv(),                                      # 4.76.0
                 "assign": (SW.left(r["undecided"]) if r else SW.NONE,
                            "warn" if r and r["undecided"] else "done" if r else "todo"),
                 "requirements": (f"{nr} from the shred" if nr else "none from the shred", "done" if nr else "todo"),
