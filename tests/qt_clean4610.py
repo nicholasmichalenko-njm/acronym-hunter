@@ -47,7 +47,7 @@ check("the foot of the menu: Effort Activity, Effort Backup, Settings", foot == 
 
 w.rail_go("home"); app.processEvents()
 check("Overview opens the one page, with Calendar, Tasks and Meetings beside it", w.stack.currentWidget() is w.overview_page
-      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Overview", "Calendar", "Tasks", "Meetings"],
+      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Overview", "Customer information", "Calendar", "Tasks", "Meetings"],   # 4.75.0
       [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())])
 ov = w.overview_page
 check("Overview has the link Effort settings", ov.settings_link.text() == "Effort settings" and ov.settings_link.isVisibleTo(w))

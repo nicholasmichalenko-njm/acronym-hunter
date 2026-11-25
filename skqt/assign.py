@@ -866,6 +866,7 @@ class AssignPage(QWidget):
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
         for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", lambda: __import__("skqt.structpass", fromlist=["x"]).for_setup(self) if getattr(self, "focus", None) in ("struct", "comp") else self.do_split()),
                         ("A", lambda: __import__("skqt.structpass", fromlist=["x"]).ask(self)),      # 4.71.0: Ask a question, in the pass
+                        ("M", lambda: __import__("skqt.comppass", fromlist=["x"]).more(self)),       # 4.75.0: More, in the Compliance pass
                         ("Shift+S", lambda: self.do_extract()),
                         ("B", lambda: self.more_btn.showMenu() if self.cx is None else None),
                         ("F", lambda: self.do_for_req()),

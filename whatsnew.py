@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.75.0": ["Overview has a tab, Customer information: the people at the customer, each with a role, and the facts about the customer and the buy. Type a fact there, or take it from the customer's words in Shred.",
+               "Shred > Compliance: More (M) has four captures: Customer info, Objective, Hot button, Graphic need. A fact already filled asks before it is replaced.",
+               "An empty fact shows where it usually is in the customer's documents."],
     "4.74.0": ["Shred > Compliance: Customer heading (H) marks a section or heading of the customer's document. The app proposes its number and title; Enter takes it. It is never added to our outline.",
                "Every piece under a customer heading says so: the bar shows Under, and the matrix has a Customer reference column you can turn on in Design.",
                "Send to Outline: the piece waits on the Outline page to be marked there, and the shred is not interrupted."],

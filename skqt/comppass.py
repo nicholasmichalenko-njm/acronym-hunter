@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QCheckBox, QComboBox, QLabel, QLineEdit, QMenu
 
 import assignlinks as AL
 import compmark as CM
+import custinfo as CI
 import custstruct as CS
 import diag
 from . import design as D
@@ -189,6 +190,9 @@ def fill_bar(page, f, rows):
     f.send = D.button("Send to Outline", "ghost", lambda: send_outline(page), "It waits on the Outline page to be marked there. The shred is not interrupted")
     f.send.setCheckable(True); f.send.setChecked(one and it["id"] in [x["id"] for x in CS.sent(M)])
     col.addWidget(f.send)
+    f.more = D.button("More  M", "ghost", None, "Four captures: Customer info, Objective, Hot button, Graphic need (M, then 1 to 4)")
+    f.more_menu = more_menu(page, f.more); f.more.setMenu(f.more_menu)
+    col.addWidget(f.more)
     f.x = D.button("Not needed  X", "ghost", lambda: not_needed(page), "Looked at: nothing here for this pass. It leaves the pass's next and can be reopened")
     f.x.setCheckable(True); f.x.setChecked(one and CM.state(M, it) == CM.NOT_NEEDED)
     col.addWidget(f.x)
@@ -277,6 +281,84 @@ def send_outline(page):
     n = len(CS.sent(M))
     done(page, (f"Sent to Outline. {n} piece{'s' if n != 1 else ''} wait there to be marked." if to else "Taken back from Outline."))
     return to
+
+
+# ------------------------------------------------------------------ More: four captures (4.75.0; his 15:56 to 16:01)
+MORE = (("custinfo", "Customer info"), ("objective", "Objective"), ("hot", "Hot button"), ("graphic", "Graphic need"))
+
+
+def more_menu(page, parent=None):
+    """More: 1 Customer info (a contact, or a fact picked from the list), 2 Objective, 3 Hot button, 4 Graphic need.
+    The number picks while the menu is open; the menu closes itself after a pick."""
+    m = QMenu(parent or page.view)
+    sub = m.addMenu("&1  Customer info")
+    sub.addAction("A contact...", lambda: capture(page, "contact"))
+    for g, items in CI.GROUPS:
+        sub.addSection(g)
+        for lab, _h in items:
+            sub.addAction(lab, lambda x=lab: fact(page, x))
+    m.custinfo = sub
+    for n, (key, name) in enumerate(MORE[1:], 2):
+        m.addAction(f"&{n}  {name}", lambda k=key: capture(page, k))
+    return m
+
+
+def more(page):
+    """M: the menu opens beside the piece."""
+    if not on(page) or not page.selected():
+        if on(page):
+            page.host.status("Select a piece of the customer's text first.")
+        return None
+    m = more_menu(page)
+    b = getattr(getattr(page, "sel_bar", None), "more", None)
+    from PySide6.QtGui import QCursor
+    m.popup(b.mapToGlobal(b.rect().bottomLeft()) if b is not None else QCursor.pos())
+    page._more_menu = m
+    return m
+
+
+def capture(page, key, answer=None):
+    """Objective, Hot button, Graphic need or a contact: the app's own capture for it, from the selected words."""
+    if not page.selected():
+        page.host.status("Select a piece of the customer's text first.")
+        return None
+    out = page._do_capture(key, answer)
+    done(page)
+    return out
+
+
+def fact(page, label, replace=None):
+    """Customer info: a fact filled from the words dragged across, else the selected piece. One already filled with
+    something else asks once before it is replaced."""
+    import effortrec as RR
+    text, src = page.capture_source()
+    if not text:
+        page.host.status("Select a piece first (drag across words inside it to take just those).")
+        return None
+    rec = RR.Record(page.host.ws.root)
+    value = CI.guess(label, text)
+    try:
+        import effort as E
+        who = E.user_name()
+    except Exception:  # noqa: BLE001
+        who = ""
+    source = {"doc": (src or {}).get("doc", "") or page.file, "page": (src or {}).get("page", ""), "loc": (src or {}).get("loc", ""),
+              "sid": (src or {}).get("sid", "")}
+    out = CI.set_fact(rec, label, value, "captured", who, source, replace)
+    if isinstance(out, dict):
+        if replace is None:
+            from PySide6.QtWidgets import QMessageBox
+            cur = out["ask"]
+            b = QMessageBox.question(page, label, f"{label} is already filled:\n\n{cur['value']}\n({CI.where(cur)})\n\nReplace it with:\n\n{value}",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            return fact(page, label, replace=(b == QMessageBox.Yes))
+        return None
+    if out == "set":
+        diag.activity("customer_fact_captured")
+        page.host.status(f"Customer information: {label} is \u201c{value[:80]}\u201d. Change it on Overview > Customer information.")
+    elif out == "same":
+        page.host.status(f"{label} is unchanged.")
+    return out
 
 
 def kind(page, key):

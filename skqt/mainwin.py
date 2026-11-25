@@ -54,7 +54,7 @@ RAIL = [("Tools", [("tools", "Quick tools")]),
 STEP_KEYS = tuple(k for k, _t in RAIL[1][1] if k not in ("graphics", "deliverables", "redline", "outline"))   # the six steps navsteps counts, after Overview
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Quick tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("overview", "Overview"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("meetings", "Meetings")],   # 4.61.0: the Overview is the at-a-glance page; Effort settings opens from it; Effort Activity is at the foot of the menu
+TABS = {"home": [("overview", "Overview"), ("custinfo", "Customer information"), ("calendar", "Calendar"), ("tasks", "Tasks"), ("meetings", "Meetings")],   # 4.61.0: the Overview is the at-a-glance page; Effort settings opens from it; Effort Activity is at the foot of the menu
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "List"), ("compare", "What changed"),   # 4.25.0: one list (All, Customer, Internal are chips on it)
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text

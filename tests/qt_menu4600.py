@@ -75,7 +75,7 @@ check("with an effort open: the same menu, nothing hidden", menu() == MENU and h
 w.go("assign"); app.processEvents()
 check("Shred opens with an effort", w.stack.currentWidget() is not w.noeffort_page)
 w.rail_go("home"); app.processEvents()
-check("Calendar and Tasks are tabs of Overview", w._tab_keys == ["overview", "calendar", "tasks", "meetings"], w._tab_keys)
+check("Calendar and Tasks are tabs of Overview", w._tab_keys == ["overview", "custinfo", "calendar", "tasks", "meetings"], w._tab_keys)
 w.go("calendar"); app.processEvents()
 check("... and Calendar lights Overview", w.step_btns["home"].isChecked() and w.page_title.text() == "Overview", w.page_title.text())
 w.go("matrix"); app.processEvents()

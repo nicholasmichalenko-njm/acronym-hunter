@@ -70,7 +70,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 keys = [k for k, _t in RAIL[1][1]]
 check("4.60.0: Calendar and Tasks are tabs of Overview, not menu entries", keys[:2] == ["home", "library"] and "calendar" not in w.step_btns
-      and "tasks" not in w.step_btns and [k for k, _t in TABS["home"]][1:3] == ["calendar", "tasks"], keys)
+      and "tasks" not in w.step_btns and [k for k, _t in TABS["home"]][2:4] == ["calendar", "tasks"], keys)
 check("... no step carries a number", all(w.step_btns[k].n is None for k in ("library", "assign", "matrix", "setups", "drafts", "finalcheck")))
 check("4.61.0: Effort Activity is an entry at the foot of the menu", "activity" in w.step_btns and "activity" not in dict(TABS["home"]))
 w.open_effort("Osprey"); app.processEvents()
