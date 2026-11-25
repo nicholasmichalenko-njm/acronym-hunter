@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.74.0": ["Shred > Compliance: Customer heading (H) marks a section or heading of the customer's document. The app proposes its number and title; Enter takes it. It is never added to our outline.",
+               "Every piece under a customer heading says so: the bar shows Under, and the matrix has a Customer reference column you can turn on in Design.",
+               "Send to Outline: the piece waits on the Outline page to be marked there, and the shred is not interrupted."],
     "4.73.0": ["Our response structure is decided on the Outline page. It asks one question, Does the customer tell us how to structure our response?, with three answers: The customer tells us, We build it, Start from a saved outline.",
                "The customer tells us opens the customer's document beside the outline (Outline's second tab): mark the volumes and headings as before. This marking left Shred.",
                "We build it keeps why, and offers a start: the evaluation factors, the customer's headings, or type it. Change how the outline starts is under More; it deletes nothing."],

@@ -5,10 +5,11 @@ section the app suggests (Enter takes it), Pick another section, Decide later; t
 and For the setup (S). Enter takes the suggested kind and section and goes to the next piece of the document not dealt
 with; N goes on without marking. The document's state in the pass is on the row above the page.
 Rules only (No AI); nothing leaves the PC."""
-from PySide6.QtWidgets import QCheckBox, QLabel, QMenu
+from PySide6.QtWidgets import QCheckBox, QComboBox, QLabel, QLineEdit, QMenu
 
 import assignlinks as AL
 import compmark as CM
+import custstruct as CS
 import diag
 from . import design as D
 
@@ -130,6 +131,30 @@ def fill_bar(page, f, rows):
     it = rows[-1]
     one = len(rows) == 1
     f.kinds, f.lead, f.take, f.pick, f.later, f.where = {}, None, None, None, None, None
+    f.head, f.head_edit, f.head_level, f.head_ok, f.head_off, f.under, f.send = None, None, None, None, None, None, None
+    ask = getattr(page, "_cust_ask", None)
+    if ask and one and ask[0] == it["id"]:                             # 4.74.0: Customer heading, proposed; Enter takes it
+        col.addWidget(QLabel("Customer heading:"))
+        f.head_edit = QLineEdit(f"{ask[1]}: {ask[2]}" if ask[1] else ask[2])
+        f.head_edit.setToolTip("The number and title as printed in the customer's document. Change it if the app read it wrong")
+        f.head_edit.returnPressed.connect(lambda: head_take(page))
+        col.addWidget(f.head_edit)
+        f.head_level = QComboBox()
+        for lv, nm in CS.LEVELS:
+            f.head_level.addItem(nm, lv)
+        f.head_level.setCurrentIndex(max(0, f.head_level.findData(ask[3])))
+        col.addWidget(f.head_level)
+        f.head_ok = D.button("Mark it  Enter", "primary", lambda: head_take(page), "A section or heading of the customer's document. It is not added to our outline")
+        col.addWidget(f.head_ok)
+        col.addWidget(D.button("Cancel  Esc", "ghost", lambda: head_cancel(page)))
+        f.head_edit.setFocus(); f.head_edit.selectAll()
+        return f
+    if one and CS.is_head(M, it):
+        f.under = QLabel("Customer heading: " + CS.label(CS.heads(M)[it["id"]])); f.under.setWordWrap(True)
+        col.addWidget(f.under)
+        f.head_off = D.button("Take the heading off", "ghost", lambda: head_off(page), "It is no section or heading of the customer's document")
+        col.addWidget(f.head_off)
+        return f
     sug = _suggested_kind(page, it) if one and not CM.kinds_of(it) else ""
     for n, (key, name) in enumerate(CM.KINDS, 1):
         b = D.button(f"{n}   {name}", "primary" if key == sug else None, lambda _c=False, k=key: kind(page, k),
@@ -154,6 +179,16 @@ def fill_bar(page, f, rows):
         if not secs:
             f.later = D.button("Decide later", "ghost", lambda: go_next(page), "It stays in the matrix, not yet in a section; Matrix > Check lists it")
             col.addWidget(f.later)
+    if one:
+        h = CS.above(M, it)
+        f.under = QLabel("Under: " + (CS.label(h) if h else (it.get("section") or "no customer heading marked above"))); f.under.setWordWrap(True)
+        f.under.setStyleSheet(f"color:{D.tokens()['muted']};")
+        col.addWidget(f.under)
+    f.head = D.button("Customer heading  H", "ghost", lambda: head_ask(page), "Mark as a section or heading in the Customer Doc Structure")
+    col.addWidget(f.head)
+    f.send = D.button("Send to Outline", "ghost", lambda: send_outline(page), "It waits on the Outline page to be marked there. The shred is not interrupted")
+    f.send.setCheckable(True); f.send.setChecked(one and it["id"] in [x["id"] for x in CS.sent(M)])
+    col.addWidget(f.send)
     f.x = D.button("Not needed  X", "ghost", lambda: not_needed(page), "Looked at: nothing here for this pass. It leaves the pass's next and can be reopened")
     f.x.setCheckable(True); f.x.setChecked(one and CM.state(M, it) == CM.NOT_NEEDED)
     col.addWidget(f.x)
@@ -164,6 +199,84 @@ def fill_bar(page, f, rows):
     f.setup.setCheckable(True); f.setup.setChecked(one and CM.state(M, it) == CM.FOR_SETUP)
     col.addWidget(f.setup)
     return f
+
+
+def head_ask(page):
+    """Customer heading (H): the app proposes the number, title and level from the piece; the bar asks."""
+    M = M_of(page)
+    rows = page.selected() if M is not None and page.cx is None else []
+    if len(rows) != 1:
+        page.host.status("Select the one piece that is the customer's heading.")
+        return None
+    num, title, level = CS.propose(rows[0])
+    page._cust_ask = (rows[0]["id"], num, title, level)
+    __import__("skqt.shredselbar", fromlist=["x"]).later(page)
+    return page._cust_ask
+
+
+def head_take(page):
+    """Enter, or Mark it: the heading as shown on the bar (edited or not)."""
+    M = M_of(page)
+    ask = getattr(page, "_cust_ask", None)
+    rows = page.selected() if M is not None else []
+    if not ask or len(rows) != 1 or rows[0]["id"] != ask[0]:
+        return None
+    f = getattr(page, "sel_bar", None)
+    num, title, level = ask[1], ask[2], ask[3]
+    if f is not None and getattr(f, "head_edit", None) is not None:
+        num, title = CS.parse(f.head_edit.text())
+        level = f.head_level.currentData() or level
+    with page.R.group():
+        page.R.snap("Customer heading")
+        lab = CS.mark(M, rows[0], num, title, level)
+        if lab and not CM.kinds_of(rows[0]):
+            CM.marks(M)[rows[0]["id"]] = "h"                 # a heading is dealt with in this pass
+    page._cust_ask = None
+    if not lab:
+        page.host.status("A heading needs a number or a title.")
+        return None
+    done(page, f"Customer heading: {lab}. The pieces under it now say so.")
+    page.view.setFocus()
+    return lab
+
+
+def head_cancel(page):
+    page._cust_ask = None
+    __import__("skqt.shredselbar", fromlist=["x"]).later(page)
+    page.view.setFocus()
+
+
+def head_off(page):
+    M = M_of(page)
+    rows = [it for it in (page.selected() if M is not None else []) if CS.is_head(M, it)]
+    if not rows:
+        return 0
+    with page.R.group():
+        page.R.snap("Take the heading off")
+        for it in rows:
+            CS.unmark(M, it)
+            if CM.marks(M).get(it["id"]) == "h":
+                CM.marks(M).pop(it["id"])
+    done(page, f"{rows[0]['id']}: no longer a customer heading.")
+    return len(rows)
+
+
+def send_outline(page):
+    """Send to Outline: the selected pieces wait on the Outline page. A second press takes them back."""
+    M = M_of(page)
+    rows = page.selected() if M is not None and page.cx is None else []
+    if not rows:
+        page.host.status("Select a piece of the customer's text first.")
+        return None
+    waiting = {x["id"] for x in CS.sent(M)}
+    to = not all(it["id"] in waiting for it in rows)
+    with page.R.group():
+        page.R.snap("Send to Outline" if to else "Send to Outline, taken back")
+        for it in rows:
+            CS.send(M, it) if to else CS.unsend(M, it["id"])
+    n = len(CS.sent(M))
+    done(page, (f"Sent to Outline. {n} piece{'s' if n != 1 else ''} wait there to be marked." if to else "Taken back from Outline."))
+    return to
 
 
 def kind(page, key):
@@ -264,6 +377,8 @@ def enter(page):
     """Enter: take the suggested kind, then the suggested section, and go on. With nothing to take it stays."""
     M = M_of(page)
     rows = page.selected() if M is not None else []
+    if getattr(page, "_cust_ask", None):
+        return head_take(page)
     if len(rows) != 1:
         return go_next(page)
     it = rows[0]

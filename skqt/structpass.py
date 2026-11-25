@@ -59,6 +59,8 @@ def install(page):
     page.struct_none.setToolTip("You looked: this document says nothing about how the response is organized. It can be unticked.")
     page.struct_none.clicked.connect(lambda c=False: set_none(page, bool(c)))
     v.addWidget(page.struct_none)
+    page.struct_sent = D.button("", "ghost", lambda: go_next(page), "Pieces sent here from Shred with Send to Outline: the next one, on the page")
+    v.addWidget(page.struct_sent)
     t = page.struct_tree = OutlineTree(page)
     t.setHeaderLabels(["Heading", "Required by"])
     t.setRootIsDecorated(False); t.setIndentation(14)
@@ -99,6 +101,8 @@ def apply(w, step):
             __import__("skqt.shredselbar", fromlist=["x"]).gutter(pg, True)
             fill(pg)
             __import__("skqt.shredselbar", fromlist=["x"]).later(pg)
+            from PySide6.QtCore import QTimer             # 4.74.0: the page at the width of its pane, once the panes have their sizes
+            QTimer.singleShot(0, lambda: pg.view.fit() if on(pg) and pg.file else None)
         elif pg.struct_panel.isVisibleTo(pg) or not side.isVisibleTo(pg):
             pg.struct_panel.setVisible(False)
             side.setVisible(True)
@@ -115,7 +119,7 @@ def fill(page):
     t = page.struct_tree
     t.clear()
     if M is None:
-        page.struct_state.setText(""); page.struct_none.setVisible(False); page.struct_hint.setText("")
+        page.struct_state.setText(""); page.struct_none.setVisible(False); page.struct_hint.setText(""); page.struct_sent.setVisible(False)
         return 0
     stack = []
     for r in SM.tree(M):
@@ -132,6 +136,10 @@ def fill(page):
     page.struct_none.setVisible(cur is not None and not cur["finds"])
     page.struct_none.blockSignals(True); page.struct_none.setChecked(bool(cur and cur["none"])); page.struct_none.blockSignals(False)
     shut = False
+    import custstruct as CS                          # 4.74.0: what Shred sent here waits to be marked
+    nsent = len([x for x in CS.sent(M) if x.get("id") not in SM.marks(M)])
+    page.struct_sent.setVisible(bool(nsent))
+    page.struct_sent.setText(f"{nsent} piece{'s' if nsent != 1 else ''} sent from Shred to mark: show the next")
     if SM.closed(M):                                 # 4.73.0: 4.71.0's "Not required by the customer" is Outline's "We build it"
         import setupdoc as SD
         SD.setup_of(M).setdefault("outline_from", "ours"); SD.setup_of(M).setdefault("outline_reason", "No structure given")

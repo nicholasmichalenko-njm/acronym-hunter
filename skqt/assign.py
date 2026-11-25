@@ -873,7 +873,7 @@ class AssignPage(QWidget):
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("O", lambda: __import__("skqt.shredbar", fromlist=["x"]).toggle_piece(self, "structure")
                          if self.cx is None else None),                         # 4.19.0: Structure sets our structure
-                        ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
+                        ("Ctrl+A", lambda: self.select_all()), ("H", lambda: __import__("skqt.comppass", fromlist=["x"]).head_ask(self) if getattr(self, "focus", None) == "comp" else self.toggle_pan()),
                         ("Return", lambda: SF.enter(self)),                 # 4.5.0: Place it on Place
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):

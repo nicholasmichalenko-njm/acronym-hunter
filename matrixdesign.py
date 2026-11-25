@@ -29,6 +29,7 @@ COLUMNS = {
     "page_limit": ("Page limit", 10),               # 2.51.0
     "format": ("Format", 30),                       # 2.51.0: font, margins, page size, spacing, file format
     "far": ("FAR reference", 18),                   # 2.51.0: FAR, DFARS and NFS clauses named in the sentence
+    "cust_ref": ("Customer reference", 18),              # 4.74.0: the customer's own number, from the Customer Doc Structure
     "evaluated_by": ("Evaluated by (Section M)", 30),    # 3.16.0: from the L/M crosswalk: the factor that scores it
     "lead": ("Section lead", 18),
     "owner": ("Owner", 18),
@@ -457,6 +458,9 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
             return vol
         d = _deliv(ctx, vol)
         return (d.get({"deliverable": "name", "page_limit": "limit", "format": "format"}[key], "") if d else "")
+    if key == "cust_ref":                       # 4.74.0: the customer heading marked above it, else the section read
+        import custstruct as CS
+        return CS.ref_of(M, it)
     if key == "evaluated_by":                   # 3.16.0: the Section M factors the crosswalk ties its instruction to
         num = it.get("section", "") or SD.ref_of(M, it, inh)[0]
         xw = _crosswalk(M)

@@ -124,10 +124,43 @@ if other:
     if pg.comp_none.isVisibleTo(pg):
         pg.comp_none.click(); app.processEvents()
         check("the other document: one click says Nothing of this kind here", [d["state"] for d in CM.docs(pg.R.M) if d["file"] == other[0]] == ["Nothing of this kind here"])
+# 4.74.0: Customer heading and Send to Outline
+import custstruct as CS, structmark as SMZ
+pg.open_file([fn for fn in pg.R.files() if "Section_L" in fn][0]); app.processEvents(); fresh()
+check("a document picked in the pass does not bring back Mark shredded or Next document", not any(getattr(pg, n).isVisibleTo(pg) for n in ("done_btn", "next_btn", "shred_check") if getattr(pg, n, None) is not None)
+      and pg.comp_state.isVisibleTo(pg))
+h_ = next(x for x in rows if not CM.kinds_of(x) and not x.get("decision") and x["id"] not in CM.marks(M))
+later_ = rows[rows.index(h_) + 1]
+h_["text"] = "L.3.2 Technical Approach"
+pg.select(h_["id"]); app.processEvents(); f = bar()
+check("4.74.0: the bar has Customer heading and Send to Outline, and says what the piece is under", f.head.text() == "Customer heading  H"
+      and f.send.text() == "Send to Outline" and f.under is not None and f.under.text().startswith("Under: "), f.under and f.under.text())
+n_out = len(M.outline)
+QTest.keyClick(pg.view, Qt.Key_H); app.processEvents(); f = bar()
+check("H: the app proposes the number, title and level on the bar", f.head_edit is not None and f.head_edit.text() == "L.3.2: Technical Approach"
+      and f.head_level.currentText() == "Heading" and f.head_ok.text() == "Mark it  Enter" and not f.kinds, f.head_edit and f.head_edit.text())
+f.head_edit.setText("L.3.2: Technical Approach and Risk"); QTest.keyClick(f.head_edit, Qt.Key_Return); app.processEvents(); fresh()
+h_ = next(x for x in rows if x["id"] == h_["id"]); later_ = next(x for x in rows if x["id"] == later_["id"])
+check("Enter takes it as edited: a customer heading, never added to our outline", CS.heads(M).get(h_["id"]) == {"num": "L.3.2", "title": "Technical Approach and Risk", "level": 2}
+      and len(M.outline) == n_out and h_["id"] not in SMZ.marks(M), CS.heads(M).get(h_["id"]))
+check("... it is dealt with in this pass, and the bar says what it is", h_["id"] not in [x["id"] for x in CM.open_rows(M, pg.file)]
+      and bar().under.text() == "Customer heading: L.3.2 Technical Approach and Risk" and bar().head_off is not None)
+pg.select(later_["id"]); app.processEvents(); f = bar()
+check("the piece under it says so, and its customer reference is the heading's number", f.under.text() == "Under: L.3.2 Technical Approach and Risk"
+      and CS.ref_of(M, later_) == "L.3.2", f.under.text())
+f.send.click(); app.processEvents()
+check("Send to Outline: the piece waits there; the page stays in Shred", [x["id"] for x in CS.sent(M)] == [later_["id"]] and w.stack.currentWidget() is pg
+      and pg.focus == "comp" and bar().send.isChecked())
+pg.select(h_["id"]); app.processEvents(); bar().head_off.click(); app.processEvents()
+check("Take the heading off: the piece under it falls back to what the reader found", h_["id"] not in CS.heads(M) and CS.ref_of(M, later_) == (later_.get("section") or ""))
 check("the pass keeps a wider margin for its bar, and the bar is inside it", pg.view.viewportMargins().right() == CP.WIDE
       and (bar() is None or pg.sel_bar.geometry().right() <= pg.view.width()), pg.view.viewportMargins().right())
 w.go("structpass"); app.processEvents()
 check("... the other tabs keep the margin they had", pg.view.viewportMargins().right() == SSB.GUTTER, pg.view.viewportMargins().right())
+check("... what Shred sent waits there: said above the tree, and shown first", pg.struct_sent.isVisibleTo(pg) and pg.struct_sent.text().startswith("1 piece sent from Shred")
+      and SMZ.next_suggestion(pg.R.M)["id"] == later_["id"], pg.struct_sent.text())
+pg.struct_sent.click(); app.processEvents()
+check("... a click selects it on the page", [x["id"] for x in pg.selected()] == [later_["id"]])
 check("the marking on Outline is as it was: its tree, its own bar", pg.focus == "struct" and pg.struct_panel.isVisibleTo(pg) and not pg.comp_state.isVisibleTo(pg))
 w.go("assign"); app.processEvents()
 check("Requirements is as it was: the piece pane, the type chips", pg.focus == "shred" and pg.page_side.isVisibleTo(pg) and not pg.comp_state.isVisibleTo(pg)

@@ -75,7 +75,8 @@ def suggest(M, it):
     """The level the customer's own words read as, for a piece that reads as setting the structure; else ""."""
     if it.get("id") in marks(M):
         return ""
-    if ST.has(it, "structure") or any(x is it for x in SF.suggested(M)):
+    import custstruct as CS
+    if ST.has(it, "structure") or any(x is it for x in SF.suggested(M)) or any(x is it for x in CS.sent(M)):
         return _read_level(M, it)
     return ""
 
@@ -94,7 +95,10 @@ def suggestions(M):
     the ones typed Response Structure before, not yet marked or set aside here."""
     got = marks(M)
     ids = {id(x) for x in SF.suggested(M)}
-    return [it for it in M.items if it.get("id") not in got and (id(it) in ids or ST.has(it, "structure"))]
+    import custstruct as CS                          # 4.74.0: pieces sent from Shred with Send to Outline come first
+    first = [it for it in CS.sent(M) if it.get("id") not in got]
+    fid = {id(x) for x in first}
+    return first + [it for it in M.items if id(it) not in fid and it.get("id") not in got and (id(it) in ids or ST.has(it, "structure"))]
 
 
 def next_suggestion(M, after_id=None):
@@ -102,6 +106,10 @@ def next_suggestion(M, after_id=None):
     rows = suggestions(M)
     if not rows:
         return None
+    import custstruct as CS
+    waiting = [it for it in CS.sent(M) if it.get("id") in {x.get("id") for x in rows} and it.get("id") != after_id]
+    if waiting:                                      # 4.74.0: what was sent here is looked at before the app's own suggestions
+        return waiting[0]
     order = _order(M)
     at = order.get(after_id, -1)
     return next((it for it in rows if order[it.get("id")] > at), rows[0])

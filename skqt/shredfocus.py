@@ -103,6 +103,14 @@ def place_row(page):
     documents not shredded, Mark shredded, This document is shredded, re-shred, and More (Fix text, Fit width). The
     document picker stays, and Fit width is a button of its own beside it (Ctrl+0 too). Shred's own row is unchanged.
     show_queue calls it after it sets the row, so a document picked on Place keeps the row hidden."""
+    if getattr(page, "focus", None) in ("struct", "comp"):            # 4.74.0: a pass keeps Shred's whole-document row away
+        for name in ("queue_lbl", "done_btn", "next_btn", "shred_check", "reshred_btn"):   # (a document picked in the pass drew it again)
+            x = getattr(page, name, None)
+            if x is not None:
+                x.setVisible(False)
+        if page.focus == "comp" and getattr(page, "comp_state", None) is not None:
+            __import__("skqt.comppass", fromlist=["x"]).fill(page)
+        return False
     if getattr(page, "focus", None) != "place":
         if getattr(page, "fit_btn", None) is not None:
             page.fit_btn.setVisible(False)

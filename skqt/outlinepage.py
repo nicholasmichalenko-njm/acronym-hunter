@@ -80,6 +80,8 @@ class OutlinePage(QWidget):
         self.b_no = D.button("No, we build it", None, lambda: self.answer("ours"), "The headings stay as a start; change them freely")
         row2.addWidget(self.b_yes); row2.addWidget(self.b_no); row2.addStretch(1)
         v.addWidget(self.started)
+        self.sent = D.button("", "ghost", lambda: self.host.go("structpass"), "Pieces sent with Send to Outline while shredding")
+        sent_row = QHBoxLayout(); sent_row.addWidget(self.sent); sent_row.addStretch(1); v.addLayout(sent_row); self.sent.setVisible(False)
         self.slot = QVBoxLayout(); v.addLayout(self.slot, 1)
         from PySide6.QtWidgets import QSizePolicy                  # 4.73.0: a question is as tall as its words, at the top
         for c in (self.start, self.build, self.started):
@@ -134,6 +136,12 @@ class OutlinePage(QWidget):
         b.setVisible(has or texting)
         self.rest.setVisible(not (has or texting) and M is not None and not wait)
         self.back.setVisible(M is not None and not has and not texting and asked)
+        nsent = 0
+        if M is not None:                                # 4.74.0: pieces sent from Shred wait to be marked
+            import custstruct as CS, structmark as SMK
+            nsent = len([x for x in CS.sent(M) if x.get("id") not in SMK.marks(M)])
+        self.sent.setVisible(bool(nsent))
+        self.sent.setText(f"{nsent} piece{'s' if nsent != 1 else ''} sent from Shred wait to be marked: open the customer's document")
         self.said.setVisible(has)
         for x in (self.b_volume, self.b_elements, self.b_place):
             x.setEnabled(has)
