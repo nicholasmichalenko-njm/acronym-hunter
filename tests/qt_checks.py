@@ -29,7 +29,8 @@ cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
-f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
+f = w.home_page.start; f.name.setText("Osprey"); f.saved.choose(tmp); f.create(); app.processEvents()
+w.go("record"); app.processEvents(); w.record_page.sol.setText("FA8810-26-R-0042"); w.record_page.save_details()   # 4.79.0: set on Effort Settings
 rec = RR.Record(w.ws.root)
 DL.add(rec, "Volume I Technical", kind="Volume"); DL.add(rec, "SF 33", kind="Form")
 check("Final Checks is a tab of Final Check in Check and Submit, after Submission Check (3.58.0)",

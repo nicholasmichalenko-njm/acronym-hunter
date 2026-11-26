@@ -103,7 +103,7 @@ check("Copy review is offered for a Word file on Quick tools", "copyreview" in {
       and "copyreview" not in {k for k, _t in TH.uses_for([os.path.join(tmp, "x.pdf")])})
 w.go("tools"); app.processEvents()
 pg.found = []
-check("... and runs Technical Edit on it", w.tools_page.files_in([draft], use="copyreview", home=("new_effort", "Kestrel review")) == "copyreview"
+check("... and runs Technical Edit on it", w.tools_page.files_in([draft], use="copyreview", home=("new_effort", "Kestrel review", tmp)) == "copyreview"
       and w.stack.currentWidget() is pg and pg.found)
 check("Technical Edit has a Guide topic", "techedit" in __import__("skqt.guide", fromlist=["TOPIC"]).TOPIC)
 w.close()

@@ -34,8 +34,9 @@ app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1760, 1000); w.show()
 w.go("home"); settle()
 f = w.home_page.start
-f.name.setText("Kestrel Thermal Control Subsystem Recompete"); f.client.setText("U.S. Space Force, Space Systems Command")
-f.sol.setText("FA8810-26-R-0042"); f.create(); settle()
+f.name.setText("Kestrel Thermal Control Subsystem Recompete"); f.saved.choose(tmp); f.create(); settle()
+w.go("record"); settle(); w.record_page.client.setText("U.S. Space Force, Space Systems Command")       # 4.79.0: set on Effort Settings
+w.record_page.sol.setText("FA8810-26-R-0042"); w.record_page.save_details(); w.go("home"); settle()
 rec = RR.Record(w.ws.root)
 rec.add_task("Draft the thermal design approach for Volume I, including the margin analysis and the test plan", owner="J. Garcia",
              due="2026-11-20", who="jsmith")

@@ -39,7 +39,7 @@ w.go("prodstd"); app.processEvents()
 check("no effort open: a standards page says a change is a Global change", w.page_sub.text().startswith("Global Standards. A change here is saved for everyone."), w.page_sub.text())
 lib_page = TL.Library(cfg)                                      # a library held from before the effort opened, as the pages hold one
 w.go("home"); app.processEvents()
-f = w.home_page.start; f.name.setText("Osprey"); f.create(); app.processEvents()
+f = w.home_page.start; f.name.setText("Osprey"); f.saved.choose(tmp); f.create(); app.processEvents()
 root = w.ws.root
 check("a new effort has its own set as it opens", ES.has(root) and ES.active() == ES.set_dir(root))
 w.go("prodstd"); app.processEvents()

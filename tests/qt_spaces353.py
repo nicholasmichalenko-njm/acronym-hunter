@@ -114,7 +114,7 @@ w.go("tools"); w.work_on(UF.NAME); app.processEvents()
 check("... working on Unfiled keeps you on Quick tools", w.effort_name == UF.NAME and w.stack.currentWidget() is home)
 added = []
 w.library_page.add = lambda paths=None, **k: added.append(list(paths or [])) or 1      # the Library asks where each file goes
-got = home.files_in([docx], use="library", home=("new_effort", "Kestrel"))
+got = home.files_in([docx], use="library", home=("new_effort", "Kestrel", tmp))
 check("4.51.0 Add to Documents: where is asked in the same step (a new effort here)", got == "library" and w.effort_name == "Kestrel" and added == [[docx]])
 w.go("refs"); app.processEvents()
 refs = w.refs_page

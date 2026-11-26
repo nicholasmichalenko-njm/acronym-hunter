@@ -33,8 +33,10 @@ for _k in _RA.PREVIEW:
     _RA.set_preview(cfg, _k, True)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
-f = w.home_page.start; f.name.setText("Osprey Lancer"); f.sol.setText("FA8810-26-R-0042"); f.client.setText("Space Systems Command")
+f = w.home_page.start; f.name.setText("Osprey Lancer"); f.saved.choose(tmp)
 f.create(); app.processEvents()
+w.go("record"); app.processEvents(); w.record_page.client.setText("Space Systems Command")       # 4.79.0: set on Effort Settings
+w.record_page.sol.setText("FA8810-26-R-0042"); w.record_page.save_details()
 import authorlist as AL
 al = AL.load(cfg); al.add("Dana Whitfield"); al.save()
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Kestrel Thermal Technical.docx")

@@ -81,7 +81,7 @@ check("pressing the count again closes the list", not vis(gp.who_card))
 
 # the page and its editors change the Global Standards while an effort stays open (ST9)
 w.go("home"); app.processEvents()
-f = w.home_page.start; f.name.setText("Osprey"); f.create(); app.processEvents()
+f = w.home_page.start; f.name.setText("Osprey"); f.saved.choose(tmp); f.create(); app.processEvents()
 root = w.ws.root
 w.go("styles"); app.processEvents()
 check("in the effort, a standards page changes the effort's own set", w.page_sub.text().startswith("Effort Standards: Osprey.") and ES.base(cfg) == ES.set_dir(root), w.page_sub.text())

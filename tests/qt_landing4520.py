@@ -89,13 +89,13 @@ ov.landing.cards["check"].click()
 check("a card is reached by keyboard (Enter, Space) and opens its door's file choice", card.focusPolicy() == Qt.StrongFocus
       and chosen == ["shred", "shred", "check"], chosen)
 DVW.choose = _choose
-check("a file no door reads: refused with a plain sentence", DVW.ask(w, [os.path.join(tmp, "x.zzz")], answer=("acronyms", ("new_effort", "Zed"))) is None
+check("a file no door reads: refused with a plain sentence", DVW.ask(w, [os.path.join(tmp, "x.zzz")], answer=("acronyms", ("new_effort", "Zed", tmp))) is None
       and statuses[-1] == DVW.CANNOT_READ and w.efforts.get("Zed") is None)
 
 # ---- 2. Acronyms, into a new effort
 scans = []
 w.acronym_page.scan = lambda paths, folder=None: scans.append(list(paths)) or "scan"
-got = DVW.ask(w, [docx], answer=("acronyms", ("new_effort", "Kestrel bid")))
+got = DVW.ask(w, [docx], answer=("acronyms", ("new_effort", "Kestrel bid", tmp)))
 pump()
 check("Acronyms with a new effort: made, opened, and it lands on Acronyms scanning the file", got == "Kestrel bid" and w.effort_name == "Kestrel bid"
       and w.stack.currentWidget() is w.acronym_page and scans and docx in scans[-1], (got, w.effort_name, scans))
