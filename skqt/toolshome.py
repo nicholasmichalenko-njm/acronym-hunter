@@ -140,7 +140,7 @@ class UseDialog(QDialog):
         for k, t in uses_for(paths):
             it = QListWidgetItem(t); it.setData(Qt.UserRole, k)
             self.list.addItem(it)
-        self.where = WhereBox(host.efforts, host.effort_name if host.ws is not None else "", paths)
+        self.where = WhereBox(host.efforts, host.effort_name if host.ws is not None else "", paths, host=host)
         v.addWidget(self.where)
         self.list.itemDoubleClicked.connect(lambda _i: self.accept() if self.ok_btn.isEnabled() else None)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)

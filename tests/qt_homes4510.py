@@ -84,12 +84,17 @@ check("working_on() no longer answers Unfiled for nothing open", tl.working_on()
 # ---- 2. the where-question, in the tool's own step
 added = []
 w.library_page.add = lambda paths=None, **k: added.append((w.effort_name, list(paths or []))) or 1
+here = os.path.join(tmp, "Efforts here"); os.makedirs(here, exist_ok=True)
 got = tl.files_in([docx], use="library", home=("new_effort", "Kestrel bid"))
+check("4.79.0 (184): a new effort with no Saved in is refused, and nothing is made", got is None and "Kestrel bid" not in w.efforts.names()
+      and statuses and "Choose where it is saved" in statuses[-1], statuses[-1:])
+got = tl.files_in([docx], use="library", home=("new_effort", "Kestrel bid", here))
 info = w.efforts.get("Kestrel bid") or {}
-check("a new effort from a name alone: made, opened, and the file goes to its Documents", got == "library" and w.effort_name == "Kestrel bid"
+check("a new effort from a name and its folder: made, opened, and the file goes to its Documents", got == "library" and w.effort_name == "Kestrel bid"
       and info.get("path") and not info.get("program") and added == [("Kestrel bid", [docx])] and w.stack.currentWidget() is w.library_page,
       (got, w.effort_name, info, added))
-check("... in its own folder in Efforts, with its folders made", os.path.isfile(info.get("path", "")) and os.path.isdir(info.get("customer_dir", "")))
+check("... in its own folder in the folder chosen, with its folders made", os.path.isfile(info.get("path", "")) and os.path.isdir(info.get("customer_dir", ""))
+      and os.path.normcase(info.get("path", "")).startswith(os.path.normcase(here)), info.get("path"))
 got = tl.files_in([docx], use="library", home=("new_program", "Osprey"))
 check("a new program from a name alone: made, opened, the file goes there", got == "library" and w.effort_name == "Osprey"
       and PG.is_program(w.efforts, "Osprey") and added[-1] == ("Osprey", [docx]), (got, w.effort_name, added))
@@ -102,14 +107,17 @@ labels = [wb.combo.itemText(i) for i in range(wb.combo.count())]
 check("... an open effort too, then the efforts, the programs and the two new ones",
       labels == ["Kestrel bid (open now)", "Heron", "Osprey (program)", "A new effort", "A new program"], labels)
 wb.combo.setCurrentIndex(labels.index("A new effort"))
-check("a new one shows its name, filled in from the file's name", wb.name.isVisibleTo(wb) and wb.name.text() == "Kestrel Technical Volume"
-      and wb.picked() == ("new_effort", "Kestrel Technical Volume") and wb.ok())
+check("a new one shows its name, filled in from the file's name, and Saved in, empty", wb.name.isVisibleTo(wb) and wb.name.text() == "Kestrel Technical Volume"
+      and wb.saved.isVisibleTo(wb) and wb.picked() == ("new_effort", "Kestrel Technical Volume", "") and not wb.ok()
+      and "Choose where it is saved" in wb.reason.text(), wb.reason.text())
+wb.saved.choose(here)
+check("... ready once a folder is chosen", wb.ok() and wb.picked() == ("new_effort", "Kestrel Technical Volume", here))
 wb.name.setText("heron")
 check("... a name in use cannot be used: the reason shows and ok() is False", not wb.ok() and "already has that name" in wb.reason.text())
 got = tl.files_in([docx], use="library", home=("home", "Heron"))
 check("another home: switched to it and the file goes there", got == "library" and w.effort_name == "Heron" and added[-1] == ("Heron", [docx]))
 before = sorted(w.efforts.names()); n_added = len(added)
-got = tl.files_in([docx], use="library", home=("new_effort", "kestrel BID"))
+got = tl.files_in([docx], use="library", home=("new_effort", "kestrel BID", here))
 check("a bad new name is refused with the reason, and nothing is made", got is None and sorted(w.efforts.names()) == before
       and len(added) == n_added and w.effort_name == "Heron" and statuses and "already has that name" in statuses[-1], statuses[-1:])
 got = tl.files_in([docx], use="copyreview", home=("home", "Osprey"))
@@ -125,8 +133,8 @@ check("... Copy review (only an effort has it) lists no program", "Osprey (progr
       and not any("program" in x for x in in_cr) and in_cr[0] == "Heron (open now)", (in_lib, in_cr))
 d.where.combo.setCurrentIndex(in_cr.index("A new effort")); d.where.name.setText("Heron")
 check("... OK waits while the new name cannot be used", not d.ok_btn.isEnabled())
-d.where.name.setText("Plover")
-check("... and is ready with a name that can", d.ok_btn.isEnabled() and d.home() == ("new_effort", "Plover"))
+d.where.name.setText("Plover"); d.where.saved.choose(here)
+check("... and is ready with a name that can and a folder", d.ok_btn.isEnabled() and d.home() == ("new_effort", "Plover", here))
 d.list.setCurrentRow(keys.index("fulltext"))
 check("... a tool beside any home asks nothing (the where box hides, OK is ready)", d.where.isHidden() and d.ok_btn.isEnabled() and d.home() is None)
 d.close()

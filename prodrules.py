@@ -112,10 +112,11 @@ def merge(base, over):
 
 
 STARTER_EFFORT_TYPES = [("rfp", "RFP response"), ("rfp_limited", "Page-limited RFP response"), ("rfi", "RFI response"),
-                        ("white_paper", "White paper"), ("program", "Program deliverables")]     # 3.18.2: RFI response
-NEW_STARTERS = ("rfi",)
+                        ("rfq", "RFQ response"), ("white_paper", "White paper"), ("other", "Other"),
+                        ("program", "Program deliverables")]     # 3.18.2: RFI response; 4.79.0 (E2): RFQ response and Other
+NEW_STARTERS = ("rfi", "rfq", "other")       # join an older file once each, unless removed or a type of that name is there
 # 3.18.2: starters an older file gains once
-STARTER_RESPONSE = {"rfp": "RFP", "rfp_limited": "RFP", "rfi": "RFI", "white_paper": "White paper"}   # 3.38.0: Rule 4
+STARTER_RESPONSE = {"rfp": "RFP", "rfp_limited": "RFP", "rfi": "RFI", "rfq": "RFQ", "white_paper": "White paper"}   # 3.38.0: Rule 4
 PROFILE_KEYS = ("id", "name", "match")            # a profile's own fields; everything else is its layer
 EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over", "matrix_view", "response_type", "volumes", "templates")   # 3.35.0: its starting matrix view
 

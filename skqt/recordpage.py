@@ -106,6 +106,8 @@ class RecordPage(StageTableMixin, QWidget):
         self.found = D.label("", "muted"); self.found_row.addWidget(self.found, 1)
         self.use_found = D.button("Use it", None, lambda: self.use_customer_due() and self.save_details()); self.found_row.addWidget(self.use_found)
         form1.addRow("", self.found_box)
+        from .settingsrows import SourceRows, TypeRows     # 4.79.0 (E2): effort type and response type moved in (70)
+        self.types = TypeRows(self, form1, 2)
         self.details = None
 
         # 2. People
@@ -149,6 +151,7 @@ class RecordPage(StageTableMixin, QWidget):
         srow2.addWidget(D.label("Effort Standards, over Global Standards", None), 1)
         srow2.addWidget(D.button("Open", "ghost", lambda: self.host.go("effortfmt"), "Effort Formatting"))
         form4.addRow("Standards", srow2)
+        self.sources = SourceRows(self, form4)              # 4.79.0 (E2): Template and Acronym sources
         v.addSpacing(D.SPACE["m"])
 
         # 2.80.0 effort health
@@ -218,6 +221,8 @@ class RecordPage(StageTableMixin, QWidget):
             self.saved_in.setText(EF.root(h.effort_path) or "Not set")
         except Exception:  # noqa: BLE001
             diag.swallowed(); self.saved_in.setText("Not set")
+        self.types.fill()
+        self.sources.fill()
         self.fill_team(r)
         self.fill_stages(r)
         t = self.stage_table                                  # 4.78.0: every stage shows without scrolling the table

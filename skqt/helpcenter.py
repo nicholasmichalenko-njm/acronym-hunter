@@ -257,7 +257,7 @@ def do_entries(h):
     from . import doorsview as DV
     words = {"acronyms": "Open a document with Acronyms", "shred": "Shred a customer document to setup", "check": "Check a document"}
     out = [("Do", words[k], DR.WHAT[k], ("do", "door:" + k)) for k in DR.for_home(DV.kind_now(h))]
-    out += [("Do", "New effort", "Start an effort: its name, then the rest when you have it", ("do", "new_effort")),
+    out += [("Do", "New effort", "Start an effort: its name and where it is saved", ("do", "new_effort")),
             ("Do", "New program", "A program holds program documents; a name only", ("do", "new_program")),
             ("Do", "Connect", "The Production Datum from a file someone sent", ("do", "connect"))]
     return out

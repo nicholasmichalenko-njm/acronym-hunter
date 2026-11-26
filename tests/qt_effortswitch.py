@@ -71,7 +71,7 @@ check("every page opens on Kestrel", not visit() and not errors, errors[-1:] if 
 w.go("assign"); app.processEvents()
 check("Review shows Kestrel's page", len(w.assign_page.view.boxes) > 10 and w.matrix_page.model.rowCount() >= 0)
 w.go("efforts"); app.processEvents()
-dlg = StartDialog(w); dlg.form.name.setText("Osprey"); app.processEvents()
+dlg = StartDialog(w); dlg.form.name.setText("Osprey"); dlg.form.saved.choose(tmp); app.processEvents()
 try:
     made = dlg.form.create(); app.processEvents()
 except Exception:  # noqa: BLE001

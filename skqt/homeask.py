@@ -1,6 +1,6 @@
 """Where does it go? (4.51.0): the home a dropped file goes to, asked in the same step as the tool (decisions 9, 44, 60).
 WhereBox lists the open effort or program first, the other efforts, the other programs, a new effort and a new program;
-a new one takes a name only, filled in from the file's name. settle opens the home picked (making a new one first).
+a new one takes a name, filled in from the file's name, and a new effort the folder it is saved in (4.79.0). settle opens the home picked (making a new one first).
 NameItDialog names what Unfiled holds, from before, as an effort or a program. The rules are homes'. Rules only (No AI);
 nothing leaves the PC."""
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit, QRadioButton,
@@ -14,13 +14,17 @@ from . import design as D
 class WhereBox(QWidget):
     """The where-question: a list of homes and, for a new one, its name."""
 
-    def __init__(self, registry, open_name="", paths=None, programs=True):
+    def __init__(self, registry, open_name="", paths=None, programs=True, host=None):
         super().__init__()
-        self.registry, self.open_name, self.paths = registry, open_name or "", list(paths or [])
+        self.registry, self.open_name, self.paths, self.host = registry, open_name or "", list(paths or []), host
         v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(4)
         v.addWidget(D.label("Where does it go?", "label"))
         self.combo = QComboBox(); v.addWidget(self.combo)
         self.name = QLineEdit(); self.name.setPlaceholderText("Its name"); v.addWidget(self.name)
+        from .starteffort import SavedIn                    # 4.79.0 (UX decision 184): a new effort asks where it is saved
+        self.saved_label = D.label("Saved in", "label"); v.addWidget(self.saved_label)
+        self.saved = SavedIn(host); v.addWidget(self.saved)
+        self.saved.changed.connect(self.update_state)
         self.reason = D.label("", "warn"); v.addWidget(self.reason)
         self.name.setText(HM.free_name(registry, HM.suggest_name(self.paths)))
         self.combo.currentIndexChanged.connect(lambda _i: self.update_state())
@@ -48,10 +52,15 @@ class WhereBox(QWidget):
         """Why the new name cannot be used ('' when it can, or when no new home is picked)."""
         if self.kind() not in (HM.NEW_EFFORT, HM.NEW_PROGRAM):
             return ""
-        return HM.check_new(self.registry, self.name.text(), "program" if self.kind() == HM.NEW_PROGRAM else "effort")
+        why = HM.check_new(self.registry, self.name.text(), "program" if self.kind() == HM.NEW_PROGRAM else "effort")
+        if not why and self.kind() == HM.NEW_EFFORT:
+            from .starteffort import saved_in_problem
+            why = saved_in_problem(self.host, self.saved.folder())
+        return why
 
     def update_state(self):
         self.name.setVisible(self.kind() in (HM.NEW_EFFORT, HM.NEW_PROGRAM))
+        self.saved_label.setVisible(self.kind() == HM.NEW_EFFORT); self.saved.setVisible(self.kind() == HM.NEW_EFFORT)
         why = self.why()
         self.reason.setText(why)
         self.reason.setVisible(bool(why))
@@ -64,19 +73,21 @@ class WhereBox(QWidget):
 
     def picked(self):
         k, name = self.combo.currentData() or (None, None)
-        if k in (HM.NEW_EFFORT, HM.NEW_PROGRAM):
+        if k == HM.NEW_EFFORT:
+            return (k, self.name.text().strip(), self.saved.folder())
+        if k == HM.NEW_PROGRAM:
             return (k, self.name.text().strip())
         return (k, name) if k else None
 
 
-def _new_effort(host, name):
-    """An effort made from its name alone, as the Start an effort form makes one when only a name is typed."""
-    import app_gui
-    import datahome
-    import effortfolders as EF
-    from .starteffort import start_effort
-    path = EF.new_list_path(datahome.efforts_dir(app_gui.DATA_DIR), name, {"Client": "", "Solicitation": "", "Internal": ""})[0]
-    return start_effort(host, {"name": name, "path": path, "first_use": "volume"})
+def _new_effort(host, name, folder):
+    """An effort made from its name and the folder it is saved in, as the Start an effort form makes one (4.79.0)."""
+    from .starteffort import list_path, saved_in_problem, start_effort
+    why = saved_in_problem(host, folder)
+    if why:
+        host.status(why)
+        return None
+    return start_effort(host, {"name": name, "path": list_path(folder, name), "first_use": "volume"})
 
 
 def settle(host, picked):
@@ -84,7 +95,8 @@ def settle(host, picked):
     line says why)."""
     import unfiled as UF
     reg = host.efforts
-    kind, name = picked if picked else (None, None)
+    kind, name = tuple(picked)[:2] if picked else (None, None)
+    folder = tuple(picked)[2] if picked and len(picked) > 2 else ""          # 4.79.0: a new effort's Saved in
     name = (name or "").strip()
     if kind == HM.HOME:
         info = reg.get(name) or {}
@@ -104,7 +116,7 @@ def settle(host, picked):
             from .programsview import new_program
             got = new_program(host, name)
         else:
-            got = _new_effort(host, name)
+            got = _new_effort(host, name, folder)
         if got:
             diag.activity("home_made_for_file", n=1 if kind == HM.NEW_PROGRAM else 0)
         return got or None

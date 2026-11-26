@@ -96,10 +96,11 @@ acts = [a.text() for a in effort_menu(w).actions()]
 check("the switcher: Switch to each, the programs after a line", "Switch to Kestrel Fleet" in acts
       and acts[acts.index("Switch to Kestrel Fleet") - 1] == "", acts)
 # the start form
-sd = SE.StartDialog(w); fm = sd.form
-names = [fm.etype.itemText(i) for i in range(fm.etype.count())]
-td = fm.manage_types(run=False)
-check("the start form does not offer Program deliverables; Effort types... still lists it", "Program deliverables" not in names
+from skqt.settingsrows import type_choices                # 4.79.0: the effort type is on Effort Settings
+names = [n for n, _i in type_choices(cfg)]
+from skqt.efforttypes import manage as _manage
+td = _manage(w, cfg, run=False)
+check("Effort Settings does not offer Program deliverables; Effort types... still lists it", "Program deliverables" not in names
       and "RFP response" in names and any(td.list.item(i).data(0x0100) == "program" for i in range(td.list.count())), names)
 # an effort of the old type
 w.close_effort()

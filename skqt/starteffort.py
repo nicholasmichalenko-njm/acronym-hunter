@@ -1,16 +1,15 @@
-"""Start an effort (3.0.3): one short form, with as few steps as possible between an idea and a working effort.
+"""Start an effort (3.0.3; 4.79.0 step E2): one short form between an idea and a working effort.
 
 Effort Home shows it whenever no effort is open, and + Add an Effort (All Efforts) and Settings > New effort... open the
-same form. The only thing it needs is a name: the picture (click, or drag a file onto it), client, solicitation, due
-date and proposal manager are all optional and can be filled in later on Effort Home. The folders are made for you,
-in your team's layout (Settings > Folders and file names) under Stationkeeper Data\\Efforts; More options holds the
-rest (where the effort list lives, other customer or volume folders, first use, internal number). After Create effort
-the effort is open on Effort Home, with the next step offered: add the customer's documents."""
+same form. It asks two things: Effort name, and Saved in, the folder the effort's own folder is made in (UX decision 184:
+chosen by the person, never guessed; 185: never the Effort Backup folder). The effort's folders are made there in the
+team's layout (Settings > Folders and file names). Everything else starts at its default and is set on Effort Settings.
+After Create effort the effort is open on the Overview. PictureDrop is the effort's picture, used on the Overview banner."""
 import os
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import (QComboBox, QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit,
-                               QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QDialog, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QToolButton,
+                               QVBoxLayout, QWidget)
 import diag
 from . import design as D
 
@@ -81,80 +80,96 @@ class PictureDrop(QToolButton):
             e.acceptProposedAction()
 
 
+def backup_folder(host):
+    """The Effort Backup folder ('' when none is chosen)."""
+    try:
+        return host.safety.backup_dir() or ""
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return ""
+
+
+def _inside(path, folder):
+    if not path or not folder:
+        return False
+    a, b = os.path.normcase(os.path.abspath(path)), os.path.normcase(os.path.abspath(folder))
+    return a == b or a.startswith(b.rstrip("\\/") + os.sep)
+
+
+def saved_in_problem(host, folder):
+    """'' when the folder can hold a new effort, else one plain sentence (UX decisions 184, 185: chosen by the person,
+    never guessed, and never the Effort Backup folder)."""
+    f = (folder or "").strip()
+    if not f:
+        return "Choose where it is saved."
+    if not os.path.isdir(f):
+        return "That folder is not there. Choose another."
+    if _inside(f, backup_folder(host)):
+        return "That is the Effort Backup folder, which only mirrors efforts. Choose another folder."
+    return ""
+
+
+def list_path(folder, name):
+    """The effort list's file for a new effort saved in folder: its own folder there, in the team's layout."""
+    import effortfolders as EF
+    try:
+        return EF.new_list_path(folder, name, {"Client": "", "Solicitation": "", "Internal": ""})[0]
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return os.path.join(folder, name, f"{name}_Effort_List.xlsx")
+
+
+class SavedIn(QWidget):
+    """Saved in: a folder the person chooses (empty until then) and Choose..."""
+    changed = Signal()
+
+    def __init__(self, host):
+        super().__init__()
+        self.host = host
+        h = QHBoxLayout(self); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["s"])
+        self.edit = QLineEdit(); self.edit.setPlaceholderText("Choose a folder"); self.edit.setObjectName("savedIn")
+        h.addWidget(self.edit, 1)
+        self.choose_btn = D.button("Choose...", None, lambda: self.choose(), "The folder the effort's own folder is made in")
+        h.addWidget(self.choose_btn)
+        self.edit.textChanged.connect(lambda _t: self.changed.emit())
+
+    def folder(self):
+        return self.edit.text().strip()
+
+    def choose(self, folder=None):
+        """folder (tests): the folder picked. The window opens on the last folder chosen, which is not a choice made
+        for the person: Saved in stays empty until a folder is picked."""
+        if folder is None:
+            import app_gui, datahome
+            start = getattr(SavedIn, "_last", "") or datahome.efforts_dir(app_gui.DATA_DIR)
+            folder = QFileDialog.getExistingDirectory(self, "Where is the effort saved?", start)
+        if folder:
+            SavedIn._last = folder
+            self.edit.setText(os.path.normpath(folder))
+        return self.folder()
+
+    def clear(self):
+        self.edit.clear()
+
+
 class StartEffort(QFrame):
-    """The form. host: the main window. On Create effort it makes the effort, opens it and calls done(name)."""
+    """The form (4.79.0, step E2): Effort name and Saved in, and Create effort. Everything else starts at its default and
+    is set on Effort Settings. On Create effort it makes the effort, opens it on the Overview and calls done(name)."""
 
     def __init__(self, host, done=None, inline=True):
         super().__init__()
         self.host = host
         self.done = done
         self.setObjectName("startEffort")
-        t = D.tokens()
         D.themed(self, lambda t: f"QFrame#startEffort{{background:{t['surface']};border:1px solid {t['border']};border-radius:{D.RADIUS['card']}px;}}")
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
         head = QLabel("Start an effort"); head.setStyleSheet("font-size:20pt;font-weight:700;background:transparent;")
         outer.addWidget(head)
-        outer.addWidget(D.label("Give it a name and press Create effort. Everything else is optional and can be filled in later "
-                                "on Effort Home.", "muted"))
-        row = QHBoxLayout(); row.setSpacing(D.SPACE["xl"]); outer.addLayout(row)
-        self.pic = PictureDrop(); row.addWidget(self.pic, 0, Qt.AlignTop)
-        form = QFormLayout(); form.setSpacing(D.SPACE["s"]); row.addLayout(form, 1)
+        form = QFormLayout(); form.setSpacing(D.SPACE["s"]); outer.addLayout(form)
         self.name = QLineEdit(); self.name.setPlaceholderText("Effort name")
-        self.client = QLineEdit(); self.client.setPlaceholderText("Customer")
-        self.sol = QLineEdit(); self.sol.setPlaceholderText("Opportunity Number (Client Issued)")
-        self.due = QLineEdit(); self.due.setPlaceholderText("Date and time, for example YYYY-MM-DD HH:MM")
-        self.zone = QComboBox()
-        import tzones as TZ
-        self.zone.addItem("Time zone as written, or mine", "")
-        for k in ("ET", "CT", "MT", "AZ", "PT", "AK", "HI", "UTC"):
-            if k in TZ.ZONES:
-                self.zone.addItem(f"{TZ.ZONES[k][0]} ({k})", k)
-        drow = QHBoxLayout(); drow.addWidget(self.due, 1); drow.addWidget(self.zone)
-        self.pm = QComboBox(); self.pm.setEditable(True)
-        try:
-            import authorlist as AL
-            self.pm.addItems([""] + AL.load(host.config_dir).names())
-        except Exception:
-            diag.swallowed()
-        self.pm.setCurrentText("")
+        self.saved = SavedIn(host)
         form.addRow("Effort name", self.name)
-        form.addRow("Client", self.client)
-        form.addRow("Opportunity Number (Client Issued)", self.sol)
-        form.addRow("Proposals due", drow)
-        form.addRow("Proposal manager", self.pm)
-        self.etype = QComboBox()                      # 3.8.0: the effort type its deliverables' formatting follows
-        self.fill_types()
-        trow = QWidget(); th = QHBoxLayout(trow); th.setContentsMargins(0, 0, 0, 0)
-        th.addWidget(self.etype, 1)
-        self.types_btn = D.button("Effort types...", "ghost", lambda: self.manage_types(),      # 3.18.2
-                                  "Add, rename, order or take out effort types, and choose the default")
-        th.addWidget(self.types_btn)
-        form.addRow("Effort type", trow)
-        self.brings = D.label("", "muted"); self.brings.setObjectName("typeBrings")      # 4.41.0: what the effort type starts with
-        form.addRow("", self.brings)
-        self.etype.currentIndexChanged.connect(lambda _i: self.show_brings())
-        self.show_brings()
-        # More options
-        self.more_btn = D.button("More options", "ghost", self.toggle_more)
-        outer.addWidget(self.more_btn, 0, Qt.AlignLeft)
-        self.more = QWidget(); mf = QFormLayout(self.more); mf.setContentsMargins(0, 0, 0, 0)
-        self.path = QLineEdit(); self.path.setReadOnly(False)
-        prow = QHBoxLayout(); prow.addWidget(self.path, 1)
-        prow.addWidget(D.button("Change...", None, self.choose_path))
-        self.cust, self.vols, self.internal = QLineEdit(), QLineEdit(), QLineEdit()
-        self.cust.setPlaceholderText("Blank: the effort's own Customer Documents folder")
-        self.vols.setPlaceholderText("Blank: the effort's own Volumes folder")
-        self.rule = QComboBox()
-        import effort as E
-        for k, lab in E.FIRST_USE_RULES.items():
-            self.rule.addItem(lab, k)
-        mf.addRow("Effort list file", prow)
-        mf.addRow("Customer documents folder", self._folder(self.cust, "Customer documents folder"))
-        mf.addRow("Volumes folder", self._folder(self.vols, "Volumes folder"))
-        mf.addRow("First use of an acronym", self.rule)
-        mf.addRow("Internal A Number", self.internal)
-        self.more.setVisible(False)
-        outer.addWidget(self.more)
+        form.addRow("Saved in", self.saved)
         self.where = D.label("", "muted"); outer.addWidget(self.where)
         brow = QHBoxLayout(); brow.addStretch(1)
         if inline:
@@ -163,107 +178,44 @@ class StartEffort(QFrame):
         brow.addWidget(self.create_btn)
         outer.addLayout(brow)
         self.err = D.label("", "muted"); outer.addWidget(self.err)
-        self._path_set_by_hand = False
         self.name.textChanged.connect(self._named)
-        self.client.textChanged.connect(self._named)
-        self.sol.textChanged.connect(self._named)
-        self.path.textEdited.connect(lambda _t: setattr(self, "_path_set_by_hand", True))
+        self.saved.changed.connect(self._named)
         self.name.returnPressed.connect(lambda: self.create())
         self._named()
 
-    def _folder(self, edit, title):
-        w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.addWidget(edit, 1)
-        h.addWidget(D.button("Browse...", None, lambda: (lambda p: edit.setText(p) if p else None)(
-            QFileDialog.getExistingDirectory(self, title, edit.text()))))
-        return w
-
-    def fill_types(self, keep=None):
-        """3.18.2: the team's effort types (RFI response among the starters). 3.24.0: no default; you pick each time."""
-        try:
-            import prodrules as PRL
-            data = PRL.load(self.host.config_dir)
-            self.etype.blockSignals(True)
-            self.etype.clear()
-            self.etype.addItem("None", "")
-            import programs as PG                       # 4.50.0: Program deliverables is a program now, not offered here
-            for e in data.get("effort_types", []):
-                if e["id"] != PG.TYPE:
-                    self.etype.addItem(e["name"], e["id"])
-            want = keep if keep is not None else ""
-            self.etype.setCurrentIndex(max(0, self.etype.findData(want)))
-            self.etype.blockSignals(False)
-        except Exception:
-            diag.swallowed()
-
-    def show_brings(self):
-        from .efforttplview import start_words
-        said = start_words(self.host.config_dir, self.etype.currentData() or "")
-        self.brings.setText(said); self.brings.setVisible(bool(said))
-        return said
-
-    def manage_types(self, run=True):
-        from .efforttypes import manage
-        keep = self.etype.currentData()
-        d = manage(self, self.host.config_dir, run=run)
-        if run:
-            self.fill_types(keep)
-            self.show_brings()
-        return d
-
-    def toggle_more(self):
-        self.more.setVisible(not self.more.isVisible())
-        self.more_btn.setText("Fewer options" if self.more.isVisible() else "More options")
-
-    def base(self):
-        import app_gui, datahome
-        return datahome.efforts_dir(app_gui.DATA_DIR)
+    def path(self):
+        n, f = self.name.text().strip(), self.saved.folder()
+        return list_path(f, n) if n and f else ""
 
     def _named(self, *_a):
-        """The effort list's place follows the name, in the team's folder layout, unless chosen by hand."""
+        """Create effort waits for a name and a folder that can hold it; the line says where its folder will be."""
         n = self.name.text().strip()
-        self.create_btn.setEnabled(bool(n))
-        if self._path_set_by_hand:
-            return
-        if not n:
-            self.path.setText("")
-            self.where.setText("The effort gets its own folder with Customer Documents, Volumes, Response Setup and Exports.")
-            return
-        try:
-            import effortfolders as EF
-            p = EF.new_list_path(self.base(), n, {"Client": self.client.text(), "Solicitation": self.sol.text(),
-                                                  "Internal": self.internal.text()})[0]
-        except Exception:
-            diag.swallowed()
-            p = os.path.join(self.base(), n, f"{n}_Effort_List.xlsx")
-        self.path.setText(p)
-        self.where.setText(f"Its folder: {os.path.dirname(p)}  (More options to change)")
-
-    def choose_path(self):
-        p, _ = QFileDialog.getSaveFileName(self, "Where should the effort list live?", self.path.text(), "Excel (*.xlsx)")
-        if p:
-            self.path.setText(p); self._path_set_by_hand = True
-            self.where.setText(f"Its folder: {os.path.dirname(p)}")
+        why = saved_in_problem(self.host, self.saved.folder())
+        self.create_btn.setEnabled(bool(n) and not why)
+        if not n or not self.saved.folder():
+            self.where.setText("The effort gets its own folder there, with Customer Documents, Volumes, Response Setup and Exports.")
+        elif why:
+            self.where.setText(why)
+        else:
+            self.where.setText(f"Its folder: {os.path.dirname(self.path())}")
+        return why
 
     def reset(self):
-        for e in (self.name, self.client, self.sol, self.due, self.cust, self.vols, self.internal):
-            e.clear()
-        self.pm.setCurrentText(""); self.zone.setCurrentIndex(0); self.pic.show_path("")
-        self._path_set_by_hand = False
+        self.name.clear(); self.saved.clear()
         self._named()
 
     def values(self):
-        return {"name": self.name.text().strip(), "path": self.path.text().strip(), "first_use": self.rule.currentData(),
-                "customer_dir": self.cust.text().strip(), "volumes_dir": self.vols.text().strip(),
-                "client": self.client.text().strip(), "solicitation": self.sol.text().strip(),
-                "internal_no": self.internal.text().strip(), "picture": self.pic.path,
-                "pm": self.pm.currentText().strip(), "due": self.due.text().strip(), "zone_key": self.zone.currentData() or "",
-                "effort_type": self.etype.currentData() or ""}
+        return {"name": self.name.text().strip(), "path": self.path(), "first_use": "volume"}
 
     def create(self, values=None):
         v = values or self.values()
         if not v.get("name"):
             self.err.setText("Give the effort a name.")
             self.name.setFocus()
+            return None
+        why = "" if values else saved_in_problem(self.host, self.saved.folder())
+        if why:
+            self.err.setText(why)
             return None
         name = start_effort(self.host, v)
         if not name:
@@ -324,7 +276,7 @@ class StartDialog(QDialog):
     def __init__(self, host):
         super().__init__(host)
         self.setWindowTitle("Start an effort")
-        self.setMinimumWidth(820)
+        self.setMinimumWidth(640)
         self.made = None
         lay = QVBoxLayout(self)
         self.form = StartEffort(host, done=self._done, inline=False)

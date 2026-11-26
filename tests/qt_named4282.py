@@ -129,15 +129,18 @@ check("Use the effort type's templates picks it for each of them", len(done) == 
       and d4.b_type.isHidden() and all(b.currentData() == t["id"] for b in d4.boxes.values()), done)
 d4.pick(vols[1], "")
 check("one volume can still go its own way", vols[1] not in NT.picks(w.ws) and NT.picks(w.ws)[vols[0]]["id"] == t["id"])
-w.go("home"); app.processEvents()
-f = w.home_page.start
-f.etype.setCurrentIndex(f.etype.findData("rfp_limited")); app.processEvents()
-check("the start form says what the effort type starts with", f.brings.text().startswith("It starts with: ") and "Page-limited RFP Volume" in f.brings.text()
+w.go("record"); app.processEvents()
+f = w.record_page.types                                  # 4.79.0: the effort type is on Effort Settings, with what it starts with
+_was = (w.ws.get("prod_std", {}) or {}).get("effort_type") or ""
+f.type_picked("rfp_limited"); app.processEvents()
+check("Effort Settings says what the effort type starts with", f.brings.text().startswith("It starts with: ") and "Page-limited RFP Volume" in f.brings.text()
       and not f.brings.isHidden(), f.brings.text())
-f.etype.setCurrentIndex(f.etype.findData("rfp")); app.processEvents()
+f.type_picked("rfp"); app.processEvents()
 check("... and how to set it for a type that names none", f.brings.text().startswith("This effort type names no templates yet."), f.brings.text())
-f.etype.setCurrentIndex(0); app.processEvents()
+f.type_picked(""); app.processEvents()
 check("... and nothing with no effort type", f.brings.isHidden())
+f.type_picked(_was); app.processEvents()
+f = w.record_page
 from skqt.efforttypes import manage
 md = manage(f, cfg, run=False)
 check("Effort types... has Templates...", "templates" in md.btns and md.btns["templates"].text() == "Templates..." and md.templates(run=False) is not None)

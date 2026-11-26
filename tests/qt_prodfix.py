@@ -38,7 +38,8 @@ for _k in _RA.PREVIEW:
     _RA.set_preview(cfg, _k, True)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
-f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
+f = w.home_page.start; f.name.setText("Osprey"); f.saved.choose(tmp); f.create(); app.processEvents()
+w.go("record"); app.processEvents(); w.record_page.sol.setText("FA8810-26-R-0042"); w.record_page.save_details()   # 4.79.0: set on Effort Settings
 check("3.9: Production holds Production Standards, Audit and Fix a Copy (3.16.0: Fix a Copy last, Beta; 3.17.0: Audit)",
       list(__import__("skqt.mainwin", fromlist=["x"]).TEAM) == ["rules", "audit", "refs"])   # 3.75.0: the Team group; 3.66.0: Template Studio first; 3.38.0: Rules; 3.52.0: Production Standards under Advanced
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume I Technical.docx")
@@ -246,8 +247,9 @@ check("3.8: Make templates for every profile in an effort type, each passing its
 __import__("effortset").give(cfg, w.ws.root)             # 4.32.0: the profiles made in the first effort become Global, so the next effort starts with them
 w.go("home"); app.processEvents()
 f = w.home_page.start
-f.name.setText("Falcon"); f.etype.setCurrentIndex(f.etype.findData("white_paper")); f.create(); app.processEvents()
-check("3.8: Start an effort sets its effort type and that type's default profile",
+f.name.setText("Falcon"); f.saved.choose(tmp); f.create(); app.processEvents()
+w.go("record"); app.processEvents(); w.record_page.types.type_picked("white_paper"); app.processEvents()
+check("3.8 (4.79.0: on Effort Settings): the effort type is set, with that type's default profile",
       (w.ws.get("prod_std", {}) or {}).get("effort_type") == "white_paper" and (w.ws.get("prod_std", {}) or {}).get("type"))
 # ------------------------------------------------------------------ 3.9.0: every draft at once, findings workbook
 w.go("fixcopy"); app.processEvents()

@@ -94,7 +94,7 @@ class DoorDialog(QDialog):
         for k in DR.doors_for(kind_now(host), self.paths):
             it = QListWidgetItem(f"{DR.NAMES[k]}: {DR.WHAT[k]}"); it.setData(Qt.UserRole, k)
             self.list.addItem(it)
-        self.where = WhereBox(host.efforts, host.effort_name if host.ws is not None else "", self.paths)
+        self.where = WhereBox(host.efforts, host.effort_name if host.ws is not None else "", self.paths, host=host)
         v.addWidget(self.where)
         self.all_btn = D.button("All tools...", "ghost", lambda: self.all_tools(), "Every tool that takes these files, in Quick tools")
         v.addWidget(self.all_btn, 0, Qt.AlignLeft)

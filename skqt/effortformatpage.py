@@ -50,16 +50,13 @@ class EffortFormatPage(QWidget):
                                        "The full Production Standards editor on this effort's formatting: every value, table and part")])
         self.band = QLabel(""); self.band.setTextFormat(Qt.RichText); self.band.setWordWrap(True); top.add(self.band)
         r1 = QHBoxLayout(); r1.setSpacing(D.SPACE["s"])
-        r1.addWidget(D.label("This effort's type", "label", wrap=False))
-        self.etype = QComboBox(); self.etype.setMinimumWidth(200); self.etype.activated.connect(lambda _i: self.set_etype())
-        r1.addWidget(self.etype)
+        # 4.79.0 (E2, UX decision 70): the effort's type and response type are set on Effort Settings. The two boxes are
+        # kept off the page so the values read and set the same way as before; the line below the row still names the type.
+        self.etype = QComboBox(self); self.etype.setVisible(False); self.etype.activated.connect(lambda _i: self.set_etype())
         r1.addWidget(D.label("Default volume", "label", wrap=False))
         self.dvol = QComboBox(); self.dvol.setMinimumWidth(200); self.dvol.activated.connect(lambda _i: self.set_dvol())
         r1.addWidget(self.dvol)
-        r1.addWidget(D.label("Response type", "label", wrap=False))                   # 3.38.0 Rule 4
-        self.resp = QComboBox(); self.resp.setMinimumWidth(170); self.resp.activated.connect(lambda _i: self.set_resp())
-        self.resp.setToolTip("Rule 4: style names follow the response type (a style named with RFP is named RFI in an RFI)")
-        r1.addWidget(self.resp)
+        self.resp = QComboBox(self); self.resp.setVisible(False); self.resp.activated.connect(lambda _i: self.set_resp())
         r1.addWidget(D.label("Changes apply to", "label", wrap=False))
         self.scope = QComboBox(); self.scope.setMinimumWidth(200); self.scope.activated.connect(lambda _i: self.fill())
         self.scope.setToolTip("Every volume of this effort, or one volume (the cost volume's tables, say)")
@@ -317,25 +314,15 @@ class EffortFormatPage(QWidget):
     def set_etype(self, eid=None):
         if self.host.ws is None:
             return
-        data = PRL.load(self.host.config_dir)
-        eff = EFM.eff_of(self.host.ws)
-        eff["effort_type"] = self.etype.currentData() or "" if eid is None else eid
-        et = PRL.effort_type_of(data, eff["effort_type"])
-        if et and eff.get("type") not in et["profiles"]:
-            eff["type"] = et["default_profile"]
-        self.host.ws.set("prod_std", eff)
+        from .settingsrows import set_type               # 4.79.0: one way to set it, from Effort Settings or here
+        set_type(self.host, self.etype.currentData() or "" if eid is None else eid)
         self.after()
 
     def set_resp(self):
         if self.host.ws is None:
             return
-        eff = EFM.eff_of(self.host.ws)
-        rt = self.resp.currentData() or ""
-        if rt:
-            eff["response_type"] = rt
-        else:
-            eff.pop("response_type", None)
-        self.host.ws.set("prod_std", eff)
+        from .settingsrows import set_response
+        set_response(self.host, self.resp.currentData() or "")
         self.after()
 
     def rule_ticked(self, it):

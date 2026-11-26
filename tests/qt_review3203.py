@@ -166,7 +166,8 @@ check("the notes box is large, with room between it and the meeting list", mp.no
 from skqt import starteffort as SE
 here = os.path.dirname(SE.__file__)
 src = "".join(open(os.path.join(here, n), encoding="utf-8").read() for n in ("starteffort.py", "recordpage.py", "brandview.py"))
-check("Opportunity Number (Client Issued) and Internal A Number", "Opportunity Number (Client Issued)" in src and "Internal A Number" in src)
+check("Solicitation number and A number (4.78.0; the 3.20.3 labels left with the old start form in 4.79.0)",
+      '"Solicitation number"' in src and '"A number"' in src and "Opportunity Number (Client Issued)" not in open(os.path.join(here, "starteffort.py"), encoding="utf-8").read())
 w.go("home"); app.processEvents()
 bn = hp.banner
 check("Condense and Expand are arrows", bn.cond_btn.text() == "▲" and bn.exp_btn.text() == "▼")
