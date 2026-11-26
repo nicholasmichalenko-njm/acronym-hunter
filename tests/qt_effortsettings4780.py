@@ -33,7 +33,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show(); app.proc
 w.open_effort("Kestrel"); app.processEvents()
 rp, cp = w.record_page, w.custinfo_page
 w.go("record"); app.processEvents()
-heads = [l.text() for l in rp.findChildren(QLabel) if l.property("role") == "h3" and l.isVisibleTo(rp)]
+heads = [l.text() for l in rp.findChildren(QLabel) if l.property("role") == "title" and l.isVisibleTo(rp)]
 check("four plain groups: Effort, People, Stages and reviews, Files and sources", heads == ["Effort", "People", "Stages and reviews", "Files and sources"], heads)
 check("no Save button on the page; the bar keeps only Export", not [b for b in rp.findChildren(QPushButton) if b.text().startswith("Save") and b.isVisibleTo(rp)]
       and "Save details" not in rp.bar.labels() and "Save stages" not in rp.bar.labels(), rp.bar.labels())
