@@ -150,7 +150,7 @@ def run(page, did, action=None, choose=None):
         host.go("outline")
         done = "outline"
     if done:
-        diag.activity("deliverable_action", what=done)
+        diag.activity("deliverable_action")
     try:
         if done in ("attach", "word") and getattr(host, "deliverables_page", None) is not None:
             host.deliverables_page.refresh()

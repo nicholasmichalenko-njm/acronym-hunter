@@ -264,7 +264,7 @@ def file_take(page, how, choose=None, path=None, intake=True):
     else:
         got, msg = "none", f"{fa['name']}: no file yet. Attach it on Deliverables when there is one."
     page._deliv_file = None
-    diag.activity("deliverable_file_asked", how=got or how)
+    diag.activity("deliverable_file_asked")
     CP.done(page, msg)
     page.view.setFocus()
     if got == "waiting" and intake:
