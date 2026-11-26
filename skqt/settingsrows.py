@@ -116,7 +116,10 @@ class TypeRows:
     def _after(self, what, value):
         h = self.host
         self.page.rec.log("effort", f"{what}: {value}", save=True)
-        diag.activity("qt_effort_type_kept" if what == "Effort type" else "qt_response_type_kept")
+        if what == "Effort type":
+            diag.activity("qt_effort_type_kept")
+        else:
+            diag.activity("qt_response_type_kept")
         try:
             h.changed()
         except Exception:  # noqa: BLE001

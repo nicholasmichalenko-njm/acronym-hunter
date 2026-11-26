@@ -50,8 +50,7 @@ TOPICS = [
  ("efforts", "Home", "All Efforts",
   "Every effort and program on this PC, and a new one.",
   "You start a new proposal, switch efforts, or pick up an effort a teammate handed you.",
-  ["Press + Add an Effort (or open Overview with no effort open). Type a name, choose the folder it is saved in, and press "
-   "Create effort. Its own folder is made there; the rest (customer, due date, people, type) is set on Effort Settings.",
+  ["Press + Add an Effort (or open Overview with no effort open). Type a name, choose where it is saved, press Create effort.",
    "Click an effort's card to open it. The menu then works on that effort.",
    "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent. An effort folder moved or copied: Open an effort from its folder... (pick the folder, its Effort List or its Open this effort.skeffort file). Right-click an effort: Archive... (Show archived restores it) or Add to this effort... to merge another copy of it.",
    "To read documents before you know the effort, drop them on Quick tools and pick A new effort: a name and the folder it is saved in."],
@@ -136,10 +135,8 @@ TOPICS = [
  ("record", "Overview", "Effort Settings",
   "The few facts that define the effort: what it is, who works on it, its stages, and where its files and rules come from.",
   "You set up the effort, change its type, team or stages, hand it to someone, or report status.",
-  ["Four groups: Effort, People, Stages and reviews, Files and sources. Each value is kept as you change it; there is no "
-   "Save button. Effort type and Response type are here. Choose people... adds the team from the author list.",
-   "+ Stage adds a stage; pick one to change it beside the list. Files and sources says where the effort is saved, "
-   "the template its volumes use (Change... opens Setup's Templates for the volumes) and its acronym sources.",
+  ["Four groups: Effort (with its type), People, Stages and reviews, Files and sources. Each value is kept as you change it.",
+   "+ Stage adds a stage. Files and sources: where it is saved, its volumes' template (Change...), its acronym sources.",
    "Effort status (Word)... and Effort summary (Word)... make reports for a meeting.",
    "Save effort package... makes one .skpkg file with everything, for a teammate or a backup."],
   ["Backing up and putting an earlier copy back are on Effort Backup, at the foot of the menu. Settings > Efforts > "
