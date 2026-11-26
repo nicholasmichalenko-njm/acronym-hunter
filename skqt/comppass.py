@@ -377,7 +377,8 @@ def fact(page, label, replace=None):
         who = ""
     source = {"doc": (src or {}).get("doc", "") or page.file, "page": (src or {}).get("page", ""), "loc": (src or {}).get("loc", ""),
               "sid": (src or {}).get("sid", "")}
-    out = CI.set_fact(rec, label, value, "captured", who, source, replace)
+    from . import sharedfacts as SF                                     # 4.78.0: the shared three are one value
+    out = SF.set_fact(page.host, label, value, "captured", source, replace)
     if isinstance(out, dict):
         if replace is None:
             from PySide6.QtWidgets import QMessageBox
@@ -385,6 +386,8 @@ def fact(page, label, replace=None):
             b = QMessageBox.question(page, label, f"{label} is already filled:\n\n{cur['value']}\n({CI.where(cur)})\n\nReplace it with:\n\n{value}",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             return fact(page, label, replace=(b == QMessageBox.Yes))
+        return None
+    if out in SF.MESSAGES:
         return None
     if out == "set":
         diag.activity("customer_fact_captured")

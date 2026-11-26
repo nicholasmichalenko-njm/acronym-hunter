@@ -293,6 +293,10 @@ class StageTableMixin:
                                "color": P.color.currentData() or ""})
         self._show_row(i)
         self._loading = False
+        self._stages_changed()
+
+    def _stages_changed(self):
+        """4.78.0: Effort Settings keeps a change a moment later; the Edit stages window keeps it on Save."""
 
     def _item_changed(self, it):
         if self._loading or it.column() != 0 or it.row() != self._panel_row:
@@ -300,6 +304,7 @@ class StageTableMixin:
         self._loading = True
         self.stage_panel.name.setText(it.text())
         self._loading = False
+        self._stages_changed()
 
     def _is_current(self, i):
         it = self.stage_table.item(i, 0)
@@ -346,12 +351,14 @@ class StageTableMixin:
         self._loading = False
         t.setCurrentCell(j, 0)
         self._load_panel(j)
+        self._stages_changed()
         return True
 
     def add_stage(self, name="New stage"):
         i = self._stage_row(None, name, ("", ""), ("", ""), R.DEFAULT_STAGE_GATES.get(name, ""))
         self.stage_table.setCurrentCell(i, 0)
         self._load_panel(i)
+        self._stages_changed()
         return i
 
     def remove_stage(self):
@@ -364,6 +371,7 @@ class StageTableMixin:
             return False
         t.removeRow(i)
         self._load_panel(t.currentRow())
+        self._stages_changed()
         return True
 
     def stage_problems(self):

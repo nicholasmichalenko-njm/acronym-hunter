@@ -98,7 +98,9 @@ class CustInfoPage(QWidget):
                     self.people.setItem(r, k, it)
             self.people.setVisible(bool(people)); self.people_none.setVisible(not people)
             self.people.setFixedHeight(min(260, self.people.horizontalHeader().height() + sum(self.people.rowHeight(r) for r in range(len(people))) + 6))
-            rows = CI.rows(rec)
+            from . import sharedfacts as SF
+            self._L = L = SF.effort_list(self.host)      # 4.78.0: Customer and Solicitation number live in the effort list
+            rows = CI.rows(rec, L)
             muted = QBrush(QColor(D.tokens()["muted"]))
             self.facts.setRowCount(0)
             group = None
@@ -111,13 +113,14 @@ class CustInfoPage(QWidget):
                 r = self.facts.rowCount(); self.facts.insertRow(r)
                 a = QTableWidgetItem(x["label"]); a.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
                 val = QTableWidgetItem(x["value"]); val.setData(Qt.UserRole, x["label"])
-                val.setToolTip("Double-click to type it. In Shred, More > Customer info takes it from the customer's words.")
+                val.setToolTip(("The same value as on Effort Settings. " if x["label"] in CI.SHARED else "")
+                               + "Double-click to type it. In Shred, More > Customer info takes it from the customer's words.")
                 frm = QTableWidgetItem(x["from"] or (("Usually: " + x["hint"]) if x["hint"] else "")); frm.setFlags(Qt.ItemIsEnabled)
                 if not x["from"]:
                     frm.setForeground(muted)
                 for k, it in enumerate((a, val, frm)):
                     self.facts.setItem(r, k, it)
-            n = CI.filled(rec)
+            n = sum(1 for x in rows if x["value"])
             self.said.setText(f"{n} of {len(rows)} filled. Double-click a Value to type it; in Shred, More > Customer info takes it from the customer's words.")
         finally:
             self._loading = False
@@ -131,7 +134,8 @@ class CustInfoPage(QWidget):
         rec = self.rec
         if not label or rec is None:
             return
-        out = CI.set_fact(rec, label, item.text(), "typed", self.who(), replace=True)
+        from . import sharedfacts as SF
+        out = SF.set_fact(self.host, label, item.text(), "typed", replace=True, L=getattr(self, "_L", None))
         if out in ("set", "cleared"):
             diag.activity("customer_fact_typed")
             self.host.status(f"{label}: {'kept' if out == 'set' else 'cleared'}.")

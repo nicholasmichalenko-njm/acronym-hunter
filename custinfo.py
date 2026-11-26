@@ -8,11 +8,18 @@ the person says Replace. Typing on the page is the person's own change.
 Kept in the effort's record as "customer_facts" ({label: {"value", "how", "by", "on", "source"}}); a fact not there
 reads from the older Effort details spots of the same label (Contract type, NAICS, ...), so nothing captured before is
 lost. Contacts are the record's own contacts, with a role. Form block numbers are hints only (form revisions vary).
-Rules only (No AI); nothing leaves the PC. Standard library only."""
+Rules only (No AI); nothing leaves the PC. Standard library only.
+
+4.78.0 (E1 of claude/stationkeeper-effort-settings-direction-2026-11-25.md): Customer, Solicitation number and Proposal
+due are one value each, shown and changed on Customer information and on Effort Settings alike. The value lives where the
+rest of the app already reads it (the effort list's client and solicitation; the record's due date and zone); the
+customer_facts entry keeps only who typed or captured it and from where. Pass the effort list as effort= to read and
+write the two that live in it; without it they read as before."""
 import datetime
 
 GROUPS = (
     ("Who the customer is", (
+        ("Customer", "Also on Effort Settings: the one value"),
         ("Department", ""),
         ("Agency or sub-agency", ""),
         ("Buying office", "Issued by: SF 33 block 7, SF 1449 block 9, SF 30 block 6"),
@@ -38,6 +45,8 @@ GROUPS = (
 )
 LABELS = tuple(lab for _g, rows in GROUPS for lab, _h in rows)
 HINT = {lab: h for _g, rows in GROUPS for lab, h in rows}
+SHARED = ("Customer", "Solicitation number", "Proposal due")    # 4.78.0: one value each, here and on Effort Settings
+_LIST_ATTR = {"Customer": "client", "Solicitation number": "solicitation"}
 ROLES = ("Contracting Officer", "Contract Specialist", "Technical POC / COR", "Program Manager (customer)", "Questions go to")
 
 
@@ -53,8 +62,28 @@ def _store(rec):
     return rec.data.setdefault("customer_facts", {})
 
 
-def fact(rec, label):
-    """{"value", "how", "by", "on", "source"} for one fact; an older Effort details spot of the same label reads as typed."""
+def _live(rec, label, effort=None):
+    """4.78.0: a shared fact's value where the app keeps it; None when it cannot be read here (no effort list given)."""
+    if label == "Proposal due":
+        import effortrec as R
+        due = rec.data.get("due", "") or ""
+        return R.due_text(due, rec.data.get("zone", "")) if due else ""
+    if label in _LIST_ATTR and effort is not None:
+        return _clean(getattr(effort, _LIST_ATTR[label], "") or "")
+    return None
+
+
+def fact(rec, label, effort=None):
+    """{"value", "how", "by", "on", "source"} for one fact; an older Effort details spot of the same label reads as typed.
+    4.78.0: a shared fact reads its one value; who and where it came from show only while that value is still theirs."""
+    if label in SHARED:
+        live = _live(rec, label, effort)
+        if live is not None:
+            f = dict((rec.data.get("customer_facts") or {}).get(label) or {})
+            if live and f.get("value") and _same(f["value"], live):
+                f["value"] = live
+                return f
+            return {"value": live, "how": "typed" if live else "", "by": "", "on": "", "source": {}}
     f = (rec.data.get("customer_facts") or {}).get(label)
     if f and f.get("value"):
         return dict(f)
@@ -76,14 +105,81 @@ def where(f):
     return ("typed " + by).strip() if by else "typed"
 
 
-def set_fact(rec, label, value, how="typed", who="", source=None, replace=None):
+def _write_shared(rec, label, value, effort, put, who):
+    """4.78.0: put a shared fact's value where the app keeps it. Returns None when kept, else why not ("not understood",
+    "locked")."""
+    if label == "Proposal due":
+        import effortrec as R
+        if not value:
+            if rec.data.get("due"):
+                rec.set_due("", "", who=who or None)
+            return None
+        iso, zone = R.parse_due_text(value)
+        if not iso:
+            return "not understood"
+        if iso != rec.data.get("due", "") or zone != rec.data.get("zone", ""):
+            rec.set_due(iso, zone, who=who or None)
+        return None
+    if effort is None:
+        return None
+    attr = _LIST_ATTR[label]
+    if (getattr(effort, attr, "") or "") == value:
+        return None
+    setattr(effort, attr, value)
+    try:
+        effort.pending = True
+        effort.save()
+    except Exception:  # noqa: BLE001  (the list open in Excel)
+        return "locked"
+    if put is not None:
+        try:
+            put(effort)
+        except Exception:  # noqa: BLE001
+            pass
+    return None
+
+
+def set_fact(rec, label, value, how="typed", who="", source=None, replace=None, effort=None, put=None):
     """Fill a fact. Returns "set", "same" (nothing to change), "cleared", or {"ask": the fact it holds} when it is
     filled with something else and replace is None: nothing changes until the caller comes back with replace=True
-    (replace=False leaves it). Typing passes replace=True."""
+    (replace=False leaves it). Typing passes replace=True.
+    4.78.0: a shared fact (SHARED) is written where the app keeps it; effort= is the effort list (Customer, Solicitation
+    number) and put(effort) tells the effort registry. It can also return "not understood" (a due date with no date in
+    it) or "locked" (the effort list open in Excel); nothing changes then."""
     label, value = _clean(label, 80), _clean(value)
     if not label:
         return "same"
-    cur = fact(rec, label)
+    cur = fact(rec, label, effort)
+    if label in SHARED and _live(rec, label, effort) is not None:
+        if label == "Proposal due" and value:
+            import effortrec as R
+            iso, zone = R.parse_due_text(value)
+            if not iso:
+                return "not understood"
+            value = R.due_text(iso, zone)
+        if not value and not cur["value"]:
+            return "same"
+        if value and cur["value"] and _same(cur["value"], value):
+            return "same"
+        if value and cur["value"] and replace is None:
+            return {"ask": cur}
+        if value and cur["value"] and replace is False:
+            return "same"
+        why = _write_shared(rec, label, value, effort, put, who)
+        if why:
+            return why
+        if not value:
+            _store(rec)[label] = {"value": "", "how": "", "by": "", "on": "", "source": {}}
+            rec.log("effort", f"Customer information: {label} cleared", who=who or None, save=True)
+            return "cleared"
+        src = {k: _clean((source or {}).get(k), 200) for k in ("doc", "page", "loc", "sid") if (source or {}).get(k)}
+        _store(rec)[label] = {"value": _live(rec, label, effort) or value, "how": "captured" if how == "captured" else "typed",
+                              "by": _clean(who, 80), "on": datetime.date.today().isoformat(), "source": src}
+        if label == "Proposal due":                    # set_due has already written it to Effort Activity
+            rec.save()
+        else:
+            rec.log("effort", f"{label} {'captured' if how == 'captured' else 'typed'}: {value}", who=who or None, save=True)
+        return "set"
     if not value:
         if not cur["value"]:
             return "same"
@@ -103,18 +199,18 @@ def set_fact(rec, label, value, how="typed", who="", source=None, replace=None):
     return "set"
 
 
-def rows(rec):
+def rows(rec, effort=None):
     """Every fact for the page, in order: [{"group", "label", "value", "from", "hint", "how"}]."""
     out = []
     for g, items in GROUPS:
         for lab, hint in items:
-            f = fact(rec, lab)
+            f = fact(rec, lab, effort)
             out.append({"group": g, "label": lab, "value": f["value"], "from": where(f), "hint": hint, "how": f.get("how", "")})
     return out
 
 
-def filled(rec):
-    return sum(1 for r in rows(rec) if r["value"])
+def filled(rec, effort=None):
+    return sum(1 for r in rows(rec, effort) if r["value"])
 
 
 def guess(label, text):

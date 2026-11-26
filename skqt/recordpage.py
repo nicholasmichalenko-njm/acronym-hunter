@@ -36,76 +36,121 @@ class RecordPage(StageTableMixin, QWidget):
         inner = QWidget(); inner.setObjectName("page"); scroll.setWidget(inner)
         v = QVBoxLayout(inner)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
-        # 3.75.0 (house rule 8): one bar. Save details is the main button; the files it makes are under Export; the rest in More
+        # 4.78.0 (E1, claude/stationkeeper-effort-settings-direction-2026-11-25.md): Effort Settings is four plain groups
+        # of labels and values, kept as each is changed (no Save button). Customer, Solicitation number and Proposal due
+        # are one value each with Customer information. The files the effort makes stay under Export.
         from .commandbar import CommandBar
+        from PySide6.QtCore import QTimer
         self.bar = CommandBar()
-        self.bar.add("+ Stage", lambda: self.add_stage())
-        self.bar.add("Save stages", lambda: self.save_stages(), "Keep the stages and gates as set below")
-        self.bar.primary("Save details", lambda: self.save_details())
-        # 4.61.0: backing up and putting back are the Effort Backup page (the menu's foot); the readable copy and the health card are gone
         self.bar.export("Effort status (Word)...", lambda: self.status_export(), "Where the effort stands, for leadership")
         self.bar.export("Effort summary (Word)...", lambda: self.status_export(final=True), "The effort with its complete history")
         self.bar.export("Save effort package...", lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off")
         self.a_team = self.bar.export("Save to the team folder", lambda: self.save_to_team(),
                                       "Connected mode: the package goes to the team's OneDrive-synced SharePoint folder")
         v.addWidget(self.bar)
-        # details
-        self.details = D.Card("Effort details", "Who it is for, its numbers, and when it is due. The countdown uses this PC's clock.",
-                              key=True)
-        form = QFormLayout(); form.setSpacing(D.SPACE["s"]); self.details.body.addLayout(form)
-        self.name = D.label("", "title")
-        self.client = QLineEdit(); self.client.setPlaceholderText("Customer")
-        self.sol = QLineEdit(); self.sol.setPlaceholderText("Opportunity Number (Client Issued)")
-        self.internal = QLineEdit()
+        self.kept_note = D.label("Kept as you change it.", "muted")
+        v.addWidget(self.kept_note)
+
+        def heading(text):
+            v.addSpacing(D.SPACE["s"])
+            v.addWidget(D.label(text, "title"))
+
+        def form():
+            f = QFormLayout(); f.setSpacing(D.SPACE["s"]); f.setLabelAlignment(Qt.AlignLeft)
+            f.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+            holder = QWidget(); holder.setMaximumWidth(760); holder.setLayout(f); v.addWidget(holder)
+            return f
+
+        # 1. Effort
+        heading("Effort")
+        form1 = form()
+        self.name = D.label("", None)
+        self.internal = QLineEdit(); self.internal.setPlaceholderText("Not set")
+        self.client = QLineEdit(); self.client.setPlaceholderText("Not set")
+        self.sol = QLineEdit(); self.sol.setPlaceholderText("Not set")
+        for w, tip in ((self.internal, "Your company's internal number for this effort"),
+                       (self.client, "The same value as Customer on Customer information"),
+                       (self.sol, "The same value as on Customer information")):
+            w.setToolTip(tip)
+            w.editingFinished.connect(self.save_details)
         due = QHBoxLayout(); due.setSpacing(D.SPACE["s"])
         self.has_due = QCheckBox("Due on")
         self.due_date = QDateEdit(); self.due_date.setCalendarPopup(True); self.due_date.setDisplayFormat("MMM d, yyyy")
         self.due_time = QTimeEdit(); self.due_time.setDisplayFormat("h:mm AP")
-        self.zone = QLineEdit(); self.zone.setPlaceholderText("MT"); self.zone.setMaximumWidth(140)
-        self.has_due.setVisible(False)                          # 3.12.0: the date is the customer's deadline, or "Not set yet"
-        self.due_date.setMinimumDate(QDate(2000, 1, 1)); self.due_date.setSpecialValueText("Not set yet")
+        self.zone = QLineEdit(); self.zone.setMaximumWidth(140)
+        self.has_due.setVisible(False)                          # 3.12.0: the date is the customer's deadline, or "Not set"
+        self.due_date.setMinimumDate(QDate(2000, 1, 1)); self.due_date.setSpecialValueText("Not set")
         self.due_date.dateChanged.connect(lambda d: None if getattr(self, "_filling_due", False) else
                                           self.has_due.setChecked(d != self.due_date.minimumDate()))
         self.due_time.timeChanged.connect(lambda *_a: None if getattr(self, "_filling_due", False) or
                                           self.due_date.date() == self.due_date.minimumDate() else self.has_due.setChecked(True))
         self.has_due.toggled.connect(lambda on: None if on or self.due_date.date() == self.due_date.minimumDate()
                                      else self.due_date.setDate(self.due_date.minimumDate()))
-        self.zone.setPlaceholderText("ET, CT, MT, PT, UTC...")
+        self.zone.setPlaceholderText("Time zone")
+        self.zone.setToolTip("The customer's time zone: ET, CT, MT, PT, UTC...")
         self.clear_due = D.button("Clear", "ghost", lambda: self.due_date.setDate(self.due_date.minimumDate()), "No due date yet")
         for w in (self.due_date, self.due_time, self.zone, self.clear_due):
             due.addWidget(w)
         due.addStretch(1)
-        form.addRow("Effort", self.name); form.addRow("Client", self.client); form.addRow("Opportunity Number (Client Issued)", self.sol)
-        form.addRow("Internal A Number", self.internal); form.addRow("Customer's due date and time", due)
-        self.found_row = QHBoxLayout()
+        self._due_timer = QTimer(self); self._due_timer.setSingleShot(True); self._due_timer.setInterval(700)
+        self._due_timer.timeout.connect(lambda: self.save_details(quiet=True))
+        for sig in (self.due_date.dateChanged, self.due_time.timeChanged):
+            sig.connect(lambda *_a: None if getattr(self, "_filling_due", False) else self._due_timer.start())
+        self.zone.editingFinished.connect(self.save_details)
+        form1.addRow("Effort name", self.name)
+        form1.addRow("A number", self.internal)
+        form1.addRow("Customer", self.client)
+        form1.addRow("Solicitation number", self.sol)
+        form1.addRow("Proposal due", due)
+        self.found_box = QWidget(); self.found_row = QHBoxLayout(self.found_box); self.found_row.setContentsMargins(0, 0, 0, 0)
         self.found = D.label("", "muted"); self.found_row.addWidget(self.found, 1)
-        self.use_found = D.button("Use it", None, lambda: self.use_customer_due()); self.found_row.addWidget(self.use_found)
-        self.details.body.addLayout(self.found_row)
-        v.addWidget(self.details)
-        # team
-        self.team = D.Card("People", "The names from the author list that show in this effort, offered wherever an "
-                                               "author, lead or owner is picked, with each person's role here. Every name lives in "
-                                               "Settings > Author list.",
-                           actions=[D.button("Choose people...", "primary", lambda: self.choose_team())])
+        self.use_found = D.button("Use it", None, lambda: self.use_customer_due() and self.save_details()); self.found_row.addWidget(self.use_found)
+        form1.addRow("", self.found_box)
+        self.details = None
+
+        # 2. People
+        heading("People")
+        prow = QHBoxLayout()
+        prow.addWidget(D.label("Names come from Settings > Author list. A role is a label; it limits nothing.", "muted"), 1)
+        prow.addWidget(D.button("Choose people...", None, lambda: self.choose_team()))
+        v.addLayout(prow)
         from .rolesview import TeamRoles                     # 2.93.0: a role drop-down per person that saves when picked
         self.team_roles = TeamRoles(host)
-        self.team.add(self.team_roles)
+        v.addWidget(self.team_roles)
         self.team_table, self.team_note = self.team_roles.table, self.team_roles.note
-        v.addWidget(self.team)
-        # stages and gates
-        self.stages = D.Card("Stages and gates", "When each stage starts and ends and its gate. Pick a stage to change it beside "
-                                                 "the list (click a date to pick it; the time is optional). Right-click a stage to "
-                                                 "move it earlier or later or remove it.")
+        self.team = None
+
+        # 3. Stages and reviews
+        heading("Stages and reviews")
         ed = self.stage_editor()                             # 3.82.0: one row at a time, edited in the panel beside it
-        self.stage_table.setMinimumHeight(260)
+        self.stage_table.setMinimumHeight(240)
         self.stage_table.setContextMenuPolicy(Qt.CustomContextMenu)            # 3.75.0: act on the row
         self.stage_table.customContextMenuRequested.connect(lambda pos: self.stage_menu().exec(self.stage_table.viewport().mapToGlobal(pos)))
-        self.stages.add(ed)
         srow = QHBoxLayout()
-        self.stage_note = D.label("Double-click a stage's name to rename it. The current stage cannot be removed.", "muted")
+        self.stage_note = D.label("Pick a stage to change it beside the list. Right-click to move it or remove it. "
+                                  "The current stage moves on Overview.", "muted")
         srow.addWidget(self.stage_note, 1)
-        self.stages.body.addLayout(srow)
-        v.addWidget(self.stages)
+        srow.addWidget(D.button("+ Stage", None, lambda: self.add_stage(), "Add a stage after the last one"))
+        v.addLayout(srow)
+        v.addWidget(ed)
+        self._stage_timer = QTimer(self); self._stage_timer.setSingleShot(True); self._stage_timer.setInterval(700)
+        self._stage_timer.timeout.connect(self.keep_stages)
+        self.stages = None
+
+        # 4. Files and sources
+        heading("Files and sources")
+        form4 = form()
+        frow = QHBoxLayout(); frow.setSpacing(D.SPACE["s"])
+        self.saved_in = D.label("", None); self.saved_in.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        frow.addWidget(self.saved_in, 1)
+        frow.addWidget(D.button("Open folder", "ghost", lambda: self.open_folder(), "Open the effort's folder"))
+        form4.addRow("Saved in", frow)
+        srow2 = QHBoxLayout(); srow2.setSpacing(D.SPACE["s"])
+        srow2.addWidget(D.label("Effort Standards, over Global Standards", None), 1)
+        srow2.addWidget(D.button("Open", "ghost", lambda: self.host.go("effortfmt"), "Effort Formatting"))
+        form4.addRow("Standards", srow2)
+        v.addSpacing(D.SPACE["m"])
+
         # 2.80.0 effort health
         self.readable = D.Card("Readable copy", "Everything in the effort as plain files (Excel, Word, CSV, text) in its folder, "
                                "rewritten a few seconds after every change, so the effort can carry on without Stationkeeper "
@@ -149,14 +194,42 @@ class RecordPage(StageTableMixin, QWidget):
 
     def refresh(self):
         h = self.host
+        self.flush()
         self.setEnabled(h.ws is not None)
         if h.ws is None:
             return
+        from . import sharedfacts as SF
         r = self.rec
         self.L = L = self.effort_list()
         self.name.setText(__import__("homes").shown_name(h.efforts, h.effort_name))   # 4.51.0: Unfiled, from before
-        for w, val in ((self.client, L.client if L else ""), (self.sol, L.solicitation if L else ""), (self.internal, L.internal_no if L else "")):
-            w.setText(val or "")
+        self.internal.setText((L.internal_no if L else "") or "")
+        for w, lab in ((self.client, "Customer"), (self.sol, "Solicitation number")):   # 4.78.0: one value with Customer information
+            w.setText(SF.CI.fact(r, lab, L)["value"] if L is not None else "")
+        self._fill_due(r)
+        st = ES.State(h.ws, h.effort_path, None)
+        import subreq as SR
+        sm = SR.summary(st.rows)
+        self.customer_due = sm["due"]["value"] if sm.get("due") else ""
+        iso, _z = R.parse_due_text(self.customer_due) if self.customer_due else (None, "")
+        differs = bool(self.customer_due) and (not iso or iso != (r.data.get("due") or ""))
+        self.found.setText(f"The customer's documents say: {self.customer_due}" if differs else "")
+        self.use_found.setVisible(differs); self.found_box.setVisible(differs)
+        try:
+            self.saved_in.setText(EF.root(h.effort_path) or "Not set")
+        except Exception:  # noqa: BLE001
+            diag.swallowed(); self.saved_in.setText("Not set")
+        self.fill_team(r)
+        self.fill_stages(r)
+        t = self.stage_table                                  # 4.78.0: every stage shows without scrolling the table
+        t.setMinimumHeight(max(240, t.horizontalHeader().height() + sum(t.rowHeight(i) for i in range(t.rowCount()))
+                               + t.horizontalScrollBar().sizeHint().height() + 8))
+        self.fill_health(self.host.safety.issues)
+        self.backup_text.setText(self.host.safety.status_text())     # 2.78.0: automatic, with the last time
+        import workmode as WM
+        from .modes import settings
+        self.team_btn.setVisible(bool(WM.team_dir(settings())))
+
+    def _fill_due(self, r):
         due = r.data.get("due", "")
         d = R.parse_date(due[:10]) if due else None
         self._filling_due = True
@@ -167,23 +240,30 @@ class RecordPage(StageTableMixin, QWidget):
         self.zone.setText(r.data.get("zone", ""))
         self._filling_due = False
 
-        st = ES.State(h.ws, h.effort_path, None)
-        import subreq as SR
-        sm = SR.summary(st.rows)
-        self.customer_due = sm["due"]["value"] if sm.get("due") else ""
-        self.found.setText(f"The customer documents say: {self.customer_due}" if self.customer_due else "")
-        self.use_found.setVisible(bool(self.customer_due))
-        self.fill_team(r)
-        self.fill_stages(r)
-        self.fill_health(self.host.safety.issues)
-        self.backup_text.setText(self.host.safety.status_text())     # 2.78.0: automatic, with the last time
-        import readable as RD
-        rf = RD.folder_for(h.effort_path, h.effort_name)
-        self.readable_text.setText(f"{rf}" + (f"\nLast written {h.rd_written}." if getattr(h, "rd_written", "") else
-                                   ("\nWritten after the next change." if not os.path.isdir(rf) else "")))
-        import workmode as WM
-        from .modes import settings
-        self.team_btn.setVisible(bool(WM.team_dir(settings())))
+    def flush(self):
+        """4.78.0: keep anything changed a moment ago before the page is filled again or left."""
+        if self._due_timer.isActive():
+            self._due_timer.stop(); self.save_details(quiet=True)
+        if self._stage_timer.isActive():
+            self._stage_timer.stop(); self.keep_stages()
+
+    def open_folder(self):
+        import subprocess, sys
+        p = self.saved_in.text()
+        if not p or not os.path.isdir(p):
+            self.host.status("The effort's folder was not found.")
+            return False
+        if os.environ.get("AH_TEST"):
+            return True
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(p)                                   # noqa: S606
+            else:
+                subprocess.Popen(["xdg-open", p])
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return False
+        return True
 
     # ------------------------------------------------------------ details
     def use_customer_due(self):
@@ -198,38 +278,100 @@ class RecordPage(StageTableMixin, QWidget):
         self.zone.setText(zone or "")
         return True
 
-    def save_details(self):
-        r, L, h = self.rec, self.L, self.host
-        changed = []
+    def save_details(self, quiet=False):
+        """4.78.0: kept as each field is changed (no Save button). Customer and Solicitation number go through the one
+        value they share with Customer information; the A number stays in the effort list; Proposal due is the record's."""
+        h = self.host
+        if h.ws is None:
+            return False
+        from . import sharedfacts as SF
+        r, L = self.rec, self.L
+        kept = []
         if L is not None:
-            for attr, w, word in (("client", self.client, "client"), ("solicitation", self.sol, "solicitation number"),
-                                  ("internal_no", self.internal, "internal number")):
-                val = " ".join(w.text().split())
-                if getattr(L, attr) != val:
-                    setattr(L, attr, val); changed.append(f"{word} {val or '(none)'}")
-            if changed:
+            val = " ".join(self.internal.text().split())
+            if (L.internal_no or "") != val:
+                L.internal_no = val
                 try:
                     L.pending = True
                     L.save()
                     h.efforts.put(h.effort_name, client=L.client, solicitation=L.solicitation, internal_no=L.internal_no)
                 except Exception:
                     diag.swallowed()
-                    h.status("The effort list is open in Excel: close it, then save the details again.")
+                    h.status("The effort list is open in Excel: close it, then change it again.")
                     return False
-                r.log("effort", "Effort details: " + "; ".join(changed), save=True)
+                r.log("effort", f"A number: {val or '(none)'}", save=True)
+                kept.append("A number")
+            for w, lab in ((self.client, "Customer"), (self.sol, "Solicitation number")):
+                out = SF.set_fact(h, lab, w.text(), "typed", replace=True, L=L)
+                if out in SF.MESSAGES:
+                    return False
+                if out in ("set", "cleared"):
+                    kept.append(lab)
         iso = ""
         if self.has_due.isChecked():
             iso = self.due_date.date().toPython().isoformat() + "T" + self.due_time.time().toString("HH:mm")
-        if iso != r.data.get("due", "") or " ".join(self.zone.text().split()) != r.data.get("zone", ""):
-            r.set_due(iso, self.zone.text() if iso else "")
-        diag.activity("qt_effort_details_saved")
-        h.toast("Effort details saved")
-        self.refresh()
+        zone = " ".join(self.zone.text().split()) if iso else ""
+        r = self.rec
+        if iso != r.data.get("due", "") or zone != r.data.get("zone", ""):
+            r.set_due(iso, zone, who=SF.who() or None)
+            kept.append("Proposal due")
+        if kept:
+            diag.activity("qt_effort_details_saved")
+            h.status(", ".join(kept) + " kept.")
+        elif not quiet:
+            pass
+        return True
+
+    def _stages_changed(self):
+        """4.78.0: a stage changed in the table or the panel is kept a moment later (no Save stages button)."""
+        self._stage_timer.start()
+
+    def keep_stages(self):
+        """Keep the stages as the table shows them, without filling the page again (the row being changed stays put).
+        A time not understood, or a stage that ends before it starts, is said on the line under the heading."""
+        h = self.host
+        if h.ws is None:
+            return False
+        bad = self.stage_problems()
+        if bad:
+            self.stage_note.setText("Not kept yet: " + "; ".join(bad) + ".")
+            return False
+        r = self.rec
+        rows, gates, colors, at = [], [], [], []
+        for i in range(self.stage_table.rowCount()):
+            sid, name, (ds, ts), (de, te), gate = self._stage_values(i)
+            if not (name or "").strip():
+                continue
+            rows.append((sid, name, ds, de, ts if ds else "", te if de else ""))
+            gates.append(gate); colors.append(self._stage_color(i)); at.append(i)
+        try:
+            new = r.edit_stages(rows)
+        except ValueError as e:
+            self.stage_note.setText(str(e))
+            return False
+        for s, g, c in zip(new, gates, colors):
+            r.set_gate(s["id"], g)
+            r.set_stage_color(s["id"], c)
+        was = self._loading
+        self._loading = True
+        for i, s in zip(at, new):
+            it = self.stage_table.item(i, 0)
+            if it is not None and it.data(Qt.UserRole) != s["id"]:
+                it.setData(Qt.UserRole, s["id"])
+        self._loading = was
+        self.stage_note.setText("Pick a stage to change it beside the list. Right-click to move it or remove it. "
+                                "The current stage moves on Overview.")
+        diag.activity("qt_stages_saved")
+        h.status("Stages kept.")
         return True
 
     # ------------------------------------------------------------ team (2.77.0: from the author list)
     def fill_team(self, r=None):
         self.team_roles.fill()
+        t = self.team_table                                   # 4.78.0: as tall as its people, not a fixed block
+        rows = max(1, t.rowCount())
+        t.setMinimumHeight(0)
+        t.setFixedHeight(t.horizontalHeader().height() + sum(t.rowHeight(i) for i in range(t.rowCount())) + (0 if t.rowCount() else 34) + 6)
 
     def choose_team(self, answer=None):
         """Tick the names (from the whole author list) that show in this effort. answer (tests): the names."""

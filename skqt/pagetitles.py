@@ -40,7 +40,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "overview": ("Overview", "The effort on one screen: your next step, what is left, the deliverables, the dates ahead"),
           "home": ("Overview", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "dashboard": ("Overview", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
-          "record": ("Effort Settings", "The effort's details, its people, and its stages and gates"),
+          "record": ("Effort Settings", "What the effort is, who works on it, its stages, and where its files are"),
           "backup": ("Effort Backup", "Where this effort's backup is kept, backing it up now, and putting an earlier copy back"),
           "ours": ("Documents", "Our own documents (past proposals, resumes, graphics), kept for context and reference"),
           "datacalls": ("Data calls", "What the team needs from its own experts: what, for which section, how much, an example, owner and due date"),

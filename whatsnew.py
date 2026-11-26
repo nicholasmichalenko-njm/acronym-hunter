@@ -2,6 +2,10 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.78.0": ["Effort Settings is four plain groups: Effort, People, Stages and reviews, and Files and sources. There is no Save button: each field is kept as you change it.",
+               "Customer, Solicitation number and Proposal due are one value each. Change one on Effort Settings, on Customer information or in Shred, and every place shows the new value.",
+               "Customer information has a Customer row at the top. Proposal due typed there sets the effort's due date; words with no date in them change nothing.",
+               "Files and sources shows where the effort is saved, with Open folder."],
     "4.77.0": ["Shred > Deliverables: a kind's key shows the name the app suggests on the bar. Change it, then Enter puts the row on the Deliverables list.",
                "A name already on the list attaches the piece to that row. A near name asks once: Attach to it, or Add as new. Pieces marked together are one deliverable.",
                "The bar names the deliverable a piece is on; a click opens its row. The row keeps the customer's reference from the Customer heading above the piece.",
