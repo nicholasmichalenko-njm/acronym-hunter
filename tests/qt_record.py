@@ -76,7 +76,7 @@ check("... the selected stage is edited in the panel beside it", rp.stage_panel.
       and rp.stage_panel.gate.isEnabled(), rp.stage_panel.name.text())
 rp.set_stage(0, start=((today - datetime.timedelta(days=3)).isoformat(), ""), gate="hard")
 rp.set_stage(1, gate="soft")
-check("... and the row shows what the panel set", rp.stage_table.item(1, 3).text() == RR.GATES["soft"], rp.stage_table.item(1, 3).text())
+check("... and the row shows what the panel set", rp.stage_table.item(1, 3).text() == "Soft", rp.stage_table.item(1, 3).text())   # 4.80.0: the gate in short
 rp.add_stage("Pink team")
 rp.stage_table.setCurrentCell(rp.stage_table.rowCount() - 1, 0); rp.move_row(-1)
 check("Save stages: dates, gates, a new stage", rp.save_stages())

@@ -1,5 +1,5 @@
 """Editing an effort's stages (2.92.0; 2.93.0 date pickers and times; 3.82.0 one row at a time): the stage table (name,
-when it starts, when it ends, gate, color) with the selected stage's panel beside it, Up, Down, + Stage and Remove, shared by Effort Record and Effort Home's Edit stages... A stage's start
+when it starts, when it ends, gate, color) with the selected stage's panel beside it, Up, Down, + Stage and Remove, shared by Effort Record and Effort Home's Edit stages... 4.80.0 (E3): four columns, drag to reorder the stages still ahead, remove that asks, and the lock for anyone but the proposal manager. A stage's start
 and end are picked from a calendar, with an optional time (a stage without a time starts at the start of its day and
 ends at the end of it). The gate choices are the team's (Settings > Stages, gates and roles). The current stage cannot
 be removed. The rules are the effort record's. Nothing leaves the PC."""
@@ -123,10 +123,11 @@ class WhenCell(QWidget):
 
 
 def gate_box(gate=""):
+    from .stagesplan import gate_short
     cb = QComboBox()
     for k, text in R.GATES.items():
-        cb.addItem(text, k)
-        about = R.GATE_ABOUT.get(k, "")
+        cb.addItem(gate_short(k), k)                               # 4.80.0: None, Soft, Hard, as the table says them
+        about = R.GATE_ABOUT.get(k, "") or (text if text != gate_short(k) else "")
         if about:
             cb.setItemData(cb.count() - 1, about, Qt.ToolTipRole)
     cb.setCurrentIndex(max(0, cb.findData(gate)))
@@ -147,14 +148,38 @@ def color_box(color=""):
     return cb
 
 
+class StageTable(QTableWidget):
+    """4.80.0 (E3): a row is dragged to a new place; moved(from, to) says where it was dropped and the editor decides
+    whether it may go there (only stages still ahead move)."""
+    moved = Signal(int, int)
+
+    def dropEvent(self, e):
+        src = self.currentRow()
+        pos = e.position().toPoint()
+        dst = self.rowAt(pos.y())
+        if dst < 0:
+            dst = self.rowCount() - 1
+        elif pos.y() > self.visualRect(self.model().index(dst, 0)).center().y() and dst < src:
+            dst += 1
+        elif pos.y() < self.visualRect(self.model().index(dst, 0)).center().y() and dst > src:
+            dst -= 1
+        e.setDropAction(Qt.IgnoreAction); e.accept()                 # the table never moves cells by itself
+        if src >= 0 and dst != src:
+            self.moved.emit(src, dst)
+
+
 def stage_table():
     """3.82.0 (form q05, house rule 8: one editor at a time): the stages as plain rows; the selected one is edited in the
-    panel beside it (stage_panel)."""
-    t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Stage", "Starts", "Ends", "Gate", "Color"])
+    panel beside it (stage_panel). 4.80.0 (E3): Stage, Planned start, Planned end and Gate; the color is in the panel;
+    a stage still ahead is dragged to move it."""
+    t = StageTable(0, 4); t.setHorizontalHeaderLabels(["Stage", "Planned start", "Planned end", "Gate"])
     t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows)
     t.setSelectionMode(QAbstractItemView.SingleSelection)
+    t.setDragEnabled(True); t.setAcceptDrops(True); t.viewport().setAcceptDrops(True)
+    t.setDragDropMode(QAbstractItemView.InternalMove); t.setDropIndicatorShown(True)
+    t.setDragDropOverwriteMode(False)
     hh = t.horizontalHeader()
-    for i, w in enumerate((170, 170, 170, 200, 100)):
+    for i, w in enumerate((170, 170, 170, 200)):
         t.setColumnWidth(i, w)
         hh.setSectionResizeMode(i, QHeaderView.Interactive)
     hh.setSectionResizeMode(3, QHeaderView.Stretch)            # the gate takes what is left; the name stays readable
@@ -203,6 +228,8 @@ class StageTableMixin:
         self._loading = False
         self.stage_table.currentCellChanged.connect(lambda r, _c, _pr, _pc: self._load_panel(r))
         self.stage_table.itemChanged.connect(self._item_changed)
+        self.stage_table.moved.connect(self.move_row_to)              # 4.80.0: drag to reorder
+        self._stages_locked = False
         P.name.textEdited.connect(lambda _t: self._panel_changed())
         P.start.changed.connect(self._panel_changed); P.end.changed.connect(self._panel_changed)
         P.gate.currentIndexChanged.connect(lambda _i: self._panel_changed())
@@ -215,16 +242,17 @@ class StageTableMixin:
         cur = t.currentRow()
         self._loading = True
         clear_table(t)
+        from .stagesplan import passed_at
         for s in r.stages:
             self._stage_row(s["id"], s["name"], (s.get("planned", ""), s.get("planned_time", "")),
                             (s.get("planned_end", ""), s.get("planned_end_time", "")), r.gate_id(s), s["id"] == r.data["stage"],
-                            color=s.get("color", ""))
+                            color=s.get("color", ""), passed=passed_at(r, s))
         self._loading = False
         if t.rowCount():
             t.setCurrentCell(min(max(cur, 0), t.rowCount() - 1), 0)
         self._load_panel(t.currentRow())
 
-    def _stage_row(self, sid, name, start, end, gate, current=False, at=None, color=""):
+    def _stage_row(self, sid, name, start, end, gate, current=False, at=None, color="", passed=""):
         """start and end: (YYYY-MM-DD or '', HH:MM or '' or the time as typed)."""
         t = self.stage_table
         i = t.rowCount() if at is None else at
@@ -232,16 +260,16 @@ class StageTableMixin:
         self._loading = True
         t.insertRow(i)
         it = QTableWidgetItem(name); it.setData(Qt.UserRole, sid)
-        it.setToolTip("Double-click to rename" + (". The current stage" if current else ""))
+        it.setToolTip("Double-click to rename" + (". The current stage" if current else ". Drag to move it" if not passed else ""))
         it.setData(Qt.UserRole + 1, bool(current))
         tm = lambda x: nice_hm(x) if re.fullmatch(r"\d\d:\d\d", x or "") else (x or "")
         it.setData(self.VALS, {"start": (start[0] or "", tm(start[1] or "")), "end": (end[0] or "", tm(end[1] or "")),
-                               "gate": gate or "", "color": color or ""})
+                               "gate": gate or "", "color": color or "", "passed": passed or ""})
         if current:
             it.setForeground(D.color("accent"))
             f = it.font(); f.setBold(True); it.setFont(f)
         t.setItem(i, 0, it)
-        for c in (1, 2, 3, 4):
+        for c in (1, 2, 3):
             x = QTableWidgetItem(""); x.setFlags(x.flags() & ~Qt.ItemIsEditable); t.setItem(i, c, x)
         self._show_row(i)
         self._loading = was
@@ -254,11 +282,12 @@ class StageTableMixin:
     def _show_row(self, i):
         t = self.stage_table
         v = self._vals(i)
-        import stagecolors as SC
-        texts = (when_text(*v.get("start", ("", ""))), when_text(*v.get("end", ("", ""))),
-                 R.GATES.get(v.get("gate", ""), v.get("gate", "")), v.get("color", "") if v.get("color", "") in SC.NAMED else "Automatic")
-        for c, x in zip((1, 2, 3, 4), texts):
+        from .stagesplan import gate_short, passed_text
+        gate = passed_text(v.get("passed", "")) if v.get("passed") and v.get("gate") else gate_short(v.get("gate", ""))
+        texts = (when_text(*v.get("start", ("", ""))), when_text(*v.get("end", ("", ""))), gate)
+        for c, x in zip((1, 2, 3), texts):
             t.item(i, c).setText(x)
+        t.item(i, 3).setToolTip(R.GATES.get(v.get("gate", ""), "") + (f". {gate}" if v.get("passed") and v.get("gate") else ""))
 
     def _load_panel(self, i):
         P = self.stage_panel
@@ -266,10 +295,12 @@ class StageTableMixin:
         self._panel_row = i if ok else -1
         self._loading = True
         for w in (P.name, P.start, P.end, P.gate, P.color):
-            w.setEnabled(ok)
+            w.setEnabled(ok and not self._stages_locked)
         if ok:
             v = self._vals(i)
-            P.title.setText("The current stage" if self._is_current(i) else "The selected stage")
+            from .stagesplan import passed_text
+            P.title.setText("The current stage" if self._is_current(i) else
+                            (passed_text(self._vals(i).get("passed")) if self._vals(i).get("passed") else "The selected stage"))
             P.name.setText(self.stage_table.item(i, 0).text())
             P.start.set_value(*v["start"][:1]); P.start.time.setCurrentText(v["start"][1] or ANY)
             P.end.set_value(*v["end"][:1]); P.end.time.setCurrentText(v["end"][1] or ANY)
@@ -281,7 +312,7 @@ class StageTableMixin:
 
     def _panel_changed(self):
         i = self._panel_row
-        if self._loading or i < 0:
+        if self._loading or i < 0 or self._stages_locked:
             return
         P = self.stage_panel
         it = self.stage_table.item(i, 0)
@@ -289,7 +320,7 @@ class StageTableMixin:
         self._loading = True
         if P.name.text().strip():
             it.setText(P.name.text().strip())
-        it.setData(self.VALS, {"start": when(P.start), "end": when(P.end), "gate": P.gate.currentData() or "",
+        it.setData(self.VALS, {**self._vals(i), "start": when(P.start), "end": when(P.end), "gate": P.gate.currentData() or "",
                                "color": P.color.currentData() or ""})
         self._show_row(i)
         self._loading = False
@@ -299,7 +330,7 @@ class StageTableMixin:
         """4.78.0: Effort Settings keeps a change a moment later; the Edit stages window keeps it on Save."""
 
     def _item_changed(self, it):
-        if self._loading or it.column() != 0 or it.row() != self._panel_row:
+        if self._loading or it.column() != 0 or it.row() != self._panel_row or self._stages_locked:
             return
         self._loading = True
         self.stage_panel.name.setText(it.text())
@@ -337,42 +368,104 @@ class StageTableMixin:
         self._panel_changed()
         return self._stage_values(i)
 
-    def move_row(self, d):
+    def current_row(self):
+        """The row of the current stage (-1 when none is marked)."""
+        return next((i for i in range(self.stage_table.rowCount()) if self._is_current(i)), -1)
+
+    def why_not_move(self, i, j):
+        """4.80.0 (E3): '' when row i may go to row j, else why not. Passed stages and the current one keep their places:
+        a stage's place says whether it is passed, current or ahead."""
+        cur = self.current_row()
         t = self.stage_table
-        i = t.currentRow()
-        j = i + d
-        if i < 0 or not (0 <= j < t.rowCount()):
+        if self._stages_locked:
+            return "Only the proposal manager changes stages."
+        if not (0 <= i < t.rowCount() and 0 <= j < t.rowCount()) or i == j:
+            return "That is where it is."
+        if i <= cur:
+            return ("The current stage keeps its place; it moves on Overview." if i == cur else
+                    "A stage already passed keeps its place.")
+        if j <= cur:
+            return "A stage still ahead goes after the current stage."
+        return ""
+
+    def move_row(self, d):
+        return self.move_row_to(self.stage_table.currentRow(), self.stage_table.currentRow() + d)
+
+    def move_row_to(self, i, j):
+        """Move row i to row j (drag, or Earlier and Later), when why_not_move allows it."""
+        t = self.stage_table
+        why = self.why_not_move(i, j)
+        if why:
+            if why != "That is where it is.":
+                self.host.status(why)
             return False
         it = t.item(i, 0)
         sid, name, cur, v = it.data(Qt.UserRole), it.text(), self._is_current(i), self._vals(i)
         self._loading = True
         t.removeRow(i)
-        self._stage_row(sid, name, v["start"], v["end"], v["gate"], cur, at=j, color=v["color"])
+        self._stage_row(sid, name, v["start"], v["end"], v["gate"], cur, at=j, color=v["color"], passed=v.get("passed", ""))
         self._loading = False
         t.setCurrentCell(j, 0)
         self._load_panel(j)
         self._stages_changed()
         return True
 
-    def add_stage(self, name="New stage"):
-        i = self._stage_row(None, name, ("", ""), ("", ""), R.DEFAULT_STAGE_GATES.get(name, ""))
+    def add_stage(self, name="New stage", at=None):
+        """A new stage at the end, or at row at. Its gate is the team's default for that name (none unless set)."""
+        if self._stages_locked:
+            self.host.status("Only the proposal manager changes stages.")
+            return -1
+        i = self._stage_row(None, name, ("", ""), ("", ""), R.DEFAULT_STAGE_GATES.get(name, ""), at=at)
         self.stage_table.setCurrentCell(i, 0)
         self._load_panel(i)
         self._stages_changed()
         return i
+
+    def add_stage_here(self, name, rename=False):
+        """4.80.0 (E3) Add stage: after the selected stage, never before the current one (a new stage is still ahead)."""
+        t = self.stage_table
+        at = max(t.currentRow(), self.current_row()) + 1
+        i = self.add_stage(name, at=at if 0 < at < t.rowCount() else None)
+        if i >= 0 and rename:
+            self.stage_panel.name.setFocus(); self.stage_panel.name.selectAll()
+        return i
+
+    def confirm_remove(self, name, why):
+        """Asks before a stage with dates or a passed gate is removed (tests replace QMessageBox.question)."""
+        from PySide6.QtWidgets import QMessageBox
+        return QMessageBox.question(self, "Remove a stage", f"Remove {name}? It {why}. Its goals go with it.") == QMessageBox.Yes
 
     def remove_stage(self):
         t = self.stage_table
         i = t.currentRow()
         if i < 0:
             return False
+        if self._stages_locked:
+            self.host.status("Only the proposal manager changes stages.")
+            return False
         if self._is_current(i):
             self.host.status("The current stage cannot be removed.")
+            return False
+        v = self._vals(i)
+        dated = v.get("start", ("", ""))[0] or v.get("end", ("", ""))[0]
+        why = ("has a passed gate" if v.get("passed") and v.get("gate") else "") or ("has planned dates" if dated else "")
+        if why and not self.confirm_remove(t.item(i, 0).text(), why):
             return False
         t.removeRow(i)
         self._load_panel(t.currentRow())
         self._stages_changed()
         return True
+
+    def set_stages_locked(self, locked):
+        """4.80.0 (E3, decision 187): only the proposal manager changes the stages plan. Locked, the table and the panel
+        look unavailable; the rows can still be picked and read."""
+        self._stages_locked = bool(locked)
+        t = self.stage_table
+        t.setEditTriggers(QAbstractItemView.NoEditTriggers if locked else
+                          (QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed))
+        t.setDragEnabled(not locked)
+        t.setStyleSheet(f"color:{D.tokens()['muted']};" if locked else "")
+        self._load_panel(t.currentRow())
 
     def stage_problems(self):
         """Why the table cannot be saved ([] when it can): a time not understood, or a stage that ends before it starts."""
@@ -391,6 +484,9 @@ class StageTableMixin:
 
     def save_stages(self):
         r = self.rec
+        if self._stages_locked:
+            self.host.status("Only the proposal manager changes stages.")
+            return False
         bad = self.stage_problems()
         if bad:
             self.host.status("Not saved: " + "; ".join(bad) + ".")

@@ -136,7 +136,7 @@ TOPICS = [
   "The few facts that define the effort: what it is, who works on it, its stages, and where its files and rules come from.",
   "You set up the effort, change its type, team or stages, hand it to someone, or report status.",
   ["Four groups: Effort (with its type), People, Stages and reviews, Files and sources. Each value is kept as you change it.",
-   "+ Stage adds a stage. Files and sources: where it is saved, its volumes' template (Change...), its acronym sources.",
+   "Stages and reviews: the line of stages, then the table; Add stage adds a blank stage or a standard review; only the proposal manager changes them when one is named. Files and sources: where it is saved, its volumes' template (Change...), its acronym sources.",
    "Effort status (Word)... and Effort summary (Word)... make reports for a meeting.",
    "Save effort package... makes one .skpkg file with everything, for a teammate or a backup."],
   ["Backing up and putting an earlier copy back are on Effort Backup, at the foot of the menu. Settings > Efforts > "

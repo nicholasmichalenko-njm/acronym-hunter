@@ -125,6 +125,9 @@ p_ = hp.person()
 hp.for_box.setVisible(bool(p_)); hp.for_name.setText(f"{p_}: tasks and questions" if p_ else "")
 check("a picked person's name shows large at the top", hp.for_box.isVisibleTo(w) and hp.for_name.text().startswith("A. Lee"))
 # stages on Effort Home
+from skqt import modes as _modes
+check("4.80.0: with Dana Ruiz the proposal manager, someone else cannot open Edit stages", hp.edit_stages(run=False) is None)
+_modes.save(my_name="Dana Ruiz")                         # 4.80.0 (E3): only the proposal manager changes the stages plan
 sd = hp.edit_stages(run=False)
 sd.stage_table.item(1, 0).setText("Pink team")
 check("Edit stages on Effort Home saves the names", sd.save() and RR.Record(w.ws.root).stages[1]["name"] == "Pink team")

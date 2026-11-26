@@ -2426,7 +2426,10 @@ STAGES, GATES AND ROLES, DEADLINES INSIDE A STAGE, AND A VISIBLE SPLIT (2.93.0)
     (for example "Color team sign-off", held) with what it means, shown when someone hovers over it. Roles: what the
     role drop-downs offer (anyone can still type another). Efforts already started keep their own stages. A team pack
     can carry these and lock them.
-  - The stage table (Effort Record > Stages and gates, and Edit stages... on Effort Home): Stage, Starts, Ends, Gate.
+  - The stage table (Effort Settings > Stages and reviews, and Edit stages... on the Overview): Stage, Planned start,
+    Planned end, Gate (4.80.0). The line above it shows each stage with its planned dates, the current one outlined, and
+    "Gate passed" with its date. Add stage: a blank stage or a standard review. Drag a stage still ahead to move it.
+    When the effort names a proposal manager, only the proposal manager changes the stages.
     Click a date to pick it from a calendar (Clear the date takes it off); the time beside it is optional (without
     one a stage starts at the start of its day and ends at the end of it). A stage that ends before it starts is
     refused with the reason.

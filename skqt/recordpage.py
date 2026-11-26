@@ -128,12 +128,9 @@ class RecordPage(StageTableMixin, QWidget):
         self.stage_table.setMinimumHeight(240)
         self.stage_table.setContextMenuPolicy(Qt.CustomContextMenu)            # 3.75.0: act on the row
         self.stage_table.customContextMenuRequested.connect(lambda pos: self.stage_menu().exec(self.stage_table.viewport().mapToGlobal(pos)))
-        srow = QHBoxLayout()
-        self.stage_note = D.label("Pick a stage to change it beside the list. Right-click to move it or remove it. "
-                                  "The current stage moves on Overview.", "muted")
-        srow.addWidget(self.stage_note, 1)
-        srow.addWidget(D.button("+ Stage", None, lambda: self.add_stage(), "Add a stage after the last one"))
-        v.addLayout(srow)
+        from . import stagesplan as SP                       # 4.80.0 (E3): the line of stages, Add stage, who may change them
+        SP.build(self, v)
+        self.team_roles.on_change = self.apply_stage_plan
         v.addWidget(ed)
         self._stage_timer = QTimer(self); self._stage_timer.setSingleShot(True); self._stage_timer.setInterval(700)
         self._stage_timer.timeout.connect(self.keep_stages)
@@ -174,10 +171,12 @@ class RecordPage(StageTableMixin, QWidget):
     def stage_menu(self):
         from PySide6.QtWidgets import QMenu
         m = QMenu(self)
-        m.addAction("Earlier", lambda: self.move_row(-1))
-        m.addAction("Later", lambda: self.move_row(1))
+        i = self.stage_table.currentRow()
+        for text, d in (("Earlier", -1), ("Later", 1)):
+            a = m.addAction(text, lambda d=d: self.move_row(d)); a.setEnabled(not self.why_not_move(i, i + d))
         m.addSeparator()
-        m.addAction("Remove this stage", lambda: self.remove_stage())
+        a = m.addAction("Remove this stage", lambda: self.remove_stage())
+        a.setEnabled(not self._stages_locked and i >= 0 and not self._is_current(i))
         return m
 
     # ------------------------------------------------------------ the effort
@@ -225,6 +224,7 @@ class RecordPage(StageTableMixin, QWidget):
         self.sources.fill()
         self.fill_team(r)
         self.fill_stages(r)
+        self.apply_stage_plan()
         t = self.stage_table                                  # 4.78.0: every stage shows without scrolling the table
         t.setMinimumHeight(max(240, t.horizontalHeader().height() + sum(t.rowHeight(i) for i in range(t.rowCount()))
                                + t.horizontalScrollBar().sizeHint().height() + 8))
@@ -327,6 +327,19 @@ class RecordPage(StageTableMixin, QWidget):
             pass
         return True
 
+    def apply_stage_plan(self):
+        """4.80.0 (E3): fill the line of stages, and lock the plan for anyone but the proposal manager (anyone may
+        change it when none is named)."""
+        from . import stagesplan as SP
+        if self.host.ws is None:
+            return
+        r = self.rec
+        self.stages_line.fill(r)
+        ok, why = SP.can_edit(r, SP.my_name())
+        self.set_stages_locked(not ok)
+        self.add_stage_btn.setEnabled(ok)
+        self.stage_note.setText(why if not ok else SP.NOTE)
+
     def _stages_changed(self):
         """4.78.0: a stage changed in the table or the panel is kept a moment later (no Save stages button)."""
         self._stage_timer.start()
@@ -335,7 +348,7 @@ class RecordPage(StageTableMixin, QWidget):
         """Keep the stages as the table shows them, without filling the page again (the row being changed stays put).
         A time not understood, or a stage that ends before it starts, is said on the line under the heading."""
         h = self.host
-        if h.ws is None:
+        if h.ws is None or self._stages_locked:
             return False
         bad = self.stage_problems()
         if bad:
@@ -364,8 +377,9 @@ class RecordPage(StageTableMixin, QWidget):
             if it is not None and it.data(Qt.UserRole) != s["id"]:
                 it.setData(Qt.UserRole, s["id"])
         self._loading = was
-        self.stage_note.setText("Pick a stage to change it beside the list. Right-click to move it or remove it. "
-                                "The current stage moves on Overview.")
+        from .stagesplan import NOTE
+        self.stage_note.setText(NOTE)
+        self.stages_line.fill(r)
         diag.activity("qt_stages_saved")
         h.status("Stages kept.")
         return True

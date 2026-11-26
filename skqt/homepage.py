@@ -616,6 +616,11 @@ class HomePage(QWidget):
         """2.92.0: the stage table, here on Effort Home (the same as Effort Record's). run=False (tests): the dialog."""
         if self.host.ws is None:
             return None
+        from . import stagesplan as SP                       # 4.80.0 (E3): only the proposal manager changes the plan (187)
+        ok, why = SP.can_edit(R.Record(self.host.ws.root), self.my_name())
+        if not ok:
+            self.host.status(why)
+            return None
         from .stagesedit import StagesDialog
         dlg = StagesDialog(self)
         if not run:

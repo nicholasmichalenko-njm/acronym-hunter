@@ -71,8 +71,8 @@ check("a new effort starts with the team's stages and gates", [s["name"] for s i
 # the stage table
 rp = w.record_page; w.go("record"); app.processEvents()
 t = rp.stage_table
-check("the stage table: Stage, Starts, Ends, Gate; the Stage column is not stretched", [t.horizontalHeaderItem(c).text() for c in range(4)]
-      == ["Stage", "Starts", "Ends", "Gate"] and t.columnWidth(0) < 320, t.columnWidth(0))
+check("the stage table: Stage, Planned start, Planned end, Gate (4.80.0); the Stage column is not stretched", [t.horizontalHeaderItem(c).text() for c in range(4)]
+      == ["Stage", "Planned start", "Planned end", "Gate"] and t.columnWidth(0) < 320, t.columnWidth(0))
 t.setCurrentCell(0, 0); c0 = rp.stage_panel.start               # 3.82.0: the selected stage's panel
 check("an empty date says Not set, and its time waits for a date", c0.btn.text() == "Not set" and not c0.time.isEnabled())
 m = c0.pick(run=False)

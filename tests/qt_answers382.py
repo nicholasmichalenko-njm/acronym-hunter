@@ -64,7 +64,7 @@ check("the stage table is plain rows, no picker on any row", t.rowCount() == len
       and all(t.cellWidget(i, c) is None for i in range(t.rowCount()) for c in range(5)))
 rp.set_stage(2, start=("2030-03-02", "9:00 AM"), end=("2030-03-06", ""), gate="hard", name="Pink team")
 check("... the panel changes the selected row, and the row says it", t.item(2, 0).text() == "Pink team"
-      and t.item(2, 1).text() == "Mar 2, 2030, 9:00 AM" and t.item(2, 3).text() == RR.GATES["hard"], [t.item(2, c).text() for c in range(4)])
+      and t.item(2, 1).text() == "Mar 2, 2030, 9:00 AM" and t.item(2, 3).text() == "Hard", [t.item(2, c).text() for c in range(4)])
 t.setCurrentCell(0, 0); app.processEvents()
 check("... picking another stage shows it in the panel", rp.stage_panel.name.text() == rec.stages[0]["name"]
       and rp.stage_panel.start.value() == ("", ""))

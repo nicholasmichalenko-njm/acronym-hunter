@@ -2,6 +2,10 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.80.0": ["Effort Settings > Stages and reviews opens with the stages in a line across the top: each one with its planned dates, the current one outlined, and a passed gate with the date it was passed. Click a stage to pick it in the table.",
+               "The table shows Stage, Planned start, Planned end and Gate (None, Soft or Hard). Double-click a name to rename it; drag a stage still ahead to move it. A stage already passed and the current stage keep their places. Removing a stage with dates or a passed gate asks first.",
+               "Add stage adds a blank stage, or one of the standard reviews (Blue, Pink, Red, Green and Gold team, White glove) with a line on what each is for. It goes after the stage you picked.",
+               "When the effort names a proposal manager, only the proposal manager changes the stages, here and in Edit stages... on the Overview. With none named, anyone can."],
     "4.79.0": ["Start an effort asks two things: its name, and Saved in, the folder its own folder is made in. Nothing is guessed, and the Effort Backup folder cannot be picked. Effort Settings > Effort has Effort type and Response type, kept as you pick them; Effort Formatting no longer shows them. The effort types include RFQ response and Other. Files and sources has Template (Change... opens Setup's Templates for the volumes) and Acronym sources."],
     "4.78.0": ["Effort Settings is four plain groups: Effort, People, Stages and reviews, and Files and sources. There is no Save button: each field is kept as you change it.",
                "Customer, Solicitation number and Proposal due are one value each. Change one on Effort Settings, on Customer information or in Shred, and every place shows the new value.",
