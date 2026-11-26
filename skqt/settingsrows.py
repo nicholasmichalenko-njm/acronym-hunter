@@ -5,7 +5,7 @@ formatting page). Files and sources gains Template (what the effort's volumes ar
 Templates for the volumes) and Acronym sources (what an effort's acronyms are read against). Every change is kept
 when it is made and written to Effort Activity. The values are where they always were (the effort's prod_std and its
 template picks), so nothing the macros read changes. Rules only (No AI); nothing leaves the PC."""
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 import diag
 import prodrules as PRL
@@ -86,12 +86,12 @@ class TypeRows:
         self.resp.setToolTip("Style names follow it: a style named with RFP is named RFI in an RFI (Rule 4)")
         self.etype.activated.connect(lambda _i: self.type_picked())
         self.resp.activated.connect(lambda _i: self.response_picked())
-        tw = QWidget(); tv = QVBoxLayout(tw); tv.setContentsMargins(0, 0, 0, 0); tv.setSpacing(2)
-        tv.addWidget(self.etype)
+        for box in (self.etype, self.resp):
+            box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.brings = D.label("", "muted"); self.brings.setObjectName("typeBrings"); self.brings.setWordWrap(True)
-        tv.addWidget(self.brings)                         # 4.41.0: what the effort type starts with (was on the start form)
-        form.insertRow(at, "Effort type", tw)
-        form.insertRow(at + 1, "Response type", self.resp)
+        form.insertRow(at, "Effort type", self.etype)
+        form.insertRow(at + 1, "", self.brings)            # 4.41.0: what the effort type starts with (was on the start form)
+        form.insertRow(at + 2, "Response type", self.resp)
 
     def fill(self):
         h = self.host
@@ -110,6 +110,7 @@ class TypeRows:
             box.blockSignals(False)
         from .efforttplview import start_words
         said = start_words(h.config_dir, eid)
+        said = said if said.startswith("It starts with") else ""     # the how-to line names a window that is not on this page
         self.brings.setText(said); self.brings.setVisible(bool(said))
 
     def _after(self, what, value):

@@ -114,8 +114,8 @@ check("4.79.0: Effort type is on Effort Settings, Not set at first, with RFI and
       tr.etype.currentData() == "" and tr.etype.currentText() == "Not set" and {"RFI response", "RFQ response", "Other"} <= set(names)
       and "Program deliverables" not in names, names)
 fl = rp.findChildren(QFormLayout)[0]
-order = [fl.itemAt(i, QFormLayout.LabelRole).widget().text() for i in range(4) if fl.itemAt(i, QFormLayout.LabelRole)]
-check("... in the Effort group after the A number, with Response type below it", order == ["Effort name", "A number", "Effort type", "Response type"], order)
+order = [fl.itemAt(i, QFormLayout.LabelRole).widget().text() for i in range(5) if fl.itemAt(i, QFormLayout.LabelRole)]
+check("... in the Effort group after the A number, with Response type below it", [x for x in order if x] == ["Effort name", "A number", "Effort type", "Response type"], order)
 rfi = tr.etype.itemData(names.index("RFI response"))
 check("picking a type keeps it at once and writes it to Effort Activity", tr.type_picked(rfi)
       and (w.ws.get("prod_std", {}) or {}).get("effort_type") == rfi and any("Effort type: RFI response" in (e.get("text") or "")
