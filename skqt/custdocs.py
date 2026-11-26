@@ -998,7 +998,7 @@ class ImpactPage(QWidget):
 
 # ====================================================================== deliverables
 class DeliverablesPage(QWidget):
-    COLS = ["Deliverable", "Kind", "Owner", "Format", "Page limit", "Status", "Flags"]
+    COLS = ["Deliverable", "Kind", "Owner", "Format", "Page limit", "Status", "Flags", "Its file", "Next"]     # 4.81.0: Its file, Next
 
     def __init__(self, host):
         super().__init__()
@@ -1033,12 +1033,15 @@ class DeliverablesPage(QWidget):
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        for i, w in enumerate((0, 110, 140, 140, 110, 220, 160)):
+        for i, w in enumerate((0, 140, 110, 110, 80, 130, 110, 240, 130)):
             if i:
                 self.table.setColumnWidth(i, w)
         self.table.cellDoubleClicked.connect(lambda r, _c: self.open_deliverable(self.ids[r]))   # 3.62.0: its own page
         lv.addWidget(self.table, 1)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); lv.addLayout(row)
+        self.next_btn = D.button("", "primary", lambda: self.current() and self.act(self.current()))   # 4.81.0: the selected row's action
+        self.next_btn.hide(); row.addWidget(self.next_btn)
+        self.table.currentCellChanged.connect(lambda *_a: self.show_next())
         row.addWidget(D.button("Edit...", None, lambda: self.edit(self.current())))
         row.addWidget(D.button("Done for this stage", None, lambda: self.mark_stage()))
         row.addWidget(D.button("Delete...", "danger", lambda: self.remove(), "Delete this deliverable (Undo puts it back)"))
@@ -1064,6 +1067,18 @@ class DeliverablesPage(QWidget):
     def show_view(self, i):
         from . import delivextras as DX
         DX.show_view(self, i)
+
+    def show_next(self):
+        """4.81.0: the List view's button under the list is the selected row's one action."""
+        nx = (getattr(self, "nexts", {}) or {}).get(self.current()) or {}
+        self.next_btn.setText(nx.get("label", "")); self.next_btn.setToolTip(nx.get("tip", ""))
+        self.next_btn.setVisible(bool(nx.get("action")))
+        return nx.get("label", "")
+
+    def act(self, did, action=None, choose=None):
+        """4.81.0 (D2): the row's one action: Redline it, Make a Word file, Open the form, Attach a file..., Open in Outline."""
+        from . import delivact as DA
+        return DA.run(self, did, action, choose)
 
     def prepare_redline(self, doc_id):
         """4.25.3: Prepare for Redline, from the tile of a document that goes back redlined."""
@@ -1133,6 +1148,7 @@ class DeliverablesPage(QWidget):
         self.ctx = c = Ctx(h)
         rec = c.rec
         try:                                             # 4.25.3: documents that go back to the customer have their tiles
+            __import__("delivnext").take_wanted(rec, c.lib)    # 4.81.0: a file added from the Shred bar, attached once in Documents
             __import__("docreturn").sync(rec, c.lib)
         except Exception:
             diag.swallowed()
@@ -1153,7 +1169,16 @@ class DeliverablesPage(QWidget):
         import delivboard as DB
         M = h.review.M if h.review is not None else None
         rep = getattr(getattr(h.acronym_page, "session", None), "volume_report", None)
-        self.cards = DB.board(rec, rows, c.lib, vols, M, h.ws.root, rep)
+        from .delivact import copies
+        self.cards = DB.board(rec, rows, c.lib, vols, M, h.ws.root, rep, copies(h))
+        byid = {x["id"]: x.get("next") or {} for x in self.cards}
+        for i, did in enumerate(self.ids):                # 4.81.0 (D2): the kind's own name, its file, and the one action
+            nx = byid.get(did) or {}
+            self.table.setItem(i, 1, QTableWidgetItem(nx.get("kind", "")))
+            self.table.setItem(i, 7, QTableWidgetItem(nx.get("file_line", "")))
+            self.table.setItem(i, 8, QTableWidgetItem(nx.get("label", "")))
+        self.nexts = byid
+        self.show_next()
         if getattr(self, "order_mode", None) is not None and self.order_mode.currentIndex() == 1:   # 3.62.0: the team's order
             pos = {x: i for i, x in enumerate(self.ids)}
             self.cards.sort(key=lambda x: pos.get(x["id"], 0))

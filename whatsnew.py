@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.81.0": ["Each deliverable says what has to happen to it next, with one button for it: Make a Word file (a customer's PDF to redline or fill in), Redline it, Open the form, Attach a file..., or Open in Outline. A file we submit that is there says File is here. The card shows its kind (Document We Write, Form We Fill In, File We Submit, Redline We Return), its file or No file yet, the customer's reference and the due date. The List view has Its file and Next.",
+               "In Shred > Deliverables, once a deliverable is on the list the bar asks Its file: the document in Documents whose name matches (Enter), another one from Documents, Add a file now (it goes into Documents and is attached once it is in), or None yet.",
+               "Attach a file... picks from Documents. A form or a redline takes it as the customer's file and marks it Filled-in or Redlined Deliverable there. Open the form opens the file where it is; no copy is made."],
     "4.80.0": ["Effort Settings > Stages and reviews opens with the stages in a line across the top: each one with its planned dates, the current one outlined, and a passed gate with the date it was passed. Click a stage to pick it in the table.",
                "The table shows Stage, Planned start, Planned end and Gate (None, Soft or Hard). Double-click a name to rename it; drag a stage still ahead to move it. A stage already passed and the current stage keep their places. Removing a stage with dates or a passed gate asks first.",
                "Add stage adds a blank stage, or one of the standard reviews (Blue, Pink, Red, Green and Gold team, White glove) with a line on what each is for. It goes after the stage you picked.",

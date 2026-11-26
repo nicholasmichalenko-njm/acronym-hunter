@@ -3,8 +3,12 @@ Compliance pass's page and bar, skqt/comppass.py, with these buttons in place of
 Form We Fill In, File We Submit, Redline We Return on 1 to 4. A kind's key shows the name the app suggests on the bar,
 to change before Enter; a name already on the Deliverables list attaches to that row, a near one asks once (Attach or
 Add as new); pieces marked together are one deliverable. The bar names the deliverable a piece is on and opens its
-row. Key date sends the piece to the effort's calendar through the capture the Shred already has. Rules only; nothing
-leaves the PC."""
+row. Key date sends the piece to the effort's calendar through the capture the Shred already has. 4.81.0 (D2, decision
+176): once the row is made, the bar asks Its file: the document in Documents the app suggests (Enter), another one from
+Documents, Add a file now (through Documents' own Add, attached once it is in), or None yet. Rules only; nothing leaves
+the PC."""
+import os
+
 from PySide6.QtWidgets import QLabel, QLineEdit
 
 import custstruct as CS
@@ -34,12 +38,45 @@ def asking(page, rows):
     return a if a and a["ids"] == [it["id"] for it in rows] else None
 
 
+def file_asking(page, rows):
+    """4.81.0: the Its file question open for exactly the selected pieces, or None."""
+    a = getattr(page, "_deliv_file", None)
+    return a if a and a["ids"] == [it["id"] for it in rows] else None
+
+
+def _lib(page):
+    import docversions as DV
+    return DV.Library(page.host.ws.p("documents")).load()
+
+
+def _short(s, n=24):
+    s = " ".join((s or "").split())
+    return s if len(s) <= n else s[:n - 3].rstrip() + "..."
+
+
 def buttons(page, f, rows, M, it, one, col):
     """The pass's own buttons on the bar beside the piece. Returns "ask" when the bar holds only the name question."""
     from . import comppass as CP
     rec = CP.rec_of(page)
     f.kinds, f.on_list, f.keydate, f.before = {}, None, None, None
     f.name_edit, f.name_ok, f.attach, f.add_new = None, None, None, None
+    f.file_sugg, f.file_pick, f.file_add, f.file_none = None, None, None, None
+    fa = file_asking(page, rows)
+    if fa:                                                     # 4.81.0 (176): Its file, Enter takes the suggestion
+        lab = QLabel(f"{fa['name']} is on Deliverables. Its file:"); lab.setWordWrap(True)
+        col.addWidget(lab)
+        if fa.get("sugg"):
+            f.file_sugg = D.button(_short(fa["sugg_name"]) + "  Enter", "primary", lambda: file_take(page, "sugg"),
+                                   f"{fa['sugg_name']}, in Documents: its name matches the customer's words")
+            col.addWidget(f.file_sugg)
+        f.file_pick = D.button("A file in Documents...", None, lambda: file_take(page, "pick"), "Pick any document already in Documents")
+        f.file_add = D.button("Add a file now...", None, lambda: file_take(page, "add"),
+                              "It goes into Documents through Add, and is attached as soon as it is in")
+        f.file_none = D.button("None yet" + ("" if fa.get("sugg") else "  Enter"), None if fa.get("sugg") else "primary",
+                               lambda: file_take(page, "none"), "Usual for a document we write. Attach it later on Deliverables")
+        for b in (f.file_pick, f.file_add, f.file_none):
+            col.addWidget(b)
+        return "ask"
     a = asking(page, rows)
     if a and a.get("near"):                                    # a near match: asked once
         lab = QLabel(f"{DM.NAME[a['key']]}. Same as \"{a['near_name']}\" on the Deliverables list?"); lab.setWordWrap(True)
@@ -107,6 +144,7 @@ def mark(page, key, remove=None):
     """A kind's button or key. Pieces that all have the kind: off. A piece already on a deliverable: its kind changes.
     Otherwise the bar asks the name, suggested from the customer's words; Enter takes it."""
     from . import comppass as CP
+    page._deliv_file = None                                   # 4.81.0: a kind's key answers Its file with None yet
     M = CP.M_of(page)
     rows = page.selected() if M is not None and page.cx is None else []
     if not rows:
@@ -177,13 +215,69 @@ def take(page, how=""):
     for it in rows:
         DM.marks(M).pop(it["id"], None)
     did, made = DM.mark_many(rec, rows, a["key"], a["name"], who=who, to=to, refs=refs)
-    name = DM.DL.get(rec, did)["name"] if did else a["name"]
+    d = DM.DL.get(rec, did) if did else None
+    name = d["name"] if d else a["name"]
+    if d is not None and not to and made == "added" and not __import__("delivnext").has_file(d):   # 4.81.0 (176): a new row, then Its file
+        ask_file(page, rows, d)
     _finish(page, (f"Attached to {name} on the Deliverables list." if to else f"{DM.NAME[a['key']]}: {name} is on the Deliverables list."), len(rows))
     return "attached" if to else made
 
 
+def ask_file(page, rows, d):
+    import delivnext as DN
+    lib = _lib(page)
+    sugg = "" if DN.kind_key(d) == "write" else DN.suggest(lib, d)
+    page._deliv_file = {"ids": [it["id"] for it in rows], "did": d["id"], "name": d["name"], "sugg": sugg,
+                        "sugg_name": (lib.doc(sugg) or {}).get("name", "") if sugg else ""}
+    return page._deliv_file
+
+
+def file_take(page, how, choose=None, path=None, intake=True):
+    """Its file: "sugg" (Enter with a suggestion), "pick" (from Documents), "add" (a file from the PC, through Documents'
+    own Add), "none" (Enter without a suggestion). choose and path are for tests. Returns what was done."""
+    from . import comppass as CP
+    from . import delivact as DA
+    import delivnext as DN
+    fa = getattr(page, "_deliv_file", None)
+    if not fa:
+        return None
+    rec, lib = CP.rec_of(page), _lib(page)
+    msg, got = "", ""
+    if how == "sugg" and fa.get("sugg"):
+        got = DN.attach(rec, lib, fa["did"], fa["sugg"], who=_who()) and "attached"
+        msg = f"{fa['name']}: its file is {fa['sugg_name']}."
+    elif how == "pick":
+        doc_id = DA.pick_doc(page, lib, fa.get("sugg", ""), choose)
+        if not doc_id:
+            return None
+        got = DN.attach(rec, lib, fa["did"], doc_id, who=_who()) and "attached"
+        msg = f"{fa['name']}: its file is {lib.doc(doc_id).get('name', '')}."
+    elif how == "add":
+        if path is None:
+            from PySide6.QtWidgets import QFileDialog
+            path, _f = QFileDialog.getOpenFileName(page, f"The file for {fa['name']}", "", "Documents (*.docx *.pdf *.xlsx *.pptx *.doc *.xls);;Every file (*)")
+        if not path:
+            return None
+        DN.want(rec, fa["did"], path, who=_who())
+        got = "waiting"
+        msg = f"{fa['name']}: {os.path.basename(path)} goes into Documents now, and is its file once it is in."
+    else:
+        got, msg = "none", f"{fa['name']}: no file yet. Attach it on Deliverables when there is one."
+    page._deliv_file = None
+    diag.activity("deliverable_file_asked", how=got or how)
+    CP.done(page, msg)
+    page.view.setFocus()
+    if got == "waiting" and intake:
+        try:
+            page.host.go("library")
+            page.host.library_page.add([path])
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+    return got
+
+
 def cancel(page):
-    page._deliv_ask = None
+    page._deliv_ask = page._deliv_file = None
     _later(page)
     page.view.setFocus()
 

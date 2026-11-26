@@ -26,7 +26,15 @@ class Card(QFrame):
         top = QHBoxLayout(); v.addLayout(top)
         title = D.label(c["name"], "title"); title.setWordWrap(True); top.addWidget(title, 1)
         top.addWidget(D.Pill(HEALTH[c["health"]], TONE[c["health"]]), 0, Qt.AlignTop)
-        v.addWidget(D.label(f"{c['kind'] or 'Deliverable'}  ·  {c['owner'] or 'no owner'}  ·  {c['status']}", "muted"))
+        nx = c.get("next") or {}
+        v.addWidget(D.label(f"{nx.get('kind') or c['kind'] or 'Deliverable'}  ·  {c['owner'] or 'no owner'}  ·  {c['status']}", "muted"))
+        if nx:                                                        # 4.81.0 (D2): its file, reference, due date; one action
+            import delivnext as DN
+            self.next_line = D.label(DN.line(nx), None); self.next_line.setWordWrap(True); v.addWidget(self.next_line)
+            self.act = None
+            if nx.get("action"):
+                self.act = D.button(nx["label"], "primary", lambda: self.on_act and self.on_act(c["id"]), nx.get("tip", ""))
+                v.addWidget(self.act, 0, Qt.AlignLeft)
         if c["limit"] or c["pages"] is not None:
             bar = QProgressBar(); bar.setMaximumHeight(8); bar.setTextVisible(False)
             import subreq as SR
@@ -51,6 +59,7 @@ class Card(QFrame):
             v.addWidget(D.label("Nothing missing.", "muted"))
 
     on_open = None                                                    # 3.62.0: double-click opens its page
+    on_act = None                                                     # 4.81.0: the row's one action
 
     def mouseDoubleClickEvent(self, e):
         if e.button() == Qt.LeftButton and self.on_open is not None:
@@ -96,6 +105,7 @@ class Board(QWidget):
         for c in cards:
             w = Card(c, self.page.pick, current == c["id"])
             w.on_open = getattr(self.page, "open_deliverable", None)
+            w.on_act = getattr(self.page, "act", None)
             w.on_menu = getattr(self.page, "card_menu", None)
             self.cards[c["id"]] = w
             self.flow.addWidget(w)
@@ -135,19 +145,22 @@ class Detail(QScrollArea):
         top = QHBoxLayout(); self.v.addLayout(top)
         top.addWidget(D.label(c["name"], "title"), 1)
         top.addWidget(D.Pill(HEALTH[c["health"]], TONE[c["health"]]))
-        self.v.addWidget(D.label(f"{c['kind'] or 'Deliverable'}  ·  owner {c['owner'] or 'nobody yet'}  ·  {c['status']}"
+        nx = c.get("next") or {}
+        self.v.addWidget(D.label(f"{nx.get('kind') or c['kind'] or 'Deliverable'}  ·  owner {c['owner'] or 'nobody yet'}  ·  {c['status']}"
                                  + ("  ·  done for this stage" if c["done_here"] else ""), "muted"))
+        if nx:
+            import delivnext as DN
+            self.v.addWidget(D.label(DN.line(nx), None))
         row = FlowLayout(None, D.SPACE["s"]); self.v.addLayout(row)
-        row.addWidget(D.button("Open its page", "primary", lambda: pg.open_deliverable(c["id"]), "Everything about it (or double-click its card)"))
+        if nx.get("action"):                                 # 4.81.0 (D2): the row's one action leads
+            row.addWidget(D.button(nx["label"], "primary", lambda: pg.act(c["id"]), nx.get("tip", "")))
+        row.addWidget(D.button("Open its page", None if nx.get("action") else "primary", lambda: pg.open_deliverable(c["id"]), "Everything about it (or double-click its card)"))
         row.addWidget(D.button("Edit...", None, lambda: pg.edit(c["id"])))
         row.addWidget(D.button("Done for this stage", None, lambda: pg.mark_stage(c["id"])))
         if c["file"]:
             row.addWidget(D.button("Check this volume", None, lambda: pg.check_volume(c["id"]), "Submission check on its file"))
-        if c.get("doc_id"):                                  # 4.25.3: the customer document this goes back as
-            if c.get("returns") == "redline":
-                row.addWidget(D.button("Prepare for Redline", None, lambda: pg.prepare_redline(c["doc_id"]),
-                                       "A Word file of the customer's document to redline, with a reviewer's comments placed"))
-            row.addWidget(D.button("Open its document", "ghost", lambda: pg.open_document(c["doc_id"]), "Show it in Documents"))
+        if c.get("doc_id"):                                  # 4.25.3: the customer document this goes back as (4.81.0: Make a Word
+            row.addWidget(D.button("Open its document", "ghost", lambda: pg.open_document(c["doc_id"]), "Show it in Documents"))   # file is the row's action)
         # missing
         self.v.addWidget(D.SectionTitle("What is missing" if c["missing"] else "Nothing missing"))
         t = D.tokens()

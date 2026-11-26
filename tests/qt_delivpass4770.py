@@ -77,6 +77,10 @@ check("2 asks the name on the bar, suggested from the words; nothing is on the l
       and f.name_ok.text() == "Add to Deliverables  Enter" and not f.kinds and DL.items(rec()) == [], f.name_edit and f.name_edit.text())
 f.name_edit.setText("Cost Volume Form")
 QTest.keyClick(f.name_edit, Qt.Key_Return); app.processEvents(); fresh()
+f = bar()
+check("4.81.0: a new row, then the bar asks Its file; nothing in Documents matches, so Enter is None yet", f.file_none is not None
+      and f.file_none.text() == "None yet  Enter" and f.file_sugg is None)
+QTest.keyClick(pg.view, Qt.Key_Return); app.processEvents(); fresh()
 a = next(x for x in rows if x["id"] == a["id"])
 d = DL.of_piece(rec(), a["id"])
 check("Enter takes the name as changed", d is not None and d["name"] == "Cost Volume Form", d)

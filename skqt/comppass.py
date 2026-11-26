@@ -66,7 +66,7 @@ def apply(w, step):
         install(pg)
         if want:
             pg.focus = STEP_OF[step]
-            pg._cust_ask = pg._deliv_ask = None
+            pg._cust_ask = pg._deliv_ask = pg._deliv_file = None
             for name in ("shred_check", "queue_lbl", "reshred_btn"):
                 x = getattr(pg, name, None)
                 if x is not None:
@@ -503,6 +503,12 @@ def enter(page):
     rows = page.selected() if M is not None else []
     if getattr(page, "_cust_ask", None):
         return head_take(page)
+    if deliv(page) and getattr(page, "_deliv_file", None):             # 4.81.0: Its file: the suggestion, else None yet
+        DP = __import__("skqt.delivpass", fromlist=["x"])
+        fa = DP.file_asking(page, rows)
+        if fa:
+            return DP.file_take(page, "sugg" if fa.get("sugg") else "none")
+        page._deliv_file = None
     if deliv(page) and getattr(page, "_deliv_ask", None):              # 4.77.0: Enter takes the name, or Attach
         DP = __import__("skqt.delivpass", fromlist=["x"])
         return DP.take(page, "attach" if page._deliv_ask.get("near") else "")

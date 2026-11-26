@@ -85,7 +85,7 @@ check("the document's right-click opens its deliverable", "Open its deliverable"
 dp = w.deliverables_page; dp.refresh(); c = dp.pick(t["id"]); app.processEvents()
 from PySide6.QtWidgets import QPushButton
 btns = [b.text() for b in dp.detail.findChildren(QPushButton)]
-check("the tile offers Prepare for Redline and Open its document; it has no owner, and says so", "Prepare for Redline" in btns
+check("the tile offers Make a Word file (4.81.0: was Prepare for Redline) and Open its document; it has no owner, and says so", btns[:1] == ["Make a Word file"]
       and "Open its document" in btns and ("crit", "No owner") in c["missing"] and c["returns"] == "redline", (btns, c["missing"]))
 check("Prepare for Redline, from the tile: the document is the row", dp.prepare_redline(dC["id"]) and w.stack.currentWidget() is pp
       and pp.table.rowCount() == 1 and pp.table.item(0, 0).text() == "Model contract")

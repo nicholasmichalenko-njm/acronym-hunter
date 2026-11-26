@@ -2600,6 +2600,19 @@ BRANDED EFFORT HOME AND THE CALENDAR AS A FILE (2.88.0)
   - Calendar > Export...: every date the effort has, with its details, to Excel in the template's columns (it imports
     back) or to an Outlook calendar file (.ics).
 
+DELIVERABLES THAT ACT (4.81.0)
+  - Each card (and each row of the List view, in Its file and Next) says the deliverable's kind, its file or No file
+    yet, the customer's reference and the due date (its own, else the proposal's), and has one button for the next
+    thing to do, worked out from the kind and the file: Redline We Return and Form We Fill In with a PDF: Make a Word
+    file (Redlining's Prepare makes it, in the Redlines folder); then Redline it or Open the form, on that Word file; with
+    a Word or Excel file: Redline it or Open the form, on the file itself (no copy). File We Submit: File is here, or
+    Attach a file.... Document We Write: Open in Outline. No file: Attach a file..., which picks from Documents.
+  - Its state is worked out too: Nothing yet, or In work (it has our file, a Word copy was made, or its status moved on).
+  - Shred > Deliverables: once a mark puts a new row on the list, the bar asks Its file: the document in Documents
+    whose name matches (Enter takes it), A file in Documents..., Add a file now... (Documents' own Add; it is
+    attached when it is in) or None yet (Enter when nothing matches).
+  - The panel beside the board leads with the same button; Prepare for Redline there is now Make a Word file.
+
 DELIVERABLES BOARD (2.87.0)
   - Deliverables moved to the EFFORT group, right after Effort home. It opens as a board: one card per deliverable,
     the ones that need action first (no owner, over the page limit), then the ones that need attention, then the ones

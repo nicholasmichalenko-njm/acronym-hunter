@@ -42,7 +42,7 @@ def link_volume(d, heads):
     return ""
 
 
-def card(d, rows=(), lib=None, vols=(), rec=None, M=None, ctx_counts=None, awaiting=(), report=None):
+def card(d, rows=(), lib=None, vols=(), rec=None, M=None, ctx_counts=None, awaiting=(), report=None, copies=""):
     """Everything the board shows for one deliverable (a dict)."""
     st = DL.state(d, rows, lib, vols, rec)
     out = {"id": d["id"], "name": d.get("name", ""), "kind": d.get("kind", ""), "owner": d.get("owner", ""),
@@ -107,10 +107,12 @@ def card(d, rows=(), lib=None, vols=(), rec=None, M=None, ctx_counts=None, await
     if out["kind"] == "Volume" and out["file"] and not out["checked"]:
         m.append(("info", "Not in the latest Submission check"))
     out["health"] = "crit" if any(k == "crit" for k, _t in m) else "warn" if any(k == "warn" for k, _t in m) else "ok"
+    import delivnext as DN                            # 4.81.0 (D2): its kind, its file, and the one thing to do next
+    out["next"] = DN.next_of(d, lib, copies, out["volume"], DN.due_of(rec, d))
     return out
 
 
-def board(rec, rows=(), lib=None, vols=(), M=None, data_dir="", report=None):
+def board(rec, rows=(), lib=None, vols=(), M=None, data_dir="", report=None, copies=""):
     """[card] for every deliverable, the ones needing attention first, then in their order."""
     ctx_counts, awaiting = {}, []
     if data_dir:
@@ -124,7 +126,7 @@ def board(rec, rows=(), lib=None, vols=(), M=None, data_dir="", report=None):
             awaiting = CR.Review(data_dir).load().awaiting()
         except Exception:
             awaiting = []
-    cards = [card(d, rows, lib, vols, rec, M, ctx_counts, awaiting, report) for d in DL.items(rec)]
+    cards = [card(d, rows, lib, vols, rec, M, ctx_counts, awaiting, report, copies) for d in DL.items(rec)]
     rank = {"crit": 0, "warn": 1, "ok": 2}
     order = {c["id"]: k for k, c in enumerate(cards)}
     return sorted(cards, key=lambda c: (rank[c["health"]], order[c["id"]]))
