@@ -266,9 +266,11 @@ def file_take(page, how, choose=None, path=None, intake=True):
     CP.done(page, msg)
     page.view.setFocus()
     if got == "waiting" and intake:
-        try:
+        try:                                         # 4.83.0 (D3): the row comes in with its purpose and this deliverable
+            d = __import__("deliverables").get(rec, fa["did"]) or {}
+            mark = {"form": "fill", "file": "submit", "redline": "redline"}.get(DN.kind_key(d), "reference")
             page.host.go("library")
-            page.host.library_page.add([path])
+            page.host.library_page.add([path], preset={os.path.basename(path): {"role": mark, "deliverable": fa["did"]}})
         except Exception:  # noqa: BLE001
             diag.swallowed()
     return got

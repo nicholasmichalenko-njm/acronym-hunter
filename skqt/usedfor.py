@@ -1,8 +1,9 @@
-"""Used for and Source on Documents (4.25.2; claude/stationkeeper-documents-board-2026-11-12.html, step B; answers 4
-and 6). A document says what it is used for with marks, and may carry several: For the shred or Reference, and Return
-it, redlined or Filled-in Deliverable. No mark at all leaves it out. Source says whose it is, Customer or Internal; it
+"""Purpose and Source on Documents (4.25.2 as Used for; claude/stationkeeper-documents-board-2026-11-12.html, step B;
+answers 4 and 6; 4.83.0 in decision 216's words, step D3). A document says what it is for with marks, and may carry
+several (215): Customer document or Reference, and Form to fill in, File to submit or Redline to return, each of which
+points at a deliverable (asked: the suggestion, another, or New; delivdoor). No mark at all leaves it out. Source says whose it is, Customer or Internal; it
 comes from the folder the file is in and can be changed for one file. The marks drive the other screens: Shred offers
-the documents marked For the shred to extract, and the rest to read beside.
+the documents marked Customer document to extract, and the rest to read beside.
 
 The saved words do not change (role: matrix, context, reference, not_needed; category: customer, bidders, qa, ours,
 graphics and a team's own), so an effort made before reads the same; "returns" is a new key a document may carry.
@@ -10,11 +11,11 @@ Rules only (No AI); nothing leaves the PC."""
 import diag
 import docversions as DV
 
-FILTERS = (("shred", "For the shred"), ("returned", "Returned to the customer"))
+FILTERS = (("shred", "Customer document"), ("returned", "Returned to the customer"))
 
 
 def has(lib, d, key):
-    """The document carries the mark: shred, reference, redline, fill."""
+    """The document carries the mark: shred, reference, fill, submit, redline."""
     if key == "shred":
         return lib.role_of(d) == "matrix"
     if key == "reference":
@@ -26,9 +27,14 @@ def text_of(lib, d):
     return ", ".join(lib.marks_of(d))
 
 
-def toggle(page, key, ids=None, answer=None):
-    """Tick or untick a mark on the selected documents. For the shred and Reference take each other's place; unticking
-    the one a document has leaves it with no mark of that kind (left out of the shred and of search as context).
+DOOR = ("fill", "submit", "redline")
+
+
+def toggle(page, key, ids=None, answer=None, deliverable=None):
+    """Tick or untick a mark on the selected documents. Customer document and Reference take each other's place;
+    unticking the one a document has leaves it with no mark of that kind (left out of the shred and of search as
+    context). 4.83.0 (D3): ticking Form to fill in, File to submit or Redline to return on one document asks which
+    deliverable it is (deliverable, for tests: an id or "new"); on several, each takes its suggestion or a new one.
     Returns how many documents changed."""
     lib = page.lib
     ids = ids or page.selected_ids()
@@ -37,10 +43,16 @@ def toggle(page, key, ids=None, answer=None):
     first = lib.doc(ids[0])
     on = not has(lib, first, key)
     n = tiles = gone = 0
-    if not on and key in ("redline", "fill"):      # 4.29.2: the mark and the tile go together, asked first
+    if not on and key in DOOR:      # 4.29.2: the mark and the tile go together, asked first
         lose = _tiles_lost(page, lib, ids, key)
         if lose and not _proceed(page, lose, answer):
             return 0
+    pick = None
+    if on and key in DOOR and page.host.ws is not None:
+        if len(ids) == 1:
+            pick = deliverable if deliverable is not None else which_deliverable(page, lib, first, key)
+            if pick is None:
+                return 0
     for i in ids:
         d = lib.doc(i)
         if d is None:
@@ -48,19 +60,19 @@ def toggle(page, key, ids=None, answer=None):
         if key in ("shred", "reference"):
             want = {"shred": "matrix", "reference": "reference"}[key] if on else "not_needed"
             if DV.use_key(lib.role_of(d)) != want:
-                n += bool(lib.set_role(i, want, "Used for"))
+                n += bool(lib.set_role(i, want, "Purpose"))
         else:
             cur = lib.returns_of(d)
             new = cur + [key] if on and key not in cur else [k for k in cur if k != key or on]
             if new != cur:
                 n += bool(lib.set_returns(i, new))
             if on:
-                tiles += bool(_tile(page, lib, lib.doc(i), key))
+                tiles += bool(_tile(page, lib, lib.doc(i), key, pick if pick is not None else _auto(page, lib.doc(i), key)))
             else:
-                gone += bool(_drop(page, lib, i))
+                gone += bool(_drop(page, lib, i, key))
     diag.activity("library_used_for_set", n=n)
     more = ""
-    if key in ("redline", "fill"):       # 4.25.3: the tile on Deliverables
+    if key in DOOR:       # 4.25.3: the tile on Deliverables
         more = (f". {tiles} tile(s) made on Deliverables" if tiles else "") if on else (f". {gone} removed from Deliverables" if gone else "")
     page.host.toast(f"{n} document(s): " + ("" if on else "not ") + dict(MARKS)[key] + more)
     page.fill_tree(); page.fill()
@@ -72,33 +84,81 @@ def toggle(page, key, ids=None, answer=None):
 
 
 def split_uses(plan):
-    """4.61.0: a document added as a Redlined or Filled-in Deliverable is kept as Reference and carries the mark."""
+    """4.61.0: a document added as Form to fill in, File to submit or Redline to return is kept as Reference and carries
+    the mark."""
     for e in plan:
-        if e.get("role") in ("redline", "fill"):
+        if e.get("role") in DOOR:
             e["returns"], e["role"] = [e["role"]], "reference"
     return plan
 
 
 def after_added(page, plan, made):
-    """4.61.0: the marks chosen when the documents were added, and each one's tile on Deliverables. Returns how many."""
+    """4.61.0: the marks chosen when the documents were added, and each one's deliverable (4.83.0: the one picked in the
+    Deliverable field, or a new one; a file added for a Document We Write is attached to it). Returns how many."""
     n = 0
-    if isinstance(made, Exception) or page.host.ws is None or not any(e.get("returns") for e in plan):
+    if isinstance(made, Exception) or page.host.ws is None or not any(e.get("returns") or e.get("deliverable") for e in plan):
         return n
     try:
         import os
+        import delivdoor as DD
+        import delivnext as DN
         lib = DV.Library(page.lib.folder).load()
+        rec = _rec(page)
         for e in plan:
-            d = lib.doc_of_file(os.path.basename(e.get("path", ""))) if e.get("returns") and e.get("choice") != "skip" else None
+            if e.get("choice") == "skip" or not (e.get("returns") or e.get("deliverable")):
+                continue
+            d = lib.doc(e.get("made_doc")) if e.get("made_doc") else lib.doc_of_file(os.path.basename(e.get("path", "")))
             if d is None:
                 continue
-            new = [k for k in dict.fromkeys(lib.returns_of(d) + e["returns"])]
-            lib.set_returns(d["id"], new)
-            for k in e["returns"]:
-                _tile(page, lib, lib.doc(d["id"]), k)
+            did = e.get("deliverable")
+            for k in e.get("returns") or []:
+                DD.link(rec, lib, d["id"], k, did if did and k == e["returns"][0] else DD.NEW)
+            if did and did != DD.NEW and not e.get("returns"):
+                DN.attach(rec, lib, did, d["id"])
             n += 1
     except Exception:  # noqa: BLE001
         diag.swallowed()
     return n
+
+
+def _auto(page, d, key):
+    """Several documents at once: each takes the deliverable the app suggests for it, or a new one."""
+    try:
+        import delivdoor as DD
+        return DD.default(_rec(page), d.get("name", ""), key)
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return "new"
+
+
+def which_deliverable(page, lib, d, key, run=True):
+    """4.83.0 (D3): which deliverable this document is, asked when one document is given Form to fill in, File to submit
+    or Redline to return: the app's suggestion first, the others of that kind, New. Returns an id, "new", or None when
+    cancelled. run False (tests): the window, not shown."""
+    import delivdoor as DD
+    from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFormLayout
+    rec = _rec(page)
+    sugg = DD.suggest(rec, d.get("name", ""), key)
+    opts = DD.options(rec, key)
+    if not opts:
+        return DD.NEW
+    dlg = QDialog(page); dlg.setWindowTitle(f"{d.get('name', '')}: {dict(MARKS)[key]}")
+    f = QFormLayout(dlg)
+    cb = QComboBox()
+    if sugg:
+        cb.addItem(dict(opts).get(sugg, "") + "  (suggested)", sugg)
+    for did, words in opts:
+        if did != sugg:
+            cb.addItem(words, did)
+    cb.addItem("New deliverable", DD.NEW)
+    f.addRow("Deliverable:", cb)
+    bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+    bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
+    f.addRow(bb)
+    dlg.cb = cb
+    if not run:
+        return dlg
+    return cb.currentData() if dlg.exec() == QDialog.Accepted else None
 
 
 def _rec(page):
@@ -112,7 +172,8 @@ def _tiles_lost(page, lib, ids, key):
         import docreturn as DR
         rec = _rec(page)
         return [d["name"] for d in (lib.doc(i) for i in ids)
-                if d is not None and lib.returns_of(d) == [key] and DR.tile_of(rec, d["id"]) is not None]
+                if d is not None and DR.tile_of(rec, d["id"], key) is not None and not DR.tile_of(rec, d["id"], key).get("shred_kind")
+                and (key == "submit" or not [m for m in lib.returns_of(d) if m in DR.CUSTOMER_MARKS and m != key])]
     except Exception:  # noqa: BLE001
         diag.swallowed()
         return []
@@ -132,21 +193,21 @@ def _proceed(page, names, answer=None):
     return box.clickedButton() is yes
 
 
-def _drop(page, lib, doc_id):
+def _drop(page, lib, doc_id, key=None):
     try:
         import docreturn as DR
-        return DR.drop_tile(_rec(page), lib, doc_id)
+        return DR.drop_tile(_rec(page), lib, doc_id, mark=key)
     except Exception:  # noqa: BLE001
         diag.swallowed()
         return False
 
 
-def _tile(page, lib, d, key):
-    """The document's tile on Deliverables (4.25.3). True when one was made now."""
+def _tile(page, lib, d, key, did=None):
+    """The document's deliverable (4.25.3; 4.83.0: did, the one picked). True when one was made now."""
     try:
         import docreturn as DR
         import effortrec as RR
-        _t, made = DR.ensure_tile(RR.Record(page.host.ws.root), lib, d, key)
+        _t, made = DR.ensure_tile(RR.Record(page.host.ws.root), lib, d, key, did=did)
         return made
     except Exception:  # noqa: BLE001
         diag.swallowed()
@@ -168,13 +229,14 @@ def open_tile(page, d):
     return t["id"]
 
 
-MARKS = (("shred", "For the shred"), ("reference", "Reference"), ("redline", "Redlined Deliverable"), ("fill", "Filled-in Deliverable"))
+MARKS = (("shred", "Customer document"), ("reference", "Reference"), ("fill", "Form to fill in"), ("submit", "File to submit"),
+         ("redline", "Redline to return"))
 
 
 def menu(page, m, d):
-    """The Used for and Source parts of a document's right-click menu."""
+    """The Purpose and Source parts of a document's right-click menu."""
     lib = page.lib
-    um = m.addMenu("Used for")
+    um = m.addMenu("Purpose")
     for k, n in MARKS:
         a = um.addAction(n, lambda k=k: toggle(page, k)); a.setCheckable(True); a.setChecked(has(lib, d, k))
         if k == "reference":

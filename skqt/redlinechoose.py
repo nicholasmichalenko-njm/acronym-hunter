@@ -53,7 +53,7 @@ class ChooseDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Choose a document"); self.setMinimumWidth(480)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("The effort's PDFs and pictures. The one you pick is marked Redlined Deliverable.", "muted"))
+        v.addWidget(D.label("The effort's PDFs and pictures. The one you pick is marked Redline to return.", "muted"))
         self.list = QListWidget(); v.addWidget(self.list)
         for did, name, fname in rows:
             it = QListWidgetItem(f"{name}   ({fname})"); it.setData(Qt.UserRole, did); self.list.addItem(it)

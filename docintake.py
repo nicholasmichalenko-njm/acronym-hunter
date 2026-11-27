@@ -157,6 +157,8 @@ def check(lib, entries):
             continue
         if e.get("category", "customer") != "customer":     # 2.83.0: only customer documents need an initial and type
             continue
+        if e.get("role", "matrix") not in ("matrix", None):    # 4.83.0 (decision 187): only a Customer document is asked;
+            continue                                       # the others keep the initial and type the app suggested
         ini = DV.clean_initial(e.get("initial", ""))
         name = os.path.basename(e["path"])
         if not ini:
@@ -206,6 +208,7 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
             res = RP.replace(lib.data_dir, lib, e["doc"], new_path=src, reader=lambda _p, s=e["sents"]: s)
             if res is not None:
                 made.append((res["doc"], res["version"]))
+                e["made_doc"] = res["doc"]["id"]          # 4.83.0: the document each row became (its deliverable follows)
                 if log is not None:
                     log("customer", f"{res['doc']['name']}: {res['version'].get('label', '')} replaced ({os.path.basename(src)}); "
                         "the old file is in the Trash", {"version": res["version"]["id"]})
@@ -244,6 +247,7 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
         if e.get("sensitivity", -1) > d.get("sensitivity", -1):     # 2.97.0: the highest level found in its versions
             d["sensitivity"] = e["sensitivity"]
         batch_doc[k] = d["id"]
+        entries[k]["made_doc"] = d["id"]
         made.append((d, v))
     if made:
         lib.save()                                       # 2.83.0: once for the batch, not once per file

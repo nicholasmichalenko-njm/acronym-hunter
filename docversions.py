@@ -19,6 +19,7 @@ import datetime, difflib, getpass, hashlib, json, os, re, uuid
 from docpaths import PathsMixin                    # 3.78.0: where the files are (effort and Library folders)
 
 VERSION_WORDS = re.compile(
+    r"(?<![a-z])(?:amend(?:ment)?|amd|mod(?:ification)?)[\s_.-]*(?:no\.?\s*)?\d{4}(?![a-z0-9])|"     # 4.83.0: Amendment 0002
     r"(?<![a-z])(?:amend(?:ment)?|amd|mod(?:ification)?|ver(?:sion)?|v|r)[\s_.-]*(?:no\.?\s*)?\d{1,3}(?![a-z])|"
     r"(?<![a-z])rev(?:ision)?[\s_.-]*(?:\d{1,3}|[a-z])?(?![a-z])|"
     r"(?<![a-z])(?:draft|final|updated?|conformed|clean|redline|copy)(?![a-z])|\(\d+\)|"

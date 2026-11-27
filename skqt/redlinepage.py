@@ -84,7 +84,7 @@ class PreparePage(QWidget):
         self.table.customContextMenuRequested.connect(lambda pos: self.row_menu(self.table.rowAt(pos.y()), self.table.viewport().mapToGlobal(pos)))
         v.addWidget(self.table, 1)
         # 4.59.2 (decision 226): one line and one button; the how-to is in the Guide
-        self.empty = D.EmptyState("No document is marked Redlined Deliverable.", "", "Choose a document...",
+        self.empty = D.EmptyState("No document is marked Redline to return.", "", "Choose a document...",
                                   lambda: __import__("skqt.redlinechoose", fromlist=["x"]).choose(self))
         v.addWidget(self.empty, 1); self.empty.hide()      # 4.62.0: in the middle of the page
         self.rows = []
@@ -118,7 +118,7 @@ class PreparePage(QWidget):
         if self.rows and select is None:
             self.table.selectRow(keep if 0 <= keep < len(self.rows) else 0)
         self.table.setVisible(bool(self.rows)); self.empty.setVisible(not self.rows); self.bar.setVisible(bool(self.rows)); self.say.setVisible(bool(self.rows))
-        self.say.setText(f"{len(self.rows)} document(s) marked Redlined Deliverable, {done} prepared. Prepared files go to "
+        self.say.setText(f"{len(self.rows)} document(s) marked Redline to return, {done} prepared. Prepared files go to "
                          "the effort's Redlines folder." if self.rows else "")
 
     def select(self, doc_id):

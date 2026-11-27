@@ -121,7 +121,7 @@ def status(page, d, st=None):
                     WARN if (not opened or left) else OK))
     role = lib.role_of(d)
     marks = ", ".join(lib.marks_of(d))
-    out.append(("Used for", marks or "No mark: left out", OK if marks else NONE))
+    out.append(("Purpose", marks or "No mark: left out", OK if marks else NONE))
     try:
         import ctxdocs as CX
         nt = len(CX.Store(page.host.ws.root).load().of_doc(d["id"]))

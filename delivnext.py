@@ -160,8 +160,8 @@ def slot_of(d):
 
 def attach(rec, lib, did, doc_id, who=None):
     """Point the deliverable at a document in Documents. A form or a redline takes it as the customer's file and the
-    document is marked Filled-in or Redlined Deliverable (the 4.25.3 link, both ways); anything else as ours. Returns
-    the slot, or ""."""
+    document is given the purpose Form to fill in or Redline to return (the 4.25.3 link, both ways); anything else as
+    ours, and a File We Submit's document File to submit (4.83.0). Returns the slot, or ""."""
     d = DL.get(rec, did)
     doc = lib.doc(doc_id) if lib is not None and doc_id else None
     if d is None or doc is None:
@@ -175,6 +175,8 @@ def attach(rec, lib, did, doc_id, who=None):
         have = lib.returns_of(doc)
         if MARK[k] not in have:
             lib.set_returns(doc_id, have + [MARK[k]])
+    elif kind_key(d) == "file" and "submit" not in lib.returns_of(doc):     # 4.83.0: and the file's purpose, File to submit
+        lib.set_returns(doc_id, lib.returns_of(doc) + ["submit"])
     d.pop("file_wanted", None)
     rec.log("deliverable", f"{d['name']}: its file is {doc.get('name', '')}", ref={"deliverable": did}, who=who)
     rec.save()

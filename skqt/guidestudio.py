@@ -198,7 +198,7 @@ REDLINE = ("redline", "The effort", "Redlining",
   "changes and Word comments; checked word for word; and the exceptions table from the redline.",
   "When the customer issues a draft RFP, Q&A, the final RFP's terms, an amendment or a model contract to comment on, "
   "or a reviewer sends back a commented PDF.",
-  ["Prepare: every document marked Redlined Deliverable is a row (Documents, right-click > Used for). Redlining is "
+  ["Prepare: every document marked Redline to return is a row (Documents, right-click > Purpose). Redlining is "
    "in the menu below the steps; the document's tile on Deliverables also opens it. With none marked, Choose a "
    "document... lists the effort's PDFs and pictures; the one you pick is marked. Press Prepare on its row. The Word file keeps the pictures, "
    "the headers and footers, the fonts and the tables, as text that flows; it goes to the effort's Redlines folder. "

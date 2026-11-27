@@ -39,182 +39,7 @@ def _item(text, data=None, tip=""):
     return it
 
 
-# ====================================================================== the review table
-class IntakeDialog(QDialog):
-    """One table for every file before anything is added: what it is (new, a version of one here, skip), its category,
-    folder, role, and for customer documents its initial and type. Rows can be set many at a time."""
-
-    def __init__(self, parent, plan, lib):
-        super().__init__(parent)
-        self.setWindowTitle(f"Add {len(plan)} document(s) to the library")
-        self.resize(1320, 720)
-        self.plan, self.lib = plan, lib
-        v = QVBoxLayout(self)
-        new = sum(1 for e in plan if not e.get("dup"))
-        v.addWidget(D.label(f"{new} new file(s), {len(plan) - new} already here. Each file's source comes from the folders "
-                            "it was in; what it is used for from its source and type; a match to a document already here makes it a "
-                            "new version. Change anything, for one row or many (select rows, then Source or Used for), then Add. Customer "
-                            "documents need an initial and a type (the initial starts each requirement's reference).", "muted"))
-        bulk = QHBoxLayout(); v.addLayout(bulk)
-        bulk.addWidget(D.label("Selected rows:", "label", wrap=False))
-        self.b_cat = QComboBox(); self.b_cat.addItem("Source...", "")       # 4.25.2: Source and Used for, for many rows at once
-        for k, _n in lib.categories():
-            self.b_cat.addItem(DV.source_name(lib, k), k)
-        self.b_cat.activated.connect(lambda _i: self.set_rows(category=self.b_cat.currentData()))
-        bulk.addWidget(self.b_cat)
-        self.b_role = QComboBox(); self.b_role.addItem("Used for...", "")
-        for k, n in DV.ADD_USES:
-            self.b_role.addItem(n, k)
-        self.b_role.activated.connect(lambda _i: self.set_rows(role=self.b_role.currentData()))
-        bulk.addWidget(self.b_role)
-        bulk.addWidget(D.button("Skip them", None, lambda: self.set_rows(skip=True)))
-        bulk.addWidget(D.button("Select all", "ghost", lambda: self.table.selectAll()))
-        bulk.addStretch(1)
-        self.count = D.label("", "muted", wrap=False); bulk.addWidget(self.count)
-        cols = ["File", "From folder", "What it is", "Source", "Used for", "Initial", "Type", "Name", "Tags"]
-        self.table = QTableWidget(len(plan), len(cols))
-        self.table.setHorizontalHeaderLabels(cols)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        for c, wdt in enumerate((220, 170, 260, 150, 140, 60, 110, 180, 200)):
-            self.table.setColumnWidth(c, wdt)
-        self.rows = []
-        for i, e in enumerate(plan):
-            self.table.setItem(i, 0, _item(os.path.basename(e["path"]), tip=e["path"]))
-            self.table.setItem(i, 1, _item(e.get("folder", "") or "(the files picked)"))
-            what = QComboBox()
-            if e.get("dup"):
-                how = "  (the same text)" if e.get("dup_how") else ""
-                what.addItem(f"Already here: {e['dup'][0]['name']}{how}", ("skip", None))
-                if e.get("dup_how") and e["dup"][0].get("id"):            # 3.15.1: same words, other bytes: add only if asked
-                    what.addItem(f"Add it anyway as a new version of {e['dup'][0]['name']}", ("version", e["dup"][0]["id"]))
-            else:
-                what.addItem("A new document", ("new", None))
-                if e.get("replace_of"):                    # 4.17.0: read before from this very file
-                    rd = lib.doc(e["replace_of"])
-                    if rd is not None:
-                        what.addItem(f"The same document, edited: replace the file of {rd['name']}", ("replace", rd["id"]))
-                for d, _sc, how in e.get("cands", [])[:6]:
-                    what.addItem(f"A new version of {d['name']}  ({how})", ("version", d["id"]))
-                what.addItem("Skip it", ("skip", None))
-                if e["choice"] in ("version", "replace") and e.get("doc"):
-                    what.setCurrentIndex(max(0, next((k for k in range(what.count()) if what.itemData(k) == (e["choice"], e["doc"])), 0)))
-            cat = QComboBox()
-            for k, _n in lib.categories():
-                cat.addItem(DV.source_name(lib, k), k)
-            cat.setCurrentIndex(max(0, cat.findData(e.get("category", "customer"))))
-            role = QComboBox()
-            for k, n in DV.ADD_USES:
-                role.addItem(n, k)
-            role.setCurrentIndex(max(0, role.findData(DV.use_key(e.get("role") or "matrix"))))
-            ini = QLineEdit(e.get("initial", "")); ini.setMaxLength(6)
-            ini.setProperty("sk_typed", False)                 # 2.94.0: the initial follows the type until you type one
-            ini.textEdited.connect(lambda t, w=ini: w.setProperty("sk_typed", bool(t.strip())))
-            ty = type_box(e.get("type", ""))
-            name = QLineEdit(e.get("name", ""))
-            tags = QLineEdit(", ".join(e.get("tags", []))); tags.setToolTip("Comma between tags; the folder names are always tags")
-            for c, w in ((2, what), (3, cat), (4, role), (5, ini), (6, ty), (7, name), (8, tags)):
-                self.table.setCellWidget(i, c, w)
-            row = {"what": what, "cat": cat, "role": role, "ini": ini, "ty": ty, "name": name, "tags": tags}
-            self.rows.append(row)
-            what.currentIndexChanged.connect(lambda _k, r=i: self._changed(r))
-            cat.currentIndexChanged.connect(lambda _k, r=i: self._cat_changed(r))
-            ty.currentTextChanged.connect(lambda _t, r=i: self._type_changed(r))
-            self._changed(i)
-        v.addWidget(self.table, 1)
-        self.problem = D.label("", "crit"); self.problem.hide(); v.addWidget(self.problem)
-        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        bb.button(QDialogButtonBox.Ok).setText("Add")
-        bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
-        v.addWidget(bb)
-        self.show_count()
-
-    def _changed(self, r):
-        w = self.rows[r]
-        kind = (w["what"].currentData() or ("",))[0]
-        new = kind == "new"
-        cust = w["cat"].currentData() == "customer"
-        for k in ("cat", "role", "name", "tags"):
-            w[k].setEnabled(new)
-        w["ini"].setEnabled(new and cust); w["ty"].setEnabled(new and cust)
-        if kind == "version":
-            d = self.lib.doc(w["what"].currentData()[1])
-            if d is not None:
-                w["cat"].setCurrentIndex(max(0, w["cat"].findData(d.get("category", "customer"))))
-                w["ini"].setText(d.get("initial", ""))
-        self.show_count()
-
-    def _cat_changed(self, r):
-        w = self.rows[r]
-        cat = w["cat"].currentData()
-        cust = cat == "customer"
-        w["role"].setCurrentIndex(max(0, w["role"].findData(DV.use_key(DV.suggest_role(cat, w["ty"].currentText() if cust else "")))))
-        if cust and not w["ini"].text().strip():
-            taken = [x["ini"].text().strip() for k, x in enumerate(self.rows) if k != r]
-            w["ini"].setText(self.lib.suggest_initial(w["ty"].currentText(), taken))
-        self._changed(r)
-
-    def _type_changed(self, r):
-        w = self.rows[r]
-        if w["cat"].currentData() == "customer":
-            w["role"].setCurrentIndex(max(0, w["role"].findData(DV.use_key(DV.suggest_role("customer", w["ty"].currentText())))))
-            e = self.plan[r]
-            if not w["ini"].property("sk_typed"):
-                taken = [x["ini"].text().strip() for k, x in enumerate(self.rows) if k != r]
-                e["initial"] = self.lib.suggest_initial(w["ty"].currentText(), taken)
-                w["ini"].setText(e["initial"])
-
-    def selected_rows(self):
-        return sorted({ix.row() for ix in self.table.selectionModel().selectedRows()})
-
-    def set_rows(self, category="", role="", skip=False, rows=None):
-        """Set many rows at once (the selected ones)."""
-        rows = self.selected_rows() if rows is None else rows
-        for r in rows:
-            w = self.rows[r]
-            if skip:
-                w["what"].setCurrentIndex(w["what"].count() - 1)
-                continue
-            if (w["what"].currentData() or ("",))[0] != "new":
-                continue
-            if category:
-                w["cat"].setCurrentIndex(max(0, w["cat"].findData(category)))
-            if role:
-                w["role"].setCurrentIndex(max(0, w["role"].findData(DV.use_key(role))))
-        self.b_cat.setCurrentIndex(0); self.b_role.setCurrentIndex(0)
-        self.show_count()
-        return len(rows)
-
-    def show_count(self):
-        if not hasattr(self, "count"):
-            return
-        adding = sum(1 for w in self.rows if (w["what"].currentData() or ("skip",))[0] != "skip")
-        self.count.setText(f"{adding} to add")
-
-    def accept(self):
-        problems = DI.check(self.lib, self.result_plan())
-        if problems:
-            self.problem.setText("Before adding: " + " ".join(problems[:6]) + (" ..." if len(problems) > 6 else ""))
-            self.problem.show()
-            return
-        super().accept()
-
-    def result_plan(self):
-        for e, w in zip(self.plan, self.rows):
-            choice, doc = w["what"].currentData()
-            e["choice"], e["doc"] = choice, doc
-            if e.get("dup_how") and choice == "version":                 # 3.15.1: the person chose to add it anyway
-                e["dup"] = None
-            if w["cat"].currentData() != e.get("category"):       # a new category suggests its own role
-                e["suggested_role"] = DV.suggest_role(w["cat"].currentData(), w["ty"].currentText() if w["cat"].currentData() == "customer" else "")
-            e["category"] = w["cat"].currentData()
-            e["role"] = w["role"].currentData()
-            e["initial"] = DV.clean_initial(w["ini"].text()) if e["category"] == "customer" else ""
-            e["type"] = w["ty"].currentText() if e["category"] == "customer" else ""
-            e["name"] = w["name"].text().strip() or e.get("name", "")
-            e["tags"] = DV.clean_tags([t for t in w["tags"].text().split(",")])
-        return self.plan
+from .intakedialog import IntakeDialog     # 4.83.0: Documents > Add, its own module  # noqa: E402,F401
 
 
 # ====================================================================== the page
@@ -1035,9 +860,11 @@ class LibraryPage(QWidget):
             return None
         return self.add([p for p, _r in found], folders=dict(found), **kw)
 
-    def add(self, paths=None, folders=None, category=None, choices=None, reader=None, edited="replace", by_likeness=True):
+    def add(self, paths=None, folders=None, category=None, choices=None, reader=None, edited="replace", by_likeness=True, preset=None):
         """Read the files in the background (progress, Stop), then the review table, then add them (also in the
-        background). choices (tests): {file name: changes} applied instead of the table; returns the worker."""
+        background). choices (tests): {file name: changes} applied instead of the table; returns the worker.
+        preset (4.83.0): {file name: {"role", "deliverable"}} set on a new file's row before the table shows (the Shred
+        bar's Add a file now: its purpose, and the deliverable it is the file of)."""
         if self.lib is None or self.running():
             if self.running():
                 self.host.status("Documents are being read: wait for it, or press Stop.")
@@ -1050,6 +877,7 @@ class LibraryPage(QWidget):
         self._ask_pkg = choices is None                   # 4.29.1: the person's own add asks which package; a folder's does not
         lib, rd = self.lib, reader or DI.read
         self._choices = choices
+        self._preset = preset or {}
         # 4.17.0: edited "replace": Add files and a drop (the person edited the file); the watch passes "version"
         self.worker = JobWorker(lambda prog, stop: DI.plan(lib, list(paths), rd, prog, stop, folders, category, edited, by_likeness))
         self.worker.progress.connect(self.panel.step)
@@ -1079,10 +907,14 @@ class LibraryPage(QWidget):
                               "Try fewer files, or Help > Create a support file and send it in.")
             return
         plan = res
+        for e in plan:                                   # 4.83.0: a file added for a deliverable
+            pre = getattr(self, "_preset", {}).get(os.path.basename(e["path"]))
+            if pre and e["choice"] == "new" and not e.get("dup"):
+                e.update(pre)
         choices = getattr(self, "_choices", None)
         if choices is None:
             self.panel.done("Read", f"{len(plan)} file(s) read. Check them in the table.")
-            dlg = IntakeDialog(self, plan, self.lib)
+            dlg = IntakeDialog(self, plan, self.lib, self.effort_rec())
             if dlg.exec() != QDialog.Accepted:
                 self.lock(False)
                 self.panel.stopped("Nothing added", "You closed the table without adding.", "")
@@ -1169,6 +1001,18 @@ class LibraryPage(QWidget):
         if first is not None:
             self.table.scrollToItem(first)
         return sum(1 for r in range(self.table.rowCount()) if self.table.item(r, 0) and self.table.item(r, 0).isSelected())
+
+    def effort_rec(self):
+        """The open effort's record (its deliverables), or None in a program or with nothing open."""
+        h = self.host
+        try:
+            if h.ws is None or __import__("skqt.programsview", fromlist=["x"]).is_open(h):
+                return None
+            import effortrec as RR
+            return RR.Record(h.ws.root)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return None
 
     def _customer_dir(self):
         return (self.host.efforts.get(self.host.effort_name) or {}).get("customer_dir", "") or ""

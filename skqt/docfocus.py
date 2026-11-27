@@ -18,9 +18,9 @@ CUSTOMER_SIDE = ("customer", "bidders", "qa")
 # 4.25.0 (Documents board 2026-11-12, step A): one list. All, Customer and Internal are chips over it, not two tabs;
 # "ours" stays the saved word for the side, Internal is what a person reads.
 SIDES = (("all", "All"), ("customer", "Customer"), ("ours", "Internal"))
-USES = (("use:shred", "For the shred"), ("use:returned", "Returned to the customer"))   # 4.25.2: in the filter beside Find
+USES = (("use:shred", "Customer document"), ("use:returned", "Returned to the customer"))   # 4.25.2: in the filter beside Find
 SIDE_NAMES = {"customer": "Customer", "ours": "Internal"}
-COLUMNS = ["Document", "Type", "Source", "Version", "Used for", "Status"]
+COLUMNS = ["Document", "Type", "Source", "Version", "Purpose", "Status"]   # 4.83.0: Purpose (was Used for)
 
 
 def classic():

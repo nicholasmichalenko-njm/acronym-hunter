@@ -154,8 +154,8 @@ class ReadPage(QWidget):
                                  if left else "Every customer document of this effort is in it."))
             docs = left
         else:
-            self.info.setText("The effort's customer documents (latest version of each). The ones marked For the shred "
-                              "are ticked (Documents > right-click > Used for); tick any others to read into the matrix too. Read starts "
+            self.info.setText("The effort's customer documents (latest version of each). The ones marked Customer document "
+                              "are ticked (Documents > right-click > Purpose); tick any others to read into the matrix too. Read starts "
                               "the compliance matrix.")
         known = self.identities_known()
         lib = self.library()
