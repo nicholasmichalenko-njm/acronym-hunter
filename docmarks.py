@@ -37,7 +37,10 @@ class MarksMixin:
         """What the document is used for, in words: For the shred or Reference (none when left out), then how it is
         returned."""
         r = use_key(self.role_of(d))
-        return ([ROLE_NAMES[r]] if r != "not_needed" else []) + [RETURN_NAMES[k] for k in self.returns_of(d)]
+        back = [RETURN_NAMES[k] for k in self.returns_of(d)]
+        if back and r == "reference":                 # 4.83.0: a file that goes back is kept as Reference underneath (4.61.0);
+            return back                               # its purpose reads as what was given, not "Reference, Form to fill in"
+        return ([ROLE_NAMES[r]] if r != "not_needed" else []) + back
 
     def set_returns(self, doc_id, marks):
         d = self.doc(doc_id)

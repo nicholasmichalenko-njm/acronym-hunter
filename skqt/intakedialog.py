@@ -12,7 +12,7 @@ Redline to return shows Deliverable: the app's suggestion, another from the list
 leaves the PC."""
 import os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit,
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 import docintake as DI
 import docversions as DV
@@ -21,7 +21,7 @@ from . import design as D
 from .doctypeui import type_box
 
 COLS = ["File", "Purpose", "Deliverable", "Version", "Source", "Initial", "Type", "Name", "Tags", ""]
-C_FILE, C_PURPOSE, C_DELIV, C_VERSION, C_SOURCE, C_INI, C_TYPE, C_NAME, C_TAGS, C_OUT = range(len(COLS))
+C_FILE, C_PURPOSE, C_DELIV, C_VERSION, C_SOURCE, C_INI, C_TYPE, C_NAME, C_TAGS, C_OUT = range(len(COLS))   # noqa: E501
 
 
 def _item(text, tip=""):
@@ -55,7 +55,7 @@ class IntakeDialog(QDialog):
     def __init__(self, parent, plan, lib, rec=None):
         super().__init__(parent)
         self.setWindowTitle("Add documents")
-        self.resize(1360, 720)
+        self.resize(1420, 720)
         self.plan, self.lib, self.rec = plan, lib, rec
         v = QVBoxLayout(self)
         bulk = QHBoxLayout(); v.addLayout(bulk)
@@ -79,8 +79,10 @@ class IntakeDialog(QDialog):
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        for c, wdt in enumerate((210, 160, 200, 270, 140, 90, 110, 170, 170, 30)):
+        for c, wdt in enumerate((190, 170, 220, 250, 110, 80, 100, 160, 100, 28)):
             self.table.setColumnWidth(c, wdt)
+        hh = self.table.horizontalHeader()
+        hh.setStretchLastSection(False); hh.setSectionResizeMode(C_TAGS, QHeaderView.Stretch)
         self.rows = []
         for i, e in enumerate(plan):
             self._row(i, e)
@@ -204,7 +206,8 @@ class IntakeDialog(QDialog):
         if kind == "version":
             d = self.lib.doc(w["what"].currentData()[1])
             ini = (d or {}).get("initial", "")
-            c[C_INI].show_control(False, f"{ini}, kept from {d['name']}" if d is not None and ini else "")
+            c[C_INI].show_control(False, f"{ini}, kept" if d is not None and ini else "")
+            c[C_INI].words.setToolTip(f"{ini}, kept from {d['name']}" if d is not None and ini else "")
             c[C_TYPE].show_control(False, (d or {}).get("type", ""))
         elif kind in ("skip", "replace"):
             c[C_INI].show_control(False); c[C_TYPE].show_control(False)

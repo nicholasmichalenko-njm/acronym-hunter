@@ -151,6 +151,9 @@ def which_deliverable(page, lib, d, key, run=True):
         if did != sugg:
             cb.addItem(words, did)
     cb.addItem("New deliverable", DD.NEW)
+    cb.setCurrentIndex(0 if sugg else cb.count() - 1)          # no suggestion: New, never a guess
+    from . import design as D
+    f.addRow(D.label(f"{d.get('name', '')}: {dict(MARKS)[key]}. Which deliverable is it the file of?", "muted"))
     f.addRow("Deliverable:", cb)
     bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
     bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
