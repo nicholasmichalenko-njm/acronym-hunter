@@ -30,11 +30,11 @@ d1, _ = lib.add(a, DI.read(a)["sents"] if isinstance(DI.read(a), dict) else DI.r
 d2, _ = lib.add(b, [], category="qa")
 check("the saved words are the ones every effort already holds", (d1["role"], d2["role"]) == ("matrix", "context")
       and [k for k, _n in DV.ROLES] == ["matrix", "context", "reference", "not_needed"])
-check("in words: For the shred; context reads Reference", lib.marks_of(d1) == ["For the shred"] and lib.marks_of(d2) == ["Reference"]
+check("in words (4.83.0: decision 216's): Customer document; context reads Reference", lib.marks_of(d1) == ["Customer document"] and lib.marks_of(d2) == ["Reference"]
       and DV.use_key("context") == "reference" and DV.use_key("matrix") == "matrix")
 check("a document may carry several marks", lib.set_returns(d1["id"], ["redline", "fill", "nonsense"])
-      and lib.marks_of(lib.doc(d1["id"])) == ["For the shred", "Redlined Deliverable", "Filled-in Deliverable"]
-      and DV.Library(os.path.join(tmp, "documents")).load().returns_of(DV.Library(os.path.join(tmp, "documents")).load().doc(d1["id"])) == ["redline", "fill"])
+      and lib.marks_of(lib.doc(d1["id"])) == ["Customer document", "Form to fill in", "Redline to return"]
+      and DV.Library(os.path.join(tmp, "documents")).load().returns_of(DV.Library(os.path.join(tmp, "documents")).load().doc(d1["id"])) == ["fill", "redline"])
 check("no mark: left out", lib.set_role(d2["id"], "not_needed") and lib.marks_of(lib.doc(d2["id"])) == [])
 check("taking the return marks off leaves no key behind", lib.set_returns(d1["id"], []) and "returns" not in lib.doc(d1["id"]))
 check("an effort made before (no returns key) reads the same", lib.returns_of({"role": "matrix"}) == [] and lib.marks_of({"role": "reference"}) == ["Reference"])

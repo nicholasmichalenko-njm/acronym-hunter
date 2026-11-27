@@ -140,7 +140,7 @@ def which_deliverable(page, lib, d, key, run=True):
     rec = _rec(page)
     sugg = DD.suggest(rec, d.get("name", ""), key)
     opts = DD.options(rec, key)
-    if not opts:
+    if not DD.waiting(rec, key):          # every deliverable of this kind has its file: this one is new, not asked
         return DD.NEW
     dlg = QDialog(page); dlg.setWindowTitle(f"{d.get('name', '')}: {dict(MARKS)[key]}")
     f = QFormLayout(dlg)

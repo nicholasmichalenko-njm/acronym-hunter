@@ -124,9 +124,11 @@ t = DR.tile_of(rec, dsec["id"], "redline")
 check("Purpose > Redline to return with New: a Redline We Return for it", n == 1 and "redline" in lib.returns_of(lib.doc(dsec["id"]))
       and t is not None and DN.kind_key(t) == "redline", t)
 lp.lib = DV.Library(ws.p("documents")).load()
+check("every Form We Fill In has its file: the next one is new, not asked", UF.which_deliverable(lp, lp.lib, lp.lib.doc(dp["id"]), "fill", run=False) == DD.NEW)
+rec = RR.Record(ws.root); d_blank = DL.add(rec, "Pricing form blank", kind="Form"); DL.get(rec, d_blank)["shred_kind"] = "form"; rec.save()
 win = UF.which_deliverable(lp, lp.lib, lp.lib.doc(dp["id"]), "fill", run=False)
-check("the question for one document: the suggestion first, New last", win.cb.itemData(0) == d_price and win.cb.itemData(win.cb.count() - 1) == DD.NEW,
-      [win.cb.itemText(k) for k in range(win.cb.count())])
+check("with one waiting, the question: the suggestion first, New last", win.cb.itemData(0) == d_blank and win.cb.currentIndex() == 0
+      and win.cb.itemData(win.cb.count() - 1) == DD.NEW, [win.cb.itemText(k) for k in range(win.cb.count())])
 UF.toggle(lp, "fill", ids=[dp["id"]], answer=True)
 lib = DV.Library(ws.p("documents")).load(); rec = RR.Record(ws.root)
 check("taking Form to fill in off keeps the deliverable made in Shred; it lets go of the file", DL.get(rec, d_price) is not None

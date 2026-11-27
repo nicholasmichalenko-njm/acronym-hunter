@@ -93,11 +93,11 @@ dlg = IntakeDialog(w, plan, lib)
 names = [os.path.basename(e["path"]) for e in plan]
 r_std, r_win = names.index("MIL-STD-1540E.pdf"), names.index("Win themes.docx")
 check("the table: one row per file, customer rows ask for an initial", dlg.table.rowCount() == 5
-      and dlg.rows[names.index("Section L Instructions.docx")]["ini"].isEnabled() and not dlg.rows[r_std]["ini"].isEnabled())
+      and not dlg.rows[names.index("Section L Instructions.docx")]["ini"].isHidden() and dlg.rows[r_std]["ini"].isHidden())   # 4.83.0: shown only when used (187)
 dlg.set_rows(role="context", rows=[r_std, r_win])
 check("Set many rows at once (4.25.2: context reads Reference)", dlg.rows[r_std]["role"].currentData() == "reference" and dlg.rows[r_win]["role"].currentData() == "reference"
-      and dlg.table.horizontalHeaderItem(3).text() == "Source" and dlg.table.horizontalHeaderItem(4).text() == "Used for"
-      and dlg.rows[r_std]["role"].currentText() == "Reference" and dlg.b_cat.itemText(0) == "Source..." and dlg.b_role.itemText(0) == "Used for...")
+      and dlg.table.horizontalHeaderItem(4).text() == "Source" and dlg.table.horizontalHeaderItem(1).text() == "Purpose"
+      and dlg.rows[r_std]["role"].currentText() == "Reference" and dlg.b_cat.itemText(0) == "Source..." and dlg.b_role.itemText(0) == "Purpose...")
 dlg.set_rows(skip=True, rows=[r_win])
 res = dlg.result_plan()
 check("skipped rows are not added; the rest keep their choices", res[r_win]["choice"] == "skip" and res[r_std]["role"] == "reference"
@@ -147,7 +147,7 @@ check("a missing original is reported", "1 original(s) not here" in pg.p_miss.te
 # Read RFP sees only customer documents, the matrix ones ticked
 w.read_page.refresh(); app.processEvents()             # 4.1.0: no Extract tab; the list behind Shred's extract
 rows = {r.text(0): (r.isChecked(), r.text(3)) for r in w.read_page.boxes}
-check("Read RFP: only customer documents, the ones that build the matrix ticked", rows == {"Section L Instructions": (True, "For the shred"),
+check("Read RFP: only customer documents, the ones that build the matrix ticked", rows == {"Section L Instructions": (True, "Customer document"),
                                                                                        "Attachment J-1 ICD": (False, "Reference")}, rows)
 w.go("docs"); app.processEvents()
 check("Customer versions, Requirements and Compare see only customer documents",

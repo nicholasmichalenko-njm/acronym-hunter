@@ -48,9 +48,9 @@ lp.refresh(); lp.select(dL["id"]); lp.show_doc(); app.processEvents()
 check("Documents is step 1: its page and title", w.stack.currentWidget() is lp and w.page_title.text() == "Documents")
 rows = {r[0]: r for r in lp.status_now}
 check("the status panel: text check, shred, feeds the matrix (4.6.0: the versions are listed once, below)",
-      list(rows)[:2] == ["Text check", "Shred"] and "Used for" in rows and "Versions" not in rows, list(rows))
+      list(rows)[:2] == ["Text check", "Shred"] and "Purpose" in rows and "Versions" not in rows, list(rows))
 check("... not extracted yet; it feeds the matrix", rows["Shred"][1] == "Not extracted yet"
-      and rows["Used for"][1] == "For the shred", rows)
+      and rows["Purpose"][1] == "Customer document", rows)
 __import__("skqt.docclean", fromlist=["x"]).toggle_details(lp, True); app.processEvents()   # 4.62.0: the panel is closed until Details opens it
 check("... one button: its next thing (4.1.0: Shred it)", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Shred it", lp.b_read.text())
 check("... no question: the button extracts it at once and opens Shred (4.1.0)",
@@ -62,14 +62,14 @@ check("... and it opens there when done", w.assign_page.file == "Section_L_print
 w.rail_go("library"); app.processEvents()
 lp.select(dS["id"]); lp.show_doc()
 rows = {r[0]: r for r in lp.status_now}
-check("4.25.2: a document that is not for the shred says Reference", rows["Used for"][1] == "Reference", rows["Used for"])
+check("4.25.2: a document that is not for the shred says Reference", rows["Purpose"][1] == "Reference", rows["Purpose"])
 m = DS.row_menu(lp, run=False)
 acts = [a.text() for a in m.actions() if a.text()]
-check("the right-click menu: the things about the file, then what left the panel (4.6.0), then Delete... (4.17.0)", acts[:6] == ["Open", "Used for", "Source",
+check("the right-click menu: the things about the file, then what left the panel (4.6.0), then Delete... (4.17.0)", acts[:6] == ["Open", "Purpose", "Source",
       "Add a newer version...", "Replace the file...", "Show in folder"] and [a for a in acts[6:] if a != "Prepare for redline"]
       == ["Initial and type...", "More about this document...", "Details", "Delete..."], acts)   # 4.8.0: Prepare a redline copy for a PDF
 check("4.25.2: Used for holds the four marks; Source holds Customer and Internal", [a.text() for a in m.actions()[1].menu().actions() if a.text()]
-      == ["For the shred", "Reference", "Redlined Deliverable", "Filled-in Deliverable"]
+      == ["Customer document", "Reference", "Form to fill in", "File to submit", "Redline to return"]
       and [a.text() for a in m.actions()[2].menu().actions()] == ["Customer", "Internal"]
       and [a.text() for a in m.actions()[1].menu().actions() if a.isChecked()] == ["Reference"])
 check("... Open and Show in folder find the file", os.path.isfile(DS.open_file(lp, lp.lib.doc(dS["id"])))
@@ -83,16 +83,16 @@ rows = {r[0]: r for r in lp.status_now}
 check("... the panel says Left out, and offers nothing to do", rows["Shred"][1] == "Left out" and not lp.b_read.isVisibleTo(w), (rows, lp.b_read.text()))
 UF.toggle(lp, "reference"); UF.toggle(lp, "redline"); app.processEvents()
 check("4.25.2: ticking Reference brings it back; a document may carry several marks", lp.lib.role_of(lp.lib.doc(dS["id"])) == "reference"
-      and lp.lib.marks_of(lp.lib.doc(dS["id"])) == ["Reference", "Redlined Deliverable"] and lp.lib.returns_of(lp.lib.doc(dS["id"])) == ["redline"])
+      and lp.lib.marks_of(lp.lib.doc(dS["id"])) == ["Redline to return"] and lp.lib.returns_of(lp.lib.doc(dS["id"])) == ["redline"])
 from skqt import docfocus as DF4252
 from PySide6.QtCore import Qt
 row = next(r for r in range(lp.table.rowCount()) if lp.table.item(r, 0).data(Qt.UserRole) == dS["id"])
 def _only(key):
     lp.type_f.setCurrentIndex(lp.type_f.findData(key)); app.processEvents()
     return [lp.table.item(r, 4).text() for r in range(lp.table.rowCount())]
-check("... the list's Used for column says so, and the filter shows what is returned, or what is for the shred", lp.table.item(row, 4).text() == "Reference, Redlined Deliverable"
-      and _only("use:returned") == ["Reference, Redlined Deliverable"] and _only("use:shred") and all("For the shred" in t for t in _only("use:shred"))
-      and len(_only("")) == len(lp.lib.all) and DF4252.COLUMNS[4] == "Used for")
+check("... the list's Used for column says so, and the filter shows what is returned, or what is for the shred", lp.table.item(row, 4).text() == "Redline to return"
+      and _only("use:returned") == ["Redline to return"] and _only("use:shred") and all("Customer document" in t for t in _only("use:shred"))
+      and len(_only("")) == len(lp.lib.all) and DF4252.COLUMNS[4] == "Purpose")
 UF.toggle(lp, "redline"); lp.select(dS["id"])
 check("... Source: Internal and back to Customer changes whose it is; no file moves", UF.set_source(lp, "ours") == 1
       and lp.lib.doc(dS["id"])["category"] == "ours" and os.path.isfile(lp.lib.path_of(lp.lib.doc(dS["id"])["versions"][-1]))

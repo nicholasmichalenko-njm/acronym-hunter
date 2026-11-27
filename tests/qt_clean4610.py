@@ -82,7 +82,7 @@ w.go("deliverables"); app.processEvents()
 check("Deliverables is the list alone", w.step_btns["deliverables"].isChecked() and w._tab_keys == [])
 
 # a document added as a Redlined Deliverable
-check("the Add table's Used for offers the two deliverable marks", [k for k, _n in DV.ADD_USES] == ["matrix", "reference", "redline", "fill", "not_needed"])
+check("the Add table's Purpose offers the deliverable purposes (4.83.0)", [k for k, _n in DV.ADD_USES] == ["matrix", "reference", "fill", "submit", "redline"])
 P2 = os.path.join(tmp, "Heron_Terms.pdf"); shutil.copy2(os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", "SOW.pdf"), P2)
 w.go("library"); app.processEvents()
 lp = w.library_page

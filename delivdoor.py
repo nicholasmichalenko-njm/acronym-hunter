@@ -47,6 +47,12 @@ def options(rec, mark):
     return [(x["id"], x.get("name", "") + ("  (has a file)" if x.get(slot) else "")) for x in rows]
 
 
+def waiting(rec, mark):
+    """The deliverables of this kind still without a file: the ones a new file could be."""
+    slot = DR.slot_of(mark)
+    return [x["id"] for x in DL.items(rec) if fits(x, mark) and not x.get(slot)] if rec is not None and mark in DOOR_MARKS else []
+
+
 def suggest(rec, name, mark, names=()):
     """The deliverable this file most likely is: of the kind the purpose feeds, its name alike at 0.6 or more to the
     file's name (or its file name), one still without a file before one that has it. "" when none is that alike."""

@@ -44,7 +44,7 @@ w.open_effort("Kestrel"); app.processEvents()
 w.status = lambda msg, *a, **k: said.append(msg)
 w.go("redline"); pp = w.redline_page; pp.refresh(); app.processEvents()
 check("nothing marked: Prepare for Redline lists nothing and says how to mark one", pp.table.rowCount() == 0 and pp.empty.isVisibleTo(w)
-      and "Redlined Deliverable" in pp.empty.findChildren(type(pp.say))[0].text() + " ".join(x.text() for x in pp.empty.findChildren(type(pp.say))))
+      and "Redline to return" in pp.empty.findChildren(type(pp.say))[0].text() + " ".join(x.text() for x in pp.empty.findChildren(type(pp.say))))
 w.go("library"); lp = w.library_page; lp.refresh(); lp.select(dC["id"]); app.processEvents()
 UF.toggle(lp, "redline"); app.processEvents()
 rec = RR.Record(ws.root)
@@ -54,7 +54,7 @@ check("Redlined Deliverable makes a tile on Deliverables: a customer file, linke
       and t["form_version"] == dC["versions"][-1]["id"], t)
 # 4.29.2 (answer 4 of 2026-11-13): the mark and the tile stay in step
 tiles = lambda: [x for x in DL.items(RR.Record(ws.root)) if x.get("doc_id") == dC["id"]]   # noqa: E731
-check("the mark reads Redlined Deliverable (not Return it)", dict(UF.MARKS)["redline"] == "Redlined Deliverable" and dict(UF.MARKS)["fill"] == "Filled-in Deliverable"
+check("the mark reads Redline to return (4.83.0, decision 216)", dict(UF.MARKS)["redline"] == "Redline to return" and dict(UF.MARKS)["fill"] == "Form to fill in"
       and UF._tiles_lost(lp, lp.lib, [dC["id"]], "redline") == ["Model contract"])
 check("untick it and answer Cancel: the mark and the tile both stay", UF.toggle(lp, "redline", answer=False) == 0
       and "redline" in lp.lib.returns_of(lp.lib.doc(dC["id"])) and len(tiles()) == 1)
