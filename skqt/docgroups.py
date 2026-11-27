@@ -58,7 +58,7 @@ def fill(page, docs, item):
             DF.fill_row(page, r, row[1], None, None, item)
         else:
             d, v = row[1], row[2]
-            when = (v.get("added") or "")[:10]
+            when = v.get("arrived_on") or (v.get("added") or "")[:10]
             it = item("        earlier: " + (v.get("label") or v.get("file", "")), d["id"], v.get("file", ""))
             it.setForeground(D.color("muted"))
             t.setItem(r, 0, it)

@@ -162,5 +162,6 @@ def row_box(lib):
 
 
 def follow(cb, strip):
-    """The first item reads as the strip does."""
-    cb.setItemText(0, strip.title())
+    """The first item reads as the strip's release (its package is on the strip); the hover names both."""
+    cb.setItemText(0, strip.release())
+    cb.setItemData(0, strip.title(), 3)        # Qt.ToolTipRole

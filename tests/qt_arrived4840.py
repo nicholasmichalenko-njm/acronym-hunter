@@ -106,7 +106,7 @@ check("the table has an Arrived as column after Version", COLS.index("Arrived as
 r_note = [e["path"] for e in plan].index(F_NOTE)
 r_l = [e["path"] for e in plan].index(F_L)
 check("each customer row follows the strip; our own file shows nothing there",
-      dlg.rows[r_l]["arrived"].currentText() == "Solicitation: Final RFP" and dlg.rows[r_l]["cells"][C_ARRIVED].control.isVisibleTo(dlg)
+      dlg.rows[r_l]["arrived"].currentText() == "Final RFP" and dlg.rows[r_l]["cells"][C_ARRIVED].control.isVisibleTo(dlg)
       and not dlg.rows[r_note]["cells"][C_ARRIVED].control.isVisibleTo(dlg), dlg.rows[r_l]["arrived"].currentText())
 st.date.setDate(QDate(2026, 11, 2)); app.processEvents()
 out = dlg.result_plan()
@@ -124,7 +124,8 @@ rows = [lp.table.item(r, 0).text() for r in range(lp.table.rowCount())]
 check("Documents groups by the release, with its date and count", any(x.startswith("Solicitation: Final RFP   ·   2026-11-02   ·   2 documents") for x in rows), rows)
 check("... and our own file under Internal", any(x.startswith("Internal") for x in rows), rows)
 iL = next(r for r in range(lp.table.rowCount()) if lp.table.item(r, 0).data(0x0100) == dL["id"])
-check("the Version column reads the release and when it was added", lp.table.item(iL, 3).text().startswith("Final RFP"), lp.table.item(iL, 3).text())
+check("the Version column reads the release and its date, the day it was added on hover", lp.table.item(iL, 3).text() == "Final RFP  ·  2026-11-02"
+      and "added" in lp.table.item(iL, 3).toolTip(), (lp.table.item(iL, 3).text(), lp.table.item(iL, 3).toolTip()))
 
 # ---- the second add: an amendment re-posts Section L, with a new attachment and the SF 30
 F_L2 = pdf("W912DY24R0001_Section_L_Amd_0001.pdf", SEC_L[:3] + ["Volume I shall not exceed 40 pages."] + SEC_L[4:])
@@ -142,9 +143,9 @@ r2 = [e["path"] for e in plan].index(F_L2)
 check("... Section L's new file is matched to Section L, the solicitation number left out", dlg.kind(r2) == "version"
       and dlg.rows[r2]["what"].currentData() == ("version", dL["id"]), dlg.rows[r2]["what"].currentText())
 items = [dlg.rows[r2]["arrived"].itemText(k) for k in range(dlg.rows[r2]["arrived"].count())]
-check("a row can pick an earlier release or Not said", items == ["Solicitation: Amendment 0001", "Solicitation: Final RFP", "Not said"], items)
+check("a row can pick an earlier release or Not said", items == ["Amendment 0001", "Solicitation: Final RFP", "Not said"], items)
 st.num.setValue(2); app.processEvents()
-check("change the number: every row follows", dlg.rows[r2]["arrived"].currentText() == "Solicitation: Amendment 0002")
+check("change the number: every row follows", dlg.rows[r2]["arrived"].currentText() == "Amendment 0002")
 rA = [e["path"] for e in plan].index(F_ATT)
 dlg.rows[rA]["arrived"].setCurrentIndex(dlg.rows[rA]["arrived"].findText("Not said"))
 out = dlg.result_plan()

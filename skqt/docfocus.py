@@ -276,8 +276,10 @@ def fill_row(page, r, d, st, terms, item):
     side = side_of(d)
     page.table.setItem(r, 2, item(SIDE_NAMES[side]))
     gv = vs[-1] if vs else {}
-    gov = (gv.get("label") or "") + (f"  ·  {gv.get('added', '')[:10]}" if gv.get("added") else "")
-    page.table.setItem(r, 3, item(gov, None, gv.get("file", "")))
+    when = gv.get("arrived_on") or (gv.get("added") or "")[:10]     # 4.84.0: the release's date, when it has one
+    gov = (gv.get("label") or "") + (f"  ·  {when}" if when else "")
+    tip = gv.get("file", "") + (f"\nArrived {gv['arrived_on']}; added {gv.get('added', '')[:10]}" if gv.get("arrived_on") else "")
+    page.table.setItem(r, 3, item(gov, None, tip))
     page.table.setItem(r, 4, item(", ".join(page.lib.marks_of(d))))
     txt, tone = needs(page, d)
     ci = item(txt)
