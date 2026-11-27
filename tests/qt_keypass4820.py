@@ -89,7 +89,7 @@ fq = CI.fact(rec(), "Questions due")
 check("Enter takes the suggestion: Questions due is in Customer information, captured from the piece", fq["value"] == "Mar 1, 2027, 2:00 p.m. ET"
       and fq["how"] == "captured" and fq["source"].get("sid") == q["id"], fq)
 cal = w.calendar_page.load(datetime.date(2026, 12, 1))
-check("... and on the calendar at once, from the one value", any(k == "questions" and "Questions due 2:00 p.m. ET" in t for k, t in cal.get(datetime.date(2027, 3, 1), [])),
+check("... and on the calendar at once, from the one value", any(k == "questions" and t == "2:00 p.m. ET" for k, t in cal.get(datetime.date(2027, 3, 1), [])),
       cal.get(datetime.date(2027, 3, 1)))
 check("the bar names where it went; the count follows", f.cal_link is not None and "in Customer information" in f.cal_line.text() and f.keyd.isChecked()
       and w.stepper.chips["subpass"].ct.text() == "1 on the calendar" and "Has finds (1)" in pg.comp_state.text(),

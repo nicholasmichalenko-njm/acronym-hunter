@@ -99,7 +99,7 @@ KM.mark(M, items[4], "questions", v, eid="fact")
 check("a fact's mark comes off and the fact stays", KM.unmark(rec, M, items[4]) == "fact" and KM.of_piece(M, items[4]) is None)
 CI.set_fact(rec, "Questions due", KM.fact_value(v), "captured", source={"doc": "L.pdf", "page": "2", "sid": "P5"})
 q = KM.questions_from_fact(rec)
-check("Questions due on the calendar comes from Customer information", q == (datetime.date(2027, 3, 1), "questions", "Questions due 2:00 p.m. ET"), q)
+check("Questions due on the calendar comes from Customer information", q == (datetime.date(2027, 3, 1), "questions", "2:00 p.m. ET"), q)
 check("... and the way back follows the fact's source", {"text": "Questions due", "sid": "P5", "file": "L.pdf", "page": "2"} in KM.sources_on(rec, datetime.date(2027, 3, 1)))
 import subreq as SR
 SR.summary = lambda rows: {"questions_due": {"value": "February 2, 2027"}}          # the reader's own finding, stood in for

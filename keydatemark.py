@@ -277,4 +277,5 @@ def questions_from_fact(rec):
     t = when_text(w).split(", ", 2)
     tail = t[2] if len(t) > 2 else ""
     was = f.get("was", "")
-    return (d, "questions", "Questions due" + (f" {tail}" if tail else "") + (f" (replaces {was})" if was else ""))
+    text = (tail or "To the customer") + (f" (replaces {was})" if was else "")       # the kind's own word, Questions due, is beside it
+    return (d, "questions", text)
