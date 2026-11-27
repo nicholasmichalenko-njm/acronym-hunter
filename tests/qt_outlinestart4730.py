@@ -88,8 +88,8 @@ check("changing the answer deletes nothing", [C.outline_label(o) for o in M.outl
 op.answer("ours"); app.processEvents()
 check("... a marked heading keeps Required by under We build it", St.get("outline_from") == "ours" and M.outline[0].get("req") == rows[0]["id"])
 w.go("comppass"); app.processEvents()
-check("Shred is about the customer's documents: Compliance first, no Response Structure", w.page_title.text() == "Shred" and pg.focus == "comp"
-      and [k for k, _t in MW.TABS["assign"]][0] == "comppass")
+check("Shred is about the customer's documents: its passes (4.82.0: Submission Formatting Requirements first), no Response Structure", w.page_title.text() == "Shred" and pg.focus == "comp"
+      and [k for k, _t in MW.TABS["assign"]][:2] == ["subpass", "comppass"] and "structpass" not in dict(MW.TABS["assign"]))
 w.close()
 print(f"QT OUTLINE START 4730 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)
