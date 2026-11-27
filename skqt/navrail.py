@@ -270,10 +270,10 @@ class Stepper(QWidget):
         from PySide6.QtWidgets import QSizePolicy
         fl = FlowLayout(self, 10); fl.setContentsMargins(0, 6, 0, 6)       # the views wrap under the steps when narrow
         self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        steps = QWidget(); h = QHBoxLayout(steps); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(0)
-        fl.addWidget(steps)
         self.chips = {}
         for i, (k, label) in enumerate(CHIPS, 1):
+            steps = QWidget(); h = QHBoxLayout(steps); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(0)   # 4.82.0: each step wraps by
+            fl.addWidget(steps)                                                                             # itself: seven do not fit one row
             if i > 1:
                 ln = QFrame(); ln.setFixedSize(18, 2); ln.setObjectName("stepLine"); h.addWidget(ln, 0, Qt.AlignVCenter)
                 self.chips[k + ":line"] = ln

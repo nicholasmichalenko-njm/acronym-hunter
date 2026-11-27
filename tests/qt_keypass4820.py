@@ -91,9 +91,9 @@ check("Enter takes the suggestion: Questions due is in Customer information, cap
 cal = w.calendar_page.load(datetime.date(2026, 12, 1))
 check("... and on the calendar at once, from the one value", any(k == "questions" and "Questions due 2:00 p.m. ET" in t for k, t in cal.get(datetime.date(2027, 3, 1), [])),
       cal.get(datetime.date(2027, 3, 1)))
-check("the bar names where it went; the count follows", f.cal_link is not None and "in Customer information" in f.cal_link.text() and f.keyd.isChecked()
+check("the bar names where it went; the count follows", f.cal_link is not None and "in Customer information" in f.cal_line.text() and f.keyd.isChecked()
       and w.stepper.chips["subpass"].ct.text() == "1 on the calendar" and "Has finds (1)" in pg.comp_state.text(),
-      (f.cal_link.text() if f.cal_link else None, w.stepper.chips["subpass"].ct.text()))
+      (f.cal_line.text() if f.cal_line else None, w.stepper.chips["subpass"].ct.text()))
 
 pg.select(p["id"]); app.processEvents(); bar()
 key(Qt.Key_Return); f = bar()

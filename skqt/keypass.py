@@ -32,6 +32,14 @@ def _later(page):
     __import__("skqt.shredselbar", fromlist=["x"]).later(page)
 
 
+def _fit(lab):
+    """A wrapped line keeps to the pass's margin, so the bar never runs past the window's edge."""
+    from . import comppass as CP
+    from .shredselbar import GAP
+    lab.setWordWrap(True); lab.setMaximumWidth(CP.WIDE - 2 * GAP - 12)
+    return lab
+
+
 def asking(page, rows):
     """The Key Date question open for exactly the selected piece, or None."""
     a = getattr(page, "_key_ask", None)
@@ -45,13 +53,13 @@ def _when_line(v):
 def buttons(page, f, rows, M, it, one, col):
     """The pass's own buttons on the bar beside the piece. Returns "ask" when the bar holds only the question."""
     from . import comppass as CP
-    f.kinds, f.keyd, f.cal_link, f.before, f.reads = {}, None, None, None, None
+    f.kinds, f.keyd, f.cal_link, f.cal_line, f.before, f.reads = {}, None, None, None, None, None
     f.key_edit, f.key_kinds, f.key_name, f.key_ok, f.replace, f.keep = None, {}, None, None, None, None
     a = asking(page, rows)
     if a and a.get("stage") == "replace":
         cur = a["cur"]
         lab = QLabel(f"{KM.NAME[a['key']]} is already {cur['text']}" + (f" ({cur['from']})" if cur.get("from") else "")
-                     + f". Replace it with {_when_line(a['v'])}?"); lab.setWordWrap(True)
+                     + f". Replace it with {_when_line(a['v'])}?"); _fit(lab)
         col.addWidget(lab)
         f.replace = D.button("Replace  Enter", "primary", lambda: take(page, replace=True), "The newer date is the one shown; the calendar says what it replaced")
         f.keep = D.button("Keep the earlier", None, lambda: take(page, replace=False), "The earlier date stays; this piece is marked a key date all the same")
@@ -59,7 +67,7 @@ def buttons(page, f, rows, M, it, one, col):
         col.addWidget(D.button("Cancel  Esc", "ghost", lambda: cancel(page)))
         return "ask"
     if a and a.get("stage") == "name":
-        lab = QLabel("Other. What is it?"); lab.setWordWrap(True)
+        lab = QLabel("Other. What is it?"); _fit(lab)
         col.addWidget(lab)
         f.key_name = QLineEdit(a.get("name", ""))
         f.key_name.setPlaceholderText("Pre-proposal conference, Award, ...")
@@ -76,7 +84,7 @@ def buttons(page, f, rows, M, it, one, col):
         f.key_name.setFocus()
         return "ask"
     if a:
-        lab = QLabel("Key Date. The date:"); lab.setWordWrap(True)
+        lab = QLabel("Key Date. The date:"); _fit(lab)
         col.addWidget(lab)
         f.key_edit = QLineEdit(a.get("typed", _when_line(a.get("v"))))
         f.key_edit.setPlaceholderText("Mar 1, 2027, 2:00 p.m. ET")
@@ -109,17 +117,19 @@ def buttons(page, f, rows, M, it, one, col):
             where = "kept the earlier date"
         txt = f"{name}, {_when_line(d)}: " + ("on the calendar and in Customer information" if where == "Customer information"
                                              else "on the calendar" if where == "the calendar" else "the earlier date was kept")
-        f.cal_link = D.button(txt, "ghost", lambda _c=False, x=dict(d): open_calendar(page, x), "Opens the calendar on that day")
+        f.cal_line = _fit(QLabel(txt + "."))
+        col.addWidget(f.cal_line)
+        f.cal_link = D.button("Open the calendar", "ghost", lambda _c=False, x=dict(d): open_calendar(page, x), "Opens the calendar on that day")
         f.cal_link.setStyleSheet("text-align:left;")
         col.addWidget(f.cal_link)
     elif one and KM.older(M, it):
-        f.before = QLabel("Marked Key Date before, kind not said. Press 4 to say its kind."); f.before.setWordWrap(True)
+        f.before = _fit(QLabel("Marked Key Date before, kind not said. Press 4 to say its kind."))
         col.addWidget(f.before)
     elif one:
         v = KM.read(it.get("text", ""))
         if v:
             f.reads = QLabel(f"Reads as a date: {KM.when_text(v)}" + (f", {KM.NAME[v['kind']]}" if v.get("kind") else "")
-                             + ". Enter or 4 to mark it."); f.reads.setWordWrap(True)
+                             + ". Enter or 4 to mark it."); _fit(f.reads)
             f.reads.setStyleSheet(f"color:{D.tokens()['muted']};")
             col.addWidget(f.reads)
     return f
