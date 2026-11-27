@@ -9,7 +9,10 @@ document or New version of a document here; the same file already added is said 
 is gone and a row is taken out with its x. Purpose is decision 216's list (was "Used for"). Initial and Type show only
 for a Customer document; a new version shows its initial as words. A file given Form to fill in, File to submit or
 Redline to return shows Deliverable: the app's suggestion, another from the list, or New. Rules only (No AI); nothing
-leaves the PC."""
+leaves the PC.
+
+4.84.0 (step I2): Part of and Arrived as, a strip above the table for every file from the customer, and an Arrived as
+cell on each row that follows it (skqt/releasestrip.py). Shown only in an effort."""
 import os
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
@@ -17,11 +20,13 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
 import docintake as DI
 import docversions as DV
 import delivdoor as DD
+import docpackages as DP
 from . import design as D
+from . import releasestrip as RS
 from .doctypeui import type_box
 
-COLS = ["File", "Purpose", "Deliverable", "Version", "Source", "Initial", "Type", "Name", "Tags", ""]
-C_FILE, C_PURPOSE, C_DELIV, C_VERSION, C_SOURCE, C_INI, C_TYPE, C_NAME, C_TAGS, C_OUT = range(len(COLS))   # noqa: E501
+COLS = ["File", "Purpose", "Deliverable", "Version", "Arrived as", "Source", "Initial", "Type", "Name", "Tags", ""]
+C_FILE, C_PURPOSE, C_DELIV, C_VERSION, C_ARRIVED, C_SOURCE, C_INI, C_TYPE, C_NAME, C_TAGS, C_OUT = range(len(COLS))   # noqa: E501
 
 
 def _item(text, tip=""):
@@ -58,6 +63,10 @@ class IntakeDialog(QDialog):
         self.resize(1420, 720)
         self.plan, self.lib, self.rec = plan, lib, rec
         v = QVBoxLayout(self)
+        names = [os.path.basename(e["path"]) for e in plan if e.get("category", "customer") in DP.CUSTOMER_SIDE]
+        self.strip = RS.ReleaseStrip(lib, names)               # 4.84.0: Part of and Arrived as
+        self.strip.changed.connect(self.follow_strip)
+        v.addWidget(self.strip)
         bulk = QHBoxLayout(); v.addLayout(bulk)
         bulk.addWidget(D.label("Selected rows:", "label", wrap=False))
         self.b_role = QComboBox(); self.b_role.addItem("Purpose...", "")
@@ -79,7 +88,7 @@ class IntakeDialog(QDialog):
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        for c, wdt in enumerate((190, 170, 220, 250, 110, 80, 100, 160, 100, 28)):
+        for c, wdt in enumerate((190, 170, 220, 220, 200, 110, 80, 100, 150, 100, 28)):
             self.table.setColumnWidth(c, wdt)
         hh = self.table.horizontalHeader()
         hh.setStretchLastSection(False); hh.setSectionResizeMode(C_TAGS, QHeaderView.Stretch)
@@ -94,7 +103,40 @@ class IntakeDialog(QDialog):
         v.addWidget(bb)
         self.ok = bb.button(QDialogButtonBox.Ok)
         self.show_deliv_column()
+        self.show_strip()
         self.show_count()
+
+    # ------------------------------------------------------------ Part of and Arrived as (4.84.0)
+    def strip_wanted(self):
+        """In an effort, while any row still to add is the customer's (a program's documents have Version only)."""
+        if self.rec is None or not hasattr(self, "rows"):
+            return False
+        return any(not w["out"] and w["cat"].currentData() in DP.CUSTOMER_SIDE and self.kind(r) in ("new", "version")
+                   for r, w in enumerate(self.rows))
+
+    def show_strip(self):
+        if not hasattr(self, "rows"):
+            return
+        on = self.strip_wanted()
+        self.strip.setVisible(on)
+        self.table.setColumnHidden(C_ARRIVED, not on)
+        for r, w in enumerate(self.rows):
+            mine = w["cat"].currentData() in DP.CUSTOMER_SIDE and self.kind(r) in ("new", "version")
+            w["cells"][C_ARRIVED].show_control(on and mine, "")
+
+    def follow_strip(self):
+        for w in getattr(self, "rows", []):
+            RS.follow(w["arrived"], self.strip)
+
+    def arrived(self, r):
+        """(part, release, date) for a row, or None when not said or not the customer's."""
+        w = self.rows[r]
+        if not self.strip_wanted() or w["cat"].currentData() not in DP.CUSTOMER_SIDE or self.kind(r) not in ("new", "version"):
+            return None
+        got = w["arrived"].currentData()
+        if got == RS.STRIP:
+            return self.strip.part_name(), self.strip.release(), self.strip.day()
+        return tuple(got) if got else None
 
     # ------------------------------------------------------------ one row
     def _row(self, i, e):
@@ -135,13 +177,14 @@ class IntakeDialog(QDialog):
         ty = type_box(e.get("type", ""))
         name = QLineEdit(e.get("name", ""))
         tags = QLineEdit(", ".join(e.get("tags", []))); tags.setToolTip("Comma between tags; the folder names are always tags")
+        arrived = RS.row_box(lib); RS.follow(arrived, self.strip) if hasattr(self, "strip") else None
         out = QToolButton(); out.setText("x"); out.setAutoRaise(True); out.setToolTip("Take this file out: it is not added")
         out.clicked.connect(lambda _c=False, r=i: self.take_out([r]))
-        cells = {C_PURPOSE: _Either(role), C_DELIV: _Either(deliv), C_VERSION: what, C_SOURCE: cat, C_INI: _Either(ini),
+        cells = {C_PURPOSE: _Either(role), C_DELIV: _Either(deliv), C_VERSION: what, C_ARRIVED: _Either(arrived), C_SOURCE: cat, C_INI: _Either(ini),
                  C_TYPE: _Either(ty), C_NAME: name, C_TAGS: tags, C_OUT: out}
         for c, w in cells.items():
             self.table.setCellWidget(i, c, w)
-        row = {"what": what, "cat": cat, "role": role, "deliv": deliv, "ini": ini, "ty": ty, "name": name, "tags": tags,
+        row = {"what": what, "cat": cat, "role": role, "deliv": deliv, "arrived": arrived, "ini": ini, "ty": ty, "name": name, "tags": tags,
                "cells": cells, "out": False, "deliv_for": None}
         self.rows.append(row)
         self._fill_deliv(i, keep=e.get("deliverable"))
@@ -219,6 +262,7 @@ class IntakeDialog(QDialog):
             self._fill_deliv(r)
         c[C_DELIV].show_control(door, "")
         self.show_deliv_column()
+        self.show_strip()
 
     def show_deliv_column(self):
         if not hasattr(self, "rows"):
@@ -260,6 +304,7 @@ class IntakeDialog(QDialog):
             self.rows[r]["out"] = True
             self.table.setRowHidden(r, True)
         self.show_deliv_column()
+        self.show_strip()
         self.show_count()
         return len(rows)
 
@@ -295,6 +340,9 @@ class IntakeDialog(QDialog):
             self.problem.setText("Before adding: " + " ".join(problems[:6]) + (" ..." if len(problems) > 6 else ""))
             self.problem.show()
             return
+        if self.strip.pending and self.strip_wanted():        # 4.84.0: a package named here is kept with Documents
+            self.strip.keep_packages()
+            self.lib.save()
         super().accept()
 
     def result_plan(self):
@@ -313,6 +361,12 @@ class IntakeDialog(QDialog):
             e["type"] = w["ty"].currentText() if e["category"] == "customer" else ""
             e["name"] = w["name"].text().strip() or e.get("name", "")
             e["tags"] = DV.clean_tags([t for t in w["tags"].text().split(",")])
+            got = None if choice not in ("new", "version") else self.arrived(r)
+            if got:                                                      # 4.84.0: kept on the version; its label
+                e["part_of"], e["arrived_as"], e["arrived_on"] = got
+            else:
+                for k in ("part_of", "arrived_as", "arrived_on"):
+                    e.pop(k, None)
             if e["role"] in DD.DOOR_MARKS and self.rec is not None and choice == "new":
                 e["deliverable"] = w["deliv"].currentData() or DD.NEW
             elif e.get("deliverable") and (e["role"] in DD.DOOR_MARKS or choice != "new"):

@@ -2,6 +2,10 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.84.0": ["Add documents says what the customer's files are Part of and what they Arrived as, once for every file: Part of the Solicitation, Pre-RFP (RFI / Sources Sought), Discussions & FPR, or a package you name; Arrived as Final RFP, Draft RFP 2, Amendment 0002, Q&A set 1 and the like, with its date. A numbered one numbers itself, or takes the number in a file's name.",
+               "Each file's Arrived as follows that line; pick another release for one file, or Not said. The release is the version's label in Documents (\"Amendment 0002\").",
+               "Documents groups the customer's files by the release that brought them, with its date. Right-click > Arrived as (was Package) moves a file to another release. Files whose release was said are not asked about again.",
+               "The solicitation number is left out when a file's name is matched to a document already here, and out of the name a new document is given."],
     "4.83.0": ["Documents > Add is now Add documents, with Purpose first: Customer document, Reference, Form to fill in, File to submit or Redline to return. Initial and Type show only for a Customer document; a new version says the initial it keeps.",
                "Version says New document or New version of a document already here, matched by the file's name and text. A file already added says so and is not added again. Skip is gone: the x at the end of a row takes that file out.",
                "A file given Form to fill in, File to submit or Redline to return shows Deliverable: the one whose name matches (suggested), another from the list, or New deliverable. The same is asked when one document is given that purpose later (right-click > Purpose). A file added from the Shred bar's Add a file now... comes in with its purpose and its deliverable already set, even if you rename it.",

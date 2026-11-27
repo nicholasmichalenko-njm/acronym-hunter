@@ -95,7 +95,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
         got = lib.find_sha(h)
         if got:
             out.append({"path": p, "sha": h, "dup": got, "sents": [], "choice": "skip", "cands": [], "best": None, "doc": None,
-                        "name": DV.display_name(p), "label": "", "category": got[0].get("category", "customer"),
+                        "name": DV.display_name(p, getattr(lib, "numbers", ()) or ()), "label": "", "category": got[0].get("category", "customer"),
                         "folder": rel, "tags": DV.folder_tags(rel), "role": lib.role_of(got[0])})
             continue
         level = S.guard(p)                               # 2.97.0: marked above CUI: stop before reading or copying
@@ -108,7 +108,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
             d0 = same[0] if same else {"id": "", "name": twin["name"]}
             out.append({"path": p, "sha": h, "dup": same or (d0, None), "dup_how": "same text", "text_print": tp,
                         "sents": sents, "choice": "skip", "cands": [], "best": None, "doc": d0["id"] or None,
-                        "name": DV.display_name(p), "label": "", "category": d0.get("category", cat), "folder": rel,
+                        "name": DV.display_name(p, getattr(lib, "numbers", ()) or ()), "label": "", "category": d0.get("category", cat), "folder": rel,
                         "tags": DV.folder_tags(rel), "role": lib.role_of(d0) if same else DV.suggest_role(cat, ""),
                         "sensitivity": level})
             continue
@@ -122,7 +122,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
         for k, e in enumerate(out):              # earlier files in this batch that will become new documents
             if e.get("dup") or e["choice"] != "new":
                 continue
-            ns = DV.name_similarity(os.path.basename(p), os.path.basename(e["path"]))
+            ns = DV.name_similarity(os.path.basename(p), os.path.basename(e["path"]), getattr(lib, "numbers", ()) or ())
             ts = DV.text_similarity([s["x"] for s in sents], [s["x"] for s in e["sents"]])
             sc = round(max(ts, 0.5 * ns + 0.5 * ts), 3)
             cands.append(({"id": f"batch:{k}", "name": e["name"], "versions": []}, sc,
@@ -138,7 +138,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
         taken = [e.get("initial", "") for e in out]
         out.append({"path": p, "sha": h, "sents": sents, "cands": cands, "best": best, "text_print": tp,
                     "choice": "replace" if same_file and edited == "replace" else "version" if (by_likeness and best and DV.Library.band(best[1]) == "strong") or same_file or (came and not by_likeness) else "new",
-                    "doc": same_file or (best[0]["id"] if best and by_likeness else came[0]["id"] if came else None), "replace_of": came[0]["id"] if came else None, "name": DV.display_name(p), "label": "",
+                    "doc": same_file or (best[0]["id"] if best and by_likeness else came[0]["id"] if came else None), "replace_of": came[0]["id"] if came else None, "name": DV.display_name(p, getattr(lib, "numbers", ()) or ()), "label": "",
                     "type": dtype, "initial": lib.suggest_initial(dtype, taken) if cat == "customer" else "",
                     "category": cat, "folder": rel, "tags": DV.folder_tags(rel), "role": DV.suggest_role(cat, dtype),
                     "suggested_role": DV.suggest_role(cat, dtype), "sensitivity": level,
@@ -241,7 +241,8 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
         d, v = lib.add(dest, e["sents"], doc_id=doc_id, doc_name=e.get("name", ""), label=e.get("label", ""), sha=e["sha"],
                        initial=e.get("initial", ""), dtype=e.get("type", ""), category=cat, folder=e.get("folder", ""),
                        tags=[t for t in e.get("tags", []) if t not in DV.folder_tags(e.get("folder", ""))], role=e.get("role"),
-                       save=False, role_confirmed=DV.use_key(e.get("role")) != DV.use_key(e.get("suggested_role", e.get("role"))), source=src)
+                       save=False, role_confirmed=DV.use_key(e.get("role")) != DV.use_key(e.get("suggested_role", e.get("role"))), source=src,
+                       part_of=e.get("part_of", ""), arrived_as=e.get("arrived_as", ""), arrived_on=e.get("arrived_on", ""))
         if e.get("under") and not d.get("under") and e["choice"] == "new":   # an order, under its contract or RFP
             lib.set_under(d["id"], e["under"], save=False)
         if e.get("sensitivity", -1) > d.get("sensitivity", -1):     # 2.97.0: the highest level found in its versions

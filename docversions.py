@@ -58,24 +58,42 @@ def short_sha(h):
     return f"{h[:4]} {h[4:8]} ... {h[-4:]}" if h else ""
 
 
-def stem(name):
-    """'Effort_RFP_CLM_Amd2 (1).docx' -> 'effort rfp clm'."""
+def number_pattern(number):
+    """4.84.0: a solicitation number as it may be written in a file name ('W912DY-24-R-0001' matches 'W912DY24R0001',
+    'w912dy_24_r_0001' ...). None for a number too short to strip safely."""
+    chars = [c for c in str(number or "") if c.isalnum()]
+    if len(chars) < 5:
+        return None
+    return re.compile(r"(?<![a-z0-9])" + r"[\s_.-]*".join(re.escape(c) for c in chars) + r"(?![a-z0-9])", re.I)
+
+
+def stem(name, numbers=()):
+    """'Effort_RFP_CLM_Amd2 (1).docx' -> 'effort rfp clm'. 4.84.0: numbers, the solicitation numbers, are taken out too."""
     s = os.path.splitext(os.path.basename(name or ""))[0]
+    for n in numbers or ():
+        pat = number_pattern(n)
+        if pat is not None:
+            s = pat.sub(" ", s)
     s = VERSION_WORDS.sub(" ", s)
     s = re.sub(r"[_\-.]+", " ", s)
     return " ".join(w for w in s.lower().split() if w)
 
 
-def display_name(name):
-    """'Effort_RFP_CLM_Amd2 (1).docx' -> 'Effort RFP CLM' (the file's own capitals kept)."""
+def display_name(name, numbers=()):
+    """'Effort_RFP_CLM_Amd2 (1).docx' -> 'Effort RFP CLM' (the file's own capitals kept). 4.84.0: and without the
+    solicitation numbers."""
     s = os.path.splitext(os.path.basename(name or ""))[0]
+    for n in numbers or ():
+        pat = number_pattern(n)
+        if pat is not None:
+            s = pat.sub(" ", s)
     s = VERSION_WORDS.sub(" ", s)
     s = re.sub(r"[_]+", " ", s)
     return " ".join(s.split()).strip(" -.") or os.path.basename(name or "")
 
 
-def name_similarity(a, b):
-    sa, sb = stem(a), stem(b)
+def name_similarity(a, b, numbers=()):
+    sa, sb = stem(a, numbers), stem(b, numbers)
     if not sa or not sb:
         return 0.0
     if sa == sb:
@@ -240,6 +258,8 @@ class Library(PathsMixin, MarksMixin):
         self.folder = folder                       # <effort app data>\documents
         self.all = []                              # 2.83.0: every document; .docs is the customer documents
         self.extra_categories = []                 # categories the person added: [[key, name]]
+        self.extra = {}                            # 4.84.0: the record's other keys ("packages" the team named), kept as read
+        self.numbers = ()                          # 4.84.0: solicitation numbers left out when names are matched
 
     @property
     def docs(self):
@@ -263,11 +283,12 @@ class Library(PathsMixin, MarksMixin):
             if x.get("type") in TYPE_ALIAS:
                 x["type"] = TYPE_ALIAS[x["type"]]
         self.extra_categories = [c for c in d.get("categories", []) if isinstance(c, list) and len(c) == 2]
+        self.extra = {k: v for k, v in d.items() if k not in ("v", "docs", "categories")}
         return self
 
     def save(self):
         import workspace as W
-        W.write_json(self.index_path, {"v": 2, "docs": self.all, "categories": self.extra_categories})
+        W.write_json(self.index_path, dict(getattr(self, "extra", {}) or {}, v=2, docs=self.all, categories=self.extra_categories))
 
     def text(self, version):
         import workspace as W
@@ -358,7 +379,8 @@ class Library(PathsMixin, MarksMixin):
             last = self.latest(d)
             if last is None:
                 continue
-            ns = max(name_similarity(name, last.get("file", "")), name_similarity(name, d["name"]))
+            nums = getattr(self, "numbers", ()) or ()
+            ns = max(name_similarity(name, last.get("file", ""), nums), name_similarity(name, d["name"], nums))
             ts = text_similarity(sents, [s["x"] for s in self.text(last)]) if sents else 0.0
             score = max(ts, 0.5 * ns + 0.5 * ts, ns if ns >= 0.95 and ts >= 0.15 else 0)
             how = f"{int(round(ts * 100))}% of the text is the same" + ("; the name matches" if ns >= 0.9 else "")
@@ -375,9 +397,11 @@ class Library(PathsMixin, MarksMixin):
         return f"Amendment {n}" if n else "Original"
 
     def add(self, path, sents, doc_id=None, doc_name="", label="", sha=None, when=None, who=None, initial="", dtype="",
-            category="customer", folder="", tags=None, role=None, save=True, role_confirmed=True, source=""):
+            category="customer", folder="", tags=None, role=None, save=True, role_confirmed=True, source="", part_of="",
+            arrived_as="", arrived_on=""):
         """Add a file as a new version of doc_id, or as a new document (2.68.0: with its initial and type; 2.83.0: its
-        category, folder, tags and role). Returns (doc, version)."""
+        category, folder, tags and role). 4.84.0: part_of, arrived_as and arrived_on (step I2) are kept on the version,
+        and arrived_as is its label when none is given. Returns (doc, version)."""
         h = sha or sha256(path)
         d = self.doc(doc_id) if doc_id else None
         if d is None:
@@ -392,9 +416,12 @@ class Library(PathsMixin, MarksMixin):
             d["role_by"] = {"who": who or getpass.getuser(), "when": datetime.datetime.now().isoformat(timespec="minutes"),
                             "why": "", "suggested": role not in ROLE_NAMES or not role_confirmed}
             self.all.append(d)
-        v = {"id": uuid.uuid4().hex[:12], "label": label or self.next_label(d), "file": os.path.basename(path),
+        v = {"id": uuid.uuid4().hex[:12], "label": label or arrived_as or self.next_label(d), "file": os.path.basename(path),
              "added": when or datetime.datetime.now().isoformat(timespec="minutes"), "who": who or getpass.getuser(),
              "sha256": h, "sentences": len(sents), "reviewed": "", "path": os.path.abspath(path)}
+        if arrived_as:                             # 4.84.0: Part of and Arrived as (step I2)
+            v.update(part_of=" ".join(str(part_of or "").split()), arrived_as=" ".join(str(arrived_as).split()),
+                     arrived_on=arrived_on or v["added"][:10])
         tp = text_print(sents)
         if tp:
             v["text_sha"] = tp                     # 3.15.1: the same words, whatever the bytes

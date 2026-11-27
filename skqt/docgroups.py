@@ -3,7 +3,12 @@
 Once the effort has an amendment, the list is in groups: As issued, each amendment in the order issued, then Internal.
 A group's line names it and counts its documents. A document with more than one version shows its earlier versions on
 lines under it (newest first); a click on one selects the document. With Find in use the groups are off, so the hits
-read as one list. The package is set on the row: right-click > Package. Rules only; nothing leaves the PC."""
+read as one list. The package is set on the row: right-click > Package. Rules only; nothing leaves the PC.
+
+4.84.0 (step I2): once a document has a release (Part of and Arrived as, set in Add documents), the groups are the
+releases ("Solicitation: Amendment 0002", with its date), oldest first, after As issued and any amendment added before.
+Right-click > Arrived as (was Package: Part of is now the package's name) lists the same. Files whose release was said
+in Add documents are not asked about again."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
@@ -38,8 +43,9 @@ def fill(page, docs, item):
     ncol = len(DF.COLUMNS)
     for r, row in enumerate(rs):
         if row[0] == "group":
-            _k, name, n = row[1:]
-            it = item(f"{name}   ·   {n} document" + ("" if n == 1 else "s"))
+            k, name, n = row[1:]
+            when = DP.date_of(page.lib, k) if k else ""
+            it = item(f"{name}   ·   " + (f"{when}   ·   " if when else "") + f"{n} document" + ("" if n == 1 else "s"))
             f = it.font(); f.setWeight(QFont.DemiBold); it.setFont(f)
             it.setFlags(Qt.ItemIsEnabled)
             it.setBackground(D.color("surface2"))
@@ -76,11 +82,12 @@ def set_package(page, key, ids=None):
 
 
 def menu(page, m, d):
-    """Package, on a customer document's right-click menu, once there is an amendment."""
+    """Arrived as (4.25.4's Package), on a customer document's right-click menu, once there is an amendment or a
+    release."""
     lib = page.lib
-    if lib is None or not DP.has_groups(lib) or not DP.of(lib, d) or DP.is_amendment(d):
+    if lib is None or not DP.has_groups(lib) or not DP.of(lib, d) or (DP.is_amendment(d) and not DP.first_release(d)):
         return None
-    pm = m.addMenu("Package")
+    pm = m.addMenu("Arrived as")
     now = DP.of(lib, d)
     for k, n in DP.packages(lib):
         a = pm.addAction(n, lambda k=k: set_package(page, k)); a.setCheckable(True); a.setChecked(k == now)
@@ -96,7 +103,7 @@ def new_in(lib, made):
     for d0, _v in made or []:
         d = lib.doc(d0["id"]) or d0                  # the page's own copy (the add ran on another)
         if (d.get("category", "customer") in DP.CUSTOMER_SIDE and not DP.is_amendment(d) and not d.get("package")
-                and len(d.get("versions") or []) == 1 and d not in out):
+                and not DP.first_release(d) and len(d.get("versions") or []) == 1 and d not in out):
             out.append(d)
     return out
 

@@ -152,8 +152,19 @@ GRAPHICS (4.25.5)
 DOCUMENTS: PACKAGES (4.25.4)
   - Once an effort has an amendment, Documents is in groups: As issued, each amendment in the order issued, then
     Internal. Each group's line counts its documents. Before the first amendment the list is one list, as before.
-  - A document is As issued until you say otherwise. Right-click a customer document > Package and pick the
-    amendment that brought it. Several rows can be set at once. The amendment is always in its own package.
+  - A document is As issued until you say otherwise. Right-click a customer document > Arrived as (was Package)
+    and pick the release or amendment that brought it. Several rows can be set at once.
+
+DOCUMENTS: PART OF AND ARRIVED AS (4.84.0)
+  - Add documents asks once, on a line above the table, what the customer's files are Part of (the Solicitation,
+    Pre-RFP (RFI / Sources Sought), Discussions & FPR, or a package you name with New package...) and what they
+    Arrived as (Final RFP, Draft RFP 2, Amendment 0002, Q&A set 1 ...), with the date. A numbered release numbers
+    itself, or takes the number in a file's name; change it if it is wrong.
+  - Each row's Arrived as follows that line. Pick another release for one file, or Not said. Our own files have none.
+  - The release is the version's label, so Documents' Version column reads "Amendment 0002". Documents groups the
+    customer's files by the release that brought them, with its date.
+  - The effort's solicitation number (and a named package's own) is left out when a file's name is matched to a
+    document already here.
   - A document with more than one version shows the earlier ones on lines under it, newest first. A click on one
     selects the document.
   - With Find in use the groups are off, so the hits read as one list. A filter keeps the groups.

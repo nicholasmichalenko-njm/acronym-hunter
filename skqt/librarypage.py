@@ -876,6 +876,8 @@ class LibraryPage(QWidget):
         self.lib = DV.Library(self.lib.folder).load()     # 3.15.1: plan against the library as saved now, never a stale copy
         self._ask_pkg = choices is None                   # 4.29.1: the person's own add asks which package; a folder's does not
         lib, rd = self.lib, reader or DI.read
+        sol = (self.host.efforts.get(self.host.effort_name) or {}).get("solicitation", "") if self.effort_rec() is not None else ""
+        lib.numbers = __import__("docpackages").numbers(lib, sol)   # 4.84.0: solicitation numbers are left out of name matching
         self._choices = choices
         self._preset = preset or {}
         # 4.17.0: edited "replace": Add files and a drop (the person edited the file); the watch passes "version"
