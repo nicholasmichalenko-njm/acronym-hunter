@@ -14,8 +14,8 @@ import effortrec as R
 import effortstate as ES
 from . import design as D
 
-CAL_TONE = {"due": "crit", "deadline": "warn", "questions": "cust", "meeting": "ctx", "stage": "accent", "task": "warn", "done": "ok", "event": "muted"}
-CAL_ORDER = ("due", "deadline", "questions", "meeting", "stage", "task", "done", "event")
+CAL_TONE = {"due": "crit", "deadline": "warn", "questions": "cust", "key": "cust", "meeting": "ctx", "stage": "accent", "task": "warn", "done": "ok", "event": "muted"}
+CAL_ORDER = ("due", "deadline", "questions", "key", "meeting", "stage", "task", "done", "event")
 CAL_WORDS = (("due", "Proposal due"), ("deadline", "Due dates"), ("questions", "Questions due"), ("meeting", "Reviews and meetings"), ("stage", "Stages"), ("task", "Tasks due"),
              ("done", "Tasks done"), ("event", "What happened"))
 KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",

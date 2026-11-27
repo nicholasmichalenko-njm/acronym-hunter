@@ -742,7 +742,8 @@ class Record:
             if hm[:2].isdigit() and hm[3:5].isdigit():
                 h, mi = int(hm[:2]), int(hm[3:5])
                 hm = f"{h % 12 or 12}:{mi:02d} {'a.m.' if h < 12 else 'p.m.'}"
-            put(parse_date(due[:10]), "due", "Proposal due" + (f" {hm}" if hm else ""))
+            was = ((self.data.get("customer_facts") or {}).get("Proposal due") or {}).get("was", "")   # 4.82.0: an amendment's newer date
+            put(parse_date(due[:10]), "due", "Proposal due" + (f" {hm}" if hm else "") + (f" (replaces {was})" if was else ""))
         for s in (self.stages if stages else []):
             if s.get("planned"):
                 put(parse_date(s["planned"]), "stage", f"{s['name']} (planned start)" if s.get("planned_end") else f"{s['name']} (planned)")
@@ -763,7 +764,13 @@ class Record:
                         f"{hm}Gate goal ({s['name']}): {g['text']}" + (f" ({g['owner']})" if g.get("owner") else ""), g.get("owner", ""))
         import effortcal as EC
         for e in self.data.get("events", []):                 # 2.88.0: reviews, meetings, orals, milestones; 2.92.0: due dates
+            if e.get("replaced_by"):                          # 4.82.0: an amendment's newer key date shows in its place
+                continue
             when = EC.entry_times(e, mine)
+            if e.get("key_kind"):                             # 4.82.0: a key date marked in Shred says its kind
+                put(parse_date(e["date"]), "key", e["title"] + (f" {when}" if when else "") +
+                    (f" (replaces {e['replaces_when']})" if e.get("replaces_when") else ""), e.get("owner", ""))
+                continue
             kind = "questions" if e["kind"] == "Questions due" else "deadline" if e["kind"] == "Due" else "meeting"
             put(parse_date(e["date"]), kind, ((("Due " if kind == "deadline" else "") + when + " ") if when else ("Due: " if kind == "deadline" else ""))
                 + e["title"] + (f" ({e['location']})" if e.get("location") else ""), e.get("owner", ""))

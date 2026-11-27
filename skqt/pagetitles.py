@@ -54,6 +54,7 @@ TITLES = {"team": ("Team", "The team's own tools: what every effort is built fro
           "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
           "structpass": ("Outline", "What the customer says our response must hold: mark the volumes and headings, and the outline fills"),
+          "subpass": ("Submission Formatting Requirements", "When and how the customer wants it: mark a key date and it is on the calendar at once"),
           "delivpass": ("Deliverables", "What the customer asks us to hand in: mark each and it is on the Deliverables list"),
           "comppass": ("Compliance", "What we must do, write and be judged on: mark each piece and it is a row of the matrix"),
           "evalcrit": ("Evaluation Criteria", "How the customer will judge the proposal: the factors, their importance and the deliverables they judge"),

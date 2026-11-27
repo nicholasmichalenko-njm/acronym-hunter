@@ -122,10 +122,17 @@ def cal_extra_of(rec, rows):
     """Dates from the customer documents: questions due, and the due date when the effort has none of its own."""
     out = []
     try:
+        import keydatemark as KM
+        qf = KM.questions_from_fact(rec) if rec is not None else None   # 4.82.0: Customer information's Questions due, one value
+        if qf:
+            out.append(qf)
+    except Exception:  # noqa: BLE001
+        diag.swallowed(); qf = None
+    try:
         import subreq as SR
         sm = SR.summary(rows or [])
         q = sm.get("questions_due")
-        if q:
+        if q and not qf:
             d = R.parse_date(q["value"].split(" at ")[0]) or R.parse_date(",".join(q["value"].split(",")[:2]))
             out.append((d, "questions", "Questions due to the customer"))
         if sm.get("due") and rec is not None and not rec.data.get("due"):

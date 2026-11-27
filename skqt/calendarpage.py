@@ -16,7 +16,7 @@ import overview as OV
 from . import design as D
 from .commandbar import CommandBar
 
-TONE = {"due": "crit", "deadline": "warn", "questions": "cust", "meeting": "ctx", "stage": "accent", "task": "warn", "goal": "accent"}
+TONE = {"due": "crit", "deadline": "warn", "questions": "cust", "key": "cust", "meeting": "ctx", "stage": "accent", "task": "warn", "goal": "accent"}
 
 
 def _clear(lay):
@@ -122,7 +122,7 @@ class CalendarPage(QWidget):
         for qd in self._painted:
             self.cal.setDateTextFormat(qd, QTextCharFormat())
         self._painted = []
-        order = ("due", "questions", "deadline", "meeting", "stage", "goal", "task")
+        order = ("due", "questions", "deadline", "key", "meeting", "stage", "goal", "task")
         for d, items in self.cal_data.items():
             kinds = [k for k, _t in items if k not in ("done", "event")]
             if not kinds or d is None:
@@ -158,7 +158,26 @@ class CalendarPage(QWidget):
             self.day_box.addWidget(lab)
         if not items:
             self.day_box.addWidget(D.label("Nothing on this day.", "muted"))
+        self.back = self.way_back(d)
         return items
+
+    def way_back(self, d):
+        """4.82.0: a key date marked in Shred has a way back to the customer's words it came from."""
+        import effortrec as RR
+        import keydatemark as KM
+        from . import keypass as KP
+        h, out = self.host, []
+        try:
+            srcs = KM.sources_on(RR.Record(h.ws.root), d) if h.ws is not None else []
+        except Exception:  # noqa: BLE001
+            diag.swallowed(); srcs = []
+        for s in srcs:
+            where = ", ".join(x for x in (s["file"], ("page " + s["page"]) if s.get("page") else "") if x)
+            b = D.button(f"{s['text']}: where it came from", "ghost", lambda _c=False, x=s: KP.open_source(h, x),
+                         f"Opens Shred on the customer's words it came from{': ' + where if where else ''}")
+            b.setStyleSheet("text-align:left;")
+            self.day_box.addWidget(b); out.append(b)
+        return out
 
 
 class Across(QWidget):

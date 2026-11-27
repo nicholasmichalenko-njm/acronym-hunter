@@ -12,7 +12,7 @@ MOST_NUMBERS = 4
 MOST_DATES = 10
 MOST_DELIVERABLES = 6
 KIND_WORDS = {"due": "Due", "deadline": "Due", "questions": "Questions due", "stage": "Stage", "task": "Task", "done": "Done",
-              "goal": "Gate goal", "deliverable": "Deliverable", "section": "Section due", "meeting": "Meeting"}
+              "goal": "Gate goal", "deliverable": "Deliverable", "section": "Section due", "meeting": "Meeting", "key": "Key date"}
 
 
 def _plural(n, one, many=None):

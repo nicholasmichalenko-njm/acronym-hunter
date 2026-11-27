@@ -3,7 +3,7 @@ Compliance pass's page and bar, skqt/comppass.py, with these buttons in place of
 Form We Fill In, File We Submit, Redline We Return on 1 to 4. A kind's key shows the name the app suggests on the bar,
 to change before Enter; a name already on the Deliverables list attaches to that row, a near one asks once (Attach or
 Add as new); pieces marked together are one deliverable. The bar names the deliverable a piece is on and opens its
-row. Key date sends the piece to the effort's calendar through the capture the Shred already has. 4.81.0 (D2, decision
+row. (Key date was on this bar from 4.76.0; 4.82.0 moved it to its own pass, skqt/keypass.py.) 4.81.0 (D2, decision
 176): once the row is made, the bar asks Its file: the document in Documents the app suggests (Enter), another one from
 Documents, Add a file now (through Documents' own Add, attached once it is in), or None yet. Rules only; nothing leaves
 the PC."""
@@ -113,9 +113,7 @@ def buttons(page, f, rows, M, it, one, col):
         f.on_list = D.button("On Deliverables: " + d["name"], "ghost", lambda _c=False, x=d["id"]: open_row(page, x), "Opens this deliverable on the Deliverables page")
         f.on_list.setStyleSheet("text-align:left;")
         col.addWidget(f.on_list)
-    f.keydate = D.button("Key date  D", "ghost", lambda: key_date(page), "A date the customer sets: it goes on the effort's calendar at once")
-    col.addWidget(f.keydate)
-    return f
+    return f                                                   # 4.82.0: Key date moved to its own pass (K1)
 
 
 def open_row(page, did):
@@ -280,14 +278,3 @@ def cancel(page):
     page._deliv_ask = page._deliv_file = None
     _later(page)
     page.view.setFocus()
-
-
-def key_date(page, answer=None):
-    """Key date (D): the capture the Shred has, from the selected piece; the calendar has it at once."""
-    if not page.selected():
-        page.host.status("Select the piece that holds the date first.")
-        return None
-    got = page._do_capture("keydate", answer)
-    if got:
-        __import__("skqt.comppass", fromlist=["x"]).done(page)
-    return got

@@ -57,7 +57,7 @@ def fresh():
 
 
 check("Shred's tabs: Compliance, then the others as they were (4.73.0: Response Structure is Outline's)", [k for k, _t in MW.TABS["assign"]] ==
-      ["comppass", "delivpass", "assign", "requirements", "evalcrit", "acronyms"])
+      ["subpass", "comppass", "delivpass", "assign", "requirements", "evalcrit", "acronyms"])
 M.outline[:] = C.parse_outline("Volume I Technical\n1 Technical Approach\n1.1 Thermal Design\n2 Management")
 w.go("comppass"); app.processEvents()
 check("the tab opens the Shred page in the pass, titled Shred", w.stack.currentWidget() is pg and pg.focus == "comp" and w.page_title.text() == "Shred")

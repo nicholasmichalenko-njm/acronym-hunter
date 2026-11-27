@@ -1,5 +1,5 @@
 """4.76.0, 4.77.0: the Deliverables pass on the screen. Shred's second tab: Document We Write, Form We Fill In, File We Submit,
-Redline We Return on 1 to 4, each a row of the Deliverables list at once; Key date (D) onto the calendar; Customer
+Redline We Return on 1 to 4, each a row of the Deliverables list at once (4.82.0: Key date moved to its own pass); Customer
 heading, Send to Outline, More, Not needed, Ask a question, For the setup as on Compliance. Fictional (Kestrel)."""
 import os, sys, tempfile, time
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -59,7 +59,7 @@ def rec():
 
 
 check("Shred's tabs: Compliance, Deliverables, then the others as they were", [k for k, _t in MW.TABS["assign"]] ==
-      ["comppass", "delivpass", "assign", "requirements", "evalcrit", "acronyms"] and dict(MW.TABS["assign"])["delivpass"] == "Deliverables")
+      ["subpass", "comppass", "delivpass", "assign", "requirements", "evalcrit", "acronyms"] and dict(MW.TABS["assign"])["delivpass"] == "Deliverables")
 w.go("delivpass"); app.processEvents()
 check("the tab opens the Shred page in the pass, titled Shred", w.stack.currentWidget() is pg and pg.focus == "deliv" and w.page_title.text() == "Shred")
 check("nothing is beside the page; the row above says the document's state", not pg.page_side.isVisibleTo(pg) and pg.comp_state.isVisibleTo(pg)
@@ -68,9 +68,9 @@ check("the tab's count starts at none marked", w.stepper.chips["delivpass"].ct.t
 fresh()
 a = rows[6]
 pg.select(a["id"]); app.processEvents(); f = bar()
-check("a piece selected: four kinds with their numbers, Key date, then the bar Compliance has", f is not None
+check("a piece selected: four kinds with their numbers, then the bar Compliance has (4.82.0: no Key date)", f is not None
       and [b.text() for b in f.kinds.values()] == ["1   Document We Write", "2   Form We Fill In", "3   File We Submit", "4   Redline We Return"]
-      and f.keydate.text() == "Key date  D" and f.head.text() == "Customer heading  H" and f.send.text() == "Send to Outline" and f.more.text() == "More  M"
+      and f.keydate is None and f.head.text() == "Customer heading  H" and f.send.text() == "Send to Outline" and f.more.text() == "More  M"
       and f.x.text() == "Not needed  X" and f.ask.text() == "Ask a question  A" and f.setup.text() == "For the setup  S" and f.on_list is None)
 QTest.keyClick(pg.view, Qt.Key_2); app.processEvents(); f = bar()
 check("2 asks the name on the bar, suggested from the words; nothing is on the list yet", f.name_edit is not None and f.name_edit.text() == DM.suggest_name(a["text"])
@@ -150,15 +150,14 @@ QTest.keyClick(pg.view, Qt.Key_X); app.processEvents()
 check("X: Not needed in this pass only", CM.state(M, b_, "deliv_marks") == "x" and CM.state(M, b_) == "" and bar().x.isChecked())
 QTest.keyClick(pg.view, Qt.Key_X); app.processEvents()
 check("X again opens it again", CM.state(M, b_, "deliv_marks") == "")
-n0 = len(EC.entries(rec())) if hasattr(EC, "entries") else None
-got = __import__("skqt.delivpass", fromlist=["x"]).key_date(pg, {"kind": "Questions due", "date": "2027-03-01", "start": "", "zone": "", "title": "Questions due"})
-check("Key date: on the effort's calendar at once", bool(got) and (n0 is None or len(EC.entries(rec())) == n0 + 1), got)
 seen = []
-pg._do_capture = lambda kind, answer=None: seen.append(kind) or ""
+real = w.status
+w.status = lambda m, *a, **k: seen.append(m)
 QTest.keyClick(pg.view, Qt.Key_D); app.processEvents()
-del pg._do_capture
+w.status = real
 fresh()
-check("D is Key date here; the piece is not typed by it", seen == ["keydate"] and not next(x for x in rows if x["id"] == b_["id"]).get("piece"), seen)
+check("4.82.0: Key date left this bar; D points to its own pass and types nothing", getattr(bar(), "keydate", None) is None
+      and any("Submission Formatting Requirements" in m for m in seen) and not next(x for x in rows if x["id"] == b_["id"]).get("piece"), seen)
 QTest.keyClick(pg.view, Qt.Key_H); app.processEvents(); f = bar()
 check("H asks for the customer heading here too", f.head_edit is not None)
 CP.head_cancel(pg); app.processEvents()

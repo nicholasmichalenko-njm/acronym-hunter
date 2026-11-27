@@ -20,8 +20,9 @@ WIDE = 256                       # the right margin in this pass: the kinds' nam
 
 
 DELIV = "deliv"                  # 4.76.0: the Deliverables pass is this page too, with its own buttons
-PASSES = (MODE, DELIV)
-STEP_OF = {KEY: MODE, "delivpass": DELIV}
+SUBM = "subm"                    # 4.82.0: the Submission Formatting Requirements pass (K1: Key Date)
+PASSES = (MODE, DELIV, SUBM)
+STEP_OF = {KEY: MODE, "delivpass": DELIV, "subpass": SUBM}
 
 
 def on(page):
@@ -32,9 +33,13 @@ def deliv(page):
     return getattr(page, "focus", None) == DELIV
 
 
+def subm(page):
+    return getattr(page, "focus", None) == SUBM
+
+
 def mk(page):
     """The key the open pass keeps its own marks under."""
-    return "deliv_marks" if deliv(page) else "comp_marks"
+    return "deliv_marks" if deliv(page) else "subm_marks" if subm(page) else "comp_marks"
 
 
 def rec_of(page):
@@ -66,7 +71,7 @@ def apply(w, step):
         install(pg)
         if want:
             pg.focus = STEP_OF[step]
-            pg._cust_ask = pg._deliv_ask = pg._deliv_file = None
+            pg._cust_ask = pg._deliv_ask = pg._deliv_file = pg._key_ask = None
             for name in ("shred_check", "queue_lbl", "reshred_btn"):
                 x = getattr(pg, name, None)
                 if x is not None:
@@ -94,11 +99,13 @@ def apply(w, step):
 def fill(page):
     """The document's state on the row above the page."""
     M = M_of(page)
-    docs = [] if M is None else (__import__("delivmark").docs(M, rec_of(page)) if deliv(page) else CM.docs(M))
+    docs = [] if M is None else (__import__("delivmark").docs(M, rec_of(page)) if deliv(page) else
+                                 __import__("keydatemark").docs(M) if subm(page) else CM.docs(M))
     cur = next((d for d in docs if d["file"] == page.file), None)
     page.comp_state.setVisible(on(page))
     page.comp_state.setText(f"This document: {cur['state']}" if cur else "")
     page.comp_none.setToolTip("You looked: this document asks for nothing to be handed in. It can be unticked." if deliv(page) else
+                              "You looked: this document sets no key date. It can be unticked." if subm(page) else
                               "You looked: this document holds no requirement, instruction or criterion. It can be unticked.")
     page.comp_none.setVisible(on(page) and cur is not None and not cur["finds"])
     page.comp_none.blockSignals(True); page.comp_none.setChecked(bool(cur and cur["none"])); page.comp_none.blockSignals(False)
@@ -110,7 +117,7 @@ def done(page, msg=""):
         page.after(msg)
     fill(page)
     try:
-        page.host.stepper.show_for("delivpass" if deliv(page) else KEY)
+        page.host.stepper.show_for("delivpass" if deliv(page) else "subpass" if subm(page) else KEY)
     except Exception:  # noqa: BLE001
         diag.swallowed()
     __import__("skqt.shredselbar", fromlist=["x"]).later(page)
@@ -123,7 +130,7 @@ def set_none(page, on_=True):
         return None
     with page.R.group():
         page.R.snap("Nothing of this kind here" if on_ else "Nothing of this kind here, taken back")
-        CM.set_none(M, page.file, on_, "deliv_none" if deliv(page) else "comp_none")
+        CM.set_none(M, page.file, on_, "deliv_none" if deliv(page) else "subm_none" if subm(page) else "comp_none")
     done(page, f"{page.file}: nothing of this kind here." if on_ else f"{page.file}: not looked at.")
     return on_
 
@@ -211,6 +218,9 @@ def fill_bar(page, f, rows):
     if deliv(page):
         if __import__("skqt.delivpass", fromlist=["x"]).buttons(page, f, rows, M, it, one, col) == "ask":
             return f                                                   # 4.77.0: the name, or Attach or Add as new
+    elif subm(page):
+        if __import__("skqt.keypass", fromlist=["x"]).buttons(page, f, rows, M, it, one, col) == "ask":
+            return f                                                   # 4.82.0: the date and its kind
     else:
         _comp_buttons(page, f, rows, M, it, one, col)
     if one:
@@ -266,7 +276,7 @@ def head_take(page):
     with page.R.group():
         page.R.snap("Customer heading")
         lab = CS.mark(M, rows[0], num, title, level)
-        if lab and (deliv(page) or not CM.kinds_of(rows[0])):
+        if lab and (deliv(page) or subm(page) or not CM.kinds_of(rows[0])):
             CM.marks(M, mk(page))[rows[0]["id"]] = "h"                 # a heading is dealt with in this pass
     page._cust_ask = None
     if not lab:
@@ -401,6 +411,8 @@ def kind(page, key):
     """A kind's button or key: on for the selected pieces, off when they all have it (the type chips' own way)."""
     if deliv(page):
         return __import__("skqt.delivpass", fromlist=["x"]).mark(page, key)
+    if subm(page):
+        return __import__("skqt.keypass", fromlist=["x"]).start(page)
     from . import shredbar as SB
     M = M_of(page)
     rows = page.selected() if M is not None and page.cx is None else []
@@ -436,7 +448,10 @@ def not_needed(page):
     if deliv(page) and any(__import__("delivmark").of_piece(rec_of(page), it) for it in rows):
         page.host.status("This piece is on a deliverable. Take it off the list first.")
         return None
-    if not deliv(page) and any(CM.kinds_of(it) for it in rows):
+    if subm(page) and any(__import__("keydatemark").of_piece(M, it) for it in rows):
+        page.host.status("This piece is a key date. Take the mark off first (press 4 again).")
+        return None
+    if not deliv(page) and not subm(page) and any(CM.kinds_of(it) for it in rows):
         page.host.status("This piece is in the matrix. Take its kind off first (press its number again).")
         return None
     to = not all(CM.state(M, it, mk(page)) == CM.NOT_NEEDED for it in rows)
@@ -474,6 +489,8 @@ def send_to_setup(page, label):
 
 def key(page, n):
     """1 to 3 on the page."""
+    if subm(page):                                                    # 4.82.0: 4 is Key Date; 1 to 7 while it asks the kind
+        return __import__("skqt.keypass", fromlist=["x"]).number(page, n)
     kinds = __import__("delivmark").KINDS if deliv(page) else CM.KINDS
     if not on(page) or not 0 <= n < len(kinds):
         return None
@@ -485,7 +502,8 @@ def go_next(page):
     M = M_of(page)
     if M is None or not page.file:
         return None
-    rows = __import__("delivmark").open_rows(M, rec_of(page), page.file) if deliv(page) else CM.open_rows(M, page.file)
+    rows = (__import__("delivmark").open_rows(M, rec_of(page), page.file) if deliv(page) else
+            __import__("keydatemark").open_rows(M, page.file) if subm(page) else CM.open_rows(M, page.file))
     if not rows:
         page.host.status("Nothing left in this document for this pass.")
         return None
@@ -503,6 +521,8 @@ def enter(page):
     rows = page.selected() if M is not None else []
     if getattr(page, "_cust_ask", None):
         return head_take(page)
+    if subm(page):                                                     # 4.82.0: the Key Date question, else a date's piece
+        return __import__("skqt.keypass", fromlist=["x"]).enter(page)
     if deliv(page) and getattr(page, "_deliv_file", None):             # 4.81.0: Its file: the suggestion, else None yet
         DP = __import__("skqt.delivpass", fromlist=["x"])
         fa = DP.file_asking(page, rows)
