@@ -61,10 +61,8 @@ TABS = {"home": [("overview", "Overview"), ("custinfo", "Customer information"),
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
-        # 4.82.0 (decision 164): the passes in his order, Submission Formatting Requirements first
-        "assign": [("subpass", "Submission Formatting Requirements"), ("comppass", "Compliance"), ("delivpass", "Deliverables"),
-                   ("assign", "Requirements"), ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"),
-                   ("acronyms", "Acronyms")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
+        "assign": [("subpass", "Submission Formatting Requirements"), ("comppass", "Compliance"), ("delivpass", "Deliverables"), ("assign", "Requirements"),
+                   ("requirements", "Submission Checklist"), ("evalcrit", "Evaluation Criteria"), ("acronyms", "Acronyms")],   # 4.82.0 (164): the passes in his order             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
         "matrix": [("assignto", "Assign"), ("linkcheck", "Check"), ("matrix", "Matrix")], "outline": [("outline", "Outline"), ("structpass", "From the customer's document")],   # 4.73.0: our structure is decided on Outline; 4.66.0 Assign; 4.67.0 Check (Coverage under its More); 4.69.0 the crosswalk under Matrix > More
         "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.61.0: Redlining is an entry of its own again, with the effort's other work
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting"), ("studio", "Template Studio")],   # 4.29.1: it works on the open effort's volume

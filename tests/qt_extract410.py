@@ -55,7 +55,7 @@ def wait(cond, secs=90):
     return cond()
 
 
-check("Shred's tabs: no Extract", "read" not in [k for k, _t in TABS["assign"]] and TABS["assign"][2][0] == "assign", TABS["assign"])
+check("Shred's tabs: no Extract", "read" not in [k for k, _t in TABS["assign"]] and TABS["assign"][3][0] == "assign", TABS["assign"])
 w.open_effort("Kestrel"); app.processEvents()
 pg = w.assign_page
 check("an effort with nothing extracted opens on Shred", w.stack.currentWidget() is pg)
