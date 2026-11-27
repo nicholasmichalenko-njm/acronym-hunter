@@ -2,6 +2,9 @@
 Moved out of supportfile.py in 4.30.1 to keep that file under its size limit. Text only."""
 
 WHATS_NEW = {
+    "4.85.0": ["Add documents: a new version of a customer document says Compare with, ticked, and the version it is compared with (\"Final RFP\"). Untick it to leave that one out.",
+               "After an add, one window says what it brought (\"12 files: 7 new versions, 3 new documents, 2 already added.\"), in place of a What changed window for each new version. Each new version says what it changed and what it touches. Review the 7 in What changed opens the first, and What changed names the next one.",
+               "When the files arrived as an amendment or another release of a package, the same window lists the package's documents the release did not replace. They stay in force. Tick one the customer no longer uses: it stays in Documents, says No longer in force, and stops building the matrix. Right-click > Back in force undoes it."],
     "4.84.0": ["Add documents says what the customer's files are Part of and what they Arrived as, once for every file: Part of the Solicitation, Pre-RFP (RFI / Sources Sought), Discussions & FPR, or a package you name; Arrived as Final RFP, Draft RFP 2, Amendment 0002, Q&A set 1 and the like, with its date. A numbered one numbers itself, or takes the number in a file's name.",
                "Each file's Arrived as follows that line; pick another release for one file, or Not said. The release is the version's label in Documents (\"Amendment 0002\").",
                "Documents groups the customer's files by the release that brought them, with its date. Right-click > Arrived as (was Package) moves a file to another release. Files whose release was said are not asked about again.",

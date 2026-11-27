@@ -96,7 +96,7 @@ check("the table: one row per file, customer rows ask for an initial", dlg.table
       and not dlg.rows[names.index("Section L Instructions.docx")]["ini"].isHidden() and dlg.rows[r_std]["ini"].isHidden())   # 4.83.0: shown only when used (187)
 dlg.set_rows(role="context", rows=[r_std, r_win])
 check("Set many rows at once (4.25.2: context reads Reference)", dlg.rows[r_std]["role"].currentData() == "reference" and dlg.rows[r_win]["role"].currentData() == "reference"
-      and dlg.table.horizontalHeaderItem(5).text() == "Source" and dlg.table.horizontalHeaderItem(1).text() == "Purpose"
+      and dlg.table.horizontalHeaderItem(6).text() == "Source" and dlg.table.horizontalHeaderItem(1).text() == "Purpose"
       and dlg.rows[r_std]["role"].currentText() == "Reference" and dlg.b_cat.itemText(0) == "Source..." and dlg.b_role.itemText(0) == "Purpose...")
 dlg.set_rows(skip=True, rows=[r_win])
 res = dlg.result_plan()

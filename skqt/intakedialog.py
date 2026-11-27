@@ -12,10 +12,14 @@ Redline to return shows Deliverable: the app's suggestion, another from the list
 leaves the PC.
 
 4.84.0 (step I2): Part of and Arrived as, a strip above the table for every file from the customer, and an Arrived as
-cell on each row that follows it (skqt/releasestrip.py). Shown only in an effort."""
+cell on each row that follows it (skqt/releasestrip.py). Shown only in an effort.
+
+4.85.0 (step I3): a New version of a customer document says Compare with, ticked, and the version it is compared with
+("Final RFP"); after the add, the summary (skqt/intakesummary.py) offers the ticked ones in What changed. Shown only in an
+effort, like the strip."""
 import os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 import docintake as DI
 import docversions as DV
@@ -25,8 +29,8 @@ from . import design as D
 from . import releasestrip as RS
 from .doctypeui import type_box
 
-COLS = ["File", "Purpose", "Deliverable", "Version", "Arrived as", "Source", "Initial", "Type", "Name", "Tags", ""]
-C_FILE, C_PURPOSE, C_DELIV, C_VERSION, C_ARRIVED, C_SOURCE, C_INI, C_TYPE, C_NAME, C_TAGS, C_OUT = range(len(COLS))   # noqa: E501
+COLS = ["File", "Purpose", "Deliverable", "Version", "Arrived as", "Compare with", "Source", "Initial", "Type", "Name", "Tags", ""]
+C_FILE, C_PURPOSE, C_DELIV, C_VERSION, C_ARRIVED, C_COMPARE, C_SOURCE, C_INI, C_TYPE, C_NAME, C_TAGS, C_OUT = range(len(COLS))   # noqa: E501
 
 
 def _item(text, tip=""):
@@ -88,7 +92,7 @@ class IntakeDialog(QDialog):
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        for c, wdt in enumerate((190, 170, 220, 220, 200, 110, 80, 100, 150, 100, 28)):
+        for c, wdt in enumerate((190, 170, 220, 220, 200, 150, 110, 80, 100, 150, 100, 28)):
             self.table.setColumnWidth(c, wdt)
         hh = self.table.horizontalHeader()
         hh.setStretchLastSection(False); hh.setSectionResizeMode(C_TAGS, QHeaderView.Stretch)
@@ -178,13 +182,14 @@ class IntakeDialog(QDialog):
         name = QLineEdit(e.get("name", ""))
         tags = QLineEdit(", ".join(e.get("tags", []))); tags.setToolTip("Comma between tags; the folder names are always tags")
         arrived = RS.row_box(lib); RS.follow(arrived, self.strip) if hasattr(self, "strip") else None
+        cmp = QCheckBox(""); cmp.setChecked(True)               # 4.85.0: compare this new version after the add
         out = QToolButton(); out.setText("x"); out.setAutoRaise(True); out.setToolTip("Take this file out: it is not added")
         out.clicked.connect(lambda _c=False, r=i: self.take_out([r]))
-        cells = {C_PURPOSE: _Either(role), C_DELIV: _Either(deliv), C_VERSION: what, C_ARRIVED: _Either(arrived), C_SOURCE: cat, C_INI: _Either(ini),
+        cells = {C_PURPOSE: _Either(role), C_DELIV: _Either(deliv), C_VERSION: what, C_ARRIVED: _Either(arrived), C_COMPARE: _Either(cmp), C_SOURCE: cat, C_INI: _Either(ini),
                  C_TYPE: _Either(ty), C_NAME: name, C_TAGS: tags, C_OUT: out}
         for c, w in cells.items():
             self.table.setCellWidget(i, c, w)
-        row = {"what": what, "cat": cat, "role": role, "deliv": deliv, "arrived": arrived, "ini": ini, "ty": ty, "name": name, "tags": tags,
+        row = {"what": what, "cat": cat, "role": role, "deliv": deliv, "arrived": arrived, "cmp": cmp, "ini": ini, "ty": ty, "name": name, "tags": tags,
                "cells": cells, "out": False, "deliv_for": None}
         self.rows.append(row)
         self._fill_deliv(i, keep=e.get("deliverable"))
@@ -263,6 +268,33 @@ class IntakeDialog(QDialog):
         c[C_DELIV].show_control(door, "")
         self.show_deliv_column()
         self.show_strip()
+        self.show_compare(r)
+
+    def compare_with(self, r):
+        """The version a row's new version is compared with (the document's newest), or None when it is not compared:
+        not a new version, not a customer document, or not in an effort."""
+        w = self.rows[r]
+        if self.rec is None or w["out"] or self.kind(r) != "version":
+            return None
+        d = self.lib.doc(w["what"].currentData()[1])
+        if d is None or d.get("category", "customer") != "customer" or not d.get("versions"):
+            return None
+        return d["versions"][-1]
+
+    def show_compare(self, r=None):
+        """4.85.0: the Compare with cell of each new version of a customer document ("Final RFP"); the column only when
+        one row has it."""
+        if not hasattr(self, "rows"):
+            return
+        for k in range(len(self.rows)) if r is None else (r,):
+            v = self.compare_with(k)
+            box = self.rows[k]["cmp"]
+            if v is not None:
+                box.setText(v.get("label") or v.get("file", "the version before"))
+                box.setToolTip(f"After the add, see in What changed what it changed against {v.get('label', '')} ({v.get('file', '')})")
+            self.rows[k]["cells"][C_COMPARE].show_control(v is not None, "")
+        need = any(self.compare_with(k) is not None for k in range(len(self.rows)))
+        self.table.setColumnHidden(C_COMPARE, not need)
 
     def show_deliv_column(self):
         if not hasattr(self, "rows"):
@@ -303,6 +335,7 @@ class IntakeDialog(QDialog):
         for r in rows:
             self.rows[r]["out"] = True
             self.table.setRowHidden(r, True)
+        self.show_compare()
         self.show_deliv_column()
         self.show_strip()
         self.show_count()
@@ -361,6 +394,7 @@ class IntakeDialog(QDialog):
             e["type"] = w["ty"].currentText() if e["category"] == "customer" else ""
             e["name"] = w["name"].text().strip() or e.get("name", "")
             e["tags"] = DV.clean_tags([t for t in w["tags"].text().split(",")])
+            e["compare"] = self.compare_with(r) is not None and w["cmp"].isChecked() and choice == "version"   # 4.85.0
             got = None if choice not in ("new", "version") else self.arrived(r)
             if got:                                                      # 4.84.0: kept on the version; its label
                 e["part_of"], e["arrived_as"], e["arrived_on"] = got

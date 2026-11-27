@@ -11,6 +11,9 @@
     Prev change (K), Next change (J), Next to decide (F8, the main button); Enter takes the suggestion. More: Only what
     touches our response, Editorial changes: No action for all, Requirement history... Export: Redline (Word), Change
     list (Excel), Author briefs.
+    4.85.0 (step I3): opened from the summary after an add with several new versions (What changed is this page's
+    name since 4.46.0), a line says which of them this is
+    ("2 of 7 new versions from Amendment 0001") and links the next one.
 Rules: comparemap, changereview, docversions, docintake. Nothing leaves the PC."""
 import html
 import os
@@ -51,6 +54,7 @@ class ComparePage(QWidget):
         self.review, self.pk, self.impact = None, "", None
         self.tag_filter = "all"
         self._tries = 0
+        self.queue, self.queue_from = [], ""                 # 4.85.0: the new versions an add brought, to compare in turn
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["s"])
         from .commandbar import CommandBar
@@ -78,6 +82,9 @@ class ComparePage(QWidget):
         bar.export("Author briefs...", lambda: self.author_briefs(), "One brief per person this version touches")
         self.sum = D.label("", "muted"); self.sum.setTextFormat(Qt.RichText); self.sum.linkActivated.connect(self.set_tag_filter)
         v.addWidget(self.sum)
+        self.qline = D.label("", "muted"); self.qline.setTextFormat(Qt.RichText); self.qline.hide()
+        self.qline.linkActivated.connect(lambda _h: self.next_in_queue())
+        v.addWidget(self.qline)
         self.vline = D.label("", "muted"); self.vline.setTextFormat(Qt.RichText); self.vline.linkActivated.connect(lambda _h: self.verify_pages())
         v.addWidget(self.vline)
         self.strip = PageStrip(); self.strip.picked.connect(self.go); v.addWidget(self.strip)
@@ -168,11 +175,43 @@ class ComparePage(QWidget):
         va, vb = d["versions"][ids.index(a)], d["versions"][ids.index(b)]
         self.sel, self.cur = (d["id"], va["id"], vb["id"]), (d, va, vb)
         self.b_ver.setText(f"{d['name']}: {vb['label']} against {va['label']}")
+        self.say_queue()
         if va is vb:
             self.rows = []
             self.sum.setText("Pick two different versions.")
             return []
         return self.run()
+
+    # ------------------------------------------------------------ 4.85.0: the new versions of one add, in turn
+    def compare_these(self, pairs, release=""):
+        """Compare the new versions an add brought, one after another: [(doc_id, a, b)]. Opens the first."""
+        self.queue, self.queue_from = [tuple(p) for p in pairs or []], release
+        return self._sync(self.show(*self.queue[0])) if self.queue else []
+
+    def _sync(self, rows):
+        """The list of new versions beside the cards picks the pair shown."""
+        lst = getattr(getattr(self, "cards", None), "versions", None)
+        for i in range(lst.count() if lst is not None else 0):
+            if lst.item(i).data(Qt.UserRole) == self.sel:
+                lst.setCurrentRow(i)
+        return rows
+
+    def say_queue(self):
+        here = self.sel in self.queue
+        self.qline.setVisible(here and len(self.queue) > 1)
+        if not here or len(self.queue) < 2:
+            return
+        i = self.queue.index(self.sel)
+        txt = f"{i + 1} of {len(self.queue)} new versions" + (f" from {html.escape(self.queue_from)}" if self.queue_from else "")
+        if i + 1 < len(self.queue):
+            nd = self.ctx.lib.doc(self.queue[i + 1][0]) if self.ctx is not None else None
+            txt += f"  ·  <a href='next'>Next: {html.escape((nd or {}).get('name', 'the next one'))}</a>"
+        self.qline.setText(txt)
+
+    def next_in_queue(self):
+        if self.sel not in self.queue or self.queue.index(self.sel) + 1 >= len(self.queue):
+            return []
+        return self._sync(self.show(*self.queue[self.queue.index(self.sel) + 1]))
 
     # ------------------------------------------------------------ compare
     def run(self):

@@ -226,6 +226,9 @@ def needs(page, d):
     """(text, tone) when the document needs the person, ("", "") when it does not (4.25.0). How far its shred and its
     acros and abs are is on their own screens, and in the panel."""
     from . import docstatus as DS
+    gone = __import__("docpackages").no_longer(d)
+    if gone:                                                 # 4.85.0: said in Status, where the row has room
+        return f"No longer in force with {gone}", "muted"
     if d.get("withdrawn") or page.lib.role_of(d) == "not_needed":
         return "", ""
     ch = DS._changes(page, d)
@@ -264,7 +267,11 @@ def fill_row(page, r, d, st, terms, item):
         name = "↳ " + name
     it = item(name + (f"   {len(vs)} versions" if len(vs) > 1 else ""), d["id"], vs[-1].get("file", "") if vs else "")
     if d.get("withdrawn"):
-        it.setText(name + "  (withdrawn)"); it.setForeground(D.color("muted"))
+        gone = __import__("docpackages").no_longer(d)          # 4.85.0: marked no longer in force with a release
+        it.setText(name + ("" if gone else "  (withdrawn)")); it.setForeground(D.color("muted"))
+        if gone:
+            it.setToolTip(f"Marked {d['withdrawn'].get('when', '').replace('T', ' ')} by {d['withdrawn'].get('who', '')}. "
+                          "It is kept and no longer builds the matrix. Right-click > Back in force undoes it.")
     elif vs and vs[-1].get("missing_kept"):
         it.setText(name + "  (original missing)"); it.setForeground(D.color("warn"))
         it.setToolTip("Its file was removed; the record and its text were kept on purpose")

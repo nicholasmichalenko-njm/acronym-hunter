@@ -155,6 +155,16 @@ DOCUMENTS: PACKAGES (4.25.4)
   - A document is As issued until you say otherwise. Right-click a customer document > Arrived as (was Package)
     and pick the release or amendment that brought it. Several rows can be set at once.
 
+DOCUMENTS: COMPARE AT INTAKE (4.85.0)
+  - In Add documents, a new version of a customer document has Compare with, ticked, and the version it is compared
+    with.
+  - After the add, one window says what the add brought and lists each new version with what it changed. Review
+    the N in What changed opens the first; a line on What changed says which one it is and links the next.
+  - When the files arrived as a later release of a package (an amendment, say), the window also lists the package's
+    documents that release has no new version of. Amendments re-post only what changed, so these stay in force. Tick
+    one the customer no longer uses: it is kept, says No longer in force on Documents, and stops building the matrix.
+    Right-click > Back in force undoes it.
+
 DOCUMENTS: PART OF AND ARRIVED AS (4.84.0)
   - Add documents asks once, on a line above the table, what the customer's files are Part of (the Solicitation,
     Pre-RFP (RFI / Sources Sought), Discussions & FPR, or a package you name with New package...) and what they

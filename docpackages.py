@@ -9,7 +9,12 @@ a package (Solicitation, Pre-RFP (RFI / Sources Sought), Discussions & FPR, or o
 release (Final RFP, Draft RFP 2, Amendment 0002, Q&A set 1 ...). Both are optional keys on each version ("part_of",
 "arrived_as", "arrived_on"), set in Add documents. A document's group is the release of its first version (what brought
 it); its later versions keep their own. A document with no release reads as 4.25.4 did (As issued, or the amendment it
-was put in), so an older effort reads the same."""
+was put in), so an older effort reads the same.
+
+4.85.0 (step I3): what is still in force. An amendment re-posts only what changed, so after an add the documents of the
+package that the release did not replace are listed (not_replaced) and stay in force unless the team says otherwise. One
+marked no longer in force keeps everything; it is "withdrawn" with why "not in force" and the release, stops building the
+matrix as a withdrawn document does, and can be put back in force."""
 import datetime
 import re
 
@@ -64,7 +69,7 @@ def releases(lib):
     """[{"key", "part", "name", "date"}] every release a customer document's version arrived as, oldest first."""
     seen = {}
     for d in lib.all:
-        if d.get("category", "customer") not in CUSTOMER_SIDE or d.get("withdrawn"):
+        if d.get("category", "customer") not in CUSTOMER_SIDE or d.get("withdrawn") and not no_longer(d):
             continue
         for v in d.get("versions") or []:
             if not v.get("arrived_as"):
@@ -254,3 +259,88 @@ def has_groups(lib):
     """Groups show once there is an amendment: before that every customer document is As issued. 4.84.0: or once a
     document has a release."""
     return bool(amendments(lib)) or bool(releases(lib))
+
+
+# ------------------------------------------------------------ 4.85.0 (step I3): what the release did not replace
+NOT_IN_FORCE = "not in force"
+
+
+def no_longer(d):
+    """The release a document was marked no longer in force with, or "" (a document withdrawn because its file is gone is
+    not one)."""
+    w = d.get("withdrawn") or {}
+    return w.get("release", "") if w.get("why") == NOT_IN_FORCE else ""
+
+
+def in_part(d, part):
+    """True when a version of the document came Part of this package. A document from before 4.84.0, with no release,
+    is in the Solicitation (it read As issued, or the amendment it was put in)."""
+    vs = d.get("versions") or []
+    if any(v.get("part_of") == part for v in vs):
+        return True
+    return part == PACKAGES[0] and not any(v.get("arrived_as") for v in vs)
+
+
+def release_of_add(plan):
+    """(part, release) most of an add's files arrived as (the strip's), or None when no file's release was said."""
+    seen = {}
+    for e in plan or []:
+        if e.get("choice") in ("new", "version") and e.get("arrived_as"):
+            k = (e.get("part_of", ""), e["arrived_as"])
+            seen[k] = seen.get(k, 0) + 1
+    return max(seen, key=seen.get) if seen else None
+
+
+def not_replaced(lib, part, release, touched):
+    """The documents of the package, still in force, that this release did not bring a version of: the customer's (not
+    an amendment's cover, not one marked Not needed), not touched by the add and not already in this release."""
+    out = []
+    for d in lib.all:
+        if (d.get("category", "customer") not in CUSTOMER_SIDE or d.get("withdrawn") or is_amendment(d) or d["id"] in touched
+                or lib.role_of(d) == "not_needed" or not in_part(d, part)):
+            continue
+        vs = d.get("versions") or []
+        if vs and vs[-1].get("arrived_as") == release and vs[-1].get("part_of", "") == part:
+            continue
+        out.append(d)
+    return sorted(out, key=lambda d: d.get("name", "").casefold())
+
+
+def not_in_force(lib, rec, ids, release, who=None):
+    """Mark documents no longer in force with this release: kept, marked, and they stop building the matrix. Returns how
+    many were marked."""
+    import getpass
+    who = who or getpass.getuser()
+    n = 0
+    for i in ids or []:
+        d = lib.doc(i)
+        if d is None or d.get("withdrawn"):
+            continue
+        d["withdrawn"] = {"when": datetime.datetime.now().isoformat(timespec="minutes"), "who": who, "why": NOT_IN_FORCE,
+                          "release": release, "role": d.get("role") or ""}
+        if lib.role_of(d) == "matrix":
+            d["role"] = "reference"
+        n += 1
+        if rec is not None:
+            rec.log("document", f"{d.get('name', '')}: no longer in force with {release}", who=who)
+    if n:
+        lib.save()
+        if rec is not None:
+            rec.save()
+    return n
+
+
+def back_in_force(lib, rec, doc_id, who=None):
+    """Undo not_in_force: the document is in force again, with the purpose it had."""
+    d = lib.doc(doc_id)
+    if d is None or not no_longer(d):
+        return False
+    w = d.pop("withdrawn")
+    if w.get("role"):
+        d["role"] = w["role"]
+    else:
+        d.pop("role", None)
+    lib.save()
+    if rec is not None:
+        rec.log("document", f"{d.get('name', '')}: back in force", who=who, save=True)
+    return True

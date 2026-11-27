@@ -19,6 +19,7 @@ import diag
 import effortfolders as EF
 import docintake as DI
 import docversions as DV
+import docpackages as DP
 from . import design as D
 from . import progress as PR
 from .doctypeui import type_box
@@ -938,6 +939,7 @@ class LibraryPage(QWidget):
             except Exception:
                 diag.swallowed()
         folder, cd = self.lib.folder, self._customer_dir(); __import__("skqt.usedfor", fromlist=["x"]).split_uses(plan)   # 4.61.0
+        self._plan = plan                                 # 4.85.0: the summary after the add reads it
         lines = []
 
         def job(prog, stop):
@@ -964,9 +966,10 @@ class LibraryPage(QWidget):
         text = ", ".join(f"{n} to {self.lib.category_name(c)}" for c, n in by.items()) or "nothing new"
         diag.activity("library_intake_done", n=len(made))
         self.host.refresh_level()                      # 2.97.0: the effort's level follows its documents
-        try:                                           # 2.98.0: what each new version changed, at once
+        sums = []
+        try:                                           # 2.98.0: what each new version changed; 4.85.0: in one summary
             from .whatview import after_added
-            after_added(self.host, made, DV.Library(self.lib.folder).load())
+            sums = after_added(self.host, made, DV.Library(self.lib.folder).load(), run=None if self.effort_rec() is None else False)
         except Exception:
             diag.swallowed()
         self.panel.done("Added", f"{len(made)} document version(s) added: {text}.")
@@ -974,8 +977,11 @@ class LibraryPage(QWidget):
         self.refresh()
         if made:
             self.show_added([d["id"] for d, _v in made])
-            if getattr(self, "_ask_pkg", False) or getattr(self, "package_answer", None):    # 4.29.1: asked once per add
+            plan = getattr(self, "_plan", None) or []
+            if (getattr(self, "_ask_pkg", False) and not DP.release_of_add(plan)) or getattr(self, "package_answer", None):   # 4.29.1
                 __import__("skqt.docgroups", fromlist=["x"]).ask_package(self, made, getattr(self, "package_answer", None))
+            from .intakesummary import after_add                     # 4.85.0
+            self.last_summary = after_add(self, plan, made, sums)
         then, self.then = getattr(self, "then", None), None   # 4.52.0: Shred to setup goes on to Shred once the add ends
         then(made) if then is not None else None
 

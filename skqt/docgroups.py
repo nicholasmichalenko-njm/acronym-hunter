@@ -8,7 +8,10 @@ read as one list. The package is set on the row: right-click > Package. Rules on
 4.84.0 (step I2): once a document has a release (Part of and Arrived as, set in Add documents), the groups are the
 releases ("Solicitation: Amendment 0002", with its date), oldest first, after As issued and any amendment added before.
 Right-click > Arrived as (was Package: Part of is now the package's name) lists the same. Files whose release was said
-in Add documents are not asked about again."""
+in Add documents are not asked about again.
+
+4.85.0 (step I3): a document marked no longer in force (from the summary after an add) says so on its row, with the
+release, and right-click > Back in force undoes it."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
@@ -81,10 +84,22 @@ def set_package(page, key, ids=None):
     return n
 
 
+def back_in_force(page, doc_id):
+    """4.85.0: a document marked no longer in force with a release is in force again, with the purpose it had."""
+    ok = DP.back_in_force(page.lib, page.effort_rec(), doc_id)
+    if ok:
+        diag.activity("documents_back_in_force", n=1)
+        page.fill()
+        page.host.toast("Back in force")
+    return ok
+
+
 def menu(page, m, d):
     """Arrived as (4.25.4's Package), on a customer document's right-click menu, once there is an amendment or a
     release."""
     lib = page.lib
+    if lib is not None and DP.no_longer(d):                 # 4.85.0: undo No longer in force
+        m.addAction("Back in force", lambda: back_in_force(page, d["id"]))
     if lib is None or not DP.has_groups(lib) or not DP.of(lib, d) or (DP.is_amendment(d) and not DP.first_release(d)):
         return None
     pm = m.addMenu("Arrived as")
