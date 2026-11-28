@@ -240,7 +240,7 @@ class ComparePage(QWidget):
         self.tags = tag_rows(self.rows, self.links, self.impact)
         self.suggest = [CM.suggest(r, self.links[k], M, self.tags[k], self.snaps[1]) for k, r in enumerate(self.rows)]
         self.touch = CM.touches(self.rows, self.links, M, self.snaps[1])
-        self.review.set_touch(self.pk, self.touch, save=False)
+        self.review.set_touch(self.pk, self.touch, save=False, changed=CM.changed_ids(self.rows, self.links))   # 4.86.0
         self.review.save()
         self.load_pages()
         c = DV.summary(self.rows)

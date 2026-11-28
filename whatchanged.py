@@ -83,7 +83,7 @@ def summary(lib, d, vb, va=None, M=None, data_dir=""):
             if M is not None:                       # 3.89.0 decision 6: the placed sentences it touches, flagged at once
                 import comparemap as CM
                 rv.opened(d, va, vb, rows, save=False)
-                rv.set_touch(CRV.pair_key(va, vb), CM.touches(rows, links, M, lib.text(vb)))
+                rv.set_touch(CRV.pair_key(va, vb), CM.touches(rows, links, M, lib.text(vb)), changed=CM.changed_ids(rows, links))
         except Exception:
             pass
     title = f"What changed in {vb.get('label', 'the new version')}" + (f" of {d.get('name', '')}" if d.get("name") else "")

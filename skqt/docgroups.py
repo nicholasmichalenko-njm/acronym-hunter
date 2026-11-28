@@ -11,7 +11,10 @@ Right-click > Arrived as (was Package: Part of is now the package's name) lists 
 in Add documents are not asked about again.
 
 4.85.0 (step I3): a document marked no longer in force (from the summary after an add) says so on its row, with the
-release, and right-click > Back in force undoes it."""
+release, and right-click > Back in force undoes it.
+
+4.86.0 (step I4): the group line of the release that brought a package's Section J says how many of the attachments it
+lists are in the package ("Section J: 13 of 14 here"; the missing ones on hover)."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
@@ -44,11 +47,15 @@ def fill(page, docs, item):
     t.clearSpans()
     t.setRowCount(len(rs))
     ncol = len(DF.COLUMNS)
+    sj = sectionj_lines(page.lib) if any(row[0] == "group" for row in rs) else {}
     for r, row in enumerate(rs):
         if row[0] == "group":
             k, name, n = row[1:]
             when = DP.date_of(page.lib, k) if k else ""
-            it = item(f"{name}   ·   " + (f"{when}   ·   " if when else "") + f"{n} document" + ("" if n == 1 else "s"))
+            it = item(f"{name}   ·   " + (f"{when}   ·   " if when else "") + f"{n} document" + ("" if n == 1 else "s")
+                      + (f"   ·   {sj[k][0]}" if k in sj else ""))
+            if k in sj and sj[k][1]:
+                it.setToolTip(sj[k][1])
             f = it.font(); f.setWeight(QFont.DemiBold); it.setFont(f)
             it.setFlags(Qt.ItemIsEnabled)
             it.setBackground(D.color("surface2"))
@@ -70,6 +77,22 @@ def fill(page, docs, item):
                 ci.setForeground(D.color("muted"))
                 t.setItem(r, c, ci)
     return len(rs)
+
+
+def sectionj_lines(lib):
+    """4.86.0: {group key: (short words, what is missing)} for each package whose Section J was read."""
+    import sectionj as SJ
+    out = {}
+    if lib is None:
+        return out
+    try:
+        for part in DP.package_names(lib):
+            r = SJ.check(lib, part)
+            if r:
+                out.setdefault(DP.of(lib, r["doc"]), (SJ.short(r), SJ.missing_text(r) or SJ.line(r)))
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return out
 
 
 def set_package(page, key, ids=None):

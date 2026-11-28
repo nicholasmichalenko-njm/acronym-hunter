@@ -3,6 +3,7 @@ offers Other (a document that has it keeps it); a new type is saved to the team'
 cancelling goes back to the type that was picked; Settings > Document types has no Numbered column and the built-in
 initials are the short names; an initial keeps its letters as typed (Sec L) and two that differ only in capitals are
 the same; a term with no definition is exported with an empty definition. Fictional content."""
+# 4.86.0: Wage determination is a built-in type now, so the type added here is "Bid bond".
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
@@ -41,16 +42,16 @@ cb.setCurrentIndex(cb.findText("SOW")); TU.picked(cb)
 cb.setCurrentIndex(0)
 check("Add a type..., cancelled: back to the type that was picked", TU.picked(cb, answer=()) == "" and cb.currentText() == "SOW" and seen[-1] == "SOW")
 cb.setCurrentIndex(0)
-got = TU.picked(cb, answer=("Wage determination", ""))
+got = TU.picked(cb, answer=("Bid bond", ""))
 T = DT.load(cfg)["types"]
-check("Add a type...: saved to the team's types before Other, with its short name, and picked", got == "Wage determination"
-      and cb.currentText() == "Wage determination" and [t["name"] for t in T][-2:] == ["Wage determination", "Other"]
-      and next(t for t in T if t["name"] == "Wage determination")["initial"] == "WD" and DV.TYPE_INITIAL["Wage determination"] == "WD"
-      and seen[-1] == "Wage determination", (cb.currentText(), [t["name"] for t in T][-2:]))
+check("Add a type...: saved to the team's types before Other, with its short name, and picked", got == "Bid bond"
+      and cb.currentText() == "Bid bond" and [t["name"] for t in T][-2:] == ["Bid bond", "Other"]
+      and next(t for t in T if t["name"] == "Bid bond")["initial"] == "BB" and DV.TYPE_INITIAL["Bid bond"] == "BB"
+      and seen[-1] == "Bid bond", (cb.currentText(), [t["name"] for t in T][-2:]))
 cb.setCurrentIndex(0)
-check("a name already listed is picked, not added twice", TU.picked(cb, answer=("wage determination", "X9")) == "Wage determination"
-      and len([t for t in DT.load(cfg)["types"] if t["name"].lower() == "wage determination"]) == 1)
-check("a new box offers it", "Wage determination" in texts(TU.type_box("")))
+check("a name already listed is picked, not added twice", TU.picked(cb, answer=("bid bond", "X9")) == "Bid bond"
+      and len([t for t in DT.load(cfg)["types"] if t["name"].lower() == "bid bond"]) == 1)
+check("a new box offers it", "Bid bond" in texts(TU.type_box("")))
 check("a short name is its own initial; a long one takes its words' first letters", TU.short_name("Annex") == "Annex" and TU.short_name("Pricing instructions") == "PI")
 dc = w.settings_page.doctypes_card
 dc.fill()

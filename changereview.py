@@ -72,11 +72,14 @@ class Review:
             self.save()
         return p
 
-    def set_touch(self, pk, touch, save=True):
+    def set_touch(self, pk, touch, save=True, changed=None):
         """3.89.0 (decision 6): the placed sentences each change of this pair touches ({key: {"items", "how", "heading"}}),
-        so Review and Setup flag them until the change is decided."""
+        so Review and Setup flag them until the change is decided. 4.86.0 (step I4): changed, every matrix row the pair's
+        changes touched, placed or not (Matrix > Assign's Last changed by); an optional key, so no format number changes."""
         p = self.pairs.setdefault(pk, {"decisions": {}})
         p["touch"] = touch or {}
+        if changed is not None:
+            p["changed"] = list(dict.fromkeys(changed))
         if save:
             self.save()
         return p

@@ -10,8 +10,18 @@ intake"): one window says what the add brought, in place of one What changed car
   that package that the release did not replace. An amendment re-posts only what changed, so each stays in force; tick
   one the customer no longer uses and it is marked no longer in force (kept, and it stops building the matrix;
   right-click > Back in force on Documents undoes it).
-Shown only in an effort, and only when there is a new version or a document to confirm. Rules only (No AI); nothing
-leaves the PC."""
+Shown only in an effort, and only when there is a new version or a document to confirm.
+
+4.86.0 (step I4): Change notices and the Section J check.
+- A change notice the add brought (a file typed Amendment, Q&A, Evaluation Notice or FPR request, or a type renamed
+  from one) is listed first under "Change notice", with the change instructions an amendment holds; double-click or
+  right-click > Show on the page opens it, and an amendment with instructions offers Apply its instructions.... A
+  notice brings the window up on its own, and when the add said no release it stands for one (its own name), so the
+  package's documents it did not replace are still listed.
+- Under the line, Section J's count for the package the add was part of ("Section J lists 4 attachments; 3 are in
+  this package. Not here: J-3 DD Form 254."). An attachment Section J lists that is not in the package brings the
+  window up on its own, even for a first release.
+Rules only (No AI); nothing leaves the PC."""
 import os
 
 from PySide6.QtCore import Qt
@@ -19,6 +29,9 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QListWidget, QListWidgetItem
 
 import diag
 import docpackages as DP
+import doctypes as DT
+import docversions as DV
+import sectionj as SJ
 from . import design as D
 
 
@@ -61,12 +74,30 @@ def plan_of(page, plan, made, summaries):
     ticked = {e.get("doc") for e in plan or [] if e.get("choice") == "version" and e.get("compare")}
     asked = {e.get("doc") for e in plan or [] if e.get("choice") == "version" and "compare" in e}
     versions = [(s, s["doc"]["id"] in ticked or s["doc"]["id"] not in asked) for s in summaries or []]
+    notices = []
+    for d, _v in made or []:                                       # 4.86.0: the change notices the add brought
+        dd = (lib.doc(d["id"]) if lib is not None else None) or d
+        if dd.get("category", "customer") in DP.CUSTOMER_SIDE and DT.is_change_notice(dd.get("type", "")) and dd not in notices:
+            notices.append(dd)
     rel = DP.release_of_add(plan)
+    said = rel is not None
+    if rel is None and notices:
+        rel = DP.release_of_notice(notices[0], lib)
     confirm = []
+    touched = {d["id"] for d, _v in made or []} | {e.get("doc") for e in plan or [] if e.get("doc")}
     if rel is not None and lib is not None:
-        touched = {d["id"] for d, _v in made or []} | {e.get("doc") for e in plan or [] if e.get("doc")}
         confirm = DP.not_replaced(lib, rel[0], rel[1], touched)
-    return {"line": line(counts(plan)), "release": rel, "versions": versions, "confirm": confirm}
+    sj = None
+    if lib is not None:
+        part = rel[0] if rel else DP.PACKAGES[0]
+        mine = [lib.doc(i) for i in touched if i and lib.doc(i)]
+        if any(d.get("category", "customer") in DP.CUSTOMER_SIDE and DP.in_part(d, part) for d in mine):
+            try:
+                sj = SJ.check(lib, part)
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+    return {"line": line(counts(plan)), "release": rel, "said": said, "versions": versions, "confirm": confirm,
+            "notices": notices, "sectionj": sj}
 
 
 def fit(lst, most=10):
@@ -81,7 +112,7 @@ def after_add(page, plan, made, summaries, run=None):
     if page.effort_rec() is None or not made:
         return None
     p = plan_of(page, plan, made, summaries)
-    if not p["versions"] and not p["confirm"]:
+    if not p["versions"] and not p["confirm"] and not p["notices"] and not (p["sectionj"] and p["sectionj"]["missing"]):
         return None
     dlg = SummaryDialog(page, p)
     if run is None:
@@ -101,6 +132,36 @@ class SummaryDialog(QDialog):
         self.setMinimumWidth(720)
         v = QVBoxLayout(self)
         v.addWidget(D.label(p["line"], "title"))
+        sj = p.get("sectionj")                                        # 4.86.0: the Section J check
+        self.sj_line = D.label(" ".join(x for x in (SJ.line(sj), SJ.missing_text(sj)) if x), "muted" if not (sj and sj["missing"]) else None)
+        self.sj_line.setWordWrap(True); self.sj_line.setVisible(bool(sj))
+        if sj:
+            self.sj_line.setToolTip(f"Read from Section J of {sj['doc'].get('name', '')}")
+            v.addWidget(self.sj_line)
+        self.notices = QListWidget()                                  # 4.86.0: the change notices the add brought
+        for d in p.get("notices") or []:
+            vs = d.get("versions") or [{}]
+            n_ins = 0
+            if str(DV.type_of(d.get("type", ""))).casefold().startswith("amend") or DP.is_amendment(d):
+                try:
+                    import amendinst as AI
+                    n_ins = len(AI.instructions_of(page.lib, vs[-1]))
+                except Exception:  # noqa: BLE001
+                    diag.swallowed()
+            lab = vs[-1].get("label", "")
+            bits = [d.get("name", ""), d.get("type", "")] + ([lab] if lab not in ("", "Original", d.get("name")) else [])
+            if n_ins:
+                bits.append(f"{n_ins} change instruction" + ("" if n_ins == 1 else "s"))
+            it = QListWidgetItem("   ·   ".join(b for b in bits if b))
+            it.setData(Qt.UserRole, (d["id"], vs[-1].get("file", ""), n_ins))
+            it.setToolTip("The customer's notice of what changed. Double-click to read it on the page.")
+            self.notices.addItem(it)
+        self.notices.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.notices.customContextMenuRequested.connect(self.notice_menu)
+        self.notices.itemDoubleClicked.connect(lambda it: self.on_page(it.data(Qt.UserRole)[1]))
+        if p.get("notices"):
+            v.addWidget(D.label("Change notice" if len(p["notices"]) == 1 else "Change notices", "label"))
+            v.addWidget(self.notices); fit(self.notices, 4)
         self.versions = QListWidget()
         for s, on in p["versions"]:
             it = QListWidgetItem(f"{s['doc'].get('name', '')}   {s['from'].get('label', '')} to {s['to'].get('label', '')}   ·   {what(s)}")
@@ -190,6 +251,28 @@ class SummaryDialog(QDialog):
         if run:
             m.exec(self.versions.viewport().mapToGlobal(pos))
         return m
+
+    def notice_menu(self, pos, run=True):
+        """4.86.0: right-click a change notice: Show on the page; Apply its instructions... for an amendment that has them."""
+        it = self.notices.itemAt(pos)
+        if it is None:
+            return None
+        did, file, n_ins = it.data(Qt.UserRole)
+        m = QMenu(self)
+        act = m.addAction("Show on the page", lambda: self.on_page(file))
+        act.setEnabled(self.host.review is not None and bool(file))
+        if n_ins:
+            m.addAction("Apply its instructions...", lambda: self.apply_instructions(did))
+        if run:
+            m.exec(self.notices.viewport().mapToGlobal(pos))
+        return m
+
+    def apply_instructions(self, doc_id, answer=None):
+        """Close the summary and open Apply its instructions for the amendment (Documents' own window)."""
+        self.keep()
+        self.accept()
+        self.page.select(doc_id)
+        return self.page.conform(answer=answer)
 
     def on_page(self, file):
         self.keep()

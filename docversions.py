@@ -140,11 +140,13 @@ def snapshot(name, chunks):
 
 
 # ------------------------------------------------------------------ what each customer document is (2.68.0)
-DOC_TYPES = ("RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Q&A", "Attachment", "CDRL", "DD 254", "Contract",
-             "Task order", "Delivery order", "Other")
-TYPE_INITIAL = {"RFP": "RFP", "Amendment": "Amd", "SOW": "SOW", "SOO": "SOO", "PWS": "PWS", "Section L": "Sec L", "Section M": "Sec M",
-                "Q&A": "QA", "Attachment": "Att", "CDRL": "CDRL", "DD 254": "DD254", "Contract": "Con", "Task order": "TO",
-                "Delivery order": "DO", "Other": "X"}      # 4.24.0: the type's short name (doctypes.BUILT_IN)
+def _built_in():
+    import doctypes
+    return doctypes.BUILT_IN
+
+
+DOC_TYPES = tuple(t["name"] for t in _built_in())           # 4.86.0: from doctypes.BUILT_IN, so the two never differ
+TYPE_INITIAL = {t["name"]: t["initial"] for t in _built_in()}      # 4.24.0: the type's short name
 ORDER_TYPES = ("Task order", "Delivery order")      # filed under the base contract or RFP, each with its own versions (mods)
 BASE_TYPES = ("Contract", "RFP")
 
@@ -187,14 +189,8 @@ def guess_type(name):
         for w in [x.strip().lower() for x in re.split(r"[,;]", words) if x.strip()]:
             if re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", n.replace("_", " ")):
                 return t
-    for pat, t in ((r"\btask[\s_-]*order\b|\bto[\s_-]?\d{2,4}\b", "Task order"),
-                   (r"\bdelivery[\s_-]*order\b|\bdo[\s_-]?\d{2,4}\b", "Delivery order"),
-                   (r"\bidiq\b|\bbase[\s_-]*contract\b|\bcontract\b(?!.*\b(?:amend|mod)\b)", "Contract"),
-                   (r"amend|\bamd\b|_amd|amd\d|\bmod\b", "Amendment"), (r"\bsow\b|statement[\s_-]*of[\s_-]*work", "SOW"),
-                   (r"\bsoo\b|statement[\s_-]*of[\s_-]*objectives", "SOO"), (r"\bpws\b|performance[\s_-]*work", "PWS"),
-                   (r"q\s*&\s*a|questions|\bqa\b", "Q&A"), (r"cdrl", "CDRL"), (r"dd[\s_-]*254", "DD 254"),
-                   (r"attachment|\batt\b|exhibit|\bj-\d", "Attachment"), (r"section[\s_]*l\b", "Section L"),
-                   (r"section[\s_]*m\b", "Section M"), (r"\brfp\b|solicitation|\brfq\b", "RFP")):
+    import doctypes
+    for pat, t in doctypes.NAME_PATTERNS:                       # 4.86.0: the patterns live with the list
         if re.search(pat, n.replace("_", " ")) and t in DOC_TYPES:
             return t
     return "RFP" if "RFP" in DOC_TYPES else (DOC_TYPES[0] if DOC_TYPES else "Other")
@@ -205,7 +201,7 @@ def guess_type(name):
 CATEGORIES = (("customer", "Customer Documents"), ("bidders", "Bidders Library"), ("qa", "Q&A"), ("ours", "Our Documents"),   # 3.78.0: as the folders are named
               ("graphics", "Graphics"))       # 3.78.0: pictures, kept in the Effort Library's Graphics folder
 from docmarks import ROLES, ROLE_NAMES, USES, ADD_USES, RETURNS, RETURN_NAMES, SOURCE_NAMES, use_key, source_name, MarksMixin   # 4.25.2: Used for
-MATRIX_TYPES = {"RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Task order", "Delivery order"}
+MATRIX_TYPES = {t["name"] for t in _built_in() if t["matrix"]}      # 4.86.0: from doctypes.BUILT_IN
 _CAT_WORDS = (("graphics", r"graphics?\b|pictures?\b|images?\b|figures?\b|art\b"),
               ("qa", r"q\s*&\s*a|\bqa\b|questions?\b|answers?\b"),
               ("bidders", r"bidders?|library|reference|standards?|\bmil[\s_-]*(std|hdbk)|specs?\b|handbook"),

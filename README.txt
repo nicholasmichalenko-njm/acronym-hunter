@@ -155,6 +155,16 @@ DOCUMENTS: PACKAGES (4.25.4)
   - A document is As issued until you say otherwise. Right-click a customer document > Arrived as (was Package)
     and pick the release or amendment that brought it. Several rows can be set at once.
 
+DOCUMENTS: TYPES, CHANGE NOTICES, SECTION J AND LAST CHANGED BY (4.86.0)
+  - Document types has the rest of a solicitation's usual parts, each guessed from a file's name. A list your team
+    saved is not changed: Settings > Document types names the new types with Add them (then Save) and Leave them out.
+  - A change notice (Amendment, Q&A, Evaluation Notice, FPR request) is listed first in the window after an add. It
+    brings the window up by itself; with no release said it stands for one. Right-click: Show on the page, and Apply
+    its instructions... for an amendment that holds change instructions.
+  - Section J's list of attachments is counted against the package, in the window after an add and on Documents'
+    group line ("Section J: 13 of 14 here"; the missing ones on hover).
+  - Matrix > Assign: Last changed by, the newest version whose changes touched a piece's words.
+
 DOCUMENTS: COMPARE AT INTAKE (4.85.0)
   - In Add documents, a new version of a customer document has Compare with, ticked, and the version it is compared
     with.

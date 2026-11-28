@@ -120,6 +120,16 @@ def touches(rows, links, M=None, snap_new=None):
     return out
 
 
+def changed_ids(rows, links):
+    """4.86.0 (step I4): every matrix row a change touches, placed or not, editorial changes left out."""
+    out = []
+    for i, r in enumerate(rows):
+        if r.get("kind") == "same" or editorial(r):
+            continue
+        out += [h["id"] for h in (links[i] if i < len(links) else []) if h.get("id")]
+    return list(dict.fromkeys(out))
+
+
 def flag_text(t, label):
     if t["how"] == "removed":
         return f"Removed in {label}"

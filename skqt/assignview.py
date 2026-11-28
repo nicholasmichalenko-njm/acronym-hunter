@@ -4,13 +4,17 @@ picked); on the right the outline with how many each section holds. Pick pieces,
 Also in this section keeps a piece where it is and adds it here; Take out removes it; Take the suggestions places
 every piece that has a suggested section. Nothing else is decided here: what a piece is comes from Shred, the sections
 from Outline. The same links as Place on the customer's page (More), the matrix and the setup. The logic is
-assignlinks; this is its page. Rules only (No AI); nothing leaves the PC."""
+assignlinks; this is its page.
+
+4.86.0 (step I4): Last changed by, the newest version of a customer document whose changes touched a piece's words
+(lastchanged.py, read from what What changed keeps); blank when none did. Rules only (No AI); nothing leaves the PC."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView, QLineEdit, QSplitter, QTableWidget,
                                QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 import assignlinks as AL
 import diag
+import lastchanged as LC
 from . import design as D
 from .commandbar import CommandBar
 
@@ -55,8 +59,9 @@ class AssignView(QWidget):
         self.find = QLineEdit(); self.find.setPlaceholderText("Find"); self.find.setClearButtonEnabled(True)
         self.find.textChanged.connect(lambda _t: self.fill())
         row.addWidget(self.find, 1)
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(["From", "The customer's words", "Section", "Suggested", "Status"])
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(["From", "The customer's words", "Section", "Suggested", "Status", "Last changed by"])
+        self.table.horizontalHeaderItem(5).setToolTip("The newest version of the customer's document that changed these words")
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows); self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers); self.table.verticalHeader().setVisible(False)
         self.table.setWordWrap(False)
@@ -64,7 +69,7 @@ class AssignView(QWidget):
         h.setSectionResizeMode(0, QHeaderView.ResizeToContents); h.setSectionResizeMode(1, QHeaderView.Stretch)
         h.setSectionResizeMode(2, QHeaderView.Interactive); h.setSectionResizeMode(3, QHeaderView.Interactive)
         self.table.setColumnWidth(2, 170); self.table.setColumnWidth(3, 170)
-        h.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        h.setSectionResizeMode(4, QHeaderView.ResizeToContents); h.setSectionResizeMode(5, QHeaderView.ResizeToContents)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)                # 4.68.0: the mark, on the row
         self.table.customContextMenuRequested.connect(lambda pos: self.row_menu().exec(self.table.viewport().mapToGlobal(pos)))
         self.table.itemSelectionChanged.connect(self.enable)
@@ -129,9 +134,11 @@ class AssignView(QWidget):
         t = self.table
         t.blockSignals(True)
         t.setRowCount(len(self.data))
+        last = LC.for_host(self.host)                                     # 4.86.0
         for r, d in enumerate(self.data):
-            for c, text in enumerate((d["ref"], " ".join(d["text"].split()), "; ".join(d["sections"]), d["suggested"], d["mark"])):
-                it = QTableWidgetItem(text); it.setToolTip(d["text"] if c == 1 else text)
+            e = last.get(d["id"])
+            for c, text in enumerate((d["ref"], " ".join(d["text"].split()), "; ".join(d["sections"]), d["suggested"], d["mark"], LC.text(e))):
+                it = QTableWidgetItem(text); it.setToolTip(d["text"] if c == 1 else (LC.tip(e) if c == 5 else text))
                 t.setItem(r, c, it)
         t.blockSignals(False)
         t.clearSelection()

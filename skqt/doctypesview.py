@@ -1,6 +1,9 @@
 """Settings > Document types (2.94.0): the team's customer document types and their default initials. Picking a type
 when adding a document fills in its initial (numbered for types like Amendment: A1, A2...). A renamed type keeps its
-documents. A team pack can carry these and lock them. On this PC only."""
+documents. A team pack can carry these and lock them. On this PC only.
+
+4.86.0 (step I4): when the saved list lacks types that came with 4.86.0, a line above the table names them with Add them
+(they join the table above Other; Save keeps them, as any change here) and Leave them out (remembered on this PC)."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHBoxLayout, QHeaderView, QTableWidget, QTableWidgetItem, QWidget)
 import diag
@@ -27,6 +30,13 @@ class DocTypesCard(D.Card):
                                   D.button("Save", "primary", lambda: self.save())])
         self.host = host
         self.lock_note = self.add(D.label("", "muted"))
+        self.new_box = QWidget(); nb = QHBoxLayout(self.new_box); nb.setContentsMargins(0, 0, 0, 0)      # 4.86.0
+        self.new_line = D.label("", "muted"); self.new_line.setWordWrap(True)
+        nb.addWidget(self.new_line, 1)
+        nb.addWidget(D.button("Leave them out", "ghost", lambda: self.leave_new()))
+        nb.addWidget(D.button("Add them", None, lambda: self.add_new()))
+        self.body.addWidget(self.new_box)
+        self.new_types = []
         t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Type", "Initial", "Numbered", "Customer document", "File name words"])
         t.setColumnHidden(2, True)                      # 4.24.0: numbering is automatic; the value is kept as it was saved
         t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -59,6 +69,35 @@ class DocTypesCard(D.Card):
         self.lock_note.setText(f"Set by the team pack ({lk}). They change when the team sends a new pack." if lk else "")
         self.lock_note.setVisible(bool(lk))
         self.table.setEnabled(not lk)
+        self.say_new(None if lk else DT.missing_new(self.host.config_dir))
+
+    def say_new(self, missing):
+        """4.86.0: the line that offers the types new in 4.86.0 the saved list does not have."""
+        self.new_types = list(missing or [])
+        n = len(self.new_types)
+        self.new_line.setText(f"{n} type" + (" came" if n == 1 else "s came") + " with 4.86.0 and " + ("is" if n == 1 else "are")
+                              + " not in your list: " + ", ".join(t["name"] for t in self.new_types) + "." if n else "")
+        self.new_box.setVisible(bool(n))
+
+    def add_new(self):
+        """The new types join the table above Other; Save keeps them."""
+        if not self.new_types:
+            return 0
+        t = self.table
+        at = next((i for i in range(t.rowCount()) if self._vals(i)["orig"] == "Other"), t.rowCount())
+        for k, x in enumerate(self.new_types):
+            self._row(dict(x, orig=None), at=at + k)
+        n = len(self.new_types)
+        diag.activity("qt_doctypes_new_added", n=n)
+        self.say_new([])
+        self.note.setText(f"{n} type" + ("" if n == 1 else "s") + " added above Other. Save keeps them.")
+        return n
+
+    def leave_new(self):
+        DT.leave_out(self.host.config_dir, [t["name"] for t in self.new_types])
+        diag.activity("qt_doctypes_new_left_out", n=len(self.new_types))
+        self.say_new([])
+        return True
 
     def _row(self, x, at=None):
         t = self.table

@@ -14,7 +14,10 @@ was put in), so an older effort reads the same.
 4.85.0 (step I3): what is still in force. An amendment re-posts only what changed, so after an add the documents of the
 package that the release did not replace are listed (not_replaced) and stay in force unless the team says otherwise. One
 marked no longer in force keeps everything; it is "withdrawn" with why "not in force" and the release, stops building the
-matrix as a withdrawn document does, and can be put back in force."""
+matrix as a withdrawn document does, and can be put back in force.
+
+4.86.0 (step I4): a change notice (an amendment's SF 30, a Q&A set, an Evaluation Notice, an FPR request) added with no
+release said stands for one (release_of_notice), so the summary after the add still lists what it did not replace."""
 import datetime
 import re
 
@@ -289,6 +292,28 @@ def release_of_add(plan):
             k = (e.get("part_of", ""), e["arrived_as"])
             seen[k] = seen.get(k, 0) + 1
     return max(seen, key=seen.get) if seen else None
+
+
+def release_of_notice(d, lib=None):
+    """4.86.0 (step I4): (part, release) a change notice stands for when an add did not say its release, named as the
+    Add documents line would name it: an amendment's number from its file name, else its own initial (Amd2), else one past
+    the highest ("Amendment 0002"); a Q&A set the same way; an Evaluation Notice and an FPR request are Discussions & FPR.
+    Nothing is saved: the notice's own release stays as it was said (Not said)."""
+    import docversions as DV
+    t = DV.type_of(d.get("type", ""))
+    olds = {t} | {o for o, n in DV.TYPE_ALIAS.items() if n == t}
+    names = " ".join([d.get("name", "")] + [v.get("file", "") for v in d.get("versions") or []])
+    if olds & {"Evaluation Notice", "FPR request"}:
+        return PACKAGES[2], ("FPR request" if "FPR request" in olds else "Evaluation Notices")
+    kind, rx = ("Q&A set", _QA) if "Q&A" in olds else ("Amendment", _AMD)
+    m = rx.search(names)
+    n = int(m.group(1)) if m and m.group(1) else 0
+    if not n and kind == "Amendment":
+        mi = re.search(r"(\d+)\s*$", str(d.get("initial") or ""))
+        n = int(mi.group(1)) if mi else 0
+    if not n:
+        n = next_number(lib, PACKAGES[0], kind) if lib is not None else 1
+    return PACKAGES[0], release_name(kind, n)
 
 
 def not_replaced(lib, part, release, touched):
